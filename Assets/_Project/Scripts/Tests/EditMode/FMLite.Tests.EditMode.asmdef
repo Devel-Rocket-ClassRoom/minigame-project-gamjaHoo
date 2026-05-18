@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "FMLite.Core",
         "FMLite.Domain",
-        "FMLite.Persistence"
+        "FMLite.Persistence",
+        "FMLite.Utils"
     ],
     "includePlatforms": [
         "Editor"
