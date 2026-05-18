@@ -6,6 +6,7 @@
         "UnityEditor.TestRunner",
         "FMLite.Core",
         "FMLite.Domain",
+        "FMLite.Application",
         "FMLite.Persistence",
         "FMLite.Utils"
     ],
