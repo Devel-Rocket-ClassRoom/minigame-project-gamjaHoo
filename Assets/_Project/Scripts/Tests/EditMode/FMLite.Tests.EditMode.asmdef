@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "FMLite.Core"
+        "FMLite.Core",
+        "FMLite.Domain"
     ],
     "includePlatforms": [
         "Editor"

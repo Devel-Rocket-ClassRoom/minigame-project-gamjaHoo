@@ -191,7 +191,53 @@ public class TechnicalStats {
     public void ApplyToAll(Func<int, int> modifier) { ... }
 }
 
-// MentalStats, PhysicalStats, GoalkeepingStats 유사 구조
+[Serializable]
+public class MentalStats {
+    public int vision;
+    public int anticipation;
+    public int composure;
+    public int concentration;
+    public int decisions;
+    public int determination;
+    public int leadership;
+    public int offTheBall;
+    public int positioning;
+    public int teamwork;
+    public int workRate;
+    public int aggression;
+
+    public void ApplyToAll(Func<int, int> modifier) { ... }
+}
+
+[Serializable]
+public class PhysicalStats {
+    public int acceleration;
+    public int agility;
+    public int balance;
+    public int jumping;
+    public int naturalFitness;
+    public int pace;
+    public int stamina;
+    public int strength;
+
+    public void ApplyToAll(Func<int, int> modifier) { ... }
+}
+
+[Serializable]
+public class GoalkeepingStats {
+    public int aerialReach;
+    public int commandOfArea;
+    public int communication;
+    public int eccentricity;
+    public int handling;
+    public int kicking;
+    public int oneOnOnes;
+    public int reflexes;
+    public int rushingOut;
+    public int throwing;
+
+    public void ApplyToAll(Func<int, int> modifier) { ... }
+}
 ```
 
 ### 기타 값 객체
@@ -339,6 +385,17 @@ public enum OfferStatus {
     Accepted,
     Rejected,
     Completed
+}
+
+public enum CupTarget {
+    None,            // V0.1 기본 — 컵 미참여
+    GroupStage,
+    Round16,
+    QuarterFinal,
+    SemiFinal,
+    Final,
+    Win
+    // V1.0+ 컵 시스템에서 본격 활용
 }
 ```
 
