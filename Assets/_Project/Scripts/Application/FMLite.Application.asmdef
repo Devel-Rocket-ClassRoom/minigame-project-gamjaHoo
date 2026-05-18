@@ -1,0 +1,19 @@
+{
+    "name": "FMLite.Application",
+    "rootNamespace": "FMLite.Application",
+    "references": [
+        "FMLite.Core",
+        "FMLite.Domain",
+        "FMLite.Utils",
+        "FMLite.Persistence"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
