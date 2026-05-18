@@ -1,0 +1,23 @@
+{
+    "name": "FMLite.Editor",
+    "rootNamespace": "FMLite.Editor",
+    "references": [
+        "FMLite.Core",
+        "FMLite.Domain",
+        "FMLite.Utils",
+        "FMLite.Persistence",
+        "FMLite.Application",
+        "FMLite.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
