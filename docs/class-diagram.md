@@ -397,6 +397,12 @@ public enum CupTarget {
     Win
     // V1.0+ 컵 시스템에서 본격 활용
 }
+
+public enum FacilityType {
+    Scout,
+    Training,
+    Youth
+}
 ```
 
 ## ScriptableObject Layer

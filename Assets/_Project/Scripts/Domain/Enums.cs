@@ -51,4 +51,11 @@ namespace FMLite.Domain
         Final,
         Win,
     }
+
+    public enum FacilityType
+    {
+        Scout,
+        Training,
+        Youth,
+    }
 }
