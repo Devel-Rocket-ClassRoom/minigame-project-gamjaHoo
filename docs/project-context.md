@@ -32,6 +32,13 @@
 | Editor Tools | Built-in + Custom Editor (when needed) |
 | Dependencies | Minimized (no Odin) |
 
+### Imported Assets (외부 유료 에셋)
+
+라이선스 보호를 위해 public repo에는 커밋 금지. 별도 private git repo로 관리되는 `Assets/Imported/` 아래에 임포트한다 (gitignored). Asset Store에서 임포트할 때 대상 폴더를 `Assets/Imported/<PackageName>/` 으로 지정.
+
+**Modern UI Pack 사용법:**
+- UI Manager: `Tools → Modern UI Pack → Show UI Manager`
+
 ## Architecture
 
 **Layered Architecture**
