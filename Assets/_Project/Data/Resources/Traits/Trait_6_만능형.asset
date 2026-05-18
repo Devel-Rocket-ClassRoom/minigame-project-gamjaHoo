@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
+  m_Name: "Trait_6_\uB9CC\uB2A5\uD615"
+  m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
+  id: 6
+  displayName: "\uB9CC\uB2A5\uD615"
+  description: "\uC5EC\uB7EC \uD3EC\uC9C0\uC158\uC744 \uC18C\uD654 \uAC00\uB2A5"
+  weight: 0.8
