@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9396ec02889a89847ba82f1c0ce4d992, type: 3}
+  m_Name: GameBalance
+  m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.GameBalanceSO
+  isDebugMode: 1
+  minCA: 30
+  maxCA: 200
+  minPA: 50
+  maxPA: 200
+  traitProbabilityPerPlayer: 0.3
+  initialRerollTokens: 3
+  maxRerollStockpile: 5
+  tierThresholdsAccumulated:
+  - 0.1
+  - 0.4
+  - 0.8
+  - 0.95
+  avgGoalsPerMatch: 2.7
+  homeAdvantageBonus: 0.1
+  fatigueRecoveryPerDay: 15
+  fatigueGainPerMatch: 30
+  retirementMinAge: 33
+  retirementProbabilityPerYear: 0.15
+  seasonRerollTokenGrant: 3
+  marketValueAgeFactor: 1
+  marketValueCAFactor: 100

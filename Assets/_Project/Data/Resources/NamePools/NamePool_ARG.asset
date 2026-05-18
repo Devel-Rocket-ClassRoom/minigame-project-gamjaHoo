@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94b3fed9dc6542b479091316b6b02396, type: 3}
+  m_Name: NamePool_ARG
+  m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.NamePoolSO
+  countryId: 7
+  firstNames:
+  - Juan
+  - "Jos\xE9"
+  - Carlos
+  - Luis
+  - Miguel
+  - Jorge
+  - Roberto
+  - Daniel
+  - Pablo
+  - Diego
+  - Alejandro
+  - Eduardo
+  - Sergio
+  - Marcelo
+  - Fernando
+  lastNames:
+  - "Gonz\xE1lez"
+  - "Rodr\xEDguez"
+  - "G\xF3mez"
+  - "Fern\xE1ndez"
+  - "L\xF3pez"
+  - "D\xEDaz"
+  - "Mart\xEDnez"
+  - "P\xE9rez"
+  - "Garc\xEDa"
+  - "S\xE1nchez"
+  - Romero
+  - Sosa
+  - "\xC1lvarez"
+  - Torres
+  - Ruiz
