@@ -16,3 +16,4 @@ MonoBehaviour:
   displayName: "\uB9CC\uB2A5\uD615"
   description: "\uC5EC\uB7EC \uD3EC\uC9C0\uC158\uC744 \uC18C\uD654 \uAC00\uB2A5"
   weight: 0.8
+  exclusionGroupId: 0

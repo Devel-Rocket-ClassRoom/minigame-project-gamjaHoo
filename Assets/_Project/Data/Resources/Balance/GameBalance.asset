@@ -15,9 +15,37 @@ MonoBehaviour:
   isDebugMode: 1
   minCA: 30
   maxCA: 200
+  caRepBase: 60
+  caRepCoeff: 0.8
+  caStdDev: 18
+  minAge: 15
+  maxAge: 40
+  caPeakAge: 27
+  caYoungMultiplier: 0.55
   minPA: 50
   maxPA: 200
+  paGapMaxMean: 50
+  paGapZeroAge: 28
+  paGapStdDev: 15
+  statMeanAtCAFloor: 4
+  statMeanAtCACeil: 17
+  statEmphasisBonus: 2
+  statEmphasisPenalty: 2
+  statStdDev: 2.5
+  gkSecondaryStatPenalty: 1
+  gkOutfieldStatPenalty: 8
+  outfieldGkStatBase: 3
   traitProbabilityPerPlayer: 0.3
+  additionalTraitProbability: 0.15
+  secondaryPositionProbability: 0.4
+  thirdPositionProbability: 0.15
+  footRightRatio: 0.62
+  footLeftRatio: 0.3
+  footBothRatio: 0.08
+  primaryNationalityRatio: 0.7
+  wageBaseAtMinCA: 500
+  wagePerCAPoint: 350
+  wageFloor: 500
   initialRerollTokens: 3
   maxRerollStockpile: 5
   tierThresholdsAccumulated:

@@ -19,3 +19,9 @@ MonoBehaviour:
   emphasizesTechnical: 1
   emphasizesMental: 1
   emphasizesPhysical: 1
+  affinities:
+  - position: 6
+    weight: 6
+  - position: 1
+    weight: 4
+  fallbackAffinityWeight: 0.05
