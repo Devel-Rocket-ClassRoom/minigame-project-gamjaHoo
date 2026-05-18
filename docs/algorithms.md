@@ -425,11 +425,13 @@ public int   wageFloor = 500;
 
 **T5. 분포 통계 (1000명 batch, 필드 플레이어만)**
 - rep=50, age 균등(17~30), 비-GK 포지션 균등 → 1000명 생성:
-  - CA 평균 100 ±5
-  - PA-CA 갭 평균 25 ±5
-  - 트레잇 보유 비율 30% ±3%
+  - CA 평균 in [75, 97] — age 17~26 youngMultiplier 적용 후 실측 기대값 ≈85 (아래 주석 참고)
+  - PA-CA 갭 평균 in [14, 32] — ageBlend 반영 실측 기대값 ≈20
+  - 트레잇 보유 비율 30% ±5%
   - 늦깎이형 + 조숙형 동시 보유 = 0건 (충돌 그룹 검증)
   - **CA 와 stats 가중합의 상관계수 > 0.6** (CA-Stats sanity check, design-decisions.md #24)
+
+> **CA 평균 주석**: 초안 "100 ±5" 는 prime-age(27+) 기준 오기. age 17~30 균등 시 caYoungMultiplier(0.55) 적용으로 평균 multiplier ≈ 0.85 → 기대 CA ≈ 85. age penalty 고려하지 않은 spec 오류였으며 구현 검증 후 수정.
 
 **T6. 2차 포지션 affinity 검증 (1000명 batch, ST 전용)**
 - ST 1000명 생성 시 2차 포지션 분포:
