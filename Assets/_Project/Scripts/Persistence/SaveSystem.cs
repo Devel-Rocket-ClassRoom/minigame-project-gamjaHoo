@@ -9,6 +9,7 @@
 // 원자적 교체. 도중 크래시 시 기존 state.json 무손상.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -76,6 +77,31 @@ namespace FMLite.Persistence
 
             var json = File.ReadAllText(metaPath);
             return JsonConvert.DeserializeObject<SaveSlotMeta>(json);
+        }
+
+        public static List<SaveSlotMeta> ListSlots()
+        {
+            var result = new List<SaveSlotMeta>();
+            if (!Directory.Exists(SavesPath)) return result;
+
+            foreach (var dir in Directory.GetDirectories(SavesPath))
+            {
+                var slotName = Path.GetFileName(dir);
+                var meta = LoadSlotMeta(slotName);
+                if (meta != null) result.Add(meta);
+            }
+            return result;
+        }
+
+        public static bool DeleteSlot(string slotName)
+        {
+            if (string.IsNullOrWhiteSpace(slotName)) throw new ArgumentException("slotName must be non-empty", nameof(slotName));
+
+            var slotPath = GetSlotPath(slotName);
+            if (!Directory.Exists(slotPath)) return false;
+
+            Directory.Delete(slotPath, recursive: true);
+            return true;
         }
 
         private static void AtomicWrite(string finalPath, string content)
