@@ -87,6 +87,27 @@ namespace FMLite.Editor
                 (Position.ST, "스트라이커",        false, true,  true,  true ),
                 (Position.CF, "센터 포워드",       false, true,  true,  true ),
             };
+
+            // 2차 포지션 affinity 데이터 (algorithms.md #1 5단계 예시 표).
+            // GK 는 비워둠 — algorithms.md 의 PickSecondary 가 GK 를 명시적으로 제외.
+            var affinityData = new Dictionary<Position, (Position pos, float w)[]>
+            {
+                [Position.ST] = new[] { (Position.CF, 8f), (Position.LW, 5f), (Position.RW, 5f), (Position.AM, 3f) },
+                [Position.CF] = new[] { (Position.ST, 8f), (Position.AM, 5f), (Position.LW, 3f), (Position.RW, 3f) },
+                [Position.LW] = new[] { (Position.LM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
+                [Position.RW] = new[] { (Position.RM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
+                [Position.AM] = new[] { (Position.CM, 6f), (Position.CF, 4f), (Position.LW, 3f), (Position.RW, 3f) },
+                [Position.CM] = new[] { (Position.AM, 5f), (Position.DM, 5f), (Position.LM, 3f), (Position.RM, 3f) },
+                [Position.DM] = new[] { (Position.CM, 6f), (Position.CB, 4f) },
+                [Position.LM] = new[] { (Position.LW, 6f), (Position.CM, 4f), (Position.LB, 3f) },
+                [Position.RM] = new[] { (Position.RW, 6f), (Position.CM, 4f), (Position.RB, 3f) },
+                [Position.LB] = new[] { (Position.WB, 8f), (Position.LM, 4f), (Position.CB, 3f) },
+                [Position.RB] = new[] { (Position.WB, 8f), (Position.RM, 4f), (Position.CB, 3f) },
+                [Position.WB] = new[] { (Position.LB, 8f), (Position.RB, 8f), (Position.LM, 5f), (Position.RM, 5f) },
+                [Position.CB] = new[] { (Position.DM, 4f), (Position.LB, 3f), (Position.RB, 3f) },
+                // GK: 빈 affinity
+            };
+
             for (int i = 0; i < rows.Length; i++)
             {
                 var r = rows[i];
@@ -98,20 +119,30 @@ namespace FMLite.Editor
                 so.emphasizesTechnical = r.tech;
                 so.emphasizesMental = r.mental;
                 so.emphasizesPhysical = r.phys;
+
+                so.affinities = new List<PositionAffinity>();
+                if (affinityData.TryGetValue(r.pos, out var entries))
+                {
+                    foreach (var e in entries)
+                        so.affinities.Add(new PositionAffinity { position = e.pos, weight = e.w });
+                }
+                // fallbackAffinityWeight 는 SO 기본값 0.05 유지.
+
                 EditorUtility.SetDirty(so);
             }
         }
 
         private static void GenerateTraits()
         {
-            var rows = new (int id, string name, string desc, float weight)[]
+            // exclusionGroupId: 0=충돌 없음. 늦깎이형/조숙형은 동일 그룹(1) — 동시 부여 불가 (design-decisions.md #25).
+            var rows = new (int id, string name, string desc, float weight, int exclusionGroupId)[]
             {
-                (1, "늦깎이형",   "성장이 늦지만 PA 가 높음",          1.0f),
-                (2, "조숙형",     "어린 나이에 빠르게 성장",            1.0f),
-                (3, "부상 취약",  "부상 발생 빈도가 높음",              0.7f),
-                (4, "멘탈 강자",  "큰 경기에 강함",                     1.0f),
-                (5, "빅매치형",   "강팀 상대 경기에서 활약",            0.8f),
-                (6, "만능형",     "여러 포지션을 소화 가능",            0.8f),
+                (1, "늦깎이형",   "성장이 늦지만 PA 가 높음",          1.0f, 1),
+                (2, "조숙형",     "어린 나이에 빠르게 성장",            1.0f, 1),
+                (3, "부상 취약",  "부상 발생 빈도가 높음",              0.7f, 0),
+                (4, "멘탈 강자",  "큰 경기에 강함",                     1.0f, 0),
+                (5, "빅매치형",   "강팀 상대 경기에서 활약",            0.8f, 0),
+                (6, "만능형",     "여러 포지션을 소화 가능",            0.8f, 0),
             };
             foreach (var r in rows)
             {
@@ -120,6 +151,7 @@ namespace FMLite.Editor
                 so.displayName = r.name;
                 so.description = r.desc;
                 so.weight = r.weight;
+                so.exclusionGroupId = r.exclusionGroupId;
                 EditorUtility.SetDirty(so);
             }
         }
