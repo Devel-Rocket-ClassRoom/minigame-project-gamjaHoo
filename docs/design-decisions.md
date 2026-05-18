@@ -288,15 +288,46 @@ public class TechnicalStats {
 
 ---
 
-## 22. 폰트 — Malgun Gothic
+## 22. 폰트 — NotoSansKR (OFL, Variable Font)
 
-**결정:** 한국어 UI는 Malgun Gothic 베이스로 시작.
+**결정:** 한국어 UI는 NotoSansKR (Open Font License) Variable Font 사용. TMP Font Asset은 Dynamic Mode로 운영 (atlas 1024 → 런타임 자동 확장).
 
 **이유:**
-- Windows 기본 폰트 (호환성)
-- 가독성 양호
+- OFL 라이선스 → public repo에 폰트 파일 동봉 가능 (재배포 자유)
+- Variable Font 하나로 모든 weight 지원
+- Dynamic Mode → 사전 글리프 베이크 불필요 (사용 글자 풀이 미정인 1인 프로토타입에 최적)
 
-**대체:** V1.x에서 Pretendard 등 더 나은 폰트 고려.
+**변경 이력:** 초안에서는 Malgun Gothic이었으나 (a) Windows 종속 (b) 재배포 라이선스 모호 두 이유로 NotoSansKR로 변경 (Task 1.3 진행 중).
+
+**대체:** V1.x 에서 Pretendard 등 미려한 폰트 고려.
+
+---
+
+## 23. GameTime — 자체 상태 보유 (V0.1 한정)
+
+**결정:** `GameTime` 은 static 클래스로 자체 `CurrentDate` 상태를 보유한다. `GameState.currentDate` 와는 진입/저장 시점에 양방향 동기화.
+
+```csharp
+public static class GameTime {
+    public static DateTime CurrentDate { get; private set; }
+    public static void Reset(DateTime d) { ... }
+    public static void Advance(int days) { ... }   // 하루씩 N번 DayAdvancedEvent 발행
+}
+```
+
+**이유:**
+- Task 2.2(GameTime) 가 Task 3.3(GameState) 보다 먼저 → GameState 의존 없이 동작해야 함
+- EventBus 와 동일 패턴 (인프라성 static) — Don'ts 의 "Singleton 남용 자제" 예외
+- 테스트 격리는 `Reset()` 으로 해결 (`EventBus.Clear()` 와 짝)
+
+**동기화 시점 (Task 3.3 이후 적용):**
+- GameInitializer 시작 시: `GameTime.Reset(state.currentDate)`
+- 세이브 직전: `state.currentDate = GameTime.CurrentDate`
+- 로드 직후: `GameTime.Reset(state.currentDate)`
+
+**대안 검토:** 파라미터 방식 `Advance(GameState, int)` 도 가능하나, 호출자가 항상 GameState 참조를 들고 다녀야 해 번잡 (EventScheduler, DailyProcessor 등 다수). 자체 상태 + 동기화가 V0.1 스코프엔 더 단순.
+
+**`Advance(N)` 발행 횟수:** N번 (하루씩) 발행. FM 식 Continue 메커니즘은 한 계층 위(`GameManager.AdvanceDay()`) 에서 "정지 이벤트까지 루프" 로 구현 — 매일 EventScheduler 가 동작해야 하므로 합산 1회 발행은 부적합.
 
 ---
 
@@ -305,3 +336,5 @@ public class TechnicalStats {
 | Date | Decision | Note |
 | --- | --- | --- |
 | 2025-05-15 | Initial decisions 1-22 | Pre-coding design phase |
+| 2026-05-18 | #22 Malgun Gothic → NotoSansKR | Task 1.3 진행 중 라이선스/플랫폼 사유로 변경 |
+| 2026-05-18 | #23 GameTime 자체 상태 보유 추가 | Task 2.2 작업 시 결정 |
