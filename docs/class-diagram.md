@@ -413,13 +413,51 @@ public enum FacilityType {
 | --- | --- |
 | `GameBalanceSO` | 모든 밸런싱 수치 외부화 |
 | `TraitSO` | 트레잇 정의 (늦깎이형, 빅매치형 등) |
-| `PositionSO` | 포지션 + 키 스탯 |
+| `PositionSO` | 포지션 + 키 스탯 + 2차 affinity |
 | `LeagueConfigSO` | 리그 규칙 (팀 수, 강등 수, 일정 패턴) |
 | `FacilityLevelSO` | 시설 등급별 효과 |
 | `TacticPresetSO` | 전술 프리셋 (V1.0~) |
 | `InjuryTypeSO` | 부상 종류 |
 | `CountrySO` | 국가 정보 (코드, 깃발색 등) |
 | `NamePoolSO` | 이름 풀 (국가별) |
+
+### TraitSO
+
+```csharp
+[CreateAssetMenu(fileName = "Trait", menuName = "FM-Lite/Trait")]
+public class TraitSO : ScriptableObject {
+    public int id;
+    public string displayName;
+    public string description;
+    public float weight = 1.0f;          // PlayerGenerator 부여 확률 가중치
+    public int exclusionGroupId = 0;     // design-decisions.md #25, 0 = 충돌 없음
+}
+```
+
+### PositionSO
+
+```csharp
+[CreateAssetMenu(fileName = "Position", menuName = "FM-Lite/Position")]
+public class PositionSO : ScriptableObject {
+    public int id;
+    public Position position;
+    public string displayName;
+    public bool isGoalkeeper;
+    public bool emphasizesTechnical = true;
+    public bool emphasizesMental = true;
+    public bool emphasizesPhysical = true;
+
+    // design-decisions.md #26
+    public List<PositionAffinity> affinities = new List<PositionAffinity>();
+    public float fallbackAffinityWeight = 0.05f;
+}
+
+[Serializable]
+public class PositionAffinity {
+    public Position position;
+    public float weight;     // 1.0 ~ 10.0 권장 (fallback 0.05 대비)
+}
+```
 
 ## Application Layer (Systems)
 
