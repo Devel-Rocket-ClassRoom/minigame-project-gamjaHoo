@@ -331,6 +331,70 @@ public static class GameTime {
 
 ---
 
+## 24. CA-Stats 분리 운영 (V0.1 한정)
+
+**결정:** V0.1 에서 `Player.currentAbility` (CA) 와 `Player.stats` 는 독립 데이터. CA 는 generation 진실값, stats 는 분배 결과지만 정확히 가중합 ≠ CA.
+
+**이유:**
+- V0.1 매치 시뮬레이션은 팀 CA 합 기반 → 개별 stats 무관
+- CA = derived(stats) 강제하면 generation 로직 복잡도 ↑ (가중합 일치까지 후처리 필요)
+- stats 는 디스플레이/캐릭터성 (포지션별 강조 표현) 용도로 자유롭게 분포
+
+**Sanity check:** algorithms.md #1 T5 에서 CA 와 stats 가중합의 상관계수 > 0.6 검증 — 완전 분리는 아니지만 한쪽이 폭주하지 않게.
+
+**V1.0 변경 트리거:** 매치 시뮬레이션이 개별 stats 를 사용하기 시작하면 (algorithms.md #2 V1.0 확장 시점) `Player.DeriveCAFromStats(pos)` 도입 검토.
+
+---
+
+## 25. 트레잇 충돌 그룹 시스템
+
+**결정:** `TraitSO` 에 `exclusionGroupId` 필드 추가. 같은 그룹 트레잇은 한 선수에 동시 부여 불가. 트레잇 개수 자체는 제한 없음 (확률로 자연 감소).
+
+```csharp
+public class TraitSO : ScriptableObject {
+    public int id;
+    public string displayName;
+    public string description;
+    public float weight = 1.0f;
+    public int exclusionGroupId = 0;     // 0 = 충돌 없음 (기본)
+}
+```
+
+**이유:**
+- "늦깎이형 + 조숙형" 같은 의미적 모순 방지
+- 무관한 트레잇 다중 보유는 캐릭터성으로 살림 (e.g., "빅매치형 + 만능형")
+- 추가/삭제 트레잇 시 데이터로만 관리 (코드 분기 없음)
+
+**현재 정의된 그룹:**
+- Group 1 (DevelopmentSpeed): 늦깎이형, 조숙형
+
+---
+
+## 26. 2차 포지션 Affinity 시스템
+
+**결정:** `PositionSO` 에 `affinities: List<PositionAffinity>` + `fallbackAffinityWeight` 필드 추가. 명시적 어피니티가 있는 포지션은 높은 확률, 없는 포지션도 작은 확률(2~3%)로 뚫림. GK 는 affinity 비워두고 2차 포지션 생성에서 명시적 제외 — "필드/GK 이중 포지션" 비현실성 회피.
+
+```csharp
+public class PositionSO : ScriptableObject {
+    // 기존 필드 ...
+    public List<PositionAffinity> affinities;
+    public float fallbackAffinityWeight = 0.05f;
+}
+
+[Serializable]
+public class PositionAffinity {
+    public Position position;
+    public float weight;     // 1.0 ~ 10.0 권장
+}
+```
+
+**이유:**
+- 자연스러운 친밀도 (ST → 윙) + 별난 캐릭터 (ST → CB) 의 다양성 둘 다 살림
+- V1.x 적응도 시스템의 데이터 구조 기반
+- GK 만 별도 분기 — 데이터로 처리하기엔 너무 강한 제약이라 알고리즘에서 명시 제외
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -338,3 +402,4 @@ public static class GameTime {
 | 2025-05-15 | Initial decisions 1-22 | Pre-coding design phase |
 | 2026-05-18 | #22 Malgun Gothic → NotoSansKR | Task 1.3 진행 중 라이선스/플랫폼 사유로 변경 |
 | 2026-05-18 | #23 GameTime 자체 상태 보유 추가 | Task 2.2 작업 시 결정 |
+| 2026-05-18 | #24~#26 추가 | algorithms.md #1 Player Generation 명세 작성 시 결정 (CA-Stats 분리 / 트레잇 충돌 그룹 / 2차 포지션 affinity) |
