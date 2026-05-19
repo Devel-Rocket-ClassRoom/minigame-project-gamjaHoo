@@ -452,6 +452,32 @@ LW 1 / RW 1 / ST 2 / CF 1   = 25
 
 ---
 
+## 29. GameManager 는 Core Layer (Application 아님)
+
+**결정:** `GameManager` 는 `FMLite.Core` 에 위치한다. Application 이 아니다.
+
+**이유:**
+
+1. **진입점/컨테이너 성격**. AdvanceDay / SaveGame / LoadGame 같은 호출은 모두 Application 시스템(`MatchSimulator`, `DailyProcessor`, `SaveSystem` 등)에 위임한다. GameManager 자체는 도메인 로직을 수행하지 않는다.
+2. **State 보유는 "포인터 보유"** 이지 상태 머신이 아니다. `design-decisions.md #3` 의 Stateless 원칙은 Application 시스템(`MatchSimulator` 등)에 적용되는 것이고, GameManager 의 `State` 는 단지 GameState 참조를 들고 있을 뿐. 변경은 시스템이 한다.
+3. **다른 인프라 (`GameTime`, `EventBus`, `GameLog`) 와 같은 레이어** — Unity MonoBehaviour 라이프사이클 통합 + 싱글톤 패턴 + 정적 진입점 성격이 동일.
+
+**의존 정리 (이 결정의 결과로 의존 방향 정통화):**
+
+- `Domain` 가장 안쪽 (외부 의존 0) — `Domain.asmdef` references 비워짐.
+- `Core → Domain` (GameManager 가 GameState/Club 알아야 하므로). Clean Arch 의 의존 역전 패턴.
+- `Application → Core + Domain` (기존 그대로).
+- 순환 의존 없음. Domain 이 Core 를 알지 않으므로 안전.
+
+**참고:** 이전엔 세 문서가 충돌 상태였음 (`project-context.md` / `class-diagram.md` 는 Application, `coding-conventions.md` 는 Core 로 표기). 이 결정과 함께 세 문서 모두 Core 로 통일.
+
+**V1.0+ 보완 포인트:**
+
+- `GameManager` 가 너무 비대해질 가능성 — AdvanceDay 같은 흐름 조율 로직이 늘어나면 `GameFlowController` 같은 Application 컴포넌트로 분리 검토.
+- 의존 역전 강화: 현재는 GameManager 가 Application 시스템을 직접 참조해야 하면 `Core → Application` 참조 추가 필요 (순환 위험). 그 시점에 인터페이스 도입 (`IDailyProcessor` 등) 또는 EventBus 만으로 처리.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -461,3 +487,4 @@ LW 1 / RW 1 / ST 2 / CF 1   = 25
 | 2026-05-18 | #23 GameTime 자체 상태 보유 추가 | Task 2.2 작업 시 결정 |
 | 2026-05-18 | #24~#26 추가 | algorithms.md #1 Player Generation 명세 작성 시 결정 (CA-Stats 분리 / 트레잇 충돌 그룹 / 2차 포지션 affinity) |
 | 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V1.0+ 보완 포인트 각 결정에 별도 명시. |
+| 2026-05-19 | #29 추가 | Task 2.3 마무리 (#76) 작업 중 GameManager 레이어 결정. `Core → Domain` 정통 의존 방향 복원 (`Domain.asmdef` 미사용 Core 참조 제거 + `Core.asmdef` 에 Domain 추가). 세 문서 (project-context / class-diagram / coding-conventions) Core 로 통일. |

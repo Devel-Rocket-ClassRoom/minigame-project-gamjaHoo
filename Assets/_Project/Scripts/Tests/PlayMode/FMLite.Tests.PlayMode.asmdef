@@ -3,7 +3,8 @@
     "rootNamespace": "FMLite.Tests",
     "references": [
         "UnityEngine.TestRunner",
-        "FMLite.Core"
+        "FMLite.Core",
+        "FMLite.Domain"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

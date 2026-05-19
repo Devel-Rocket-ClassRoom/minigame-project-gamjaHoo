@@ -1,9 +1,7 @@
 {
     "name": "FMLite.Domain",
     "rootNamespace": "FMLite.Domain",
-    "references": [
-        "FMLite.Core"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
