@@ -629,6 +629,97 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 
 ---
 
+## 33. V0.1 Match Simulation 정책 — 단순 CA 합 + Poisson
+
+**결정:** V0.1 매치 시뮬레이션은 **결과 우선** 모델 (`#17` 정신 계승). 양 팀 starting11 의 CA 합 → Poisson 분포로 골수 결정 → 라인 가중 + CA 비례 추첨으로 득점자 결정.
+
+```
+1. rng = new Random(match.id ^ state.randomSeed)        # 시드 고정 (#17)
+2. starting11 = top-11 by CA (부상자 제외)              # V0.1 자동 선정 (라인업 시스템 V1.0+)
+3. teamStrength = SUM(starting11.CA)
+4. λ_home = totalLambda * (homeStrength / total) + homeAdvantageGoalBonus
+   λ_away = totalLambda * (awayStrength / total)
+   homeScore = Poisson(λ_home), awayScore = Poisson(λ_away)
+5. 골 마다 weight = balance.scoringWeightByLine[line] * (p.CA / 100) 로 득점자 추첨
+```
+
+**이유:**
+
+- **Poisson 분포**: 실제 축구 골 분포의 학계 표준 (Dixon-Coles 1997 등). 같은 λ 라도 매 매치 다른 결과 — 강팀이 무득점, 약팀이 이변 가능. 결정성과 자연 분포 동시 충족.
+- **단순 CA 합 (`#24` 일관)**: V0.1 매치는 CA 만 사용, 개별 stats 무관. 라인별 가중치 / 포지션 적합도 / 폼·사기·피로 보정 모두 V1.0+. 매치 시뮬레이션 복잡도 ↓.
+- **starting11 = top-11 by CA**: V0.1 라인업 결정 UI / 자동 라인업 알고리즘 없음 (Task 13 까지). 시뮬레이터가 자동 선정. 포지션 무시 — 명세 단순화.
+- **득점자 = 라인 가중치 × CA**: 공격수가 ~60% 득점 (현실 분포). CA 보정으로 에이스 효과. `algorithms.md` #6 의 4라인 분류 재사용 → 일관성.
+- **홈 어드밴티지 = home λ 가산**: 단순 + 의도 직관적 ("홈팀 이점"). EPL 통계 근사 (홈 46% / 무 26% / 원정 28%).
+- **결과 우선 모델 (#17 정신)**: 시드 고정 → 결과 미리 산출 → 표시 이벤트는 결과에 부합. V0.1 에선 스코어 + 득점자만 미리 결정. 표시할 텍스트 이벤트는 V1.0+.
+
+**외부화:** `GameBalanceSO.avgGoalsPerMatch (2.7)` / `homeAdvantageGoalBonus (0.3)` / `scoringWeightByLine ({0, 0.4, 1.5, 5.0})`. 모두 플레이테스트로 조정.
+
+**전제 조건:**
+
+- `match.id` 가 ScheduleGenerator 산출 시 unique. → 검증됨 (Task 7.2 T1~T9).
+- `state.randomSeed` 가 GameInitializer 가 고정. → 검증됨 (Task 7.1).
+- `Utils/RngExtensions.NextPoisson` 헬퍼 필요 (Sub-PR B 에서 추가, PlayerGen 의 `NextNormal` 패턴).
+
+### V1.0+ 보완 포인트
+
+- **개별 stats 사용** — `#24` V1.0 트리거. 매치가 finishing / passing / tackling 등 직접 참조 시 stats 합과 CA 가 자연스럽게 일치하도록 derived CA 모델 검토.
+- **라인업 결정 시스템** — 자동 라인업 (포지션 필수 + top-by-CA) → 유저 수동 라인업 UI. `Simulate(match, state, homeXI, awayXI)` 오버로드 도입 시점.
+- **컵 연장전 + 승부차기** — `Match.type == FACup/CarabaoCup` 분기. 동점 시 `extraTimeLambda` Poisson 한 번 더 → 그래도 동점이면 승부차기 (별도 5+ 라운드).
+- **비활성 구단 경량 시뮬** — V0.1 에선 단일 `Simulate` 사용. 이벤트 시퀀스 시스템 도입 후 비활성 구단 전용 경량 경로 (`SimulateLite`) 분리 검토. `data-flows.md` #3 갱신과 짝.
+- **외부 영향 반영** — strength 계산 시 폼·사기·피로 곱셈 보정 (`design-decisions.md` #30 출전 시간 / 사기 시스템과 연동).
+
+---
+
+## 34. V1.0+ Match Simulation 진화 경로 — 이벤트 시퀀스
+
+**결정:** V0.1 의 "결과 우선" 모델은 V1.0+ 에서 **분 단위 이벤트 시뮬레이션** 으로 전환. 인터페이스 `MatchSimulator.Simulate(match, state) → MatchResult` 는 유지 — 호출자 (`GameLoop`, `BackgroundSimulator`, `MatchPostProcessor`) 영향 없음. 내부만 교체.
+
+**V0.1 (결과 우선)** vs **V1.0+ (이벤트 시퀀스)**:
+
+```
+V0.1: rng 고정 → 양 팀 strength → λ → Poisson(home/away goals) → 득점자 추첨 → MatchResult
+V1.0+: rng 고정 → 분 단위 step (1~90) →
+         step 마다 이벤트 발생 (슈팅 시도, 카드, 부상, 교체 …) →
+         누적 상태 (점수, 카드 수, 부상자, 11→10명 등) 가 다음 step 분기에 영향 →
+         최종 누적 = MatchResult
+```
+
+**왜 진화가 필요한가:**
+
+1. **앞 이벤트가 뒤 이벤트에 영향** — 옐로 2장 → 퇴장 → 10명 → strength ↓ → 골 확률 ↓ 같은 누적 효과를 결과 우선 모델로는 표현 불가.
+2. **부상 → 교체** — 부상자 발생 시 벤치 strength 가 들어옴. 교체 타이밍이 결과에 영향.
+3. **교체 / 외침 등 유저·AI 의사결정 반영** — V1.0+ 텍스트 이벤트 시스템 도입 후 유저 응답 (전반 종료 코칭 코멘트 등) 이 후반에 영향.
+4. **카드 / 부상 시스템 자연 발생** — 분 단위 이벤트가 곧 카드/부상 발생 지점.
+
+**왜 V0.1 에선 안 하는가:**
+
+- 분 단위 시뮬레이션은 복잡도 ↑↑ (이벤트 종류 정의 / 분기 / 확률 곱 / 누적 상태 / AI 교체 로직).
+- V0.1 스코프 (2~3주) 에선 결과 우선 모델로 충분 — 스코어 + 득점자만 표시.
+- **사용자 의도**: "교체는 AI 가 자동" / "외침 등 V1.0+ 에 추가될 때 재변동 가능" — 인터페이스만 유지하면 V1.0 에서 내부 자유롭게 교체 가능.
+
+**인터페이스 호환성 보장:**
+
+- `MatchSimulator.Simulate(match, state) → MatchResult` 시그니처 동일 (`class-diagram.md` 합의).
+- 시드 결정성 (`#17`) 정신 보존 — 매 step rng 상태 누적이지만 같은 시드 → 같은 시퀀스 → 같은 결과.
+- `MatchResult` 스키마 호환 — V1.0+ 에선 `assists` / `rating` / `yellowCards` / `redCards` 가 0 이 아니게 채워지지만 필드 추가/제거는 없음.
+
+**V0.1 코드의 운명:**
+
+- 4단계 Poisson + 5단계 라인 가중 추첨 알고리즘은 V1.0+ 진입 시 **제거**. 대신 이벤트 시퀀스 엔진이 자체적으로 슈팅 시도 / 골 / 어시스트 / 카드 / 부상 등을 분 단위로 발생.
+- 다만 V0.1 의 외부화 파라미터 (`avgGoalsPerMatch`, `homeAdvantageGoalBonus`, `scoringWeightByLine`) 일부는 V1.0+ 에서도 재활용 가능 (특히 라인 가중치).
+- V0.1 EditMode 테스트 (T1~T7) 는 V1.0+ 진입 시 인터페이스 차원 테스트만 유지 (결정성 / 강팀 승률 / playerStats 정확성) — Poisson 분포 통계 테스트는 폐기 후 이벤트 시퀀스 테스트로 교체.
+
+### V1.0+ 보완 포인트 (이벤트 시퀀스 도입 시)
+
+- **이벤트 종류 정의** — Shot / Save / Goal / YellowCard / RedCard / Injury / Substitution / OffsideCalled / Foul …. 각 이벤트의 발생 확률 공식 / 결과 분기.
+- **분 단위 vs 이벤트 단위** — 매 분 RNG 굴리기 (90 step) vs Poisson 으로 시간 간격 샘플링. 후자가 단순.
+- **AI 교체 시스템 (`SubstitutionAI`)** — 피로 / 부상 / 전술 / 스코어 상황 기반 자동 교체. V0.1 starting11 자동 선정과 같은 자리.
+- **유저 코칭 인터럽트** — 전반 종료 / 중요 이벤트 시 유저에게 외침·교체·전술 변경 옵션. UI 의존성.
+- **퇴장 후 strength 보정** — 11명 → 10명 시 strength × 0.9 같은 보정 또는 자연 발생 이벤트 (10명은 슈팅 시도 횟수 자체가 줄어 자연 반영).
+- **`MatchEvent` 도메인 필드 활용** — `class-diagram.md` 의 `Match.events: List<MatchEvent>` placeholder 가 본격 사용. 분 단위 이벤트 기록.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -640,3 +731,4 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 | 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V1.0+ 보완 포인트 각 결정에 별도 명시. |
 | 2026-05-19 | #29 추가 | Task 2.3 마무리 (#76) 작업 중 GameManager 레이어 결정. `Core → Domain` 정통 의존 방향 복원 (`Domain.asmdef` 미사용 Core 참조 제거 + `Core.asmdef` 에 Domain 추가). 세 문서 (project-context / class-diagram / coding-conventions) Core 로 통일. |
 | 2026-05-19 | #28 갱신 + #30~32 추가 | algorithms.md #6 Starting Squad Gacha 명세 작성 시 결정. 분배표 정책 `FormationConfig` 단위로 갱신 (필수 23 + 랜덤 2). Gacha 평가 정책 (4라인 + 명성 대비 + ACE). Reroll 재생성 + 새 id (`GameState.nextPlayerId` 신규). V0.1 단일 포메이션 → V1.0 가챠 랜덤화 확장 경로 명시. 출전 시간 시스템은 V1.0+ 보완 포인트로만 기록. |
+| 2026-05-19 | #33, #34 추가 | algorithms.md #2 Match Simulation 명세 작성 (Task 9.1 Sub-A, #109) 시 결정. #33 V0.1 정책 (단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자). #34 V1.0+ 이벤트 시퀀스 진화 경로 — 옐로 2장/부상→교체/외침 등 누적 처리 가능 구조. 인터페이스 유지로 V0.1 호출자 영향 없이 내부 교체 가능. |
