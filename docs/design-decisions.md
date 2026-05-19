@@ -395,6 +395,63 @@ public class PositionAffinity {
 
 ---
 
+## 27. Club 명성 분포 — 4티어 계단 + 약상관 재정/시설
+
+**결정:** 20구단 명성을 4티어 계단으로 분배. 카운트는 **ratio** 로 외부화해 가변 `clubCount` 에 대응. 각 티어 내에서 균등 추첨. 재정과 시설은 명성과 강한 양상관이지만 노이즈로 한두 단계 출렁.
+
+```
+tier  | ratio | clubCount=20 → count | repRange
+------|-------|---------------------|---------
+Top4  | 0.20  |          4          | 85..95     # 빅클럽
+Euro  | 0.30  |          6          | 65..80     # 유럽권 다툼
+Mid   | 0.35  |          7          | 45..60     # 중위권
+Rel   | 0.15  |          3          | 25..40     # 강등권
+                  Σratio = 1.00
+```
+
+**이유:**
+- EPL 실제 분포 모티브 (빅4 + 유럽권 + 중위권 + 강등권).
+- 티어 경계가 의사결정의 재미 — "강등권 → 중위권" / "중위권 → 유럽권" 같은 단기 목표가 명확.
+- 선형 분포는 단조롭고, 멱함수는 중하위권 해상도 떨어짐.
+- **ratio 화 이유**: clubCount 가 20 외 (10/12/24 등) 가변 입력으로 들어와도 `AllocateTierCounts` 라운드 보정으로 항상 합 일치. 새 리그 추가 비용 최소화.
+
+**약상관 정책:** 시설은 `rep/20` 매핑 + `NextNormal(σ=1)` 노이즈로 한두 단계 출렁. 자금은 `base + repCoeff×rep + 15% σ`. → 빅클럽인데 시설 평범 / 중위권인데 유스 강한 등 구단 캐릭터성 살아남 (스토리텔링 재미).
+
+**외부화:** `GameBalanceSO.tierClubRatios/tierRepMin/tierRepMax`, `facilityNoiseSigma`, `financeNoiseSigma` (`algorithms.md #5` 참조).
+
+### V1.0+ 보완 포인트
+
+- **리그별 다른 ratio 표** — 현재는 모든 리그가 동일한 `tierClubRatios` 사용. V1.0 에서 LeagueConfigSO 로 이전해 ESP=빅2 강세, GER=빅3 + 평준화 등 리그 색깔 반영.
+- **다중 리그 동시 운영** — 현재 ClubGenerator 는 단일 리그 호출 (caller loop 로 다중 리그도 가능하나 명성 통합 ranking 없음). V1.0 에서 이적 시장 연동을 위한 글로벌 명성 ranking 도입.
+- **시즌 목표 동적화** — 현재 `targetLeaguePosition = i+1` (명성 순위 = 목표). V1.0 에서 보드 신뢰도·예산 조합 기반 동적 목표.
+
+---
+
+## 28. 초기 스쿼드 — 고정 포지션 분배표 (V0.1)
+
+**결정:** V0.1 에서 모든 구단이 같은 포지션 분배표로 25명 스쿼드 생성. 구단별 색깔(전술 프리셋 / 스카우팅 편향)은 V1.0+ 도입.
+
+```
+GK 3 / CB 4 / LB 2 / RB 2
+DM 2 / CM 3 / AM 2 / LM 1 / RM 1
+LW 1 / RW 1 / ST 2 / CF 1   = 25
+```
+
+**이유:**
+- V0.1 단순화. "초기 스쿼드가 라인업 못 짤 정도로 빈약" 같은 시스템 오류 회피.
+- 외부화 (`GameBalanceSO.squadGK ~ squadCF` 13개 필드) → 1줄 수정으로 밸런싱 가능.
+
+**가변 `playersPerClub` 대응:** 분배표 합(25) ≠ `LeagueConfigSO.playersPerClub` 일 경우 V0.1 은 **분배표 합 기준으로 진행 + 경고**. ratio 변환은 V1.0 보완 포인트.
+
+### V1.0+ 보완 포인트
+
+- **ratio 화** — 현재 13개 절대 int. V1.0 에서 float ratio (Σ=1.0) 로 전환해 `playersPerClub` 변화에 자동 정합 (15명 리그, 30명 리그 등).
+- **전술 프리셋별 분배표** — 4-3-3 / 4-4-2 / 3-5-2 포메이션별 분배표 도입. 새 `TacticPresetSO` 와 연결.
+- **구단별 색깔** — 명성·예산·유스 시설에 따라 스쿼드 편향 (빅클럽=veteran/외국인 ↑, 강등권=youth/자국인 ↑).
+- **homegrown 시설 연동** — 현재 모든 구단 20% 고정. 유스 시설 Lv5 → 35%, Lv1 → 10% 등 시설 연동.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -403,3 +460,4 @@ public class PositionAffinity {
 | 2026-05-18 | #22 Malgun Gothic → NotoSansKR | Task 1.3 진행 중 라이선스/플랫폼 사유로 변경 |
 | 2026-05-18 | #23 GameTime 자체 상태 보유 추가 | Task 2.2 작업 시 결정 |
 | 2026-05-18 | #24~#26 추가 | algorithms.md #1 Player Generation 명세 작성 시 결정 (CA-Stats 분리 / 트레잇 충돌 그룹 / 2차 포지션 affinity) |
+| 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V1.0+ 보완 포인트 각 결정에 별도 명시. |
