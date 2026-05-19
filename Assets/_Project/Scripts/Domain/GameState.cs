@@ -13,7 +13,7 @@ namespace FMLite.Domain
     {
         // 메타 필드
         public DateTime currentDate;
-        public int userClubId;
+        public int userClubId = -1;     // -1 = "선택 안 됨" sentinel. UI 구단 선택 후 설정.
         public int rerollTokens;
         public int randomSeed;
 
