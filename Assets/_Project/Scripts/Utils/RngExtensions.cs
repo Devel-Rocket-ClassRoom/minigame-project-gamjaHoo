@@ -1,7 +1,7 @@
 // RngExtensions.cs
-// System.Random 확장 — 정규분포 추출(Box-Muller) 및 가중 추첨.
-// PlayerGenerator(#28) 등 알고리즘이 사용. algorithms.md #1 Logic 의 rng.NextNormal /
-// rng.WeightedSample 호출 대상.
+// System.Random 확장 — 정규분포 추출(Box-Muller) / 가중 추첨 / 포아송 추출(Knuth).
+// PlayerGenerator(#28) 의 NextNormal·WeightedSample (algorithms.md #1) +
+// MatchSimulator 의 NextPoisson (algorithms.md #2 4단계) 호출 대상.
 
 using System;
 using System.Collections.Generic;
@@ -53,6 +53,26 @@ namespace FMLite.Utils
             }
             // float 부동소수 오차 보호: 마지막 항목 폴백.
             return items[items.Count - 1];
+        }
+
+        // 포아송 분포 추출 — Knuth 알고리즘 (algorithms.md #2 4단계 골 분포 모델).
+        // λ < 30 범위에서 효율적. V0.1 매치 평균 λ ≈ 1.5~3.5 라 충분.
+        // 큰 λ (>30) 는 exp(-λ) underflow 위험 — V1.0+ 에서 정규분포 근사 확장 검토.
+        public static int NextPoisson(this Random rng, double lambda)
+        {
+            if (rng == null) throw new ArgumentNullException(nameof(rng));
+            if (lambda < 0) throw new ArgumentOutOfRangeException(nameof(lambda), "lambda must be >= 0");
+            if (lambda == 0) return 0;
+
+            double L = Math.Exp(-lambda);
+            int k = 0;
+            double p = 1.0;
+            do
+            {
+                k++;
+                p *= rng.NextDouble();
+            } while (p > L);
+            return k - 1;
         }
     }
 }
