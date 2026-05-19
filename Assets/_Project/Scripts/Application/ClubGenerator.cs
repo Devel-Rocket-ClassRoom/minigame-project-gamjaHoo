@@ -50,20 +50,42 @@ namespace FMLite.Application
             int nextPlayerId = startPlayerId;
             foreach (var club in result.Clubs)
             {
-                var composition = BuildSquadComposition(rng, balance);
-                foreach (var (pos, count) in composition)
+                var players = RegenerateSquad(rng, club, leagueConfig, balance, currentDate, nextPlayerId);
+                foreach (var player in players)
                 {
-                    for (int j = 0; j < count; j++)
-                    {
-                        var player = GeneratePlayer(rng, club, pos, leagueConfig.countryCode, currentDate, balance);
-                        player.id = nextPlayerId++;
-                        result.Players.Add(player);
-                        club.seniorSquadIds.Add(player.id);
-                    }
+                    result.Players.Add(player);
+                    club.seniorSquadIds.Add(player.id);
                 }
+                nextPlayerId += players.Count;
             }
 
             return result;
+        }
+
+        // 한 구단의 스쿼드 25명만 재생성 (algorithms.md #6 Reroll 정책 + ClubGen 3단계 공용).
+        // 호출자가 club.seniorSquadIds 관리 (Clear / Add). 이 메서드는 순수 생성만.
+        // StartingSquadGacha.RerollSquad 와 ClubGen.Generate 가 공용으로 사용.
+        public static List<Player> RegenerateSquad(
+            Random rng,
+            Club club,
+            LeagueConfigSO leagueConfig,
+            GameBalanceSO balance,
+            DateTime currentDate,
+            int startPlayerId)
+        {
+            var players = new List<Player>();
+            int nextId  = startPlayerId;
+            var composition = BuildSquadComposition(rng, balance);
+            foreach (var (pos, count) in composition)
+            {
+                for (int j = 0; j < count; j++)
+                {
+                    var player = GeneratePlayer(rng, club, pos, leagueConfig.countryCode, currentDate, balance);
+                    player.id = nextId++;
+                    players.Add(player);
+                }
+            }
+            return players;
         }
 
         // ── 1단계: 명성 분배 ──────────────────────────────────────────
