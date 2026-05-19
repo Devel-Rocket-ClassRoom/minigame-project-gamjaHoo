@@ -44,11 +44,12 @@ V0.1 시작 전 정해야 할 알고리즘 (우선순위):
 
 1. **선수 생성 (Player Generation)** ★★★★★
 2. **구단 생성 (Club Generation)** ★★★★★
-3. **경기 결과 계산 (Match Simulation)** ★★★★★
-4. **선수 가치 계산 (Market Value)** ★★★★
-5. **유스 풀 생성 (Youth Pool Generation)** ★★★★
+3. **스타팅 스쿼드 가챠 (Starting Squad Gacha)** ★★★★
+4. **경기 결과 계산 (Match Simulation)** ★★★★★
+5. **선수 가치 계산 (Market Value)** ★★★★
+6. **유스 풀 생성 (Youth Pool Generation)** ★★★★
 
-> 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례.
+> 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례. Gacha 는 섹션 `## 6` 으로 끝에 추가.
 
 V0.1 진행 중 정해도 OK:
 
@@ -854,9 +855,225 @@ public int initialBoardConfidence = 50;
 
 ---
 
+## 6. Starting Squad Gacha
+
+### Purpose
+
+- 구단의 초기 스쿼드 (ClubGen 산출물 25명) 를 **4라인 × 5단계 티어** 로 평가하여 유저가 결정 가능한 형태로 표시.
+- **명성 대비 상대평가** (`design-decisions.md` #15) — 빅클럽의 "Average" ≈ 중위권의 "Strong".
+- 유저가 **리롤** 호출 시 해당 구단 25명 전체 재생성 (`state.rerollTokens -= 1`).
+- 호출 시점: `GameInitializer` 가 구단 생성 + 유저 구단 선택 후. `data-flows.md` #1 [4].
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `club` | `Club` | 평가 대상 구단. 25명 스쿼드 보유. |
+| `state` | `GameState` | `allPlayers` 조회용. Reroll 시 `rerollTokens` / `nextPlayerId` 갱신. |
+| `balance` | `GameBalanceSO` | 평가 컷 / Formation / Reroll 정책. |
+| `db` | `GameDatabase` | PositionSO 조회 (라인 분류용). |
+| `rng` | `System.Random` | Reroll 시 새 시드 인스턴스 (호출자가 derived seed 부여). |
+
+### Outputs
+
+```csharp
+public class SquadEvaluation {
+    public TierGrade gk;          // Elite / Strong / Average / Weak / Poor
+    public TierGrade df;
+    public TierGrade mf;
+    public TierGrade at;
+    public Line acePosition;      // 최고 CA 선수의 라인 (GK / DF / MF / AT)
+    public int aceLineCA;         // 디버그용 — 표시는 라인만
+}
+
+public enum TierGrade { Poor, Weak, Average, Strong, Elite }
+public enum Line { GK, DF, MF, AT }
+```
+
+> **UI 표시 정책 (`design-decisions.md` #14)**: 평균 CA 절댓값 / 점수는 숨김. 티어 라벨만 노출. 디버그 모드 (`isDebugMode = true`) 일 때만 raw 수치 표시.
+
+### Logic
+
+```
+1. 4라인 분류         (PositionSO 기반)
+2. 라인 평균 CA       (각 라인 출전 선수 평균)
+3. 명성 대비 정규화    (ratio = lineCA / expectedMeanCA → 5단계 컷)
+4. ACE 마커          (전체 선수 중 최고 CA → 그 선수의 라인)
+```
+
+#### 1단계: 4라인 분류
+
+```
+Line.GK = { Position.GK }
+Line.DF = { Position.CB, Position.LB, Position.RB, Position.WB }
+Line.MF = { Position.DM, Position.CM, Position.AM, Position.LM, Position.RM }
+Line.AT = { Position.LW, Position.RW, Position.ST, Position.CF }
+```
+
+> **고정 분류**: V0.1 에선 알고리즘 내 하드코딩. V1.0 에서 PositionSO 에 `lineCategory` 필드 도입 검토 (`design-decisions.md` #30 참조).
+
+#### 2단계: 라인 평균 CA
+
+```
+foreach line in [GK, DF, MF, AT]:
+    membersInLine = club.seniorSquadIds
+        .Select(id => state.GetPlayer(id))
+        .Where(p => p.info.primaryPosition in line.positions)
+    
+    if membersInLine.empty:
+        lineCA[line] = 0       # edge case: 분배표가 비정상이면 0 → Poor
+    else:
+        lineCA[line] = avg(p.currentAbility for p in membersInLine)
+```
+
+#### 3단계: 명성 대비 정규화 → 5단계 티어
+
+```
+expectedMeanCA = balance.caRepBase + balance.caRepCoeff * club.reputation
+                                    # algorithms.md #1 1단계와 동일 공식
+
+foreach line:
+    ratio = lineCA[line] / expectedMeanCA
+    
+    if   ratio >= balance.tierEliteRatio    : tier = Elite     # 1.20
+    elif ratio >= balance.tierStrongRatio   : tier = Strong    # 1.05
+    elif ratio >= balance.tierAverageRatio  : tier = Average   # 0.90
+    elif ratio >= balance.tierWeakRatio     : tier = Weak      # 0.75
+    else                                    : tier = Poor
+```
+
+**예시 (`design-decisions.md` #15 의 "빅클럽 평범 ≈ 중위권 훌륭" 구현 검증)**:
+- 빅클럽 (rep=90, expectedMean=132) + 라인 평균 CA 140 → ratio 1.06 → **Strong**
+- 중위권 (rep=50, expectedMean=100) + 라인 평균 CA 110 → ratio 1.10 → **Strong**
+- 표면 수치는 다르지만 같은 평가. 작은 구단으로 시작해도 "우리 공격진 훌륭함!" 만족감 확보.
+
+#### 4단계: ACE 마커
+
+```
+allPlayers = club.seniorSquadIds.Select(id => state.GetPlayer(id))
+acePlayer  = allPlayers.OrderByDescending(p => p.currentAbility).First()
+acePosition = LineOf(acePlayer.info.primaryPosition)
+aceLineCA   = acePlayer.currentAbility
+```
+
+> ACE 는 단일. 동률 시 첫 번째 매치 (정렬 안정성). UI 는 "🌟 ACE in {Line}" 같은 식으로 단일 라벨 표시.
+
+### Reroll 정책
+
+```
+RerollSquad(club, state, balance, rng) → SquadEvaluation:
+    # 1. 토큰 차감
+    if state.rerollTokens <= 0: throw "No tokens"
+    state.rerollTokens -= 1
+    
+    # 2. 기존 25명 제거
+    foreach playerId in club.seniorSquadIds.ToList():
+        state.RemovePlayer(playerId)
+    club.seniorSquadIds.Clear()
+    
+    # 3. 같은 club 으로 ClubGen 의 3단계 (스쿼드 생성) 만 호출
+    # (1단계 명성, 2단계 Club 인스턴스 는 유지. 명성 / 재정 / 시설 / 창단년도 보존)
+    nextId = state.nextPlayerId
+    foreach (pos, count) in ResolveSquadComposition(club, balance, rng):
+        for j in 0..count:
+            player = PlayerGenerator.Generate(rng, club.reputation, pos, ...,
+                                              currentDate, balance)
+            player.id = nextId++
+            state.AddPlayer(player)
+            club.seniorSquadIds.Add(player.id)
+    state.nextPlayerId = nextId
+    
+    # 4. 재평가
+    return EvaluateSquad(club, state, balance, db)
+```
+
+> **새 id 부여 정책 (`design-decisions.md` #31)**: 기존 player id 재사용 X. `state.nextPlayerId` 카운터 단조증가. 디버그 / 세이브 일관성.
+
+> **시드 정책**: Reroll 마다 다른 결과 보장 위해 호출자가 `rng = new Random(state.randomSeed ^ club.id ^ club.rerollsUsed)` 같은 derived seed 부여. ClubGen 의 Reroll 추적은 `Club` 에 `int rerollsUsed` 필드 추가 검토 (`v0.1-tasks.md` Task 13.3 시점 결정).
+
+### Balancing Parameters → GameBalanceSO
+
+```csharp
+// === Gacha 평가 컷 (라인별 5단계 티어) ===
+public float tierEliteRatio    = 1.20f;
+public float tierStrongRatio   = 1.05f;
+public float tierAverageRatio  = 0.90f;
+public float tierWeakRatio     = 0.75f;
+// < tierWeakRatio → Poor
+
+// === Reroll ===
+// initialRerollTokens / maxRerollStockpile 는 기존 필드 재사용.
+```
+
+> **분배표 (`FormationConfig`)** 는 `design-decisions.md` #28 갱신 항목 — 별도 헤더 (Club Gen — Formation). 여기 Gacha 명세에서는 평가 컷만 정의.
+
+### Edge Cases
+
+| Case | 처리 |
+| --- | --- |
+| 라인에 선수 0명 (분배표 비정상) | lineCA = 0 → 자동 Poor. 경고 로그. |
+| `expectedMeanCA == 0` (rep=0 + caRepBase=0 같은 극단) | ratio = lineCA / max(1, expectedMean). 0 나누기 방어. |
+| 모든 라인 CA 동일 (e.g. 시드 결정성 테스트) | ACE 는 첫 번째 매치 (정렬 안정성). |
+| `state.rerollTokens == 0` 에서 Reroll 호출 | `InvalidOperationException`. UI 단에서 미리 버튼 비활성화로 막아야 함. |
+| Reroll 중 ClubGen 실패 | 트랜잭션 정책 X (V0.1 단순화). 부분 실패 시 `seniorSquadIds` 가 빈 상태로 남음 — Assert + 경고. |
+
+### Test Scenarios
+
+`Random(seed: 42)` 고정.
+
+**T1. 라인 분류 정확성**
+- 모든 PositionSO 가 정확히 1개 라인 매핑 (GK 단독, DF 4개, MF 5개, AT 4개 = 14)
+- AM 은 MF, WB 는 DF, GK 는 단독
+
+**T2. 명성 대비 비율 — Strong 케이스**
+- rep=85 club, GK 라인 평균 CA 140 → ratio ≈ 1.0 → Average (대조군)
+- rep=85 club, GK 라인 평균 CA 165 → ratio ≈ 1.18 → Strong
+
+**T3. 명성 대비 — 중위권 만족도 검증** (`design-decisions.md` #15)
+- rep=50 club, AT 라인 평균 CA 120 → ratio = 1.20 → Elite ✓
+- 같은 평균 CA 120 이지만 rep=90 club → ratio ≈ 0.91 → Average
+- 즉 **같은 절대 CA 도 명성에 따라 다른 평가** — 디자인 의도
+
+**T4. ACE 마커**
+- 25명 중 한 선수의 CA 를 인위적으로 +50 → 그 선수의 라인이 acePosition
+- 동률 시 첫 번째 매치 (deterministic)
+
+**T5. Reroll 결정성**
+- 같은 seed + 같은 club + 같은 rerollIndex → 같은 SquadEvaluation
+- 다른 seed → 다른 결과 (높은 확률)
+- Reroll 후 기존 25명 id 가 state.allPlayers 에서 사라짐
+
+**T6. Reroll 토큰 부족**
+- state.rerollTokens = 0 → InvalidOperationException
+
+**T7. 라인 비어있음 (edge case)**
+- 의도적으로 분배표 망가뜨려 GK 0명 → gk = Poor
+- 경고 로그 1회
+
+### V1.0+ 보완 포인트
+
+| 항목 | V0.1 동작 | V1.0 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **포메이션 다양성** | 4-4-2 단일 (`FormationConfig` nested) | `FormationSO` 추출 + 5~6개 포메이션. 가챠 시 랜덤 선택. | 1단계 + ClubGen 분배표 + SO 카탈로그 |
+| **출전 시간 카테고리** | 미구현 (V0.1 단순) | `Player.agreedPlaytime: PlaytimeTier` (주전/서브/비상후보) — PlayerGen 이 CA 기반 + 노이즈로 부여. "인기 선수 / 중요 선수" 자동 식별. 사기 시스템 연동. | Player 도메인 필드 + PlayerGen + 사기 시스템 |
+| **사기 시스템 연동** | 평가만 표시 | 약속 출전시간 미달자 → 사기 ↓, 보드 신뢰도 영향 | Player.state.morale + Board 시스템 |
+| **티어 표시 정교화** | 5단계만 | 라인 내 "Star Player / Backup / Spare" 단위 표시 | UI 레이어 |
+| **명성 대비 정규화 방식** | `lineCA / expectedMeanCA` 단순 비율 | z-score (`(lineCA - expectedMean) / caStdDev`) 도입 검토 — 더 통계적으로 정확 | 3단계 |
+| **라인 분류 외부화** | 하드코딩 | `PositionSO.lineCategory: Line` 필드 추가 | 1단계 + PositionSO + 시드 |
+| **다중 ACE / 라인별 ACE** | 단일 ACE | 라인별 최고 CA 선수 마커 (4명) | 4단계 |
+
+### Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-19 | All | Initial spec for V0.1. 4라인(GK/DF/MF/AT) + 명성 대비 비율 + 5단계 티어 + ACE 마커 + Reroll 재생성 정책. 출전 시간 시스템은 V1.0+ 보완 포인트로 명세만 기록. |
+
+---
+
 ## Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2025-05-15 | All | Template created, sections empty (to be filled per design session) |
 | 2026-05-19 | Priority Order + #5 | ClubGen 우선순위 ★★★★★ 로 격상, `## 5. Club Generation` 섹션 작성. 섹션 번호와 우선순위 1:1 불일치 명시. |
+| 2026-05-19 | Priority Order + #6 | Starting Squad Gacha 우선순위 ★★★★ 추가, `## 6. Starting Squad Gacha` 섹션 작성. 4라인 평가 + 명성 대비 비율 + Reroll 재생성. |

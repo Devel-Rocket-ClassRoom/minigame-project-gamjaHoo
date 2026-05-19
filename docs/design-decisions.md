@@ -427,26 +427,57 @@ Rel   | 0.15  |          3          | 25..40     # 강등권
 
 ---
 
-## 28. 초기 스쿼드 — 고정 포지션 분배표 (V0.1)
+## 28. 초기 스쿼드 — `FormationConfig` + 필수 + 랜덤 (V0.1)
 
-**결정:** V0.1 에서 모든 구단이 같은 포지션 분배표로 25명 스쿼드 생성. 구단별 색깔(전술 프리셋 / 스카우팅 편향)은 V1.0+ 도입.
+**결정:** V0.1 에서 모든 구단이 같은 분배표로 25명 스쿼드 생성하되, **포메이션(4-4-2 기준) 필수 인원 + 랜덤 자리** 정책으로 변경. 정적 13개 int 분배표 → `FormationConfig` 단위로 묶음.
 
 ```
-GK 3 / CB 4 / LB 2 / RB 2
-DM 2 / CM 3 / AM 2 / LM 1 / RM 1
-LW 1 / RW 1 / ST 2 / CF 1   = 25
+필수 23명 (4-4-2 기준):
+  GK 3
+  CB ≥ 4
+  LB ≥ 2
+  RB ≥ 2
+  DM + CM (그룹 합) ≥ 4
+  LM + LW (그룹 합) ≥ 2
+  RM + RW (그룹 합) ≥ 2
+  ST + CF (그룹 합) ≥ 4
+
+랜덤 2자리:
+  위 카테고리 중 시드 기반으로 +1
 ```
+
+**V0.1 기본값 (23명):** GK 3 / CB 4 / LB 2 / RB 2 / DM 2 / CM 2 / LM 1 / LW 1 / RM 1 / RW 1 / ST 2 / CF 2. AM / WB 는 V0.1 분배표 제외 (4-4-2 정통 포메이션 X).
 
 **이유:**
-- V0.1 단순화. "초기 스쿼드가 라인업 못 짤 정도로 빈약" 같은 시스템 오류 회피.
-- 외부화 (`GameBalanceSO.squadGK ~ squadCF` 13개 필드) → 1줄 수정으로 밸런싱 가능.
+- **더블 스쿼드 보장** — 모든 사용 포지션 최소 2명. 부상 / 컨디션 회복 중에도 라인업 가능. GK 는 서드키퍼까지 3명.
+- **포메이션 단위 응집** — V0.1 4-4-2 단일 디폴트지만 `FormationConfig` 데이터 단위로 묶어 V1.0 진입 시 매끄러움 (`#32` 참조).
+- **시드 기반 랜덤 2자리** — 구단 / 시드별 미세한 다양성. 결정성 보장.
 
-**가변 `playersPerClub` 대응:** 분배표 합(25) ≠ `LeagueConfigSO.playersPerClub` 일 경우 V0.1 은 **분배표 합 기준으로 진행 + 경고**. ratio 변환은 V1.0 보완 포인트.
+**외부화:** `GameBalanceSO.formation: FormationConfig` (nested class — `[Serializable]` value object). V0.1 단일 인스턴스. V1.0 에서 `FormationSO` 로 추출.
+
+```csharp
+[Serializable]
+public class FormationConfig {
+    public string name = "4-4-2";
+    public int gk           = 3;
+    public int cbMin        = 4;
+    public int lbMin        = 2;
+    public int rbMin        = 2;
+    public int dmCmGroupMin = 4;   // DM + CM 합
+    public int lmLwGroupMin = 2;   // LM + LW 합
+    public int rmRwGroupMin = 2;   // RM + RW 합
+    public int stCfGroupMin = 4;   // ST + CF 합
+    public int randomSlots  = 2;
+}
+```
+
+**가변 `playersPerClub` 대응:** `Σ(필수) + randomSlots ≠ playersPerClub` 일 경우 V0.1 은 **분배표 합 기준으로 진행 + 경고**. V1.0 에서 ratio 화 검토.
 
 ### V1.0+ 보완 포인트
 
-- **ratio 화** — 현재 13개 절대 int. V1.0 에서 float ratio (Σ=1.0) 로 전환해 `playersPerClub` 변화에 자동 정합 (15명 리그, 30명 리그 등).
-- **전술 프리셋별 분배표** — 4-3-3 / 4-4-2 / 3-5-2 포메이션별 분배표 도입. 새 `TacticPresetSO` 와 연결.
+- **`FormationSO` 추출** — nested `FormationConfig` 를 별도 SO 로 분리. `List<FormationSO> availableFormations` 카탈로그 도입.
+- **가챠 시 포메이션 랜덤화** (`#32`) — 초기 스쿼드 가챠 단계에 포메이션도 랜덤 추첨. 각 포메이션이 굴러갈 수 있는 최소 구성 비율 보장 (현재 4-4-2 한정 → 4-3-3 / 3-5-2 등 추가).
+- **전술 프리셋 연결** — `FormationSO` 가 단순 분배표 외 전술 매개변수 (압박 강도 / 라인 높이 등) 도 포함. 경기 시뮬레이션 입력.
 - **구단별 색깔** — 명성·예산·유스 시설에 따라 스쿼드 편향 (빅클럽=veteran/외국인 ↑, 강등권=youth/자국인 ↑).
 - **homegrown 시설 연동** — 현재 모든 구단 20% 고정. 유스 시설 Lv5 → 35%, Lv1 → 10% 등 시설 연동.
 
@@ -478,6 +509,113 @@ LW 1 / RW 1 / ST 2 / CF 1   = 25
 
 ---
 
+## 30. Starting Squad 평가 — 4라인 + 명성 대비 + ACE
+
+**결정:** 초기 스쿼드를 **4라인 × 5단계 티어** 로 평가. 명성 대비 정규화로 빅클럽 / 약체 모두 만족스러운 평가. ACE 마커 단일.
+
+**4라인 분류:**
+
+```
+GK : GK
+DF : CB, LB, RB, WB
+MF : DM, CM, AM, LM, RM
+AT : LW, RW, ST, CF
+```
+
+V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 필드 추가 검토 (외부화).
+
+**평가 알고리즘 (algorithms.md #6 3단계):**
+
+1. **라인 평균 CA**: `lineCA = avg(p.currentAbility for p in line)`
+2. **명성 대비 정규화**: `expectedMeanCA = caRepBase + caRepCoeff × club.reputation` (algorithms.md #1 1단계와 동일 공식)
+3. **티어 컷** (`GameBalanceSO` 외부화):
+   - `ratio ≥ 1.20` → Elite
+   - `≥ 1.05` → Strong
+   - `≥ 0.90` → Average
+   - `≥ 0.75` → Weak
+   - 그 외 → Poor
+
+**ACE 마커:** 모든 선수 중 최고 CA 선수의 **라인 1개** 마커. 단일.
+
+**이유:**
+- **CA 평균** — 단순 선수 수가 많다고 강한 게 아니라 평균 능력치. "AT 라인에 8명인데 모두 약함" 이 "AT 5명인데 모두 강함" 보다 약하다.
+- **명성 대비 비율** — `#15` "빅클럽 평범 ≈ 중위권 훌륭" 의 수치적 구현. 작은 구단 유저 만족감 보장.
+- **ACE 마커** — 4라인 평가만으론 단조. "에이스 어디 있나" 가 의사결정 포인트.
+
+**예시 검증:**
+- 빅클럽 (rep=90, expectedMean=132) + 라인 평균 140 → ratio 1.06 → Strong
+- 중위권 (rep=50, expectedMean=100) + 라인 평균 110 → ratio 1.10 → Strong
+- 같은 절대 CA (120) 도 명성 따라 다른 평가. 빅클럽이면 Average, 중위권이면 Elite.
+
+### V1.0+ 보완 포인트
+
+- **z-score 정규화** — 단순 비율 대신 `(lineCA - expectedMean) / caStdDev`. 더 통계적으로 정확.
+- **출전 시간 카테고리** (`#33` 참조) — 능력치 기반 자동 배정 + 노이즈. "주전급/서브급/비상후보급". 사기 시스템과 연동.
+- **라인별 ACE** — 단일 ACE → 라인별 최고 CA 4명 마커.
+- **위치 외부화** — `PositionSO.lineCategory` 필드.
+
+---
+
+## 31. Reroll — 재생성 + 새 ID (V0.1)
+
+**결정:** 스타팅 가챠 Reroll 시 해당 구단 25명 전체 **GameState 에서 제거** + 새 시드 / 새 id 로 25명 재생성. 기존 id 재사용 X.
+
+```
+1. state.rerollTokens -= 1
+2. foreach playerId in club.seniorSquadIds: state.RemovePlayer(playerId)
+3. club.seniorSquadIds.Clear()
+4. nextId = state.nextPlayerId  ← 신규 필드 (모든 player id 카운터 단일 진실의 원천)
+5. ClubGen 의 스쿼드 생성 단계 호출. id = nextId++
+6. state.nextPlayerId = nextId
+```
+
+**이유:**
+- **결정성 + 디버그 명확성** — 같은 id 가 다른 선수 데이터를 가지면 세이브 / 디버그 혼란.
+- **세이브 일관성** — 세이브 / 로드 시 player 객체 동일성 보장.
+- **id 단조증가** — 새 id 만 부여하면 `nextPlayerId` 카운터 하나만 관리하면 됨.
+
+**구현 영향:**
+- **`GameState.nextPlayerId: int` 필드 신규 도입** — 모든 player id 발급의 단일 진실의 원천. `ClubGenerator` 도 이걸 사용 (기존엔 `startPlayerId` 파라미터 호출자 관리).
+- `GameInitializer` 가 ClubGen 호출 후 `state.nextPlayerId` 갱신.
+- `StartingSquadGacha.RerollSquad` 도 이걸 사용.
+
+**대안 검토 — id 재사용:** 디스크 / 메모리 절약은 미미. 디버그 / 결정성 보장 손실이 큼. 거절.
+
+### V1.0+ 보완 포인트
+
+- **rerollsUsed 추적** — 시즌 첫 가챠 외 다른 Reroll 시스템 (유스 인스펙션 등) 과 별도 카운터 분리.
+- **트랜잭션 정책** — Reroll 중 ClubGen 실패 시 롤백. V0.1 은 Assert 후 부분 실패.
+- **derived seed 정책** — 현재 호출자가 `rng = new Random(state.randomSeed ^ club.id ^ rerollIdx)` 수동 부여. V1.0 에서 헬퍼 추출.
+
+---
+
+## 32. V0.1 단일 포메이션 + V1.0 가챠 랜덤화 확장
+
+**결정:** V0.1 에서 4-4-2 단일 포메이션만 지원. `FormationConfig` 데이터 단위로 묶어 V1.0 진입 시 매끄럽게 확장.
+
+**V0.1:**
+- `GameBalanceSO.formation: FormationConfig` 단일 인스턴스 (4-4-2).
+- ClubGen 가 이걸 사용해 분배표 생성.
+- 가챠는 평가 / 리롤만. 포메이션 선택 없음.
+
+**V1.0+ 확장 시나리오 (사용자 의도):**
+- `FormationConfig` → `FormationSO` 로 추출.
+- `List<FormationSO> availableFormations` 카탈로그 (4-4-2 / 4-3-3 / 3-5-2 / 4-2-3-1 / 4-4-1-1 등 5~6개).
+- **가챠 시 포메이션 랜덤 추첨** — 각 구단마다 다른 포메이션. 분배표도 그에 맞춰 다름.
+- 각 포메이션이 굴러갈 수 있는 **최소 구성 비율 보장** — `FormationConfig` 의 필수 인원 + 그룹 정책이 이미 그 형태로 설계됨.
+
+**이유:**
+- V0.1 단순화 (단일 포메이션) 와 V1.0 확장성 동시 달성.
+- nested class → SO 추출은 직관적 마이그레이션 경로.
+
+### V1.0+ 보완 포인트
+
+- **FormationSO 신규** — id / name / 분배표 정책 / 전술 매개변수 (압박, 라인 높이 등) 보유.
+- **가챠 추첨 메커닉** — 명성 가중치 (빅클럽 = 화려한 포메이션 ↑) 도 검토.
+- **유저 변경 가능성** — 초기 가챠 후 시즌 중 포메이션 변경 가능 여부 (전술 화면 UX).
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -488,3 +626,4 @@ LW 1 / RW 1 / ST 2 / CF 1   = 25
 | 2026-05-18 | #24~#26 추가 | algorithms.md #1 Player Generation 명세 작성 시 결정 (CA-Stats 분리 / 트레잇 충돌 그룹 / 2차 포지션 affinity) |
 | 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V1.0+ 보완 포인트 각 결정에 별도 명시. |
 | 2026-05-19 | #29 추가 | Task 2.3 마무리 (#76) 작업 중 GameManager 레이어 결정. `Core → Domain` 정통 의존 방향 복원 (`Domain.asmdef` 미사용 Core 참조 제거 + `Core.asmdef` 에 Domain 추가). 세 문서 (project-context / class-diagram / coding-conventions) Core 로 통일. |
+| 2026-05-19 | #28 갱신 + #30~32 추가 | algorithms.md #6 Starting Squad Gacha 명세 작성 시 결정. 분배표 정책 `FormationConfig` 단위로 갱신 (필수 23 + 랜덤 2). Gacha 평가 정책 (4라인 + 명성 대비 + ACE). Reroll 재생성 + 새 id (`GameState.nextPlayerId` 신규). V0.1 단일 포메이션 → V1.0 가챠 랜덤화 확장 경로 명시. 출전 시간 시스템은 V1.0+ 보완 포인트로만 기록. |
