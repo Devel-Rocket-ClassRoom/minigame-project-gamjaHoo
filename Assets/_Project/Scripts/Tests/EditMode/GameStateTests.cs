@@ -91,5 +91,22 @@ namespace FMLite.Tests
             Assert.IsNull(state.GetClub(5));
             Assert.AreEqual(0, state.allClubs.Count);
         }
+
+        // ── nextPlayerId (design-decisions.md #31) ────────────────────
+
+        [Test]
+        public void NextPlayerId_DefaultsToOne()
+        {
+            var state = new GameState();
+            Assert.AreEqual(1, state.nextPlayerId);
+        }
+
+        [Test]
+        public void NextPlayerId_CanBeUpdatedAndReadBack()
+        {
+            var state = new GameState();
+            state.nextPlayerId = 501;        // ClubGen 호출 후 500명 생성 시뮬
+            Assert.AreEqual(501, state.nextPlayerId);
+        }
     }
 }

@@ -35,6 +35,7 @@ namespace FMLite.Tests
                 userClubId = 1,
                 rerollTokens = 3,
                 randomSeed = 42,
+                nextPlayerId = 501,        // ClubGen 500명 호출 후 시뮬
             };
 
             SaveSystem.Save(original, _slot);
@@ -45,6 +46,7 @@ namespace FMLite.Tests
             Assert.AreEqual(original.userClubId, loaded.userClubId);
             Assert.AreEqual(original.rerollTokens, loaded.rerollTokens);
             Assert.AreEqual(original.randomSeed, loaded.randomSeed);
+            Assert.AreEqual(original.nextPlayerId, loaded.nextPlayerId);
         }
 
         [Test]
