@@ -43,9 +43,12 @@
 V0.1 시작 전 정해야 할 알고리즘 (우선순위):
 
 1. **선수 생성 (Player Generation)** ★★★★★
-2. **경기 결과 계산 (Match Simulation)** ★★★★★
-3. **선수 가치 계산 (Market Value)** ★★★★
-4. **유스 풀 생성 (Youth Pool Generation)** ★★★★
+2. **구단 생성 (Club Generation)** ★★★★★
+3. **경기 결과 계산 (Match Simulation)** ★★★★★
+4. **선수 가치 계산 (Market Value)** ★★★★
+5. **유스 풀 생성 (Youth Pool Generation)** ★★★★
+
+> 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례.
 
 V0.1 진행 중 정해도 OK:
 
@@ -487,8 +490,364 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분 모음. 이 알고리즘
 
 ---
 
+## 5. Club Generation
+
+### Purpose
+
+- 리그 1개 분량(20구단) 의 `Club` 인스턴스 + 각 구단별 25명 스쿼드 일괄 생성.
+- 호출 시점: `GameInitializer` (새 게임 시작 — `data-flows.md` #1).
+- 단일 책임: Club 인스턴스 빌드 + `PlayerGenerator.Generate` 호출. **id 할당 / GameState 등록 / userClub 선정은 호출자**.
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `rng` | `System.Random` | 시드 고정. UnityEngine.Random 금지. |
+| `leagueConfig` | `LeagueConfigSO` | clubCount / playersPerClub / countryCode / clubNames 사용. |
+| `balance` | `GameBalanceSO` | 모든 수치 외부화. |
+| `db` | `GameDatabase` | NamePool / Position / Country / Trait 풀 접근. |
+| `currentDate` | `DateTime` | 창단년도 / 계약 시작일 계산. |
+| `leagueId` | `int` | 모든 `Club.leagueId`. |
+| `startClubId` | `int` | 클럽 id 시작값. id = startClubId + i. |
+| `startPlayerId` | `int` | 첫 번째 선수 id. 이후 단조증가. |
+
+### Outputs
+
+```csharp
+public class ClubGenerationResult {
+    public List<Club> clubs;        // Count == leagueConfig.clubCount (V0.1: 20)
+    public List<Player> players;    // Count == clubCount × playersPerClub (V0.1: 500)
+}
+```
+
+- 모든 `Player.currentClubId` 가 `clubs` 중 하나의 id.
+- 모든 `Club.seniorSquadIds.Count == playersPerClub`.
+- `player.id` / `club.id` 모두 고유, 시작값부터 단조증가.
+
+### Logic
+
+```
+1. 명성 분배         (4티어 계단 → 클럽별 rep)
+2. Club 인스턴스 빌드 (Finance, Facilities — 명성 약상관 + 노이즈)
+3. 스쿼드 생성        (포지션 분배표 → 연령/국적 추첨 → PlayerGenerator 호출)
+```
+
+#### 1단계: 명성 분배
+
+4티어 계단 (`design-decisions.md` #27). **가변 `clubCount` 대응** — 카운트는 ratio 로 외부화:
+
+```
+tier  | ratio | clubCount=20 → count | repRange
+------|-------|---------------------|---------
+Top4  | 0.20  |          4          | 85..95
+Euro  | 0.30  |          6          | 65..80
+Mid   | 0.35  |          7          | 45..60
+Rel   | 0.15  |          3          | 25..40
+                  Σratio = 1.00
+```
+
+각 구단의 rep 은 자기 티어 구간에서 균등 추첨. `leagueConfig.clubNames[i]` 가 명성 내림차순으로 정렬되어 있다는 전제 — i=0 이 최상위.
+
+```
+tierCounts = AllocateTierCounts(balance.tierClubRatios, clubCount)
+# tierCounts.Sum() == clubCount 보장 (round-off 잔여 보정 후)
+
+ranks = []
+for tierIdx in 0..tierCounts.Length:
+    for _ in 0..tierCounts[tierIdx]:
+        ranks.add(rng.Next(balance.tierRepMin[tierIdx],
+                           balance.tierRepMax[tierIdx] + 1))
+# ranks.Count == clubCount, ranks[i] 가 i 번째 구단 명성
+
+
+AllocateTierCounts(ratios, n) → int[]:
+    # round 잔여를 fractional part 큰 티어부터 +1
+    raw       = ratios.Select(r => r * n).ToList()
+    counts    = raw.Select(x => (int)floor(x)).ToList()
+    remainder = n - counts.Sum()
+    if remainder > 0:
+        order = raw.Select((x, i) => (i, frac: x - counts[i]))
+                   .OrderByDescending(p => p.frac)
+                   .Select(p => p.i)
+                   .ToList()
+        for k in 0..remainder: counts[order[k]] += 1
+    elif remainder < 0:
+        # ratio 합 > 1.0 같은 비정상. 끝 티어부터 -1.
+        for k in 0..(-remainder): counts[counts.Count - 1 - k] = max(0, counts[...] - 1)
+    return counts
+```
+
+> **외부화**: `tierClubRatios: float[]` (합 ≈ 1.0), `tierRepMin: int[]`, `tierRepMax: int[]`. ratio 합 ≠ 1.0 → 경고 후 `AllocateTierCounts` 가 라운드 보정으로 흡수. `clubNames.Count < clubCount` → `$"Club {i+1}"` 폴백 + 경고.
+
+> **clubCount=20 외에도 동작**: clubCount=10 / 12 / 24 등 가변 입력 시 `AllocateTierCounts` 가 ratio 기반으로 분배. 예) clubCount=10 → Top2 / Euro3 / Mid4 / Rel1.
+
+#### 2단계: Club 인스턴스 빌드
+
+```
+for i in 0..clubCount:
+    rep      = ranks[i]
+    moneyMu  = balance.financeBaseMoney + balance.financeRepCoeff * rep
+    money    = Max(balance.financeFloor,
+                   round(moneyMu + rng.NextNormal(0, moneyMu * balance.financeNoiseSigma)))
+
+    repLv    = rep / 20.0          # rep=100 → 5
+    scoutLv  = ClampLevel(round(repLv + rng.NextNormal(0, balance.facilityNoiseSigma)))
+    trainLv  = ClampLevel(round(repLv + rng.NextNormal(0, balance.facilityNoiseSigma)))
+    youthLv  = ClampLevel(round(repLv + rng.NextNormal(0, balance.facilityNoiseSigma)))
+
+    foundYr  = currentDate.Year - rng.Next(balance.clubMinAgeYears,
+                                           balance.clubMaxAgeYears + 1)
+
+    clubs[i] = new Club {
+        id = startClubId + i,
+        name = leagueConfig.clubNames[i],          # 부족 시 $"Club {i+1}" 폴백
+        foundedYear = foundYr,
+        leagueId = leagueId,
+        reputation = rep,
+        finance = new Finance {
+            money = money,
+            debt = 0,
+            transferBudget = round(money * balance.transferBudgetRatio),
+            wageBudget     = round(money * balance.wageBudgetRatio),
+        },
+        facilities = new Facilities {
+            scoutLevel = scoutLv,
+            trainingLevel = trainLv,
+            youthLevel = youthLv,
+        },
+        seniorSquadIds = [],     # 3단계에서 채움
+        youthSquadIds  = [],
+        intakeHistory  = [],
+        season = new SeasonState {
+            targetLeaguePosition = i + 1,                       # 명성 순위 = 기본 목표
+            cupTarget            = CupTarget.None,
+            boardConfidence      = balance.initialBoardConfidence,   # 50
+        },
+        isActiveSimulation = false,    # userClub 결정 후 호출자가 true 갱신
+    }
+
+
+ClampLevel(x): Clamp(round(x), balance.minFacilityLevel, balance.maxFacilityLevel)
+```
+
+> [V0.1] **약상관 정책 (design-decisions.md #27)**: 시설 등급은 `rep/20` 직접 매핑이지만 `NextNormal(σ=1)` 노이즈로 한두 단계 출렁. 자금은 base + repCoeff×rep + 15% σ 노이즈. → 빅클럽인데 시설 평범 / 중위권인데 유스 강한 캐릭터성 살아남.
+
+#### 3단계: 스쿼드 25명 생성
+
+**고정 포지션 분배표 (`design-decisions.md` #28):**
+
+```
+SquadComposition = [
+    (GK, balance.squadGK = 3),
+    (CB, balance.squadCB = 4),
+    (LB, balance.squadLB = 2),
+    (RB, balance.squadRB = 2),
+    (DM, balance.squadDM = 2),
+    (CM, balance.squadCM = 3),
+    (AM, balance.squadAM = 2),
+    (LM, balance.squadLM = 1),
+    (RM, balance.squadRM = 1),
+    (LW, balance.squadLW = 1),
+    (RW, balance.squadRW = 1),
+    (ST, balance.squadST = 2),
+    (CF, balance.squadCF = 1),
+]   # 합계 25
+```
+
+```
+nextPlayerId = startPlayerId
+
+for each club in clubs:
+    for each (pos, count) in SquadComposition:
+        for j in 0..count:
+            age         = SampleAge(rng, balance)
+            nat         = SampleNationality(rng, leagueConfig.countryCode, db, balance)
+            homegrown   = rng.NextDouble() < balance.homegrownRatio   # 0.20
+            youthClubId = homegrown ? club.id : -1
+
+            player = PlayerGenerator.Generate(
+                rng, club.reputation, pos, age, nat,
+                club.id, youthClubId, PlayerOrigin.InitialRoster,
+                currentDate, balance)
+
+            player.id = nextPlayerId++
+            players.Add(player)
+            club.seniorSquadIds.Add(player.id)
+
+
+SampleAge(rng, balance) → int:
+    bucket = rng.WeightedSample(
+        ["youth", "prime", "veteran"],
+        b => b switch {
+            "youth"   => balance.youthAgeRatio,    # 0.20
+            "prime"   => balance.primeAgeRatio,    # 0.60
+            "veteran" => balance.veteranAgeRatio,  # 0.20
+        })
+    return bucket switch {
+        "youth"   => rng.Next(balance.youthAgeMin,   balance.youthAgeMax   + 1),  # 16..21
+        "prime"   => rng.Next(balance.primeAgeMin,   balance.primeAgeMax   + 1),  # 22..28
+        "veteran" => rng.Next(balance.veteranAgeMin, balance.veteranAgeMax + 1),  # 29..35
+    }
+
+
+SampleNationality(rng, leagueCountry, db, balance) → string:
+    if rng.NextDouble() < balance.primaryNationalityRatio:    # 0.70
+        return leagueCountry
+    others = db.AllCountries.Where(c => c.code != leagueCountry).ToList()
+    if others.Count == 0: return leagueCountry                # 폴백
+    return others[rng.Next(others.Count)].code                # 균등 추첨
+```
+
+> **국적 분배 책임 (algorithms.md #1 와 일치)**: ClubGenerator 가 `primaryNationalityRatio` 분포로 굴려 PlayerGenerator 에 코드 전달. PlayerGenerator 는 받은 코드 그대로 사용 — 단일 책임 분리.
+
+> **연령 분포 단순화 (V0.1)**: 모든 구단 동일 비율. V1.0 에서 빅클럽 veteran ratio ↑ / 중하위권 youth ratio ↑ 차등 검토.
+
+### Balancing Parameters → GameBalanceSO
+
+```csharp
+// ─── Reputation Tiers ───
+// ratio 합은 ≈ 1.0. round-off 잔여는 AllocateTierCounts 가 흡수.
+// clubCount 가변 대응 (10/12/20/24 등 어떤 값이든 동작).
+public float[] tierClubRatios = { 0.20f, 0.30f, 0.35f, 0.15f };  // Top4/Euro/Mid/Rel
+public int[]   tierRepMin     = {  85,    65,    45,    25   };
+public int[]   tierRepMax     = {  95,    80,    60,    40   };
+
+// ─── Finance ───
+public int   financeBaseMoney    = 5_000_000;     // £5M floor at rep=0
+public float financeRepCoeff     = 4_000_000f;    // rep=50 → 205M, rep=95 → 385M
+public float financeNoiseSigma   = 0.15f;         // 15% σ
+public int   financeFloor        = 1_000_000;
+public float transferBudgetRatio = 0.20f;
+public float wageBudgetRatio     = 0.50f;
+
+// ─── Facilities ───
+public float facilityNoiseSigma  = 1.0f;          // ±1 등급 정도
+public int   minFacilityLevel    = 1;
+public int   maxFacilityLevel    = 5;
+
+// ─── Squad Composition ───
+// 기본 합 = 25 (LeagueConfigSO.playersPerClub 기본값과 일치).
+// playersPerClub ≠ Σsquad* → 분배표 합 기준으로 진행 + 경고. V1.0 에서 ratio화 검토.
+public int squadGK = 3;
+public int squadCB = 4;
+public int squadLB = 2;
+public int squadRB = 2;
+public int squadDM = 2;
+public int squadCM = 3;
+public int squadAM = 2;
+public int squadLM = 1;
+public int squadRM = 1;
+public int squadLW = 1;
+public int squadRW = 1;
+public int squadST = 2;
+public int squadCF = 1;
+
+// ─── Age Distribution ───
+public float youthAgeRatio   = 0.20f;
+public float primeAgeRatio   = 0.60f;
+public float veteranAgeRatio = 0.20f;
+public int   youthAgeMin     = 16, youthAgeMax = 21;
+public int   primeAgeMin     = 22, primeAgeMax = 28;
+public int   veteranAgeMin   = 29, veteranAgeMax = 35;
+
+// ─── Foundation Year ───
+public int clubMinAgeYears = 50;
+public int clubMaxAgeYears = 150;
+
+// ─── Homegrown ───
+public float homegrownRatio = 0.20f;
+
+// ─── Board ───
+public int initialBoardConfidence = 50;
+
+// primaryNationalityRatio 는 algorithms.md #1 에서 이미 정의됨 (0.70).
+```
+
+### Edge Cases
+
+| Case | 처리 |
+| --- | --- |
+| `tierClubRatios` 합 ≠ 1.0 | 경고. `AllocateTierCounts` 라운드 보정으로 흡수 (잔여 +1 또는 끝 티어 -1). |
+| `tierClubRatios.Length` ≠ `tierRepMin/Max.Length` | Assert (배열 차원 불일치는 데이터 오류). |
+| `clubCount` 가 작아서 일부 티어 count=0 | 허용. 해당 티어 추첨 자체 스킵 (예: clubCount=4 + ratios={0.2,0.3,0.35,0.15} → 1/1/1/1, Rel ratio 작아도 round 잔여로 1 확보). |
+| `leagueConfig.clubNames.Count < clubCount` | 부족분 `$"Club {i+1}"` 폴백 + 경고. |
+| 클럽명 중복 | 허용 (LeagueConfigSO 설계 책임). |
+| `Σ(squadGK..squadCF)` ≠ `leagueConfig.playersPerClub` | 경고, **SquadComposition 합 기준**으로 진행 (실제 생성 인원 = 분배표 합). |
+| `db.AllCountries` 가 leagueCountry 하나뿐 | 외국인 추첨 시 leagueCountry 폴백. |
+| `youthAgeRatio + primeAgeRatio + veteranAgeRatio` ≠ 1.0 | `WeightedSample` 가 자동 정규화 (#1 트레잇 weight 폴백과 동일). |
+| `clubCount == 0` | 빈 결과 반환 + 경고. |
+| `startClubId / startPlayerId` 음수 | 호출자 책임. Assert 만. |
+
+### Test Scenarios
+
+`Random(seed: 42)` 고정. 통계 테스트는 `clubCount=20` × `playersPerClub=25` = 500명 batch.
+
+**T1. 결정성**
+- 같은 seed + 같은 LeagueConfig + 같은 GameBalance → 모든 Club/Player 동일.
+- 검증 필드: 모든 `club.id/name/reputation/finance.money/facilities.*`, 모든 `player.id/CA/PA/info.firstName/info.primaryPosition`.
+
+**T2. 명성 4티어 분포 (clubCount=20 기준)**
+- 20구단 reputation 정렬:
+  - 85~95 ∈ 4구단 (Top4)
+  - 65~80 ∈ 6구단 (Euro)
+  - 45~60 ∈ 7구단 (Mid)
+  - 25~40 ∈ 3구단 (Rel)
+
+**T2b. 가변 clubCount 분포**
+- clubCount=10 → 티어 카운트가 `AllocateTierCounts` 로 round-off 보정되어 합 10 (예상: Top2/Euro3/Mid4/Rel1).
+- clubCount=24 → 합 24 (예상: Top5/Euro7/Mid8/Rel3 또는 round 잔여 처리에 따른 인접 분포).
+- 어떤 clubCount 든 `Σtier == clubCount` 보장.
+
+**T3. 스쿼드 인원 / 포지션 분배표 일치**
+- 모든 구단 `seniorSquadIds.Count == 25`.
+- 각 구단의 포지션별 카운트가 SquadComposition 과 정확히 일치 (GK 3 / CB 4 / ... / CF 1).
+
+**T4. 연령 분포 (500명 batch)**
+- 평균 age in `[23, 27]`.
+- min age >= 16, max age <= 35.
+- 16~21 비율 ≈ 20% (±5%), 22~28 ≈ 60% (±5%), 29~35 ≈ 20% (±5%).
+
+**T5. 국적 분포 (500명 batch, `leagueCountry="ENG"`)**
+- ENG 비율 ≈ 70% (±5%).
+- 외국 국적 합 ≈ 30% (±5%).
+
+**T6. 재정 / 시설 — 명성 약상관 (20구단)**
+- corr(rep, money) ∈ `[0.5, 0.9]` (강한 양상관, 노이즈로 1.0 미만).
+- corr(rep, scoutLevel) ∈ `[0.4, 0.9]`.
+- 시설 등급 분포: 1 또는 5 한 곳에 60% 이상 몰리지 않음 (다양성 검증).
+
+**T7. ID 유일성 / 단조증가**
+- 모든 `player.id` ∈ `[startPlayerId, startPlayerId + 500)`, 중복 없음.
+- 모든 `club.id` ∈ `[startClubId, startClubId + 20)`, 중복 없음.
+- `club.seniorSquadIds` 가 정확히 그 구단 선수들의 id 만 포함.
+
+### V1.0 Migration Notes
+
+| 항목 | V0.1 동작 | V1.0 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **티어 ratio / repRange** | 단일 ratio 표 (모든 리그 동일) | 리그별 다른 분포 (ESP=빅2+중상위 강세, GER=빅3+분데스 평준화 등) — LeagueConfigSO 로 이전 | 1단계 + LeagueConfigSO |
+| **포지션 분배표 가변화** | int 13 필드 + playersPerClub 가변 대응 (분배표 합 기준 진행) | float ratio 13 필드 → playersPerClub 와 자동 정합 | 3단계 SquadComposition |
+| **포지션 분배표 구단별 색깔** | 모든 구단 동일 표 | 4-3-3 / 4-4-2 / 3-5-2 등 전술 프리셋별 분배표 | 3단계 + 새 TacticPresetSO |
+| **연령 분포 명성 차등** | 모든 구단 동일 (20/60/20) | 빅클럽=veteran ↑, 강등권=youth ↑ | 3단계 SampleAge |
+| **국적 분배 가중표** | leagueCountry 70% + 외국 균등 30% | `LeagueConfigSO.nationalityDistribution: List<{code, weight}>` (#1 V1.0 노트와 일치) | 3단계 SampleNationality |
+| **재정 다양성** | 15% σ 정규분포만 | 부채 / 스폰서 / 적자 구단 등 스토리텔링 요소 | 2단계 + Finance |
+| **시즌 목표 동적화** | 명성 순위 = 목표 (Rel 도 i+1) | 보드 신뢰도·예산 조합 기반 동적 목표 | 2단계 + Board 시스템 |
+| **userClub 선정** | ClubGen 후 호출자가 `isActiveSimulation` 갱신 | UI 구단 선택 화면 → `data-flows.md` #1 [4] | data-flows.md #1 |
+| **homegrown 시설 연동** | 모든 구단 20% 고정 | 유스 시설 등급 → 비율 ↑ (Lv5 → 35%, Lv1 → 10%) | 3단계 |
+| **다중 리그 동시 생성** | 단일 리그 호출 (caller loop 가능) | 다중 LeagueConfigSO 일괄 처리 + 명성 통합 ranking (이적 시장 연동) | GameInitializer + 1단계 |
+
+### Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-19 | All | Initial spec for V0.1. 4티어 명성 분포(design-decisions.md #27), 고정 스쿼드 분배표(#28), 명성 약상관 재정/시설, 연령 3구간 분포, 국적 분배(자국 70% + 외국 균등 30%). |
+| 2026-05-19 | 1단계 / Balancing / Edge / Test | 가변 `clubCount` 대응: `tierClubCounts:int[]` → `tierClubRatios:float[]` + `AllocateTierCounts` 라운드 보정. T2b 추가. |
+
+---
+
 ## Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2025-05-15 | All | Template created, sections empty (to be filled per design session) |
+| 2026-05-19 | Priority Order + #5 | ClubGen 우선순위 ★★★★★ 로 격상, `## 5. Club Generation` 섹션 작성. 섹션 번호와 우선순위 1:1 불일치 명시. |
