@@ -46,11 +46,12 @@ namespace FMLite.Application
             for (int i = 0; i < clubCount; i++)
                 result.Clubs.Add(BuildClub(rng, i, ranks[i], leagueConfig, balance, currentDate, leagueId, startClubId));
 
-            // 3단계: 스쿼드 생성
+            // 3단계: 스쿼드 생성 (구단마다 분배표 동적 — FormationConfig 필수 + 랜덤 2자리)
             int nextPlayerId = startPlayerId;
             foreach (var club in result.Clubs)
             {
-                foreach (var (pos, count) in GetSquadComposition(balance))
+                var composition = BuildSquadComposition(rng, balance);
+                foreach (var (pos, count) in composition)
                 {
                     for (int j = 0; j < count; j++)
                     {
@@ -171,21 +172,59 @@ namespace FMLite.Application
 
         // ── 3단계: 스쿼드 ──────────────────────────────────────────────
 
-        private static IEnumerable<(Position pos, int count)> GetSquadComposition(GameBalanceSO b)
+        // FormationConfig 기반 분배표 동적 생성 (design-decisions.md #28).
+        // 필수 인원 (그룹 합 균등 분배) + randomSlots 시드 기반 추첨.
+        // V0.1 4-4-2 기본: GK 3 + 23 필수 + 2 랜덤 = 25.
+        // V1.0 에서 FormationSO 추출 시 이 메서드가 FormationConfig 입력만 받는 형태로 일관.
+        private static List<(Position pos, int count)> BuildSquadComposition(Random rng, GameBalanceSO b)
         {
-            yield return (Position.GK, b.squadGK);
-            yield return (Position.CB, b.squadCB);
-            yield return (Position.LB, b.squadLB);
-            yield return (Position.RB, b.squadRB);
-            yield return (Position.DM, b.squadDM);
-            yield return (Position.CM, b.squadCM);
-            yield return (Position.AM, b.squadAM);
-            yield return (Position.LM, b.squadLM);
-            yield return (Position.RM, b.squadRM);
-            yield return (Position.LW, b.squadLW);
-            yield return (Position.RW, b.squadRW);
-            yield return (Position.ST, b.squadST);
-            yield return (Position.CF, b.squadCF);
+            var f = b.formation;
+            var counts = new Dictionary<Position, int>
+            {
+                [Position.GK] = f.gk,
+                [Position.CB] = f.cbMin,
+                [Position.LB] = f.lbMin,
+                [Position.RB] = f.rbMin,
+                // 그룹 — 내부 균등 분배 (홀수면 두 번째 포지션이 +1)
+                [Position.DM] = f.dmCmGroupMin / 2,
+                [Position.CM] = f.dmCmGroupMin - (f.dmCmGroupMin / 2),
+                [Position.LM] = f.lmLwGroupMin / 2,
+                [Position.LW] = f.lmLwGroupMin - (f.lmLwGroupMin / 2),
+                [Position.RM] = f.rmRwGroupMin / 2,
+                [Position.RW] = f.rmRwGroupMin - (f.rmRwGroupMin / 2),
+                [Position.ST] = f.stCfGroupMin / 2,
+                [Position.CF] = f.stCfGroupMin - (f.stCfGroupMin / 2),
+            };
+
+            // 랜덤 자리 — 12개 필드 포지션 중 균등 추첨 (GK 제외 — 서드키퍼까지 이미 보장)
+            var randomTargets = new[]
+            {
+                Position.CB, Position.LB, Position.RB,
+                Position.DM, Position.CM,
+                Position.LM, Position.LW, Position.RM, Position.RW,
+                Position.ST, Position.CF,
+            };
+            for (int i = 0; i < f.randomSlots; i++)
+            {
+                var pick = randomTargets[rng.Next(randomTargets.Length)];
+                counts[pick] = counts[pick] + 1;
+            }
+
+            // 결정적 순서로 변환 (Position enum 순서 따라). count == 0 은 제외.
+            var ordered = new[]
+            {
+                Position.GK,
+                Position.CB, Position.LB, Position.RB,
+                Position.DM, Position.CM,
+                Position.LM, Position.RM,
+                Position.LW, Position.RW,
+                Position.ST, Position.CF,
+            };
+            var result = new List<(Position, int)>(ordered.Length);
+            foreach (var p in ordered)
+                if (counts.TryGetValue(p, out int c) && c > 0)
+                    result.Add((p, c));
+            return result;
         }
 
         private static Player GeneratePlayer(
