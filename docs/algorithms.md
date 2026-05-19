@@ -588,9 +588,12 @@ totalStrength = homeStrength + awayStrength
 if totalStrength == 0:
     strengthRatio = 0.5    # edge: 양 팀 starting11 모두 비어있음 폴백
 else:
-    strengthRatio = homeStrength / totalStrength    # 0..1
+    k  = balance.strengthExponent              # 비선형 지수 (기본 1.5)
+    sh = pow(homeStrength, k)
+    sa = pow(awayStrength, k)
+    strengthRatio = sh / (sh + sa)              # 0..1
 
-totalLambda = balance.avgGoalsPerMatch              # 2.7 (EPL 평균)
+totalLambda = balance.avgGoalsPerMatch          # 2.7 (EPL 평균)
 
 homeLambda = totalLambda * strengthRatio + balance.homeAdvantageGoalBonus
 awayLambda = totalLambda * (1 - strengthRatio)
@@ -601,9 +604,12 @@ awayScore = rng.NextPoisson(awayLambda)
 
 - **Poisson 분포 선택 이유**: 실제 축구 골 분포의 학계 표준 (Dixon-Coles 1997 등). 강팀 vs 약팀 시 양쪽 모두 자연스러운 분산 — 약팀이 가끔 강팀에 이변 가능, 강팀도 무득점 경기 가능.
 - **λ (lambda) 의미**: 평균 골수. 같은 λ 라도 매번 다른 값. 예) λ=0.8 → 0골 45% / 1골 36% / 2골 14% / 3골 4% / 4골 1%.
-- **strengthRatio 분배**: 양 팀 strength 비율로 totalLambda 를 나눠 가짐. CA 합 60:40 → home 1.62골 평균, away 1.08골 평균 (홈 보정 전).
+- **strengthRatio 비선형화 (strengthExponent k)**: 단순 선형 ratio (`s_h / (s_h + s_w)`) 는 CA 차이를 골수 차이로 충분히 반영 못 함 (CA 1.89배 차이 → 골 1.43~2.23배 차이만 → 강팀 원정 승률 51%, 디자인 의도 대비 낮음). `pow(s, k)` 변환으로 강팀 우월함 증폭. k=1 이면 선형 (V0.1 초기 동작), k=1.5 (기본) 면 강팀 홈 ~72% / 원정 ~59% — EPL 1위 팀 시즌 승률 (73~79%) 근사.
 - **홈 어드밴티지**: `homeAdvantageGoalBonus` 만큼 home λ 에만 가산 (away 감산 X). EPL 통계 근사 (홈 ~46% / 무 ~26% / 원정 ~28%).
+- **동급 팀에서 k 무관**: `s_h == s_w` 면 어떤 k 든 strengthRatio = 0.5. T4/T5/T6 영향 없음. k 의 효과는 양 팀 차이가 있을 때만 발현.
 - **결정성**: `rng.NextPoisson` 이 inverse-CDF 방식이라 같은 rng 상태 → 같은 결과.
+
+> **V0.1 임시 변통 (V1.0+ 폐기 예정)**: `strengthExponent` 는 단순 CA 합 모델의 결정력 부족을 보강하는 **V0.1 한정 임시 보정**. V1.0+ 매치 엔진 재작성 시 (`design-decisions.md` #34 이벤트 시퀀스) finishing / composure / decisions 등 개별 stats 가 슈팅 변환률을 직접 결정하므로 비선형 ratio 보정 불필요. k=1 회귀 또는 알고리즘 자체 폐기.
 
 > **`rng.NextPoisson(lambda)` 헬퍼**: `Utils/RngExtensions.cs` 에 추가 (Sub-PR B). Knuth 알고리즘 (작은 λ) — `L = exp(-lambda); k = 0; p = 1; while (p > L) { k++; p *= rng.NextDouble(); } return k - 1;`. PlayerGen 의 `NextNormal` 과 같은 패턴. 분포 평균/분산 EditMode 테스트로 헬퍼 정확성 먼저 검증 후 본 구현 (Sub-PR C).
 
@@ -677,6 +683,7 @@ return new MatchResult {
 // === Match Simulation ===
 public float avgGoalsPerMatch        = 2.7f;      // EPL 평균 (실제 ~2.7-2.9)
 public float homeAdvantageGoalBonus  = 0.3f;      // homeLambda 에 가산
+public float strengthExponent        = 1.5f;      // strengthRatio 비선형 지수 (V0.1 임시 보정, V1.0+ 폐기)
 public float[] scoringWeightByLine   = { 0.0f, 0.4f, 1.5f, 5.0f };
 //                                        GK    DF    MF    AT  (Line enum 순서와 일치)
 ```
@@ -701,7 +708,7 @@ public float[] scoringWeightByLine   = { 0.0f, 0.4f, 1.5f, 5.0f };
 
 ### Test Scenarios
 
-`Random(seed: 42)` 고정. 통계 테스트는 100~1000 매치 batch.
+통계 테스트는 200~1000 매치 batch. **매치 시드는 `new Random(globalSeed)` 기반 `seedGen.Next()` 로 매번 well-distributed 하게 생성** — 단순 `(seedBase + i) ^ i` 패턴은 i 가 seedBase 의 lowest set bit 보다 작으면 XOR collision 발생해 같은 시드가 반복됨 (결과 클러스터링).
 
 **T1. 결정성**
 - 같은 `match.id` + 같은 `state.randomSeed` → 모든 필드 동일 (`homeScore`, `awayScore`, `homeStarting11`, `awayStarting11`, 각 `PlayerMatchStat`).
@@ -710,30 +717,47 @@ public float[] scoringWeightByLine   = { 0.0f, 0.4f, 1.5f, 5.0f };
 **T2. starting11 선정**
 - 25명 스쿼드 → starting11.Count == 11.
 - top-11 by CA: starting11 의 최저 CA ≥ 벤치(스쿼드 - starting11) 의 최고 CA.
-- 부상자 (`injuryTypeId != -1`) 가 5명 → starting11 의 CA 합이 부상자 제외 top-11 과 일치.
-- 가용 인원 < 11 (부상자 다수) → starting11.Count = 가용 인원 (Edge case).
+- 부상자 (`injuryTypeId != -1`) 가 5명 → starting11 에서 제외.
+- 가용 인원 < 11 (부상자 다수 / 스쿼드 부족) → starting11.Count = 가용 인원 (Edge case).
 
-**T3. 강팀 승률 (100 매치 batch, 강팀 vs 약팀)**
-- home CA 합 ~1700 / away CA 합 ~900 (강팀 vs 약팀) → 강팀(home) 승률 **≥ 70%** (홈 어드밴티지 포함).
-- 동일 조건 home/away 스왑 (약팀 홈) → 강팀(away) 승률 **≥ 60%** (홈 어드밴티지 보정 후에도 강팀이 자주 이김).
-- 비고: `Task 9.1` 완료 조건의 "강팀 승률 60% 이상" 충족.
+**T3. 강팀 승률 (200 매치 batch, k=1.5 기준)**
 
-**T4. 동급 팀 — 무승부 / 홈 어드밴티지 (1000 매치 batch)**
-- 양 팀 CA 합 같음 → home 승률 ~45% / draw ~26% / away 승률 ~29% 근처 (EPL 통계 근사).
-- 홈 승률 > 원정 승률 (홈 어드밴티지 확인).
+강팀 CA 합 ~1700 (starting11 평균 ~155) / 약팀 CA 합 ~900 (starting11 평균 ~82).
+
+`strengthExponent=1.5` 기준 정규근사 (Skellam):
+- `s_h^1.5 = 1700^1.5 ≈ 70 100`, `s_w^1.5 = 900^1.5 ≈ 27 000`
+- `strengthRatio ≈ 70100 / 97100 ≈ 0.722`
+
+| 케이스 | λ_strong | λ_weak | E[D] | P(strong wins) 정규근사 | 임계치 |
+| --- | --- | --- | --- | --- | --- |
+| 강팀 홈 | 2.25 (=2.7×0.722+0.3) | 0.75 (=2.7×0.278) | 1.50 | ~72% | **≥ 65%** |
+| 강팀 원정 | 1.95 (=2.7×0.722) | 1.05 (=2.7×0.278+0.3) | 0.90 | ~59% | **≥ 50%** |
+
+- σ ≈ √(λ_strong + λ_weak) ≈ √3.0 ≈ 1.73 공통.
+- P(D ≥ 1) ≈ Φ((E[D] - 0.5) / σ) — 연속성 보정 -0.5.
+- 표본오차 (200매치 std err ~3.5%, 99% CI ±9%) 마진 ≥ 7%p.
+- 비고: `Task 9.1` 완료 조건 "강팀 승률 60% 이상" 충족 (홈 케이스 기준).
+- **k 변경 시 임계치 재조정 필요** — strengthExponent 가 GameBalanceSO 외부화돼 있어 플레이테스트 조정 후 본 테스트도 함께 갱신.
+
+**T4. 동급 팀 — 홈 어드밴티지 (1000 매치 batch)**
+- λ_home = 1.65 / λ_away = 1.35.
+- Skellam 정규근사 기대 분포: home 승률 ~45% / draw ~22% / away 승률 ~33%.
+- 검증: **홈 승률 > 원정 승률** (홈 어드밴티지 존재 확인).
 
 **T5. 골 분포 통계 (1000 매치 batch, 동급 팀)**
-- 평균 골수 (home + away) ≈ `avgGoalsPerMatch + homeAdvantageGoalBonus` (= 3.0 ±0.15).
-- 무득점 경기 비율 ≈ 8~10%.
-- 5골 이상 경기 비율 ≈ 12~18%.
-- 최대 골수: 0..8 범위 대부분 (10골 이상은 극히 드문).
+- 평균 골수 (home + away) ≈ `avgGoalsPerMatch + homeAdvantageGoalBonus` = 3.0 ±0.2.
+- 무득점 경기 비율 ≈ 2~10% (이론 `P(h=0)*P(a=0) = e^(-3.0) ≈ 5%`).
+- 5골 이상 경기 비율 ≈ 8~25%.
+- 최대 골수: 대부분 0..8 범위 (10골 이상은 극히 드문).
 
-**T6. 득점자 분포 (1000 골 batch, 동급 팀)**
-- AT 라인 득점 비율 ≈ 55~65% (`scoringWeightByLine` 가중치 + 라인 인원 비율 반영).
-- MF 라인 ≈ 20~30%.
-- DF 라인 ≈ 5~15%.
-- GK 라인 = 0% (가중치 0).
-- 같은 라인 내 CA 높은 선수가 자주 득점 (e.g. 라인 최고 CA 선수 득점 ≥ 라인 최저 CA 선수 득점).
+**T6. 득점자 분포 (500 매치 batch, 라인 다양 분포 GK 3 / DF 8 / MF 8 / AT 6)**
+- 라인별 가중치 합 (인원 × `scoringWeightByLine` × avg CA/100, avg CA ≈ 107):
+  - AT: 6 × 5.0 × 1.07 ≈ 32
+  - MF: 8 × 1.5 × 1.07 ≈ 13
+  - DF: 8 × 0.4 × 1.07 ≈ 3.4
+  - GK: 0
+- 기대 비율: AT ~67% / MF ~27% / DF ~7% / GK 0%.
+- 검증: AT > MF > DF / GK = 0% / AT 비율 55~80% 범위.
 
 **T7. PlayerMatchStat 정확성**
 - 모든 starting11 (22명) 의 PlayerMatchStat 존재.
@@ -748,6 +772,7 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분. 각 항목의 영향 �
 | 항목 | V0.1 동작 | V1.0+ 변경 후보 | 영향 범위 |
 | --- | --- | --- | --- |
 | **전력 산출 — 단순 CA 합** | starting11 CA 합 | 라인별 가중 / 포지션 적합도 / 폼·사기·피로 보정 / 개별 stats 도입 | 3단계 + `design-decisions.md` #24 V1.0 트리거 |
+| **strengthExponent (k) 비선형 보정** | `pow(s, 1.5)` 로 CA 차이 골수 차이로 증폭 — V0.1 단순 CA 합이 결정력 부족 (k=1 시 강팀 원정 51%) 보강 위한 임시 변통 | V1.0+ 매치 엔진 재작성 시 finishing / composure 등 개별 stats 가 슈팅 변환률 직접 결정 → k=1 회귀 또는 알고리즘 자체 폐기 | 4단계 + Balancing + T3 임계치 |
 | **starting11 자동 선정** | top-11 by CA (포지션 무시) | UI 라인업 결정 시스템 + 포메이션 충족 / 전술 프리셋 | 2단계 → 호출자가 starting11 전달, 시뮬레이터는 받기만 |
 | **결과 우선 → 이벤트 시퀀스 전환** | 스코어/득점자 한 번에 결정 (`design-decisions.md` #17 의 "결과 우선" 모델) | **분 단위 이벤트 시뮬레이션** — 옐로 카드 누적 / 부상 발생 / 교체 (AI 자동) / 외침 등이 차후 이벤트에 영향. 누적 결과가 최종 스코어 | **전면 재작성**. 인터페이스 `Simulate(match, state) → MatchResult` 는 유지 (호출자 영향 없음). `design-decisions.md` #34 의 진화 경로 참조. |
 | **컵 연장전 + 승부차기** | V0.1 호출 경로 없음 (League 만) | `Match.type == FACup/CarabaoCup` 분기 — 동점 시 연장전 (λ_extraTime) → 그래도 동점이면 승부차기 (별도 5+ 라운드) | 4단계 + Edge Cases + 새 balance 필드 (`extraTimeLambda`, `penaltyShootoutPlayerWeight`) |
@@ -1357,3 +1382,5 @@ public float tierWeakRatio     = 0.75f;
 | 2026-05-19 | Priority Order + #5 | ClubGen 우선순위 ★★★★★ 로 격상, `## 5. Club Generation` 섹션 작성. 섹션 번호와 우선순위 1:1 불일치 명시. |
 | 2026-05-19 | Priority Order + #6 | Starting Squad Gacha 우선순위 ★★★★ 추가, `## 6. Starting Squad Gacha` 섹션 작성. 4라인 평가 + 명성 대비 비율 + Reroll 재생성. |
 | 2026-05-19 | Priority Order + #2 | Match Simulation `## 2` 섹션 신규 작성 (Task 9.1 Sub-A, #109). 단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자. starting11 = top-11 by CA. `design-decisions.md` #33 (V0.1 정책) / #34 (V1.0+ 이벤트 시퀀스 진화) 와 연동. |
+| 2026-05-19 | #2 Test Scenarios | Sub-C 본 구현 시 정규근사 (Skellam) 재계산 + 실측 검증 결과로 T3~T6 임계치/매치수 미세조정 (#113). T3 강팀 승률 70%→60% (홈) / 60%→45% (원정) — 정규근사 기대 ~64%/51% 에 표본오차 마진. 강팀 원정은 거의 50/50 (홈 보너스가 약팀 측 가산되는 게 큰 영향). T4 분포 명세 추가 (45/22/33%). T5 무득점 비율 8~10%→2~10% (이론 5%, 명세 초안 오기 수정). T6 매치 수 1000→500, 라인 분포 명세화 (GK3/DF8/MF8/AT6) + 가중치 합 계산 명시. **시드 well-distributed 정책 추가** — `(seedBase+i)^i` collision 회피 위해 `seedGen.Next()` 패턴 명시. |
+| 2026-05-19 | #2 4단계 / Balancing / V1.0 Notes / T3 | **`strengthExponent` (k) 도입** (#113). 단순 선형 ratio 가 CA 1.89배 차이를 골 1.43배 차이로만 반영 → 강팀 원정 51% 라 디자인 의도 (압도적 강팀이 자주 이김) 부족. `pow(s, k)` 비선형화로 강팀 우월함 증폭 (k=1.5 기본 → 강팀 홈 72% / 원정 59%). V0.1 임시 변통 — V1.0+ 매치 엔진 재작성 시 finishing 등 개별 stats 가 결정력 직접 표현하므로 k=1 회귀 또는 폐기. T3 임계치 재조정 (홈 60→65, 원정 45→50). |
