@@ -62,19 +62,17 @@ MonoBehaviour:
   facilityNoiseSigma: 1
   minFacilityLevel: 1
   maxFacilityLevel: 5
-  squadGK: 3
-  squadCB: 4
-  squadLB: 2
-  squadRB: 2
-  squadDM: 2
-  squadCM: 3
-  squadAM: 2
-  squadLM: 1
-  squadRM: 1
-  squadLW: 1
-  squadRW: 1
-  squadST: 2
-  squadCF: 1
+  formation:
+    name: 4-4-2
+    gk: 3
+    cbMin: 4
+    lbMin: 2
+    rbMin: 2
+    dmCmGroupMin: 4
+    lmLwGroupMin: 2
+    rmRwGroupMin: 2
+    stCfGroupMin: 4
+    randomSlots: 2
   youthAgeRatio: 0.2
   primeAgeRatio: 0.6
   veteranAgeRatio: 0.2
@@ -88,6 +86,10 @@ MonoBehaviour:
   clubMaxAgeYears: 150
   homegrownRatio: 0.2
   initialBoardConfidence: 50
+  tierEliteRatio: 1.2
+  tierStrongRatio: 1.05
+  tierAverageRatio: 0.9
+  tierWeakRatio: 0.75
   initialRerollTokens: 3
   maxRerollStockpile: 5
   tierThresholdsAccumulated:
