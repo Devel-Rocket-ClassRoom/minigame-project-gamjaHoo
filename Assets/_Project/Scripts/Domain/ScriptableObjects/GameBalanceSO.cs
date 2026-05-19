@@ -66,6 +66,69 @@ namespace FMLite.Domain
         public int   wageFloor = 500;
 
         // ============================================================
+        // Club Generation (algorithms.md #5)
+        // ============================================================
+
+        [Header("Club Generation — Reputation Tiers")]
+        // ratio 합 ≈ 1.0. round-off 잔여는 AllocateTierCounts 가 흡수.
+        // clubCount 가변 대응 (10/12/20/24 등 어떤 값이든 동작).
+        public float[] tierClubRatios = { 0.20f, 0.30f, 0.35f, 0.15f };  // Top4 / Euro / Mid / Rel
+        public int[]   tierRepMin     = {  85,    65,    45,    25   };
+        public int[]   tierRepMax     = {  95,    80,    60,    40   };
+
+        [Header("Club Generation — Finance")]
+        public int   financeBaseMoney    = 5_000_000;     // £5M base at rep=0
+        public float financeRepCoeff     = 4_000_000f;    // rep=50 → 205M, rep=95 → 385M
+        public float financeNoiseSigma   = 0.15f;         // 15% σ
+        public int   financeFloor        = 1_000_000;
+        public float transferBudgetRatio = 0.20f;
+        public float wageBudgetRatio     = 0.50f;
+
+        [Header("Club Generation — Facilities")]
+        public float facilityNoiseSigma  = 1.0f;          // ±1 등급 정도 노이즈
+        public int   minFacilityLevel    = 1;
+        public int   maxFacilityLevel    = 5;
+
+        [Header("Club Generation — Squad Composition")]
+        // 기본 합 = 25 (LeagueConfigSO.playersPerClub 기본값과 일치).
+        // playersPerClub ≠ Σsquad* → 분배표 합 기준으로 진행 + 경고. V1.0 에서 ratio화 검토.
+        public int squadGK = 3;
+        public int squadCB = 4;
+        public int squadLB = 2;
+        public int squadRB = 2;
+        public int squadDM = 2;
+        public int squadCM = 3;
+        public int squadAM = 2;
+        public int squadLM = 1;
+        public int squadRM = 1;
+        public int squadLW = 1;
+        public int squadRW = 1;
+        public int squadST = 2;
+        public int squadCF = 1;
+
+        [Header("Club Generation — Age Distribution")]
+        public float youthAgeRatio   = 0.20f;
+        public float primeAgeRatio   = 0.60f;
+        public float veteranAgeRatio = 0.20f;
+        public int   youthAgeMin     = 16;
+        public int   youthAgeMax     = 21;
+        public int   primeAgeMin     = 22;
+        public int   primeAgeMax     = 28;
+        public int   veteranAgeMin   = 29;
+        public int   veteranAgeMax   = 35;
+
+        [Header("Club Generation — Foundation Year")]
+        public int clubMinAgeYears = 50;
+        public int clubMaxAgeYears = 150;
+
+        [Header("Club Generation — Homegrown")]
+        // 초기 스쿼드에서 자체 유스 출신 비율 (player.youthClubId = club.id).
+        public float homegrownRatio = 0.20f;
+
+        [Header("Club Generation — Board")]
+        public int initialBoardConfidence = 50;
+
+        // ============================================================
         // Other Systems
         // ============================================================
 

@@ -221,6 +221,40 @@ namespace FMLite.Editor
 
         private static void GenerateLeagueConfigs()
         {
+            // 명성 내림차순 (algorithms.md #5). 인덱스 0 이 Top4 최상위.
+            // 사용자 매핑 표 (가상 ↔ 원본 구단) — 저작권 회피용 가상명.
+            // 명성 순서는 최근 EPL 평균 성적 + 역사적 명성 종합 추정.
+            var clubNames = new List<string>
+            {
+                // Top4 (rep 85~95): 4구단
+                "Skyblues",     // 맨시티
+                "Ravens",       // 리버풀
+                "Cannons",      // 아스날
+                "Red Devils",   // 맨유
+
+                // Euro (rep 65~80): 6구단
+                "Blues",        // 첼시
+                "Cockerels",    // 토트넘
+                "Magpies",      // 뉴캐슬
+                "Lions",        // 아스톤 빌라
+                "Seagulls",     // 브라이턴
+                "Hammers",      // 웨스트햄
+
+                // Mid (rep 45~60): 7구단
+                "Eagles",       // 크리스탈 팰리스
+                "Cottagers",    // 풀럼
+                "Bees",         // 브렌트퍼드
+                "Toffees",      // 에버턴
+                "Foxes",        // 울브스
+                "Foresters",    // 노팅엄 포레스트
+                "Cherries",     // 본머스
+
+                // Rel (rep 25~40): 3구단
+                "Clarets",      // 번리
+                "Black Cats",   // 선덜랜드
+                "Peacocks",     // 리즈
+            };
+
             var so = CreateOrLoad<LeagueConfigSO>(Resources + "/Leagues/League_EPL.asset");
             so.id = 1;
             so.displayName = "Premier League";
@@ -228,6 +262,7 @@ namespace FMLite.Editor
             so.clubCount = 20;
             so.relegationCount = 3;
             so.playersPerClub = 25;
+            so.clubNames = clubNames;
             EditorUtility.SetDirty(so);
         }
 
