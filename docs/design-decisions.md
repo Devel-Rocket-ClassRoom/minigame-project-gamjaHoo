@@ -502,10 +502,23 @@ public class FormationConfig {
 
 **참고:** 이전엔 세 문서가 충돌 상태였음 (`project-context.md` / `class-diagram.md` 는 Application, `coding-conventions.md` 는 Core 로 표기). 이 결정과 함께 세 문서 모두 Core 로 통일.
 
+**GameManager 책임 경계 (Task 8.3 작업 시 보완 — 2026-01-12):**
+
+- **State 보유 + 진입점 (싱글톤) 만**. 흐름 조율은 Application 시스템에 위임.
+- `AdvanceDay` 같은 시간 진행 / 시스템 호출 조율 = `GameLoop` (Application). GameManager 가 직접 호출하지 않음.
+- 이유: Core → Application 참조는 **순환 의존** (Application → Core 이미 존재). 호출 책임을 Application 으로 옮겨 의존 그래프 그대로 유지.
+- 호출 흐름:
+  ```
+  UI Continue 버튼
+    → GameLoop.ContinueUntilStop(state, balance)   ← Application
+        → GameTime.Advance(1)                       ← Core 정적
+        → DailyProcessor.Run(state, balance)        ← Application
+        → EventScheduler.Run(state)                 ← Application
+  ```
+
 **V1.0+ 보완 포인트:**
 
-- `GameManager` 가 너무 비대해질 가능성 — AdvanceDay 같은 흐름 조율 로직이 늘어나면 `GameFlowController` 같은 Application 컴포넌트로 분리 검토.
-- 의존 역전 강화: 현재는 GameManager 가 Application 시스템을 직접 참조해야 하면 `Core → Application` 참조 추가 필요 (순환 위험). 그 시점에 인터페이스 도입 (`IDailyProcessor` 등) 또는 EventBus 만으로 처리.
+- 의존 역전 강화: GameManager 가 정말로 시스템을 직접 알아야 하는 시나리오 생기면 인터페이스 도입 (`IDailyProcessor` 등) 또는 EventBus 만으로 처리.
 
 ---
 
