@@ -46,6 +46,48 @@ MonoBehaviour:
   wageBaseAtMinCA: 500
   wagePerCAPoint: 350
   wageFloor: 500
+  tierClubRatios:
+  - 0.2
+  - 0.3
+  - 0.35
+  - 0.15
+  tierRepMin: 55000000410000002d00000019000000
+  tierRepMax: 5f000000500000003c00000028000000
+  financeBaseMoney: 5000000
+  financeRepCoeff: 4000000
+  financeNoiseSigma: 0.15
+  financeFloor: 1000000
+  transferBudgetRatio: 0.2
+  wageBudgetRatio: 0.5
+  facilityNoiseSigma: 1
+  minFacilityLevel: 1
+  maxFacilityLevel: 5
+  squadGK: 3
+  squadCB: 4
+  squadLB: 2
+  squadRB: 2
+  squadDM: 2
+  squadCM: 3
+  squadAM: 2
+  squadLM: 1
+  squadRM: 1
+  squadLW: 1
+  squadRW: 1
+  squadST: 2
+  squadCF: 1
+  youthAgeRatio: 0.2
+  primeAgeRatio: 0.6
+  veteranAgeRatio: 0.2
+  youthAgeMin: 16
+  youthAgeMax: 21
+  primeAgeMin: 22
+  primeAgeMax: 28
+  veteranAgeMin: 29
+  veteranAgeMax: 35
+  clubMinAgeYears: 50
+  clubMaxAgeYears: 150
+  homegrownRatio: 0.2
+  initialBoardConfidence: 50
   initialRerollTokens: 3
   maxRerollStockpile: 5
   tierThresholdsAccumulated:
