@@ -86,12 +86,15 @@ Closes #이슈번호
 | 항목 | 값 / 규칙 |
 | --- | --- |
 | **Title** | `[영역] 동사형 작업명` 예: `[Domain] Player 클래스 정의` |
-| **Labels** | `type:*` (1개) + `area:*` (1개 이상) — 아래 라벨 가이드 참조 |
+| **Type** | GitHub Issue Type 필드 — `Feature` / `Task` / `Bug` 중 하나 (라벨 아님, 사이드바 `Type` 섹션) |
+| **Labels** | `area:*` (1개 이상) — 아래 라벨 가이드 참조. Type 은 라벨이 아니다. |
 | **Milestone** | `V0.1` / `V1.0` / `V1.x` 중 하나 |
 | **Priority** | Projects 보드 `Priority` 필드 — `P0` / `P1` / `P2` (라벨 아님) |
 | **Size** | Projects 보드 `Size` 필드 — `XS` / `S` / `M` / `L` / `XL` (라벨 아님) |
 | **Projects** | 프로젝트 보드에 추가 → `Status` 자동 분류 |
 | **Assignee** | 본인 |
+
+> **Type 은 GitHub Issue Type 필드** (2024년 도입). 사이드바 "Type" 섹션에서 선택. `type:*` 라벨 (구 방식) 은 2026-01-12 마이그레이션으로 폐지됨.
 
 ### Title 규칙
 
@@ -114,15 +117,19 @@ Closes #이슈번호
 
 ---
 
-## 4. Labels
+## 4. Issue Type & Labels
 
-### Type 라벨 (필수, 1개)
+### Issue Type (필수, 1개) — 라벨이 아닌 GitHub 자체 필드
 
-| 라벨 | 용도 |
+이슈 사이드바의 **Type** 섹션에서 선택. 라벨 아님.
+
+| Type | 용도 |
 | --- | --- |
-| `type:feature` | 새 기능 |
-| `type:bug` | 버그 수정 |
-| `type:task` | 잡일/설정/리팩터링/조사·스파이크 (조사는 본문에 시간 박스 명시) |
+| `Feature` | 새 기능 |
+| `Task` | 잡일/설정/리팩터링/조사·스파이크 (조사는 본문에 시간 박스 명시) |
+| `Bug` | 버그 수정 |
+
+> **이력**: V0.1 초기엔 `type:feature` / `type:task` / `type:bug` **라벨**로 운영. 2026-01-12 GitHub Issue Type 필드로 마이그레이션 (이슈 60개 일괄 처리 + 라벨 3개 삭제).
 
 ### Area 라벨 (필수, 1개 이상)
 
@@ -150,7 +157,7 @@ Closes #이슈번호
 | `out-of-scope-candidate` | 스코프 검토 필요 |
 | `question` | 결정 사항 / 사용자 입력 대기 |
 
-> **Priority와 Size는 라벨이 아니다.** Projects 보드의 단일선택 필드로 관리.
+> **Type / Priority / Size 는 라벨이 아니다.** Type 은 GitHub Issue Type 필드. Priority / Size 는 Projects 보드의 단일선택 필드.
 
 ---
 
@@ -265,14 +272,14 @@ Closes #이슈번호
 
 ### 매핑 예시
 
-| v0.1-tasks Task | Issue Title | Type | Area | Milestone | Priority | Size |
+| v0.1-tasks Task | Issue Title | Type (필드) | Area (라벨) | Milestone | Priority | Size |
 | --- | --- | --- | --- | --- | --- | --- |
-| Task 1.1 | `[Infra] Unity 프로젝트 생성 및 폴더 구조` | task | infra | V0.1 | P0 | S |
-| Task 2.1 | `[Infra] EventBus 구현` | feature | infra | V0.1 | P0 | S |
-| Task 3.2 | `[Domain] 핵심 도메인 클래스 정의` | feature | domain | V0.1 | P0 | M |
-| Task 6.1 | `[Domain] PlayerGenerator 구현` | feature | domain,data | V0.1 | P0 | L |
-| Task 9.1 | `[Simulation] MatchSimulator 기본 구현` | feature | simulation | V0.1 | P0 | M |
-| Task 10.1 | `[Youth] YouthSystem.GenerateIntake 구현` | feature | youth | V0.1 | P0 | M |
+| Task 1.1 | `[Infra] Unity 프로젝트 생성 및 폴더 구조` | Task | infra | V0.1 | P0 | S |
+| Task 2.1 | `[Infra] EventBus 구현` | Feature | infra | V0.1 | P0 | S |
+| Task 3.2 | `[Domain] 핵심 도메인 클래스 정의` | Feature | domain | V0.1 | P0 | M |
+| Task 6.1 | `[Domain] PlayerGenerator 구현` | Feature | domain,data | V0.1 | P0 | L |
+| Task 9.1 | `[Simulation] MatchSimulator 기본 구현` | Feature | simulation | V0.1 | P0 | M |
+| Task 10.1 | `[Youth] YouthSystem.GenerateIntake 구현` | Feature | youth | V0.1 | P0 | M |
 
 ### 일괄 생성 시점
 
@@ -304,10 +311,18 @@ Size: XL
 
 ```
 Title: PlayerGenerator 구현
-Labels: type:feature (area 없음)
+Type: Feature (area 라벨 없음)
 ```
 
 → 영역별 필터링 불가. `area:domain` 추가 필수.
+
+### ❌ Type 을 라벨로 추가
+
+```
+Labels: type:feature, area:domain
+```
+
+→ V0.1 초기 방식. 현재 폐지. **Type 은 사이드바 Issue Type 필드** 사용.
 
 ### ❌ DoD 없는 이슈
 
@@ -331,7 +346,8 @@ PlayerGenerator 만들기
 1. v0.1-tasks.md에서 다음 Task 선택
 2. GitHub Issue 생성:
    - Title: [영역] 동사형 작업명
-   - Type 라벨 + Area 라벨
+   - Type 필드 (사이드바, 라벨 X) — Feature / Task / Bug
+   - Area 라벨 1개 이상
    - Milestone (V0.1/V1.0/V1.x)
    - Projects 보드 추가 → Priority, Size 설정
    - 본문 템플릿 채우기
@@ -340,6 +356,16 @@ PlayerGenerator 만들기
 5. PR 생성, Closes #123 명시
 6. 셀프 머지
 ```
+
+> **gh CLI 예시**:
+> ```bash
+> # 1. 라벨 + milestone + assignee 까지만 생성 가능 (Issue Type 은 별도 API)
+> gh issue create --title "[Area] 작업명" --label "area:domain" \
+>   --milestone "V0.1" --assignee "@me" --body "..."
+>
+> # 2. 생성된 이슈 # 확인 후 Type 설정
+> gh api -X PATCH "repos/{owner}/{repo}/issues/{n}" -f type="Feature"
+> ```
 
 작업 완료 시:
 
@@ -357,3 +383,4 @@ PlayerGenerator 만들기
 | Date | Change |
 | --- | --- |
 | 2025-05-15 | 초안 작성 (FM-Lite 영역 라벨 반영) |
+| 2026-01-12 | Issue Type 마이그레이션 (#90) — `type:feature/task/bug` 라벨 → GitHub Issue Type 필드. 60개 이슈 일괄 마이그레이션 + 라벨 3개 삭제. §3 메타데이터 표 / §4 라벨 가이드 / §7 매핑 표 / §8 Anti-Patterns / §9 Cheatsheet 갱신. |
