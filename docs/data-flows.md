@@ -21,10 +21,15 @@
 [2] GameInitializer (Application Layer):
     a. 빈 GameState 생성
     b. LeagueConfigSO 로드 → League 인스턴스 생성
-    c. ClubGenerator: 명성별 Club 인스턴스 생성 (20팀)
-    d. PlayerGenerator: 각 Club에 25명씩 생성 → GameState.allPlayers 추가
+    c. ClubGenerator.Generate(rng, leagueConfig, balance, ...):
+       - 명성별 Club 인스턴스 생성 (clubCount 기본 20, 가변 대응 — algorithms.md #5)
+       - 내부에서 PlayerGenerator 호출 (각 구단당 playersPerClub 명)
+       - 반환: ClubGenerationResult { List<Club> Clubs, List<Player> Players }
+    d. GameInitializer 가 GameState 에 일괄 등록:
+       - foreach club in result.Clubs:  state.AddClub(club)
+       - foreach player in result.Players: state.AddPlayer(player)
     e. ScheduleGenerator: 시즌 일정 생성 → League.schedule 추가
-    f. GameState.BuildIndexes() 호출
+    f. GameState.BuildIndexes() 호출 (AddClub/AddPlayer 가 인덱스 동기화하므로 사실상 no-op, 안전망)
     g. GameState.currentDate = 시즌 시작일
 
 [3] UI: 구단 선택 화면 표시
