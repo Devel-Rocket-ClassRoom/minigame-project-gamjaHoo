@@ -27,13 +27,16 @@ public static class EventBus {
 ```
 Assets/_Project/Scripts/Core/Events/
 ├─ GameEvents.cs       (게임 메타 이벤트)        [V0.1 작성됨]
-├─ MatchEvents.cs      (경기 관련)               [Stage 9 작업 시 작성]
+├─ MatchEvents.cs      (경기 관련)               [V0.1 일부 — MatchDayEvent 만, FinishedEvent 는 Stage 9]
 ├─ TransferEvents.cs   (이적 관련)               [Stage 11 작업 시 작성]
 ├─ YouthEvents.cs      (유스 관련)               [Stage 10 작업 시 작성]
 └─ SeasonEvents.cs     (시즌 관련)               [Stage 12 작업 시 작성]
 ```
 
-> **V0.1 진행 상태 (2026-05-19 기준)**: `GameEvents.cs` 만 작성됨 (DayAdvancedEvent / GameLoadedEvent / GameSavedEvent). 나머지 4개 파일은 해당 Stage 작업 시 생성. 카탈로그의 이벤트 정의는 명세 선반영.
+> **V0.1 진행 상태**:
+> - `GameEvents.cs` — DayAdvancedEvent / GameLoadedEvent / GameSavedEvent ✓
+> - `MatchEvents.cs` — MatchDayEvent ✓ (Stage 8 Task 8.1, #103). MatchFinishedEvent / PlayerInjuredEvent 는 Stage 9 작업 시 추가.
+> - 나머지 3개 파일은 해당 Stage 작업 시 생성. 카탈로그의 이벤트 정의는 명세 선반영.
 
 ---
 
