@@ -42,14 +42,14 @@
 
 V0.1 시작 전 정해야 할 알고리즘 (우선순위):
 
-1. **선수 생성 (Player Generation)** ★★★★★
-2. **구단 생성 (Club Generation)** ★★★★★
-3. **스타팅 스쿼드 가챠 (Starting Squad Gacha)** ★★★★
-4. **경기 결과 계산 (Match Simulation)** ★★★★★
-5. **선수 가치 계산 (Market Value)** ★★★★
-6. **유스 풀 생성 (Youth Pool Generation)** ★★★★
+1. **선수 생성 (Player Generation)** ★★★★★ — `## 1` 작성 완료
+2. **구단 생성 (Club Generation)** ★★★★★ — `## 5` 작성 완료
+3. **스타팅 스쿼드 가챠 (Starting Squad Gacha)** ★★★★ — `## 6` 작성 완료
+4. **경기 결과 계산 (Match Simulation)** ★★★★★ — `## 2` 작성 완료
+5. **선수 가치 계산 (Market Value)** ★★★★ — `## 3` 미작성
+6. **유스 풀 생성 (Youth Pool Generation)** ★★★★ — `## 4` 미작성
 
-> 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례. Gacha 는 섹션 `## 6` 으로 끝에 추가.
+> 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례. Gacha 는 섹션 `## 6` 으로 끝에 추가. Match Simulation 은 섹션 `## 2` 자리에 후속 작성.
 
 V0.1 진행 중 정해도 OK:
 
@@ -484,7 +484,286 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분 모음. 이 알고리즘
 
 ## 2. Match Simulation
 
-*(미작성)*
+### Purpose
+
+- 단일 `Match` 의 결과 (`MatchResult`) 산출. 호출자가 `Match` 와 `GameState` 를 넘기면 시드 고정 → 양 팀 전력 → 골수 → 득점자 순으로 결정.
+- 호출 시점:
+  - **유저 구단 경기** — UI 라인업/전술 확정 후 (`data-flows.md` #3 [3])
+  - **비활성 구단 경기** — `BackgroundSimulator` 가 라운드 일괄 처리 (Task 9.3)
+- 단일 책임: `MatchResult` 산출만. 결과 적용 (`Match.result =`, 순위 갱신, 이벤트 발행) 은 `MatchPostProcessor` (Task 9.2).
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `match` | `Match` | id / homeClubId / awayClubId / type 사용. result 는 read X. |
+| `state` | `GameState` | `GetClub` / `GetPlayer` / `randomSeed` 사용. 변경 X. |
+| `balance` | `GameBalanceSO` | 모든 수치 외부화. |
+
+> **Stateless 원칙 (`design-decisions.md` #3)**: 시뮬레이터 자체는 필드 보유 X. 같은 입력 → 같은 출력.
+
+### Outputs
+
+```csharp
+public MatchResult {
+    public int homeScore;
+    public int awayScore;
+    public List<int> homeStarting11;            // 11명 playerId (V0.1: top-by-CA)
+    public List<int> awayStarting11;            // 11명 playerId
+    public List<PlayerMatchStat> playerStats;   // 22명 (양 팀 starting11 합)
+}
+
+public PlayerMatchStat {
+    public int   playerId;
+    public int   minutesPlayed;   // V0.1: 90 고정 (교체 X)
+    public int   goals;           // 4단계 알고리즘 결과
+    public int   assists;         // V0.1: 0 (어시스트 시스템 V1.0+)
+    public float rating;          // V0.1: 0  (평점 시스템 V1.0+)
+    public int   yellowCards;     // V0.1: 0 (카드 시스템 V1.0+)
+    public int   redCards;        // V0.1: 0
+}
+```
+
+> **결과 적용 책임 분리**: `MatchSimulator.Simulate` 는 **순수 함수** — `match.result` 에 쓰지 않고 `MatchResult` 반환만. Task 9.2 `MatchPostProcessor` 가 `match.result = result` + 순위 갱신 + `MatchFinishedEvent` 발행.
+
+### Logic
+
+전체 순서:
+
+```
+1. 시드 고정         (rng = new Random(match.id ^ state.randomSeed))
+2. starting11 선정   (양 팀 top-11 by CA, 부족 시 가용 인원)
+3. 양 팀 전력 계산   (starting11 CA 합)
+4. 골수 결정         (λ 계산 → Poisson 샘플링, 홈 어드밴티지 가산)
+5. 득점자 선정       (포지션 라인 가중치 × CA/100 비례 추첨)
+6. PlayerMatchStat 빌드 (22명, V0.1 은 goals + minutesPlayed=90 만)
+```
+
+#### 1단계: 시드 고정
+
+```
+rng = new System.Random(match.id ^ state.randomSeed)
+```
+
+- **결정성 (`design-decisions.md` #17)**: 같은 매치 + 같은 게임 시드 → 항상 같은 결과. 세이브/로드 일관성.
+- `match.id` 는 `ScheduleGenerator` 가 시즌 시작 시 단조증가로 부여 (전 매치 unique).
+- `state.randomSeed` 는 게임 생성 시 고정 (`GameInitializer`).
+
+#### 2단계: starting11 선정 (V0.1)
+
+V0.1 에선 라인업 결정 시스템 / UI 없음 (Task 13.2~13.4 까지 미구현). 시뮬레이터가 자동 선정.
+
+```
+SelectStartingEleven(club, state) → List<int>:
+    candidates = club.seniorSquadIds
+        .Select(id => state.GetPlayer(id))
+        .Where(p => p.state.injury.injuryTypeId == -1)    # 부상자 제외
+        .OrderByDescending(p => p.currentAbility)
+        .Take(11)
+        .Select(p => p.id)
+        .ToList()
+    return candidates
+```
+
+- **포지션 무시 (V0.1)**: top-11 by CA 단순. 포메이션 충족 검증 / 자동 라인업 알고리즘은 V1.0+.
+- **부상자 제외**: `injuryTypeId == -1` 만 출전 가능 (`PlayerGenerator` 6단계 sentinel).
+- **결과 개수**: 정상 시 11. 부족 시 (스쿼드 < 11 또는 부상자 다수) 가용 인원 그대로 — Edge Case 처리.
+
+> **V1.0+ 전환 트리거**: 라인업 결정 시스템 / 포메이션 / 전술 프리셋 도입 시 호출자가 starting11 을 인자로 전달하고 시뮬레이터는 받기만 — `Simulate(match, state, homeXI, awayXI)` 오버로드 검토.
+
+#### 3단계: 양 팀 전력 계산
+
+```
+homeStrength = SUM(state.GetPlayer(id).currentAbility for id in homeStarting11)
+awayStrength = SUM(state.GetPlayer(id).currentAbility for id in awayStarting11)
+```
+
+- **단순 CA 합 (V0.1, `design-decisions.md` #24)**: 라인별 가중치 / 개별 stats / 포지션 적합도 / 폼·사기·피로 보정 모두 V0.1 스코프 외.
+- **starting11 만 카운트**: 벤치 무관. 강팀이 약한 백업 잔뜩 있어도 출전 11 에만 의존.
+
+#### 4단계: 골수 결정 — Poisson
+
+```
+totalStrength = homeStrength + awayStrength
+if totalStrength == 0:
+    strengthRatio = 0.5    # edge: 양 팀 starting11 모두 비어있음 폴백
+else:
+    strengthRatio = homeStrength / totalStrength    # 0..1
+
+totalLambda = balance.avgGoalsPerMatch              # 2.7 (EPL 평균)
+
+homeLambda = totalLambda * strengthRatio + balance.homeAdvantageGoalBonus
+awayLambda = totalLambda * (1 - strengthRatio)
+
+homeScore = rng.NextPoisson(homeLambda)
+awayScore = rng.NextPoisson(awayLambda)
+```
+
+- **Poisson 분포 선택 이유**: 실제 축구 골 분포의 학계 표준 (Dixon-Coles 1997 등). 강팀 vs 약팀 시 양쪽 모두 자연스러운 분산 — 약팀이 가끔 강팀에 이변 가능, 강팀도 무득점 경기 가능.
+- **λ (lambda) 의미**: 평균 골수. 같은 λ 라도 매번 다른 값. 예) λ=0.8 → 0골 45% / 1골 36% / 2골 14% / 3골 4% / 4골 1%.
+- **strengthRatio 분배**: 양 팀 strength 비율로 totalLambda 를 나눠 가짐. CA 합 60:40 → home 1.62골 평균, away 1.08골 평균 (홈 보정 전).
+- **홈 어드밴티지**: `homeAdvantageGoalBonus` 만큼 home λ 에만 가산 (away 감산 X). EPL 통계 근사 (홈 ~46% / 무 ~26% / 원정 ~28%).
+- **결정성**: `rng.NextPoisson` 이 inverse-CDF 방식이라 같은 rng 상태 → 같은 결과.
+
+> **`rng.NextPoisson(lambda)` 헬퍼**: `Utils/RngExtensions.cs` 에 추가 (Sub-PR B). Knuth 알고리즘 (작은 λ) — `L = exp(-lambda); k = 0; p = 1; while (p > L) { k++; p *= rng.NextDouble(); } return k - 1;`. PlayerGen 의 `NextNormal` 과 같은 패턴. 분포 평균/분산 EditMode 테스트로 헬퍼 정확성 먼저 검증 후 본 구현 (Sub-PR C).
+
+#### 5단계: 득점자 선정
+
+각 골마다 starting11 중 가중치 추첨.
+
+```
+PickScorers(starting11, state, totalGoals, balance, rng) → Dictionary<int, int>:
+    goalsByPlayer = {}
+    if totalGoals == 0: return goalsByPlayer
+    
+    pool = starting11
+    weights = pool.Select(id =>
+        let p = state.GetPlayer(id)
+        let line = LineOf(p.info.primaryPosition)
+        let lineWeight = balance.scoringWeightByLine[(int)line]   # GK=0, DF=0.4, MF=1.5, AT=5.0
+        return lineWeight * (p.currentAbility / 100.0))
+    
+    for goal in 0..totalGoals:
+        scorerId = rng.WeightedSample(pool, weights)
+        goalsByPlayer[scorerId] = goalsByPlayer.GetValueOrDefault(scorerId, 0) + 1
+    
+    return goalsByPlayer
+
+
+LineOf(Position) → Line:
+    # algorithms.md #6 1단계와 동일 분류 (재사용)
+    GK = { GK }
+    DF = { CB, LB, RB, WB }
+    MF = { DM, CM, AM, LM, RM }
+    AT = { LW, RW, ST, CF }
+```
+
+- **포지션 라인 가중치 (가장 큰 결정 요인)**: 공격수가 ~60% 득점 (현실 분포). GK 는 0 — V0.1 페널티/코너 GK 골 없음.
+- **CA 보정**: `cm/100.0` 으로 같은 라인 내 에이스가 더 자주 득점 (강팀 ST 가 약팀 ST 보다 자주 득점).
+- **라인 분류 재사용**: `algorithms.md` #6 1단계 정의와 동일 (Gacha 평가 / 득점자 선정 일관성).
+- **결정성**: 골수 결정과 같은 rng 사용. 양 팀 각자 별도 추첨 (home → away 순).
+
+> **가중치 모두 0 폴백**: pool 의 모든 가중치 합 = 0 (예: 11명 모두 GK 인 비정상) → `WeightedSample` 균등 분포 폴백 (`algorithms.md` #1 트레잇 weight 폴백과 동일).
+
+#### 6단계: PlayerMatchStat 빌드 (V0.1)
+
+```
+playerStats = []
+foreach id in homeStarting11.Concat(awayStarting11):
+    playerStats.Add(new PlayerMatchStat {
+        playerId       = id,
+        minutesPlayed  = 90,                                # 교체 X
+        goals          = goalsByPlayer.GetValueOrDefault(id, 0),
+        assists        = 0,                                 # V1.0+
+        rating         = 0f,                                # V1.0+
+        yellowCards    = 0,                                 # V1.0+
+        redCards       = 0,                                 # V1.0+
+    })
+
+return new MatchResult {
+    homeScore = homeScore,
+    awayScore = awayScore,
+    homeStarting11 = homeStarting11,
+    awayStarting11 = awayStarting11,
+    playerStats = playerStats,
+}
+```
+
+> **V0.1 채우지 않는 필드**: 어시스트 / 평점 / 카드 / 교체 미니츠. V1.0+ 텍스트 이벤트 시스템 / 평점 시스템 / 카드 시스템 도입 시 채움.
+
+### Balancing Parameters → GameBalanceSO
+
+```csharp
+// === Match Simulation ===
+public float avgGoalsPerMatch        = 2.7f;      // EPL 평균 (실제 ~2.7-2.9)
+public float homeAdvantageGoalBonus  = 0.3f;      // homeLambda 에 가산
+public float[] scoringWeightByLine   = { 0.0f, 0.4f, 1.5f, 5.0f };
+//                                        GK    DF    MF    AT  (Line enum 순서와 일치)
+```
+
+> **외부화 원칙 (`design-decisions.md` #11)**: 매직 넘버 금지. avgGoalsPerMatch 등은 플레이테스트로 조정.
+
+### Edge Cases
+
+| Case | 처리 |
+| --- | --- |
+| `state.GetClub(homeClubId/awayClubId)` 가 null | `ArgumentException` throw (호출자 책임). |
+| 스쿼드 크기 < 11 | 가용 인원만 starting11 에 포함. starting11.Count < 11 가능. 부족 측 strength ↓ → λ ↓ → 골 적게 — 알고리즘 자체는 동작. |
+| 부상자 다수로 starting11 = 0명 | Edge: 양 팀 모두 0명 → strengthRatio = 0.5 폴백, totalStrength = 0 → 양 팀 모두 lambda ≈ 0 → 0-0 무승부 확률 높음. 경고 로그 1회. |
+| `totalStrength == 0` | strengthRatio = 0.5 폴백 (위와 동일). |
+| `match.type != League` (FA Cup, Carabao Cup) | V0.1 호출 경로 없음. 받으면 League 와 동일 처리 + 경고 로그. 컵 연장전/승부차기는 V1.0+. |
+| `scoringWeightByLine.Length != 4` | Assert (Line enum 과 길이 불일치는 데이터 오류). |
+| 모든 starting11 이 GK (포지션 분배표 비정상) | scoringWeightByLine[GK] = 0 → WeightedSample 가중치 합 0 → 균등 분포 폴백. GK 가 골 넣는 비정상 결과 가능하지만 분배표 비정상이 근본 원인. |
+| 골수 = 0 | 득점자 선정 단계 스킵, goalsByPlayer 빈 채로 진행. |
+| Poisson sampling 으로 극단치 (10골 이상) | 클램프 안 함. 자연 분포 그대로. λ=3 에서 10골 확률 ~0.001%. |
+| 같은 starting11 에서 동일 선수 여러 골 | 정상 동작 (해트트릭 등). goalsByPlayer 가 누적. |
+| 동점 (homeScore == awayScore) | 리그 무승부 그대로. `MatchPostProcessor` 가 `StandingEntry.drawn += 1` 처리. |
+
+### Test Scenarios
+
+`Random(seed: 42)` 고정. 통계 테스트는 100~1000 매치 batch.
+
+**T1. 결정성**
+- 같은 `match.id` + 같은 `state.randomSeed` → 모든 필드 동일 (`homeScore`, `awayScore`, `homeStarting11`, `awayStarting11`, 각 `PlayerMatchStat`).
+- 다른 `match.id` → 다른 결과 (높은 확률).
+
+**T2. starting11 선정**
+- 25명 스쿼드 → starting11.Count == 11.
+- top-11 by CA: starting11 의 최저 CA ≥ 벤치(스쿼드 - starting11) 의 최고 CA.
+- 부상자 (`injuryTypeId != -1`) 가 5명 → starting11 의 CA 합이 부상자 제외 top-11 과 일치.
+- 가용 인원 < 11 (부상자 다수) → starting11.Count = 가용 인원 (Edge case).
+
+**T3. 강팀 승률 (100 매치 batch, 강팀 vs 약팀)**
+- home CA 합 ~1700 / away CA 합 ~900 (강팀 vs 약팀) → 강팀(home) 승률 **≥ 70%** (홈 어드밴티지 포함).
+- 동일 조건 home/away 스왑 (약팀 홈) → 강팀(away) 승률 **≥ 60%** (홈 어드밴티지 보정 후에도 강팀이 자주 이김).
+- 비고: `Task 9.1` 완료 조건의 "강팀 승률 60% 이상" 충족.
+
+**T4. 동급 팀 — 무승부 / 홈 어드밴티지 (1000 매치 batch)**
+- 양 팀 CA 합 같음 → home 승률 ~45% / draw ~26% / away 승률 ~29% 근처 (EPL 통계 근사).
+- 홈 승률 > 원정 승률 (홈 어드밴티지 확인).
+
+**T5. 골 분포 통계 (1000 매치 batch, 동급 팀)**
+- 평균 골수 (home + away) ≈ `avgGoalsPerMatch + homeAdvantageGoalBonus` (= 3.0 ±0.15).
+- 무득점 경기 비율 ≈ 8~10%.
+- 5골 이상 경기 비율 ≈ 12~18%.
+- 최대 골수: 0..8 범위 대부분 (10골 이상은 극히 드문).
+
+**T6. 득점자 분포 (1000 골 batch, 동급 팀)**
+- AT 라인 득점 비율 ≈ 55~65% (`scoringWeightByLine` 가중치 + 라인 인원 비율 반영).
+- MF 라인 ≈ 20~30%.
+- DF 라인 ≈ 5~15%.
+- GK 라인 = 0% (가중치 0).
+- 같은 라인 내 CA 높은 선수가 자주 득점 (e.g. 라인 최고 CA 선수 득점 ≥ 라인 최저 CA 선수 득점).
+
+**T7. PlayerMatchStat 정확성**
+- 모든 starting11 (22명) 의 PlayerMatchStat 존재.
+- `goals` 합 == `homeScore + awayScore`.
+- `minutesPlayed` 모두 90.
+- `assists / rating / yellowCards / redCards` 모두 0 (V0.1).
+
+### V1.0+ Migration Notes
+
+V0.1 → V1.0 진행 시 손댈 가능성 있는 부분. 각 항목의 영향 범위를 명시해 V1.0 작업 진입 시 폭발 반경 확인 가능하게.
+
+| 항목 | V0.1 동작 | V1.0+ 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **전력 산출 — 단순 CA 합** | starting11 CA 합 | 라인별 가중 / 포지션 적합도 / 폼·사기·피로 보정 / 개별 stats 도입 | 3단계 + `design-decisions.md` #24 V1.0 트리거 |
+| **starting11 자동 선정** | top-11 by CA (포지션 무시) | UI 라인업 결정 시스템 + 포메이션 충족 / 전술 프리셋 | 2단계 → 호출자가 starting11 전달, 시뮬레이터는 받기만 |
+| **결과 우선 → 이벤트 시퀀스 전환** | 스코어/득점자 한 번에 결정 (`design-decisions.md` #17 의 "결과 우선" 모델) | **분 단위 이벤트 시뮬레이션** — 옐로 카드 누적 / 부상 발생 / 교체 (AI 자동) / 외침 등이 차후 이벤트에 영향. 누적 결과가 최종 스코어 | **전면 재작성**. 인터페이스 `Simulate(match, state) → MatchResult` 는 유지 (호출자 영향 없음). `design-decisions.md` #34 의 진화 경로 참조. |
+| **컵 연장전 + 승부차기** | V0.1 호출 경로 없음 (League 만) | `Match.type == FACup/CarabaoCup` 분기 — 동점 시 연장전 (λ_extraTime) → 그래도 동점이면 승부차기 (별도 5+ 라운드) | 4단계 + Edge Cases + 새 balance 필드 (`extraTimeLambda`, `penaltyShootoutPlayerWeight`) |
+| **어시스트 / 평점** | 0 고정 | 어시스트: 득점자 추첨 후 같은 팀 내 2차 추첨. 평점: 골/어시/카드/팀 결과 기반 V1.0 공식 | 5/6단계 |
+| **부상 / 카드** | 0 고정 | 분 단위 이벤트 시뮬레이션 도입 시 자연스럽게 발생 — 옐로 2장 = 퇴장 (10명으로 strength ↓), 부상 = 교체 (벤치 strength) | 이벤트 시퀀스 전환과 함께. `PlayerInjuredEvent` 발행 (`event-bus-catalog.md`) |
+| **교체** | 미구현 (90분 고정) | AI 자동 교체 (피로/부상/전술 기반). 유저 수동 교체는 V1.x | 새 시스템. 시뮬레이터 내부 또는 별도 `SubstitutionAI`. `PlayerMatchStat.minutesPlayed` 가 가변. |
+| **비활성 구단 경량 시뮬 (`SimulateLite`)** | V0.1 에선 폐기 — 단일 `Simulate` 메서드. 이벤트 발행만 `BackgroundSimulator` 가 생략 (`MatchFinishedEvent` X) | 이벤트 시퀀스 시스템 도입 후 비활성 구단은 스코어만 산출하는 경량 경로 분리 검토 | 새 메서드 + `data-flows.md` #3 갱신 |
+| **시드 결정성** | `match.id ^ randomSeed` 한 번 | 이벤트 시퀀스 도입 시 매 이벤트 step rng 상태 누적 — 같은 시드 → 같은 시퀀스 → 같은 결과. `design-decisions.md` #17 정신은 보존. | 1단계 + 내부 구조 변화 (인터페이스 동일) |
+| **개별 stats 사용** | 사용 X (CA 만) | 슈팅 → finishing / 패스 → passing / 태클 → tackling 등 분기. `design-decisions.md` #24 의 "V1.0 변경 트리거" | 3~5단계 + Player stats 직접 참조 |
+| **외부 영향 — 사기 / 폼 / 피로** | 미반영 | 이벤트 시퀀스 도입 후 strength 계산 시 곱셈 보정 | 3단계 |
+
+### Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-19 | All | Initial spec for V0.1. 단순 CA 합 + Poisson 골 분포 + 홈 어드밴티지 가산 + 포지션 라인 가중 득점자. starting11 = top-11 by CA (V0.1 라인업 결정 시스템 부재 임시 단순화). V1.0+ Migration Notes 에 이벤트 시퀀스 진화 경로 / 컵 연장전 / 비활성 구단 분기 / 어시스트·평점·카드 등 정리. `design-decisions.md` #33 (V0.1 정책) / #34 (V1.0+ 진화) 와 연동. |
 
 ---
 
@@ -1077,3 +1356,4 @@ public float tierWeakRatio     = 0.75f;
 | 2025-05-15 | All | Template created, sections empty (to be filled per design session) |
 | 2026-05-19 | Priority Order + #5 | ClubGen 우선순위 ★★★★★ 로 격상, `## 5. Club Generation` 섹션 작성. 섹션 번호와 우선순위 1:1 불일치 명시. |
 | 2026-05-19 | Priority Order + #6 | Starting Squad Gacha 우선순위 ★★★★ 추가, `## 6. Starting Squad Gacha` 섹션 작성. 4라인 평가 + 명성 대비 비율 + Reroll 재생성. |
+| 2026-05-19 | Priority Order + #2 | Match Simulation `## 2` 섹션 신규 작성 (Task 9.1 Sub-A, #109). 단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자. starting11 = top-11 by CA. `design-decisions.md` #33 (V0.1 정책) / #34 (V1.0+ 이벤트 시퀀스 진화) 와 연동. |

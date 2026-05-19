@@ -134,11 +134,16 @@
 
 [3] MatchSimulator.Simulate(match, state):
     a. 시드 고정: rng = new Random(match.id ^ state.randomSeed)
-    b. 결과 산출 (V0.1):
-       - 양 팀 전력 계산
-       - 골 분포 샘플링 → 스코어 결정
-       - 득점자 선정
-    c. MatchResult 반환
+    b. 결과 산출 (V0.1, algorithms.md #2 명세):
+       - starting11 자동 선정 (top-11 by CA, 부상자 제외)
+       - 양 팀 전력 계산 (starting11 CA 합)
+       - λ 계산 + Poisson 샘플링 → home/away 골수 결정 (홈 어드밴티지 가산)
+       - 골수 만큼 라인 가중치 × CA 비례 추첨으로 득점자 선정
+    c. MatchResult 반환 (스코어 + 득점자 + starting11 + playerStats)
+       - playerStats: goals + minutesPlayed=90 만 채움 (V0.1)
+       - assists / rating / yellowCards / redCards 는 0 (V1.0+)
+       - match.result 에 쓰지 않음 — Task 9.2 가 적용
+       - MatchFinishedEvent 발행하지 않음 — Task 9.2 가 발행
 
 [4] MatchPostProcessor: 결과 적용
     a. match.result = result
@@ -161,15 +166,20 @@
 ```
 
 ### Sequence (비활성 구단 경기)
-- MatchSimulator.SimulateLite(match, state) 호출
-- 결과만 산출 (선수별 디테일 없음)
-- 순위만 갱신
-- 이벤트 발행 안 함 (UI 갱신 불필요)
+
+[V0.1] **단일 `Simulate` 메서드** — 활성 / 비활성 구분 알고리즘 X.
+- `BackgroundSimulator` (Task 9.3) 가 `MatchSimulator.Simulate(match, state)` 호출 (활성 경기와 동일).
+- `MatchPostProcessor` 가 `match.result =` 적용 + 순위 갱신.
+- **이벤트 발행 차이만** — 비활성 구단 경기는 `MatchFinishedEvent` 발행 생략 (`BackgroundSimulator` 가 결정. UI 갱신 불필요).
+- V0.1 텍스트 이벤트 / 평점 시스템 없으므로 활성/비활성 알고리즘 분리 의미 없음.
+
+> **V1.0+ 보완 포인트**: 이벤트 시퀀스 시스템 (`design-decisions.md` #34) 도입 후 비활성 구단 경기는 분 단위 시뮬레이션 비용 회피 위해 경량 경로 (`SimulateLite`) 분리 검토. V0.1 에선 폐기.
 
 ### Key Points
-- 시드는 매치 ID + 게임 시드 조합. 같은 매치는 항상 같은 결과.
-- V0.1은 스코어만. V1.0에서 텍스트 이벤트 / 통계 추가.
-- 결과 적용은 별도 단계로 분리 (테스트 시 시뮬만 돌려보고 적용 안 하기 가능).
+- 시드는 매치 ID + 게임 시드 조합. 같은 매치는 항상 같은 결과 (`algorithms.md` #2 1단계).
+- V0.1은 스코어 + 득점자만. V1.0에서 텍스트 이벤트 / 평점 / 카드 / 부상 추가 (`design-decisions.md` #34).
+- 결과 적용은 별도 단계 (Task 9.2 `MatchPostProcessor`) 로 분리 — 테스트 시 시뮬만 돌려보고 적용 안 하기 가능.
+- 활성 / 비활성 분기는 V0.1 에선 이벤트 발행 여부만 다름.
 
 ---
 
