@@ -17,6 +17,12 @@ namespace FMLite.Domain
         public int rerollTokens;
         public int randomSeed;
 
+        // 모든 player id 발급의 단일 진실의 원천 (design-decisions.md #31).
+        // ClubGen / Reroll / YouthIntake 등 어떤 호출자든 이 카운터로 id 부여 후 갱신.
+        // Stateless 원칙 유지: 호출자가 nextPlayerId 를 읽고 갱신. 시스템(ClubGen 등)
+        // 자체는 startPlayerId 파라미터로 받음.
+        public int nextPlayerId = 1;
+
         // 마스터 리스트 (직렬화 대상)
         public List<Player> allPlayers = new List<Player>();
         public List<Club> allClubs = new List<Club>();
