@@ -97,20 +97,13 @@ namespace FMLite.Tests
             }
         }
 
-        // ── T3. 스쿼드 인원 / 포지션 분배표 ───────────────────────────
+        // ── T3. 스쿼드 인원 / FormationConfig 제약 조건 ───────────────
 
         [Test]
-        public void T3_SquadComposition_AllClubsMatchDistribution()
+        public void T3_SquadComposition_AllClubsMatchFormationConstraints()
         {
-            var result   = Generate(new Random(42));
-            var byId     = result.Players.ToDictionary(p => p.id);
-            var expected = new Dictionary<Position, int>
-            {
-                [Position.GK] = 3, [Position.CB] = 4, [Position.LB] = 2, [Position.RB] = 2,
-                [Position.DM] = 2, [Position.CM] = 3, [Position.AM] = 2,
-                [Position.LM] = 1, [Position.RM] = 1, [Position.LW] = 1, [Position.RW] = 1,
-                [Position.ST] = 2, [Position.CF] = 1,
-            };
+            var result = Generate(new Random(42));
+            var byId   = result.Players.ToDictionary(p => p.id);
 
             foreach (var club in result.Clubs)
             {
@@ -121,14 +114,56 @@ namespace FMLite.Tests
                     .GroupBy(p => p)
                     .ToDictionary(g => g.Key, g => g.Count());
 
-                foreach (var (pos, count) in expected)
-                {
-                    Assert.IsTrue(posCounts.TryGetValue(pos, out int actual),
-                                  $"T3: club {club.id} 포지션 {pos} 없음");
-                    Assert.AreEqual(count, actual,
-                                    $"T3: club {club.id} 포지션 {pos} 카운트 (expected {count}, actual {actual})");
-                }
+                int Get(Position p) => posCounts.TryGetValue(p, out int c) ? c : 0;
+
+                // FormationConfig 4-4-2 필수 인원
+                Assert.AreEqual(3, Get(Position.GK),
+                                $"T3: club {club.id} GK 정확히 3 (서드키퍼)");
+                Assert.GreaterOrEqual(Get(Position.CB), 4,
+                                      $"T3: club {club.id} CB ≥ 4 (actual={Get(Position.CB)})");
+                Assert.GreaterOrEqual(Get(Position.LB), 2,
+                                      $"T3: club {club.id} LB ≥ 2");
+                Assert.GreaterOrEqual(Get(Position.RB), 2,
+                                      $"T3: club {club.id} RB ≥ 2");
+                Assert.GreaterOrEqual(Get(Position.DM) + Get(Position.CM), 4,
+                                      $"T3: club {club.id} DM+CM ≥ 4");
+                Assert.GreaterOrEqual(Get(Position.LM) + Get(Position.LW), 2,
+                                      $"T3: club {club.id} LM+LW ≥ 2");
+                Assert.GreaterOrEqual(Get(Position.RM) + Get(Position.RW), 2,
+                                      $"T3: club {club.id} RM+RW ≥ 2");
+                Assert.GreaterOrEqual(Get(Position.ST) + Get(Position.CF), 4,
+                                      $"T3: club {club.id} ST+CF ≥ 4");
+
+                // V0.1 분배표 제외 포지션 (AM, WB)
+                Assert.AreEqual(0, Get(Position.AM),
+                                $"T3: club {club.id} AM 0명 (V0.1 분배표 제외)");
+                Assert.AreEqual(0, Get(Position.WB),
+                                $"T3: club {club.id} WB 0명 (V0.1 분배표 제외)");
             }
+        }
+
+        // ── T3b. 랜덤 2자리로 인한 구단별 분배 다양성 ──────────────────
+
+        [Test]
+        public void T3b_SquadComposition_VariesAcrossClubs()
+        {
+            var result = Generate(new Random(42));
+            var byId   = result.Players.ToDictionary(p => p.id);
+
+            var distributions = new HashSet<string>();
+            foreach (var club in result.Clubs)
+            {
+                var sig = string.Join(",", club.seniorSquadIds
+                    .Select(id => byId[id].info.primaryPosition)
+                    .GroupBy(p => p)
+                    .OrderBy(g => g.Key)
+                    .Select(g => $"{g.Key}={g.Count()}"));
+                distributions.Add(sig);
+            }
+
+            Assert.That(distributions.Count, Is.GreaterThan(1),
+                        $"T3b: 랜덤 2자리로 구단별 분배 다양성 보장 " +
+                        $"(actual distinct distributions={distributions.Count}, 1보다 커야 함)");
         }
 
         // ── T4. 연령 분포 (500명 batch) ───────────────────────────────

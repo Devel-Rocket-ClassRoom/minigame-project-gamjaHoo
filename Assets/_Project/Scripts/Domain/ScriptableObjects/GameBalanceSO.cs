@@ -2,10 +2,39 @@
 // V0.1 밸런싱 수치 외부화 (design-decisions.md #11). 알고리즘 명세 진행에 따라 필드 점진 추가.
 // Player Generation 관련 필드는 algorithms.md #1 Balancing Parameters 섹션 기준.
 
+using System;
 using UnityEngine;
 
 namespace FMLite.Domain
 {
+    // 포메이션 단위 분배표 정책 (design-decisions.md #28 / #32).
+    // V0.1: 4-4-2 단일 인스턴스 (GameBalanceSO.formation).
+    // V1.0: FormationSO 로 추출 + List<FormationSO> availableFormations 카탈로그.
+    [Serializable]
+    public class FormationConfig
+    {
+        public string name = "4-4-2";
+
+        [Header("Goalkeeper")]
+        public int gk = 3;              // 서드키퍼 포함
+
+        [Header("Defense — 각 라인 최소 인원")]
+        public int cbMin = 4;
+        public int lbMin = 2;
+        public int rbMin = 2;
+
+        [Header("Midfield — 그룹 합 최소")]
+        public int dmCmGroupMin = 4;    // DM + CM 합
+        public int lmLwGroupMin = 2;    // LM + LW 합
+        public int rmRwGroupMin = 2;    // RM + RW 합
+
+        [Header("Attack — 그룹 합 최소")]
+        public int stCfGroupMin = 4;    // ST + CF 합
+
+        [Header("Random Slots")]
+        public int randomSlots = 2;     // 필수 인원 외 자유 자리 (시드 기반 추첨)
+    }
+
     [CreateAssetMenu(fileName = "GameBalance", menuName = "FM-Lite/Game Balance")]
     public class GameBalanceSO : ScriptableObject
     {
@@ -89,22 +118,10 @@ namespace FMLite.Domain
         public int   minFacilityLevel    = 1;
         public int   maxFacilityLevel    = 5;
 
-        [Header("Club Generation — Squad Composition")]
-        // 기본 합 = 25 (LeagueConfigSO.playersPerClub 기본값과 일치).
-        // playersPerClub ≠ Σsquad* → 분배표 합 기준으로 진행 + 경고. V1.0 에서 ratio화 검토.
-        public int squadGK = 3;
-        public int squadCB = 4;
-        public int squadLB = 2;
-        public int squadRB = 2;
-        public int squadDM = 2;
-        public int squadCM = 3;
-        public int squadAM = 2;
-        public int squadLM = 1;
-        public int squadRM = 1;
-        public int squadLW = 1;
-        public int squadRW = 1;
-        public int squadST = 2;
-        public int squadCF = 1;
+        [Header("Club Generation — Formation (V0.1: 4-4-2 단일)")]
+        // 분배표는 FormationConfig 단위. V0.1 단일 인스턴스, V1.0 에서 FormationSO 로 추출.
+        // 필수 인원 합 + randomSlots = playersPerClub 일치 권장 (불일치 시 분배표 합 기준 진행).
+        public FormationConfig formation = new FormationConfig();
 
         [Header("Club Generation — Age Distribution")]
         public float youthAgeRatio   = 0.20f;
@@ -127,6 +144,17 @@ namespace FMLite.Domain
 
         [Header("Club Generation — Board")]
         public int initialBoardConfidence = 50;
+
+        // ============================================================
+        // Starting Squad Gacha (algorithms.md #6)
+        // ============================================================
+
+        [Header("Gacha — Tier Cuts (lineCA / expectedMeanCA ratio)")]
+        public float tierEliteRatio   = 1.20f;
+        public float tierStrongRatio  = 1.05f;
+        public float tierAverageRatio = 0.90f;
+        public float tierWeakRatio    = 0.75f;
+        // < tierWeakRatio → Poor
 
         // ============================================================
         // Other Systems
