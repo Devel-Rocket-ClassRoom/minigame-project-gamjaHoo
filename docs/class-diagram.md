@@ -5,22 +5,28 @@
 ## Layer Overview
 
 ```
-┌────────────────────────────────────────┐
-│  Presentation Layer (UI, Scenes)       │
-├────────────────────────────────────────┤
-│  Application Layer (Systems)           │
-│    GameManager, GameTime, EventBus     │
-│    MatchSimulator, TransferSystem      │
-│    YouthSystem, SaveSystem             │
-├────────────────────────────────────────┤
-│  Domain Layer (Game state, instances)  │
-│    GameState, Player, Club, League     │
-│    Match, TransferOffer, YouthIntake   │
-├────────────────────────────────────────┤
-│  Data Layer (Persistence, SO)          │
-│    JSON files, ScriptableObjects       │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  Presentation Layer (UI, Scenes)               │
+├────────────────────────────────────────────────┤
+│  Application Layer (Systems, Stateless)        │
+│    MatchSimulator, TransferSystem,             │
+│    YouthSystem, SaveSystem,                    │
+│    PlayerGenerator, ClubGenerator              │
+├────────────────────────────────────────────────┤
+│  Core Layer (Infra, 진입점/컨테이너)            │
+│    GameManager, GameTime, EventBus, GameLog    │
+├────────────────────────────────────────────────┤
+│  Domain Layer (Game state, instances)          │
+│    GameState, Player, Club, League             │
+│    Match, TransferOffer, YouthIntake           │
+│    GameDatabase                                │
+├────────────────────────────────────────────────┤
+│  Data Layer (Persistence, SO)                  │
+│    JSON files, ScriptableObjects               │
+└────────────────────────────────────────────────┘
 ```
+
+> **의존 방향**: Domain 가장 안쪽 (외부 의존 0). Core → Domain. Application → Core + Domain. Presentation → Application + Core. `GameManager` 가 Core 인 이유는 `design-decisions.md` #29.
 
 ## Domain Layer Classes
 
@@ -459,32 +465,39 @@ public class PositionAffinity {
 }
 ```
 
-## Application Layer (Systems)
+## Core Layer (Infra)
 
-상태 없음. GameState를 입력받아 변경.
+진입점·인프라. 도메인 로직은 가지지 않고 Application 시스템에 위임 (`design-decisions.md` #29).
 
 ```csharp
-// 최상위 매니저 (싱글톤)
+// 최상위 매니저 (싱글톤). GameState 는 보유만 하고 변경은 시스템이 함.
 public class GameManager : MonoBehaviour {
     public static GameManager Instance { get; private set; }
     public GameState State { get; private set; }
-    public Club UserClub => State.GetClub(State.userClubId);
+    public Club UserClub => State?.GetClub(State.userClubId);
+    public void SetState(GameState state);
 }
 
 // 시간 진행
-public class GameTime {
-    public DateTime Current { get; private set; }
-    public void Advance(int days) { ... }
+public static class GameTime {
+    public static DateTime CurrentDate { get; private set; }
+    public static void Reset(DateTime d);
+    public static void Advance(int days);   // 하루씩 N번 DayAdvancedEvent 발행
 }
 
 // 이벤트 시스템 (정적)
 public static class EventBus {
-    public static void Publish<T>(T evt) { ... }
-    public static void Subscribe<T>(Action<T> handler) { ... }
-    public static void Unsubscribe<T>(Action<T> handler) { ... }
+    public static void Publish<T>(T evt);
+    public static void Subscribe<T>(Action<T> handler);
+    public static void Unsubscribe<T>(Action<T> handler);
 }
+```
 
-// 도메인별 시스템 (stateless)
+## Application Layer (Systems)
+
+상태 없음. GameState를 입력받아 변경 (`design-decisions.md` #3).
+
+```csharp
 public class MatchSimulator {
     public MatchResult Simulate(Match match, GameState state);
 }

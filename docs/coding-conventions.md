@@ -45,14 +45,16 @@
 
 ```
 Assets/_Project/Scripts/
-├─ Core/              GameManager, GameTime, EventBus 등 기반 인프라
-├─ Domain/            데이터 클래스 (Player, Club, Match 등)
-├─ Application/       시스템 (MatchSimulator, TransferSystem 등)
+├─ Core/              GameManager, GameTime, EventBus, GameLog 등 기반 인프라
+├─ Domain/            데이터 클래스 (Player, Club, Match, GameState, GameDatabase 등)
+├─ Application/       시스템 (MatchSimulator, TransferSystem, PlayerGenerator 등 — Stateless)
 ├─ Persistence/       Save/Load
 ├─ UI/                UI Controllers
-├─ Utils/             범용 유틸
+├─ Utils/             범용 유틸 (RngExtensions 등)
 └─ Editor/            커스텀 에디터 (빌드 제외)
 ```
+
+> **레이어 의존 방향**: Domain 이 가장 안쪽 (외부 의존 0). Core → Domain, Application → Core + Domain, Presentation → Application + Core. `GameManager` 가 Core 에 위치하는 근거는 `design-decisions.md` #29.
 
 ## Code Style
 
