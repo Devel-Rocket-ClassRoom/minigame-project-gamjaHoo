@@ -4,8 +4,7 @@
     "references": [
         "FMLite.Core",
         "FMLite.Domain",
-        "FMLite.Utils",
-        "FMLite.Persistence"
+        "FMLite.Utils"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

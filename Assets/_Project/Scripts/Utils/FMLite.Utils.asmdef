@@ -1,9 +1,7 @@
 {
     "name": "FMLite.Utils",
     "rootNamespace": "FMLite.Utils",
-    "references": [
-        "FMLite.Core"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

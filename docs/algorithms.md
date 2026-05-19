@@ -216,12 +216,13 @@ ClampStat(x): return Clamp(round(x), 1, 20)
 selectedTraits = []
 usedGroups    = {}
 
+# 첫 트레잇 시도. 실패하면 추가 트레잇 시도도 안 함 (분포 sanity).
 if rng.NextDouble() < balance.traitProbabilityPerPlayer:    # 0.30
     AddTrait(selectedTraits, usedGroups, db, rng)
 
-# 추가 트레잇 — 풀 고갈 시 자동 종료
-while rng.NextDouble() < balance.additionalTraitProbability:  # 0.15
-    if !AddTrait(selectedTraits, usedGroups, db, rng): break
+    # 추가 트레잇 — 풀 고갈 시 자동 종료
+    while rng.NextDouble() < balance.additionalTraitProbability:  # 0.15
+        if !AddTrait(selectedTraits, usedGroups, db, rng): break
 
 player.traitIds = selectedTraits
 
@@ -238,7 +239,14 @@ AddTrait(selected, usedGroups, db, rng) → bool:
     return true
 ```
 
-**분포**: 0개 70% / 1개 25.5% / 2개 3.8% / 3개+ <1%. 평균 0.36개.
+**분포** (위 의사코드 / 실제 구현 모두 동일 결과):
+- 0개 = 70% (첫 시도 fail)
+- 1개 = 30% × 85% = 25.5% (첫 받고 추가 fail)
+- 2개 = 30% × 15% × 85% = 3.825%
+- 3개+ < 1%
+- 평균 ≈ 0.36개
+
+> **주석 (V0.1)**: 초기 명세는 `while` 루프를 `if` 밖에 둬서 첫 시도 실패한 선수도 추가 트레잇을 시도하는 구조였으나, P(≥1) = 40.5% 가 되어 위 분포와 불일치. PR #74 구현 시 `while` 을 `if` 안으로 이동해 분포(70/25.5/3.8) 와 일치시킴 — 의사코드도 이번에 동기화.
 
 **충돌 그룹 정의 (현재)**:
 - Group 1 (DevelopmentSpeed): 늦깎이형, 조숙형 — 동시 부여 불가
@@ -469,6 +477,7 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분 모음. 이 알고리즘
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-18 | All | Initial spec for V0.1. CA-Stats 분리 운영, 트레잇 충돌 그룹, 2차 포지션 affinity 결정. GK 2차 포지션 강제 빈 리스트, gkSecondaryStatPenalty 외부화, RNG 헬퍼 위치 명시, T5 CA-Stats sanity check + T7 GK 통계 추가. |
+| 2026-05-19 | 4단계 의사코드 | `while` 루프를 `if` 안으로 이동 — 분포(70/25.5/3.8) 와 일치시킴. PR #74 구현이 이미 이 형태였고 명세 의사코드만 미동기였음. |
 
 ---
 
