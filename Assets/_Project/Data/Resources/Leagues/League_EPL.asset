@@ -18,3 +18,24 @@ MonoBehaviour:
   clubCount: 20
   relegationCount: 3
   playersPerClub: 25
+  clubNames:
+  - Skyblues
+  - Ravens
+  - Cannons
+  - Red Devils
+  - Blues
+  - Cockerels
+  - Magpies
+  - Lions
+  - Seagulls
+  - Hammers
+  - Eagles
+  - Cottagers
+  - Bees
+  - Toffees
+  - Foxes
+  - Foresters
+  - Cherries
+  - Clarets
+  - Black Cats
+  - Peacocks
