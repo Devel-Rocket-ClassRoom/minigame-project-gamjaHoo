@@ -119,11 +119,32 @@ PR 본문에 닫을 이슈 명시 시 **각 이슈 앞에 키워드 필요**. �
 
 > **이슈 close 시 Claude 가 즉시 보드 업데이트** (사용자 명시 요청, 2026-05-20). FM-Lite 작업 패턴 = "같은 날 시작 + 같은 날 완료" 라 `Start = Target = closedAt`.
 
-| 보드 필드 | 값 |
-| --- | --- |
-| **Start date** | `closedAt` 의 date 부분 (`yyyy-MM-dd`) |
-| **Target date** | 동일 (`closedAt`) |
-| **Iteration** | `closedAt` 이 속한 iteration 매핑 (현재: 1=5/18~5/24, 2=5/25~5/31, 3=6/1~6/7) |
+| 필드 | 값 | API 종류 |
+| --- | --- | --- |
+| **Start date** | `closedAt` 의 date 부분 (`yyyy-MM-dd`) | **Issue field** (조직 차원) |
+| **Target date** | 동일 (`closedAt`) | **Issue field** (조직 차원) |
+| **Iteration** | `closedAt` 이 속한 iteration (1=5/18~5/24, 2=5/25~5/31, 3=6/1~6/7) | **Project field** (보드 차원) |
+
+> **중요 — 두 API 구분**:
+> - **Start / Target date 는 Issue field** (`updateIssueFieldValue` mutation, organization 차원). `updateProjectV2ItemFieldValue` 로 시도하면 **에러** ("Issue field values cannot be updated using the updateProjectV2ItemFieldValue mutation").
+> - **Iteration 은 여전히 Project field** (`updateProjectV2ItemFieldValue`).
+> - **Priority / Size 도 Project field** (기존과 동일).
+
+**FM-Lite 프로젝트 필드 ID 참조** (한 번만 조회해서 기록):
+
+```
+# Project + Project fields
+Project ID:        PVT_kwDODykJwc4BYAHm
+Iteration:         PVTIF_lADODykJwc4BYAHmzhTWM5Q  (Project field)
+Priority:          PVTSSF_lADODykJwc4BYAHmzhTJKJg
+Size:              PVTSSF_lADODykJwc4BYAHmzhTJKKY
+
+# Issue fields (조직 Devel-Rocket-ClassRoom)
+Start date:        IFD_kgDOAk3m_w
+Target date:       IFD_kgDOAk3nAA
+Priority (Issue):  IFSS_kgDOAk3m_g     # Project Priority 와 별개
+Effort:            IFSS_kgDOAk3nAQ
+```
 
 **처리 흐름** (PR 머지 직후 또는 이슈 수동 close 시):
 
@@ -131,17 +152,30 @@ PR 본문에 닫을 이슈 명시 시 **각 이슈 앞에 키워드 필요**. �
 # 1. 보드 미등록이면 추가
 gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <issue-url>
 
-# 2. closedAt 가져옴
-$closedAt = (gh issue view <n> --json closedAt | ConvertFrom-Json).closedAt
-$dateStr = $closedAt.ToString("yyyy-MM-dd")
+# 2. 이슈 + closedAt + node ID 가져옴
+$issue = gh issue view <n> --json id,closedAt | ConvertFrom-Json
+$dateStr = $issue.closedAt.ToString("yyyy-MM-dd")
 
-# 3. Start/Target date + Iteration mutation (PowerShell + gh api graphql)
-# (필드 ID 는 gh project field-list 50 --owner ... 로 조회)
+# 3-a. Start date — Issue field
+$mut = "mutation { updateIssueFieldValue(input: { issueId: ""$($issue.id)"", issueField: { fieldId: ""IFD_kgDOAk3m_w"", dateValue: ""$dateStr"" } }) { issue { id } } }"
+gh api graphql -f query=$mut
+
+# 3-b. Target date — Issue field (같은 dateStr)
+$mut = "mutation { updateIssueFieldValue(input: { issueId: ""$($issue.id)"", issueField: { fieldId: ""IFD_kgDOAk3nAA"", dateValue: ""$dateStr"" } }) { issue { id } } }"
+gh api graphql -f query=$mut
+
+# 3-c. Iteration — Project field (보드 item ID 필요)
+$boardItem = (gh project item-list 50 --owner Devel-Rocket-ClassRoom --format json --limit 200 | ConvertFrom-Json).items | Where-Object { $_.content.type -eq "Issue" -and $_.content.number -eq <n> } | Select-Object -First 1
+$iterId = "90778f22"  # closedAt 이 속한 iteration ID
+$mut = "mutation { updateProjectV2ItemFieldValue(input: { projectId: ""PVT_kwDODykJwc4BYAHm"", itemId: ""$($boardItem.id)"", fieldId: ""PVTIF_lADODykJwc4BYAHmzhTWM5Q"", value: { iterationId: ""$iterId"" } }) { projectV2Item { id } } }"
+gh api graphql -f query=$mut
 ```
 
-**일괄 처리 스크립트**는 PR #126 머지 코멘트 또는 `feedback_issue_close_workflow.md` 메모리 참조.
+**일괄 처리 스크립트**는 메모리 `feedback_issue_close_workflow.md` 참조.
 
 > **GitHub Projects 의 한계**: GitHub Action / webhook 없이는 close 시 자동 채워지지 않음. Claude 가 매 close 시점에 처리 책임.
+>
+> **2026-05-20 발견된 함정** — Start/Target date 가 보드 field 아닌 **organization 차원 Issue field** 로 마이그레이션됨. 보드 필드 ID (`PVTF_...`) 가 아닌 **Issue field ID (`IFD_...`)** 사용 필수. `gh api graphql -f query='{ organization(login: "...") { issueFields(first: 50) { nodes { __typename ... on IssueFieldDate { id name } } } } }'` 로 조회.
 
 ---
 
