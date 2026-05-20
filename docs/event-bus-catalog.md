@@ -35,7 +35,7 @@ Assets/_Project/Scripts/Core/Events/
 
 > **V0.1 진행 상태**:
 > - `GameEvents.cs` — DayAdvancedEvent / GameLoadedEvent / GameSavedEvent ✓
-> - `MatchEvents.cs` — MatchDayEvent ✓ (Stage 8 Task 8.1, #103). MatchFinishedEvent / PlayerInjuredEvent 는 Stage 9 작업 시 추가.
+> - `MatchEvents.cs` — MatchDayEvent ✓ (Stage 8 Task 8.1, #103) / MatchFinishedEvent ✓ (Stage 9 Task 9.2, #117). PlayerInjuredEvent 는 V1.0+ (부상 시스템 도입 시).
 > - 나머지 3개 파일은 해당 Stage 작업 시 생성. 카탈로그의 이벤트 정의는 명세 선반영.
 
 ---

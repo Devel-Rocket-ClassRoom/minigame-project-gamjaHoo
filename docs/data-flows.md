@@ -145,16 +145,18 @@
        - match.result 에 쓰지 않음 — Task 9.2 가 적용
        - MatchFinishedEvent 발행하지 않음 — Task 9.2 가 발행
 
-[4] MatchPostProcessor: 결과 적용
-    a. match.result = result
+[4] MatchPostProcessor: 결과 적용 (Task 9.2)
+    a. match.result = result  (사전: match.result == null, 재처리 시 InvalidOperationException)
     b. 선수별 처리:
-       - PlayerMatchStat 기록 (출전시간, 평점)
-       - 피로도 누적
-       - 폼 / 사기 갱신
-    c. 리그 순위 갱신: League.standings.Update(result)
-    d. 부상자 발생 처리 (V1.0~)
-    e. 카드 누적 처리 (V1.0~)
-    f. EventBus.Publish(new MatchFinishedEvent(match))
+       - PlayerMatchStat 기록 — MatchSimulator 가 이미 채움 (V0.1: goals + minutesPlayed=90 만)
+       - 피로도 누적 — starting11 22명에 balance.fatigueGainPerMatch (30) 가산, Clamp 0..100
+       - 폼 / 사기 갱신 — **V0.1 미구현** (design-decisions.md #30 V1.0+ 보완 포인트)
+         · 평점 시스템 부재 + 사기 시스템 자체가 V1.0+ → 폼/사기 묶음으로 V1.0 도입
+    c. 리그 순위 갱신 — match.type == League 일 때만. Standings.entries 의 양 팀 entry 갱신
+       (played+1 / goalsFor / goalsAgainst / 승무패 / points: 승 3 · 무 1 · 패 0)
+    d. 부상자 발생 처리 — V1.0+ (`design-decisions.md` #34 이벤트 시퀀스 도입 시 자연 발생)
+    e. 카드 누적 처리 — V1.0+ (위와 동일)
+    f. EventBus.Publish(new MatchFinishedEvent { matchId, result })
 
 [5] UI: 경기 결과 화면
     a. 스코어, 득점자, 평점 표시
