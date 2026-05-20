@@ -84,11 +84,28 @@
 이 프로젝트는 다음 도구들을 병행 사용한다:
 
 - **채팅 인터페이스 (Claude)** — 설계 / 디자인 결정 / 알고리즘 명세
-- **Claude Code (with Unity MCP)** — 코드 작성, 리팩터링
-- **Unity AI Assistant** — Unity 에디터 작업 (씬, 프리팹, SO 데이터)
+- **Claude Code (with Unity MCP)** — 코드 작성, 리팩터링, git / PR / 이슈 관리
+- **Unity AI Assistant** — Unity 에디터 안 작업 (씬, Inspector, Profiler, 콘솔)
+- **Unity Generators** — 콘텐츠 생성 (스프라이트 / 텍스처 / 머티리얼 / 사운드 / 간단 3D)
 - **GitHub Issues / Projects** — 작업 관리
 
-도구별 역할 분담은 `docs/unity-mcp.md` 참조. 작업 관리 규칙은 `docs/github-workflow.md` 참조.
+도구별 역할 분담 매트릭스는 `docs/unity-mcp.md` 참조. 작업 관리 규칙은 `docs/github-workflow.md` 참조.
+
+### 한 줄 룰 (도구 선택)
+
+- **에디터 화면 안 일** (씬 / Inspector / 콘솔 / Profiler) → **Unity AI Assistant**
+- **다중 파일 / git / 자동화 / 셸 / 문서** → **Claude Code** (터미널)
+- **콘텐츠** (이미지 / 사운드 / 간단 3D / UGUI from Figma) → **Unity Generators**
+
+Stage 13 UI 진입 후 씬·프리팹·UGUI 작업은 Unity AI Assistant 비중↑.
+Claude Code 는 코드 / 문서 / Editor 스크립트 (DebugWindow 같은) 영역.
+
+### Claude Code 자동 포매팅 (CSharpier)
+
+`.cs` 파일을 Edit/Write 한 직후 `.claude/hooks/csharpier-format.ps1` 이
+자동 호출되어 CSharpier 포맷 적용. 수동 호출은 `dotnet csharpier format <path>`.
+설정 (`.editorconfig`, `.config/dotnet-tools.json`, `.claude/settings.json`) 은
+이슈 #142 셋업.
 
 ### 새 작업 시작 시 (Issue 기반)
 

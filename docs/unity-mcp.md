@@ -1,11 +1,100 @@
 # Unity MCP & AI Assistant 활용 가이드
 
-이 프로젝트는 두 가지 AI 도구를 병행 사용한다:
+이 프로젝트는 다음 AI 도구를 병행 사용한다:
 
-1. **Claude Code (with Unity MCP)** — VSCode에서 코드 작성, 필요 시 Unity 에디터 조작
-2. **Unity AI Assistant** — Unity 에디터 안에서 직접 사용 (씬 작업, 인스펙터 설정 등)
+1. **Claude Code (with Unity MCP)** — 터미널/VSCode 에서 코드 작성, 필요 시 Unity 에디터 조작 (MCP 경유)
+2. **Unity AI Assistant** — Unity 에디터 안 채팅 (Ask / Plan / Agent)
+3. **Unity Generators** — 자연어 → 스프라이트 / 텍스처 / 머티리얼 / 사운드 / 간단 3D 생성
 
 각 도구의 역할과 사용 원칙을 정의한다.
+
+---
+
+## 0. Unity AI 베타 4 컴포넌트 (Unity 6.3+)
+
+> Unity 6.3 이상에서 안정 동작하는 Unity 자체 AI 묶음. Claude Code 와는 별개.
+> 베타라 모델·과금·기능 자주 변동.
+
+| 컴포넌트 | 한 줄 정의 | 어디서 쓰나 |
+| --- | --- | --- |
+| **Assistant** | 에디터 내장 채팅 — Ask / Plan / Agent 3 모드 | Unity 에디터 안 |
+| **Generators** | 자연어 → 텍스처·스프라이트·머티리얼·사운드·간단 3D | Unity 에디터 안 |
+| **AI Gateway** | 외부 코딩 에이전트 (Claude Code 등) 를 에디터 안으로 끌어옴 | Unity 에디터 안 |
+| **Unity MCP Server** | Unity 가 MCP 서버 — 외부 IDE / CLI 에이전트가 씬·콘솔 조작 | Unity 에디터 밖 → Unity |
+
+**Asset Knowledge** — 프로젝트 에셋 (텍스처·머티리얼·GameObject) 을 **로컬** 임베딩해 시맨틱 검색 (클라우드로 안 나감).
+
+### Assistant 의 3 모드
+- **Ask** — 읽기 중심 설명·분석
+- **Plan** — 구현 계획서 `Assets/Plans/<이름>.md` 생성 → 사용자 승인 → Agent 전환
+- **Agent** — 실제 쓰기 작업 (스크립트 / 씬 / 컴포넌트 변경). Allow / Ask Permission / Deny 3분류.
+
+질의에 첨부 가능: GameObject / 에셋 / 콘솔 로그 / 스크린샷 / Profiler 세션.
+프롬프트 직전 **Git 자동 체크포인트** → 마음에 안 들면 그 시점 롤백.
+
+### Generators 생성 가능
+- 2D: 스프라이트 / 텍스처 / 머티리얼 / 큐브맵
+- 3D: 간단 프롭 / 터레인 레이어
+- 그 외: 사운드 / 애니메이션
+- Figma 링크 → UGUI / UXML 화면 자동 생성
+
+본 프로덕션 아트 파이프라인 대체는 아님 — 프로토타입·placeholder 가속.
+
+### AI Gateway
+- Assistant 창 에이전트 선택 항목에서 **외부 코딩 에이전트** 사용 (Claude Code · Codex · Gemini · Cursor)
+- 로컬 머신에서 본인 자격증명으로 실행
+- Gateway 자체는 Unity 크레딧 미소모 — 외부 에이전트 API 키 / 구독은 별도
+- Claude Code 는 2.1.45 이상 필요
+
+### Unity MCP Server
+- Unity 자체가 MCP 서버 → 외부 클라이언트 (Claude Code 등) 에 씬·콘솔·GameObject·에셋을 도구로 노출
+- 외부 클라이언트가 부를 수 있는 도구 예:
+  - `Unity_ReadConsole` — 콘솔 로그 읽기
+  - `Unity_ManageScene` — 씬 열기·저장·계층 조회
+  - `Unity_ManageGameObject` — GameObject 생성·이동·컴포넌트 추가
+- Unity 가 켜져 있을 동안만 연결 가능 (Bridge 가 떠 있음)
+
+---
+
+## 0.1 환경 셋업 (이슈 #142, 2026-05-20)
+
+### 자동 셋업 (Claude Code 가 한 것)
+- `.claude/settings.json` — Unity 권장 권한 (Library / Temp / Logs / obj 읽기 deny / .unity·.meta 편집 deny / 자주 쓰는 git·dotnet 명령 allow / PostToolUse CSharpier hook)
+- `.editorconfig` — LF / final newline / C# indent 4
+- `.config/dotnet-tools.json` — CSharpier 로컬 도구 매니페스트
+- `.claude/hooks/csharpier-format.ps1` — Edit/Write 직후 .cs 파일 자동 포맷
+- `CLAUDE.md` — Unity AI 도구 분담 한 줄 룰 + CSharpier 가이드
+
+### 수동 셋업 (사용자가 해야 할 것)
+
+**A. Unity AI Assistant 패키지 설치**
+1. Unity 에디터 → `Window > Package Manager`
+2. 좌측 상단 드롭다운 `Packages: Unity Registry` 선택
+3. 검색 `AI Assistant` → Install
+4. (선택) `AI Generators` 도 같이 Install
+5. 에디터 재시작 시 의존 패키지 자동 설치
+
+**B. Unity MCP Server 활성화 + Claude Code 연결**
+1. `Edit > Project Settings > AI > Unity MCP`
+2. `Unity Bridge` 상태가 `Running` (녹색) 확인 — `Stopped` 면 `Start` 클릭
+3. `Integrations` 섹션 펼치고 `Claude Code` 행의 `Configure` 클릭
+4. 터미널에서 새 Claude Code 세션 시작
+5. 첫 호출 시 같은 설정 페이지 `Pending Connections` 에 Claude Code 항목 표시 → `Accept`
+6. 이후 `Connected Clients` 에 표시되며 자동 재연결
+
+**C. 연결 확인**
+- Claude Code 세션에서 `/mcp` → 등록된 서버 목록에 `unity` + 상태 `connected`
+- 시험 호출: "유니티 콘솔의 최근 에러 한 줄 알려줘" — Unity 가 켜져 있어야 응답
+
+**D. CSharpier IDE 통합 (선택)**
+- VS Code: `csharpier.csharpier-vscode` 플러그인 설치
+- Rider: 마켓플레이스 CSharpier 플러그인
+- IDE 저장 자동 포맷이 Claude Code hook 과 동일한 결과 보장
+
+### 베타 주의사항
+- Unity 가 빌드·임포트·컴파일 중일 때 MCP 응답 지연 — 기다렸다 재시도
+- AI Assistant / Generators 는 Unity 크레딧 소모 — 베타 플랜 한도 확인
+- 공식 MCP 한도 초과 시 커뮤니티 MCP (예: Coplay `unity-mcp`) 대안 — 출처 검토 후 도입
 
 ---
 
@@ -270,3 +359,4 @@ Unity AI Assistant → Asset 변경 → Git 커밋
 | Date | Change |
 | --- | --- |
 | 2025-05-15 | 초안 작성 |
+| 2026-05-20 | 이슈 #142 — Unity AI 베타 4 컴포넌트 (Assistant / Generators / AI Gateway / Unity MCP Server) 정리 + 환경 셋업 절차 (자동 / 수동) 추가. `.claude/settings.json` / `.editorconfig` / `.config/dotnet-tools.json` / `.claude/hooks/csharpier-format.ps1` 도입. Stage 13 UI 진입 전 셋업. |
