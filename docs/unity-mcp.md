@@ -10,49 +10,59 @@
 
 ---
 
-## 0. Unity AI 베타 4 컴포넌트 (Unity 6.3+)
+## 0. Unity AI 베타 2026 — 무엇이 어디 있나 (Unity 6.3+)
 
-> Unity 6.3 이상에서 안정 동작하는 Unity 자체 AI 묶음. Claude Code 와는 별개.
-> 베타라 모델·과금·기능 자주 변동.
+> Unity 6.3 이상에서 동작하는 Unity 자체 AI 묶음. Claude Code 와는 별개.
+> 베타라 모델·과금·기능 자주 변동. **2026 베타부터 Assistant 가 단일 진입점.**
 
-| 컴포넌트 | 한 줄 정의 | 어디서 쓰나 |
-| --- | --- | --- |
-| **Assistant** | 에디터 내장 채팅 — Ask / Plan / Agent 3 모드 | Unity 에디터 안 |
-| **Generators** | 자연어 → 텍스처·스프라이트·머티리얼·사운드·간단 3D | Unity 에디터 안 |
-| **AI Gateway** | 외부 코딩 에이전트 (Claude Code 등) 를 에디터 안으로 끌어옴 | Unity 에디터 안 |
-| **Unity MCP Server** | Unity 가 MCP 서버 — 외부 IDE / CLI 에이전트가 씬·콘솔 조작 | Unity 에디터 밖 → Unity |
+### UI 차원 — 단일 채팅 창 (Assistant)
 
-**Asset Knowledge** — 프로젝트 에셋 (텍스처·머티리얼·GameObject) 을 **로컬** 임베딩해 시맨틱 검색 (클라우드로 안 나감).
+Unity 에디터 우측 패널의 **AI Assistant 창 하나에서 모두 처리**.
+2025 베타의 별도 Generators 패널 / Plan 모드는 2026 베타에서 **Assistant Agent 모드로 흡수**.
 
-### Assistant 의 3 모드
-- **Ask** — 읽기 중심 설명·분석
-- **Plan** — 구현 계획서 `Assets/Plans/<이름>.md` 생성 → 사용자 승인 → Agent 전환
-- **Agent** — 실제 쓰기 작업 (스크립트 / 씬 / 컴포넌트 변경). Allow / Ask Permission / Deny 3분류.
+- **Ask 모드** — 읽기·설명·분석. 코드 / 씬 / 에셋 / Profiler / 콘솔 로그 / 스크린샷 첨부 가능 (Vision 모델).
+- **Agent 모드** — 실제 쓰기 작업 + 계획 + 자산 생성까지 **하나의 채팅으로 오케스트레이션**.
+  - 스크립트 작성·수정 / 씬 구성 / 컴포넌트 추가
+  - 스프라이트 / 텍스처 / 머티리얼 / 큐브맵 / 사운드 / **프로덕션급 3D** 생성
+  - UI Toolkit 레이아웃 자동 생성 / Figma → UGUI
 
-질의에 첨부 가능: GameObject / 에셋 / 콘솔 로그 / 스크린샷 / Profiler 세션.
-프롬프트 직전 **Git 자동 체크포인트** → 마음에 안 들면 그 시점 롤백.
+프롬프트 직전 **Git 자동 체크포인트** → 결과 마음에 안 들면 그 시점 롤백.
+Allow / Ask Permission / Deny 3분류로 자동 실행 범위 제어.
 
-### Generators 생성 가능
-- 2D: 스프라이트 / 텍스처 / 머티리얼 / 큐브맵
-- 3D: 간단 프롭 / 터레인 레이어
-- 그 외: 사운드 / 애니메이션
-- Figma 링크 → UGUI / UXML 화면 자동 생성
+### 패키지 차원 — 여전히 분리
 
-본 프로덕션 아트 파이프라인 대체는 아님 — 프로토타입·placeholder 가속.
+UI 는 통합이지만 Package Manager 에선 별도 패키지 (의존 자동 설치):
 
-### AI Gateway
-- Assistant 창 에이전트 선택 항목에서 **외부 코딩 에이전트** 사용 (Claude Code · Codex · Gemini · Cursor)
+| 패키지 | 역할 |
+| --- | --- |
+| `com.unity.ai.assistant` | 채팅 UI + Ask·Agent 모드 + 오케스트레이션 |
+| `com.unity.ai.generators` | 실제 생성 백엔드 (Assistant 가 호출). 별도 윈도우는 2026 비활성 |
+| `com.unity.ai.gateway` | 외부 코딩 에이전트 (Claude Code · Codex 등) 연결 |
+| `com.unity.ai.mcp` (또는 MCP Server 내장) | Unity 를 MCP 서버로 노출 — 외부 IDE/CLI 가 씬·콘솔 조작 |
+
+### Asset Knowledge
+프로젝트 에셋 (텍스처·머티리얼·GameObject) 을 **로컬** 임베딩해 시맨틱 검색.
+클라우드로 안 나감 → 프롬프트 안에서 "이 같은 에셋 / GameObject" 라고 명시 가능.
+
+### AI Gateway (외부 에이전트 → Unity 안)
+- Assistant 창에서 에이전트 드롭다운으로 외부 도구 선택 (Claude Code · Codex · Gemini · Cursor)
 - 로컬 머신에서 본인 자격증명으로 실행
 - Gateway 자체는 Unity 크레딧 미소모 — 외부 에이전트 API 키 / 구독은 별도
 - Claude Code 는 2.1.45 이상 필요
 
-### Unity MCP Server
-- Unity 자체가 MCP 서버 → 외부 클라이언트 (Claude Code 등) 에 씬·콘솔·GameObject·에셋을 도구로 노출
+### Unity MCP Server (Unity → 외부 에이전트)
+- Unity 가 MCP 서버 → 외부 클라이언트 (Claude Code 등) 에 씬·콘솔·GameObject·에셋을 도구로 노출
 - 외부 클라이언트가 부를 수 있는 도구 예:
   - `Unity_ReadConsole` — 콘솔 로그 읽기
   - `Unity_ManageScene` — 씬 열기·저장·계층 조회
   - `Unity_ManageGameObject` — GameObject 생성·이동·컴포넌트 추가
 - Unity 가 켜져 있을 동안만 연결 가능 (Bridge 가 떠 있음)
+
+### 2026 베타 변경점 요약 (2025 → 2026)
+- Assistant 모드 3개 (Ask / Plan / Agent) → **2개 (Ask / Agent)**. Plan 은 Agent 가 직접 계획 + 실행.
+- Generators 별도 메뉴 → **Assistant 채팅 안에서 호출**. UI 통합.
+- 신규: Vision 모델 (스크린샷 분석) / 프로덕션급 3D / UI Toolkit 레이아웃 생성 / 향상된 오케스트레이션.
+- 2025 베타는 2026-01-12 종료 — 포인트 할당 중단.
 
 ---
 
