@@ -864,6 +864,76 @@ public class GameState {
 
 ---
 
+## 38. V0.1 시즌 사이클 정책
+
+**결정:** V0.1 시즌 사이클 = **5/15 종료 + 6/1 회계연도 + 8/15 매치 개막** 3 시점 분리 + FA 전환 / 은퇴 처리 도입 + 시상·보드 평가·재정 결산·사기 정산·Match 압축 V1.0+ 미루기.
+
+```
+5/15 — SeasonEndProcessor (FA 전환 / 은퇴 / SeasonEndedEvent)
+        ↓ 오프시즌 (5/16 ~ 5/31)
+6/1  — NewSeasonProcessor (회계연도 / 토큰 +3 / fatigue·form 리셋 /
+        새 일정 / Standings 초기화 / SeasonStartedEvent)
+        ↓ 6/15 메인 인스펙션 (Stage 10 통합) / 이적시장 활성화 기간 (Stage 11)
+8/15 — 매치 개막 (ScheduleGenerator 가 6/1 에 생성한 새 일정의 첫 매치)
+```
+
+**이유 — 사용자 합의 사항:**
+
+1. **3 시점 변수명 분리 (혼동 회피)**:
+   - `seasonEndMonth/Day = 5/15` — 시즌 종료 (마지막 매치 시점)
+   - `fiscalYearStartMonth/Day = 6/1` — 회계연도 / 신규 시즌 행정 처리 시작
+   - `newSeasonOpeningMonth/Day = 8/15` — 매치 개막 (ScheduleGenerator 가 새 시즌 첫 매치 배치)
+   - 사용자 지적: 매치 개막 8/15 와 행정 처리 6/1 이 헷갈리기 쉬워 변수명 분리 + docs 명확화
+
+2. **고정 날짜 V0.1 (사용자 명시)**:
+   - 5/15 / 6/1 / 8/15 고정. 실제 EPL 은 매년 가변 (2025-26 = 8/15 / 5/24, 2026-27 = 8/22 / 5/30)
+   - V0.1 단순화 — 매년 동일 일정
+   - V1.0+ 트리거: **캘린더 / 요일 정보 도입 시** "5월 마지막 토요일" / "8월 셋째 토요일" 같은 dynamic 계산. `LeagueConfigSO.seasonEndRule` 같은 enum + DayOfWeek 처리.
+
+3. **계약 만료 → FA 전환 V0.1 도입 (필수)**:
+   - 만료 선수 `currentClubId = -1` + `club.seniorSquadIds` 제거
+   - 한 시즌 완주 후 자유계약 시장 형성. V1.0+ 갱신 협상 추가.
+
+4. **은퇴 처리 V0.1 단순 도입**:
+   - `age >= balance.retirementMinAge (33)` + `rng.NextDouble() < balance.retirementProbabilityPerYear (0.15)`
+   - 은퇴 시 `GameState.RemovePlayer` (단순). V1.0+ `Player.isRetired` 플래그 + 능력치 하락 곡선 + 사후 통계
+   - GameBalanceSO 필드 이미 존재 (재활용)
+
+5. **NewSeasonProcessor 책임 (V0.1)**:
+   - `currentDate = 6/1` 동기화
+   - `state.rerollTokens` += `seasonRerollTokenGrant (3)`, max `maxRerollStockpile (5)`
+   - 모든 선수 `state.fatigue = 0` / `state.form = 50` 리셋 (시즌 중 누적 리셋)
+   - 모든 League.standings 초기화 (entries 0 리셋)
+   - `ScheduleGenerator.Generate(...)` 호출 → 새 시즌 매치 일정 (`newSeasonOpening*` 부터 ~ `seasonEnd*` 까지)
+   - 클럽별 `season.targetLeaguePosition` 갱신 (명성 순위 기반 단순 — `#27` 유지)
+   - `season.boardConfidence` 초기화 (50)
+
+6. **시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 V0.1 미구현**:
+   - 모두 V1.0+ 별도 시스템과 짝 (사기 / 평점 / 재정 시스템 등)
+   - V0.1 한 시즌 완주 기능에 비필수
+   - `data-flows.md #6` 의 해당 단계 = V1.0+ 트리거로 명세 갱신
+
+7. **EventScheduler 통합 — 2 신규 트리거**:
+   - 5/15 → `SeasonEndProcessor.Run` + `SeasonEndedEvent` 발행 + 정지 신호
+   - 6/1 → `NewSeasonProcessor.Run` + `SeasonStartedEvent` 발행 + 정지 신호
+
+**외부화:** `GameBalanceSO` 신규 6 필드 (`seasonEndMonth/Day`, `fiscalYearStartMonth/Day`, `newSeasonOpeningMonth/Day`). 기존 4 필드 (`seasonRerollTokenGrant`, `maxRerollStockpile`, `retirementMinAge`, `retirementProbabilityPerYear`) 재활용.
+
+### V1.0+ 보완 포인트
+
+- **캘린더 / 요일 dynamic 계산** — `DayOfWeek` 활용 ("5월 마지막 토요일") + LeagueConfigSO 의 enum 기반 규칙. 매년 가변 일정 자연 발생.
+- **시상 시스템** — `SeasonAward` 도메인 (MVP / 득점왕 / 영플레이어 / 베스트XI). `SeasonEndProcessor` 에 단계 추가.
+- **보드 시즌 평가 / 경질** — `Club.season.boardConfidence` 변동 (목표 - 실제 순위 차이 × multiplier). 임계점 이하 시 경질 알림.
+- **재정 결산** — 입장료 (홈 매치 수 × 명성 multiplier) + 중계권 (순위 기반) + 상금 (1~4위 차등). `Club.finance.money` 갱신.
+- **사기 / 모랄 정산** (#30) — 우승팀 +, 강등팀 -, 약속 출전시간 미달자 등.
+- **Match 데이터 압축** — `Match.events` / `playerStats` 디테일 제거. 우승 / 강등 / 시상 정보만 보존 (#8 패턴).
+- **계약 갱신 협상** — 만료 6개월 전부터 갱신 협상 시작. V0.1 FA 전환과 짝.
+- **은퇴 정교화** — 능력치 하락 곡선 + `Player.isRetired` 플래그 + 사후 통계 / 명예의 전당.
+- **승강** (`data-flows.md #6` 명시) — V0.1 단일 리그라 미구현. V1.0+ 다중 리그 + 승강.
+- **레전 (Regen)** — 은퇴 / 자유계약 선수 일부를 차세대 유스로 환생. `PlayerOrigin.Regen` enum 이미 존재.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -879,3 +949,4 @@ public class GameState {
 | 2026-05-19 | #33 보강 | Sub-C 본 구현 검증 시 (#113) 단순 선형 ratio 의 결정력 부족 발견 — 강팀 원정 승률 51% 로 디자인 의도 부족. `strengthExponent` (k=1.5 기본) 비선형화 도입. V0.1 임시 변통으로 명시 — V1.0+ 매치 엔진 재작성 (#34) 시 폐기 예정. |
 | 2026-05-20 | #35, #36 추가 | algorithms.md #4 Youth Pool Generation 명세 작성 (Task 10 Sub-A, #123). #35 V0.1 정책 (PA 진실값 + CA derived 역방향 / 스타 픽 5% PA bonus / 시드=`currentDate.Ticks`+`userActionHash` 결합으로 외부 마이닝+직플 영상 공유 둘 다 방어 / 시설 통합 등급 / 미영입 단순 제거 / 나이 가중치 / 자국 78%). #36 `GameState.nextIntakeId` 단조증가 카운터 (PlayerGen `nextPlayerId` 패턴). V1.0+ 보완 포인트 9개 정리 (시설 분리 / 포지션 가중치 / AI 영입 / CA-Stats 정합성 / 시드 강화 / 추가 스카우트 / 계약 차등 등). |
 | 2026-05-20 | #37 추가 | algorithms.md #3 Market Value + Transfer Flow 명세 작성 (Stage 11 Sub-A, #130). 이적시장 (상시) / 이적시장 활성화 기간 (체결만, 6/1~8/31 + 1/1~1/31) 분리 — 미리 협상 가능 + 체결만 시기 제약. Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury) — 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도). V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. AI 응답 ±10% noise. 용어 정정 ("이적창" → "이적시장 활성화 기간"). V1.0+ 보완 포인트 7+ 항목. |
+| 2026-05-20 | #38 추가 | Stage 12 시즌 사이클 명세 작성 (Sub-A, #135). 5/15 종료 / 6/1 회계연도 / 8/15 매치 개막 3 시점 변수명 분리 (혼동 회피). V0.1 도입 — FA 전환 + 33+ 확률적 은퇴 + NewSeasonProcessor (토큰/일정/리셋). V0.1 미구현 — 시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 (모두 V1.0+ 별도 시스템과 짝). 캘린더/요일 dynamic 계산은 V1.0+ ("5월 마지막 토요일" 같은 — 매년 가변 일정). V1.0+ 보완 포인트 10 항목. |

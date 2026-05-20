@@ -358,58 +358,73 @@
 ## 6. 시즌 종료 / 신규 시즌 흐름
 
 ### Trigger
-- 시즌 마지막 경기 종료
-- EventScheduler가 SeasonEndEvent 발행
 
-### Sequence
+> V0.1 — **3 시점 변수명 분리** (혼동 회피, `design-decisions.md #38`):
+> - `seasonEndMonth/Day = 5/15` — **시즌 종료** (마지막 매치 시점)
+> - `fiscalYearStartMonth/Day = 6/1` — **회계연도 / 신규 시즌 행정 처리**
+> - `newSeasonOpeningMonth/Day = 8/15` — **매치 개막** (ScheduleGenerator 가 새 시즌 첫 매치 배치)
+>
+> V1.0+ 트리거: 캘린더 / 요일 정보 도입 시 "5월 마지막 토요일" 같은 dynamic 계산 + 매년 가변 일정.
+
+- **5/15 (시즌 종료) 도래** → `EventScheduler` 가 `SeasonEndProcessor.Run` 호출 + `SeasonEndedEvent` 발행 + 정지 신호
+- **6/1 (회계연도) 도래** → `EventScheduler` 가 `NewSeasonProcessor.Run` 호출 + `SeasonStartedEvent` 발행 + 정지 신호
+
+### Sequence (V0.1)
 
 ```
-[1] SeasonEndProcessor 실행:
-    a. 리그 최종 순위 확정
-    b. 승강 처리 (V0.1은 단일 리그라 생략, V1.0+)
-    c. 시상 (MVP, 득점왕 등)
-    d. 보드 시즌 평가:
-       - 목표 vs 실제 성적 비교
-       - 보드 신뢰도 변동
-       - 경질 가능성 체크
-    e. 재정 결산 (입장료, 중계권, 상금)
+[5/15] SeasonEndProcessor.Run(state, balance):
+    a. 리그 최종 순위 확정 (이미 매치 완료된 상태 — 변경 X)
+    b. 승강 처리 — V0.1 단일 리그 미구현 (V1.0+ 다중 리그)
+    c. 시상 — V0.1 미구현 (V1.0+ 시상 시스템)
+    d. 보드 시즌 평가 / 경질 — V0.1 미구현 (V1.0+ 보드 시스템)
+    e. 재정 결산 — V0.1 미구현 (V1.0+ 입장료/중계권/상금)
+    f. 사기 / 모랄 정산 — V0.1 미구현 (#30, V1.0+ 사기 시스템)
+    g. 계약 만료 → FA 전환 (V0.1 도입):
+       foreach player in state.allPlayers:
+           if player.contract.endDate <= state.currentDate:
+               from = state.GetClub(player.currentClubId)
+               from?.seniorSquadIds.Remove(player.id)
+               from?.youthSquadIds.Remove(player.id)
+               player.currentClubId = -1
+    h. 은퇴 처리 (V0.1 도입):
+       rng = new Random(state.randomSeed ^ state.currentDate.Ticks)
+       foreach player in state.allPlayers (V0.1: copy):
+           if GetAge(player) >= balance.retirementMinAge (33)
+              && rng.NextDouble() < balance.retirementProbabilityPerYear (0.15):
+               state.RemovePlayer(player.id)
+               # club squad 도 정리 (헬퍼)
+    i. Match 데이터 압축 — V0.1 미구현 (V1.0+ 저장 최적화)
+    j. EventBus.Publish(new SeasonEndedEvent { seasonYear, summary })
 
-[2] 사기 / 모랄 정산:
-    - 우승팀 선수: 사기 ++
-    - 강등팀 선수: 사기 --
-    - 약속 출전시간 미달자: 불만 ↑
-    - 시즌 베스트 선수: 사기 ↑
+[5/16 ~ 5/31] 오프시즌 — UI 정산 / 인스펙션 대기
 
-[3] 계약 처리:
-    - 만료 선수 → 자유계약(FA) 전환
-      Player.currentClubId = -1
-    - 갱신 협상 시작 (만료 6개월 전부터)
+[6/1] NewSeasonProcessor.Run(state, balance, db, leagueConfig):
+    a. state.currentDate 갱신 (GameTime.Reset + 동기화)
+    b. state.rerollTokens += balance.seasonRerollTokenGrant (3)
+       state.rerollTokens = min(state.rerollTokens, balance.maxRerollStockpile (5))
+    c. 모든 선수 fatigue = 0 / form = 50 리셋
+    d. 모든 League.standings.entries 초기화 (played/won/drawn/lost/goals/points = 0)
+    e. 새 시즌 매치 일정 생성:
+       foreach league in state.leagues:
+           ScheduleGenerator.Generate(...)  # newSeasonOpening 부터 ~ seasonEnd 까지
+           league.seasonYear += 1
+    f. 클럽별 season 갱신:
+       targetLeaguePosition = i + 1  # 명성 순위 (#27 패턴)
+       boardConfidence = balance.initialBoardConfidence (50)
+       cupTarget = CupTarget.None  # V0.1 컵 미구현
+    g. EventBus.Publish(new SeasonStartedEvent { seasonYear, target })
 
-[4] 은퇴 처리:
-    - 33세 이상 + 능력치 하락폭 큰 선수 확률적 은퇴
-    - 은퇴 선수는 GameState에서 제거하거나 isRetired 플래그
-
-[5] Match 데이터 압축:
-    - 이번 시즌 경기들 → 요약만 남기고 디테일 제거
-    - 우승 / 강등 / 시상 정보만 보존
-
-[6] 신규 시즌 준비 (회계연도 6/1):
-    - GameState.currentDate = 6/1
-    - 리롤 토큰 지급 (state.rerollTokens += 3, 최대 5)
-    - 보드 신규 시즌 목표 제시
-    - 이적 예산 / 연봉 예산 재배정
-    - 새 시즌 일정 생성 (ScheduleGenerator)
-    - 선수 나이 +1, 컨디션 / 폼 리셋
-
-[7] EventBus.Publish(new NewSeasonStartedEvent)
-
-[8] UI: 시즌 요약 화면 → 신규 시즌 목표 화면
+[6/15] Stage 10 메인 인스펙션 자동 트리거 (이미 통합됨)
+[6/1 ~ 8/31] Stage 11 여름 이적시장 활성화 기간 (이미 통합됨)
+[8/15] 새 시즌 첫 매치 (ScheduleGenerator 가 배치)
 ```
 
 ### Key Points
-- 시즌 종료는 게임의 자연스러운 정지점. 자동 저장.
-- 압축 시점이 명확해야 세이브 크기 관리 가능.
-- 신규 시즌은 거의 새 게임 시작과 비슷한 양의 초기화 필요.
+- **시즌 종료 5/15 / 매치 개막 8/15** = 사용자 명시 V0.1 고정값. V1.0+ 캘린더/요일 dynamic.
+- **3 시점 변수명 분리** — 5/15 (matches end) / 6/1 (fiscal year) / 8/15 (opening day). 사용자 혼동 회피 요청 (2026-05-20).
+- **시즌 종료는 자동 정지점** — UI 시즌 요약 화면. 자동 저장.
+- **나이는 birthDate 로 자동 계산** — 신규 시즌에서 별도 +1 처리 X (PlayerGen 패턴 그대로).
+- **V0.1 도입 vs V1.0+ 미루기** 분기 명확. `design-decisions.md #38` 참조.
 
 ---
 
