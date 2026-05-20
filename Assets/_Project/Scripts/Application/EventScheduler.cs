@@ -2,8 +2,8 @@
 // data-flows.md #2 [3] 오늘 발생할 이벤트 식별 + 분기.
 // Stateless (design-decisions.md #3).
 //
-// V0.1 책임: 매치 분기 + 유스 인스펙션 트리거.
-// V1.0+: 시즌 종료 / 보드 리뷰 / 이적창 (Stage 12 / V1.0).
+// V0.1 책임: 매치 분기 + 유스 인스펙션 트리거 + 시즌 종료/시작 트리거 (Stage 12).
+// V1.0+: 보드 리뷰 / 이적창 자동 알림.
 
 using System;
 using System.Collections.Generic;
@@ -51,10 +51,36 @@ namespace FMLite.Application
             if (TryTriggerYouthIntake(state, today))
                 stopRequested = true;
 
-            // TODO Stage 12: 시즌 종료일 → SeasonEndedEvent
+            // ── 시즌 종료 / 신규 시즌 트리거 (Task 12.1/12.2, design-decisions.md #38) ──
+            if (TryTriggerSeasonEnd(state, today))
+                stopRequested = true;
+
+            if (TryTriggerNewSeason(state, today))
+                stopRequested = true;
+
             // TODO V1.0:    이적창 오픈/마감 / 보드 리뷰일
 
             return stopRequested;
+        }
+
+        private static bool TryTriggerSeasonEnd(GameState state, DateTime today)
+        {
+            var balance = GameDatabase.GameBalance;
+            if (balance == null) return false;
+            if (today.Month != balance.seasonEndMonth || today.Day != balance.seasonEndDay)
+                return false;
+            SeasonEndProcessor.Run(state, balance);
+            return true;
+        }
+
+        private static bool TryTriggerNewSeason(GameState state, DateTime today)
+        {
+            var balance = GameDatabase.GameBalance;
+            if (balance == null) return false;
+            if (today.Month != balance.fiscalYearStartMonth || today.Day != balance.fiscalYearStartDay)
+                return false;
+            NewSeasonProcessor.Run(state, balance);
+            return true;
         }
 
         private static bool TryTriggerYouthIntake(GameState state, DateTime today)

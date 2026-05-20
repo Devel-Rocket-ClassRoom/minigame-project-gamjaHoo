@@ -209,6 +209,23 @@ namespace FMLite.Domain
         public int seasonRerollTokenGrant = 3;
 
         // ============================================================
+        // Season Cycle (data-flows.md #6, design-decisions.md #38)
+        // ============================================================
+        // 3 시점 변수명 분리 (사용자 혼동 회피, 2026-05-20):
+        //  - seasonEnd*       = 5/15 — SeasonEndProcessor 트리거
+        //  - fiscalYearStart* = 6/1  — NewSeasonProcessor 트리거 (회계연도)
+        //  - newSeasonOpening*= 8/15 — ScheduleGenerator 가 새 시즌 첫 매치 배치
+        // V1.0+ 트리거: 캘린더/요일 dynamic 계산 ("5월 마지막 토요일") + 매년 가변 일정.
+
+        [Header("Season Cycle — Trigger Days")]
+        public int seasonEndMonth        = 5;
+        public int seasonEndDay          = 15;
+        public int fiscalYearStartMonth  = 6;
+        public int fiscalYearStartDay    = 1;
+        public int newSeasonOpeningMonth = 8;
+        public int newSeasonOpeningDay   = 15;
+
+        // ============================================================
         // Transfer Market (algorithms.md #3 / #3.1)
         // ============================================================
 
