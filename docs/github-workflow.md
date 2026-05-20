@@ -75,6 +75,31 @@ Closes #이슈번호
 (UI 변경 시 첨부)
 ```
 
+### PR Metadata (필수)
+
+> PR 도 이슈와 동일하게 메타데이터를 채운다. PR 만 보드에 안 들어가면 진행도 추적 누락.
+
+| 항목 | 값 |
+| --- | --- |
+| **Labels** | 이슈와 동일한 `area:*` 라벨 (1개 이상) |
+| **Milestone** | `V0.1` / `V1.0` / `V1.x` |
+| **Assignee** | 본인 (`@me`) |
+| **Projects** | `FM-Lite` 보드 (#50) 추가 |
+
+**gh CLI 예시:**
+
+```bash
+# PR 생성 (label / milestone / assignee 한 번에)
+gh pr create --title "..." --label "area:simulation,area:infra" \
+  --milestone "V0.1" --assignee "@me" --body "..."
+
+# Projects 보드 추가 (gh pr create 가 받지 못하는 필드 — 별도 호출)
+gh project item-add 50 --owner Devel-Rocket-ClassRoom \
+  --url https://github.com/Devel-Rocket-ClassRoom/minigame-project-gamjaHoo/pull/<n>
+```
+
+> 이슈 / PR 생성 시점에 보드 자동 추가 안 됨. **항상 `gh project item-add` 를 별도로 호출**.
+
 ---
 
 ## 3. Issue Metadata
@@ -91,7 +116,7 @@ Closes #이슈번호
 | **Milestone** | `V0.1` / `V1.0` / `V1.x` 중 하나 |
 | **Priority** | Projects 보드 `Priority` 필드 — `P0` / `P1` / `P2` (라벨 아님) |
 | **Size** | Projects 보드 `Size` 필드 — `XS` / `S` / `M` / `L` / `XL` (라벨 아님) |
-| **Projects** | 프로젝트 보드에 추가 → `Status` 자동 분류 |
+| **Projects** | **`FM-Lite` 보드 (#50, owner: `Devel-Rocket-ClassRoom`)** 추가 → `Status` 자동 분류. 이슈/PR 둘 다 `gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <url>` 로 별도 추가 (생성 명령에서 자동 안 됨). |
 | **Assignee** | 본인 |
 
 > **Type 은 GitHub Issue Type 필드** (2024년 도입). 사이드바 "Type" 섹션에서 선택. `type:*` 라벨 (구 방식) 은 2026-01-12 마이그레이션으로 폐지됨.
@@ -349,15 +374,15 @@ PlayerGenerator 만들기
    - Type 필드 (사이드바, 라벨 X) — Feature / Task / Bug
    - Area 라벨 1개 이상
    - Milestone (V0.1/V1.0/V1.x)
-   - Projects 보드 추가 → Priority, Size 설정
+   - Projects 보드 #50 (FM-Lite) 추가 → Priority, Size 설정
    - 본문 템플릿 채우기
 3. 이슈에서 브랜치 생성 (feature/123-xxx)
 4. 개발
-5. PR 생성, Closes #123 명시
+5. PR 생성 (Closes #123 명시 + 메타데이터 다 채움 — 이슈와 동일)
 6. 셀프 머지
 ```
 
-> **gh CLI 예시**:
+> **gh CLI 예시 (이슈)**:
 > ```bash
 > # 1. 라벨 + milestone + assignee 까지만 생성 가능 (Issue Type 은 별도 API)
 > gh issue create --title "[Area] 작업명" --label "area:domain" \
@@ -365,6 +390,20 @@ PlayerGenerator 만들기
 >
 > # 2. 생성된 이슈 # 확인 후 Type 설정
 > gh api -X PATCH "repos/{owner}/{repo}/issues/{n}" -f type="Feature"
+>
+> # 3. Projects 보드 추가 (자동 안 됨 — 항상 별도 호출)
+> gh project item-add 50 --owner Devel-Rocket-ClassRoom \
+>   --url https://github.com/Devel-Rocket-ClassRoom/minigame-project-gamjaHoo/issues/{n}
+> ```
+
+> **gh CLI 예시 (PR)**:
+> ```bash
+> # 1. PR 생성 — 이슈와 동일하게 메타데이터 채움
+> gh pr create --title "..." --label "area:*" --milestone "V0.1" --assignee "@me" --body "..."
+>
+> # 2. Projects 보드 추가 (자동 안 됨)
+> gh project item-add 50 --owner Devel-Rocket-ClassRoom \
+>   --url https://github.com/Devel-Rocket-ClassRoom/minigame-project-gamjaHoo/pull/{n}
 > ```
 
 작업 완료 시:
@@ -384,3 +423,4 @@ PlayerGenerator 만들기
 | --- | --- |
 | 2025-05-15 | 초안 작성 (FM-Lite 영역 라벨 반영) |
 | 2026-01-12 | Issue Type 마이그레이션 (#90) — `type:feature/task/bug` 라벨 → GitHub Issue Type 필드. 60개 이슈 일괄 마이그레이션 + 라벨 3개 삭제. §3 메타데이터 표 / §4 라벨 가이드 / §7 매핑 표 / §8 Anti-Patterns / §9 Cheatsheet 갱신. |
+| 2026-05-20 | PR 메타데이터 규칙 명시 (#121) — 그동안 PR 생성 시 label/milestone/assignee/Projects 누락. §2 "PR Metadata" 신규 섹션 + §3 Projects 항목에 FM-Lite 보드 (#50, owner Devel-Rocket-ClassRoom) 정보 + §9 PR gh CLI 예시 추가. 본 PR 부터 메타데이터 완비 적용. |
