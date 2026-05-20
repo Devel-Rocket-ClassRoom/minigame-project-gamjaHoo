@@ -177,6 +177,30 @@ namespace FMLite.Domain
         // GK=0 → 페널티/코너 GK 골은 V1.0+ 텍스트 이벤트 시스템 진입 시 예외 처리.
         public float[] scoringWeightByLine  = { 0.0f, 0.4f, 1.5f, 5.0f };
 
+        // ============================================================
+        // Youth Intake (algorithms.md #4)
+        // ============================================================
+
+        [Header("Youth Intake — PA Distribution")]
+        public float youthStarPickProbability = 0.05f;     // 5% 스타 픽 (PA bonus)
+        public float youthStarPaBonus         = 50f;       // 스타 PA 평균 보너스
+        public float youthPaStdDev            = 15f;       // PA 분포 σ
+        public float youthPaGapStdDev         = 25f;       // CA-PA 갭 σ (PlayerGen σ=15 의 1.67배)
+
+        [Header("Youth Intake — Age")]
+        public int     youthIntakeMinAge      = 16;
+        public int     youthIntakeMaxAge      = 18;
+        public float[] youthIntakeAgeWeights  = { 0.40f, 0.40f, 0.20f };  // 16, 17, 18 순
+
+        [Header("Youth Intake — Nationality")]
+        public float youthPrimaryNationalityRatio = 0.78f;  // 자국 78% (ClubGen 0.70 보다 ↑)
+
+        [Header("Youth Intake — Schedule")]
+        public int youthIntakeMainMonth   = 6;
+        public int youthIntakeMainDay     = 15;            // 메인 인스펙션: 6/15 (시즌 종료 직후)
+        public int youthIntakeSecondMonth = 1;
+        public int youthIntakeSecondDay   = 15;            // 보조 인스펙션: 1/15 (시즌 중간)
+
         [Header("Daily / Season")]
         public int fatigueRecoveryPerDay = 15;
         public int fatigueGainPerMatch = 30;
