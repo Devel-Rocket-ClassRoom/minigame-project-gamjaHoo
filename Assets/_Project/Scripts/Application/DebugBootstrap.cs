@@ -1,0 +1,64 @@
+// DebugBootstrap.cs
+// V0.1 Stage 13 (UI) 진입 전 임시 부트스트랩 — PlayMode 진입 시 자동으로 NewGame.
+// Stage 13 정식 메인 메뉴 도입 후 폐기 예정.
+//
+// 사용법:
+//   1. Hierarchy 에 빈 GameObject 추가 (예: "Bootstrap")
+//   2. 이 컴포넌트 첨부 — GameManager 가 RequireComponent 로 자동 추가됨
+//   3. Inspector 에서 seed / seasonStart / userClubId 조정 (기본값 그대로도 OK)
+//   4. PlayMode 진입 → 자동으로 GameDatabase.LoadAll + NewGame + GameManager.SetState
+
+using System;
+using System.Linq;
+using UnityEngine;
+using FMLite.Core;
+using FMLite.Domain;
+
+namespace FMLite.Application
+{
+    [RequireComponent(typeof(GameManager))]
+    public class DebugBootstrap : MonoBehaviour
+    {
+        [Header("New Game Settings")]
+        public int seed             = 42;
+        public int seasonStartYear  = 2025;
+        public int seasonStartMonth = 7;
+        public int seasonStartDay   = 1;     // 7/1 프리시즌 시작 (decisions #38 보강)
+
+        [Tooltip("PlayMode 진입 시 자동으로 설정할 유저 구단 ID. 0 이면 미선택 (-1 유지).")]
+        public int userClubId       = 1;
+
+        private void Awake()
+        {
+            // 1. GameDatabase Resources 로드
+            GameDatabase.LoadAll();
+            var balance      = GameDatabase.GameBalance;
+            var leagueConfig = Resources.LoadAll<LeagueConfigSO>(string.Empty).FirstOrDefault();
+            if (balance == null)
+            {
+                Debug.LogError("[DebugBootstrap] GameBalance.asset Resources 로드 실패");
+                return;
+            }
+            if (leagueConfig == null)
+            {
+                Debug.LogError("[DebugBootstrap] LeagueConfigSO Resources 로드 실패");
+                return;
+            }
+
+            // 2. NewGame
+            var seasonStart = new DateTime(seasonStartYear, seasonStartMonth, seasonStartDay);
+            var state = GameInitializer.NewGame(seed, seasonStart, leagueConfig, balance);
+            if (userClubId > 0) state.userClubId = userClubId;
+            GameTime.Reset(state.currentDate);
+
+            // 3. GameManager 주입
+            var gm = GetComponent<GameManager>();
+            gm.SetState(state);
+
+            Debug.Log(
+                $"[DebugBootstrap] NewGame OK — seed={seed} / start={seasonStart:yyyy-MM-dd} / " +
+                $"userClub={state.userClubId} ({state.GetClub(state.userClubId)?.name ?? "-"}) / " +
+                $"clubs={state.allClubs.Count} / players={state.allPlayers.Count}");
+        }
+    }
+}
