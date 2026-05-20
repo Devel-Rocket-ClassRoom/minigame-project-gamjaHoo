@@ -29,8 +29,12 @@
        - foreach club in result.Clubs:  state.AddClub(club)
        - foreach player in result.Players: state.AddPlayer(player)
     e. ScheduleGenerator: 시즌 일정 생성 → League.schedule 추가
+       - 첫 매치일 = seasonStart 이후 가장 가까운 newSeasonOpening (예: 8/15)
+       - seasonStart 는 프리시즌 시작일 (예: 7/1) — 첫 매치일과 분리.
+         사용자가 프리시즌 기간 동안 구단 선택 / 스쿼드·전술 조정 가능 (FM 표준 흐름).
+       - design-decisions.md #38 보강 참조.
     f. GameState.BuildIndexes() 호출 (AddClub/AddPlayer 가 인덱스 동기화하므로 사실상 no-op, 안전망)
-    g. GameState.currentDate = 시즌 시작일
+    g. GameState.currentDate = seasonStart (= 프리시즌 시작일)
 
 [3] UI: 구단 선택 화면 표시
        유저가 구단 선택 → GameState.userClubId 설정
