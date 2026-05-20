@@ -2,8 +2,8 @@
 // data-flows.md #2 [3] 오늘 발생할 이벤트 식별 + 분기.
 // Stateless (design-decisions.md #3).
 //
-// V0.1 책임: 매치 분기만. 유스 인스펙션 / 시즌 종료 / 보드 리뷰 / 이적창은
-// 해당 Stage 작업 시 본 메서드 확장.
+// V0.1 책임: 매치 분기 + 유스 인스펙션 트리거.
+// V1.0+: 시즌 종료 / 보드 리뷰 / 이적창 (Stage 12 / V1.0).
 
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace FMLite.Application
 {
     public static class EventScheduler
     {
-        // 반환값: 정지 신호 (userClub 매치 등) — 호출자 (GameLoop) 가 시간 진행 멈춤 결정.
+        // 반환값: 정지 신호 (userClub 매치 / 유스 인스펙션) — 호출자 (GameLoop) 가 시간 진행 멈춤 결정.
         public static bool Run(GameState state)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
@@ -23,11 +23,11 @@ namespace FMLite.Application
             bool stopRequested = false;
             var  today         = state.currentDate.Date;
 
+            // ── 매치 분기 (Task 8.1) ─────────────────────────────────
             foreach (var league in state.leagues)
             {
                 if (league?.schedule == null) continue;
 
-                // 오늘 날짜 매치 식별
                 var todaysMatches = league.schedule
                     .Where(m => m.date.Date == today)
                     .ToList();
@@ -46,11 +46,42 @@ namespace FMLite.Application
                 if (isUserMatch) stopRequested = true;
             }
 
-            // TODO Stage 10: 유스 인스펙션일 (6월 / 1월 중순) → YouthIntakeAvailableEvent
+            // ── 유스 인스펙션 트리거 (Task 10.1, #39) ────────────────
+            // 6/15 메인 / 1/15 보조 (외부화). userClub 만 V0.1 (#35).
+            if (TryTriggerYouthIntake(state, today))
+                stopRequested = true;
+
             // TODO Stage 12: 시즌 종료일 → SeasonEndedEvent
             // TODO V1.0:    이적창 오픈/마감 / 보드 리뷰일
 
             return stopRequested;
+        }
+
+        private static bool TryTriggerYouthIntake(GameState state, DateTime today)
+        {
+            if (state.userClubId < 0) return false;
+
+            var balance = GameDatabase.GameBalance;
+            if (balance == null) return false;     // GameDatabase 미초기화 (테스트 등) — 스킵
+
+            bool isMainDay   = today.Month == balance.youthIntakeMainMonth
+                            && today.Day   == balance.youthIntakeMainDay;
+            bool isSecondDay = today.Month == balance.youthIntakeSecondMonth
+                            && today.Day   == balance.youthIntakeSecondDay;
+            if (!isMainDay && !isSecondDay) return false;
+
+            var userClub = state.GetClub(state.userClubId);
+            if (userClub == null) return false;
+
+            var league = state.leagues.FirstOrDefault(l =>
+                l != null && l.clubIds != null && l.clubIds.Contains(userClub.id));
+            if (league == null) return false;
+
+            var leagueConfig = GameDatabase.GetLeagueConfig(league.configSOId);
+            if (leagueConfig == null) return false;
+
+            YouthSystem.GenerateIntake(userClub, state, balance, leagueConfig);
+            return true;     // 정지 신호 — UI 유스 풀 화면
         }
     }
 }

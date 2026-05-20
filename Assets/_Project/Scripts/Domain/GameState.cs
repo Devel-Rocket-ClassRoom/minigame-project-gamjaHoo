@@ -23,6 +23,11 @@ namespace FMLite.Domain
         // 자체는 startPlayerId 파라미터로 받음.
         public int nextPlayerId = 1;
 
+        // 모든 YouthIntake id 발급의 단일 진실의 원천 (design-decisions.md #36).
+        // 시즌별 메인(6/15) / 보조(1/15) 인스펙션이 누적 단조증가.
+        // algorithms.md #4 1단계 시드 공식에 들어가 풀 결정성 기반.
+        public int nextIntakeId = 1;
+
         // 마스터 리스트 (직렬화 대상)
         public List<Player> allPlayers = new List<Player>();
         public List<Club> allClubs = new List<Club>();
