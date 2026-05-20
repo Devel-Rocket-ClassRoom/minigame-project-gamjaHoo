@@ -7,10 +7,11 @@
 // 의존 회피.
 //
 // 호출 흐름 (data-flows.md #2):
-//   GameTime.Advance(1)              ← Core 정적 호출 (DayAdvancedEvent 발행)
-//   state.currentDate 동기화          ← decisions #23 양방향 동기화
-//   DailyProcessor.Run(state, balance) ← Application
-//   EventScheduler.Run(state)         ← Application (정지 신호 반환)
+//   GameTime.Advance(1)                       ← Core 정적 호출 (DayAdvancedEvent 발행)
+//   state.currentDate 동기화                   ← decisions #23 양방향 동기화
+//   DailyProcessor.Run(state, balance)         ← Application
+//   EventScheduler.Run(state)                  ← Application (정지 신호 반환)
+//   BackgroundSimulator.SimulateDay(state, balance)  ← Application (Task 9.3)
 //   stopRequested 면 ContinueUntilStop 루프 break
 
 using System;
@@ -32,6 +33,7 @@ namespace FMLite.Application
 
             DailyProcessor.Run(state, balance);
             bool stopRequested = EventScheduler.Run(state);
+            BackgroundSimulator.SimulateDay(state, balance);
 
             return new AdvanceDayResult { stopRequested = stopRequested, daysAdvanced = 1 };
         }
