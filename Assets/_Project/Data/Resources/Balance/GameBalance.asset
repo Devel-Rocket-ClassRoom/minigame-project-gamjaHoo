@@ -125,5 +125,32 @@ MonoBehaviour:
   retirementMinAge: 33
   retirementProbabilityPerYear: 0.15
   seasonRerollTokenGrant: 3
-  marketValueAgeFactor: 1
-  marketValueCAFactor: 100
+  marketValueBase: 500000
+  marketValueCaExponent: 4
+  marketValuePaCoeff: 50000
+  marketValueAgeCurve:
+  - 0.85
+  - 1.2
+  - 0.75
+  - 0.35
+  marketValueContractCurve:
+  - 0.5
+  - 0.8
+  - 1
+  - 1.05
+  marketValuePositionFactor:
+  - 0.75
+  - 0.85
+  - 1
+  - 1.2
+  marketValueInjuryFactor: 0.5
+  aiValueNoiseSigma: 0.1
+  aiAcceptRatio: 1.2
+  transferWindowSummerStartMonth: 6
+  transferWindowSummerStartDay: 1
+  transferWindowSummerEndMonth: 8
+  transferWindowSummerEndDay: 31
+  transferWindowWinterStartMonth: 1
+  transferWindowWinterStartDay: 1
+  transferWindowWinterEndMonth: 1
+  transferWindowWinterEndDay: 31
