@@ -25,11 +25,13 @@ namespace FMLite.Application
         // 단일 일 진행. 호출자가 stopRequested 확인 후 다음 행동 결정.
         public static AdvanceDayResult AdvanceDay(GameState state, GameBalanceSO balance)
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             GameTime.Advance(1);
-            state.currentDate = GameTime.CurrentDate;     // decisions #23 동기화
+            state.currentDate = GameTime.CurrentDate; // decisions #23 동기화
 
             DailyProcessor.Run(state, balance);
             bool stopRequested = EventScheduler.Run(state);
@@ -41,11 +43,17 @@ namespace FMLite.Application
         // 정지 이벤트까지 자동 진행. UI Continue 버튼이 호출.
         // maxDays: 무한 루프 안전 가드 (V0.1 단순화 — 1년치).
         public static AdvanceDayResult ContinueUntilStop(
-            GameState state, GameBalanceSO balance, int maxDays = 365)
+            GameState state,
+            GameBalanceSO balance,
+            int maxDays = 365
+        )
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
-            if (maxDays < 1)     throw new ArgumentOutOfRangeException(nameof(maxDays));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+            if (maxDays < 1)
+                throw new ArgumentOutOfRangeException(nameof(maxDays));
 
             int daysAdvanced = 0;
             bool stopRequested = false;
@@ -59,13 +67,17 @@ namespace FMLite.Application
                     break;
                 }
             }
-            return new AdvanceDayResult { stopRequested = stopRequested, daysAdvanced = daysAdvanced };
+            return new AdvanceDayResult
+            {
+                stopRequested = stopRequested,
+                daysAdvanced = daysAdvanced,
+            };
         }
     }
 
     public class AdvanceDayResult
     {
         public bool stopRequested;
-        public int  daysAdvanced;
+        public int daysAdvanced;
     }
 }

@@ -4,9 +4,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using NUnit.Framework;
 using FMLite.Domain;
 using FMLite.Persistence;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {
@@ -24,7 +24,8 @@ namespace FMLite.Tests
         [TearDown]
         public void TearDown()
         {
-            if (!Directory.Exists(SaveSystem.SavesPath)) return;
+            if (!Directory.Exists(SaveSystem.SavesPath))
+                return;
             foreach (var dir in Directory.GetDirectories(SaveSystem.SavesPath))
             {
                 if (Path.GetFileName(dir).StartsWith(_prefix))
@@ -42,7 +43,8 @@ namespace FMLite.Tests
             SaveSystem.Save(state, _prefix + "_b");
             SaveSystem.Save(state, _prefix + "_c");
 
-            var mySlots = SaveSystem.ListSlots()
+            var mySlots = SaveSystem
+                .ListSlots()
                 .Where(m => m.slotName.StartsWith(_prefix))
                 .ToList();
 
@@ -57,7 +59,8 @@ namespace FMLite.Tests
             var orphanPath = Path.Combine(SaveSystem.SavesPath, _prefix + "_orphan");
             Directory.CreateDirectory(orphanPath);
 
-            var mySlots = SaveSystem.ListSlots()
+            var mySlots = SaveSystem
+                .ListSlots()
                 .Where(m => m.slotName.StartsWith(_prefix))
                 .ToList();
 

@@ -15,7 +15,8 @@ namespace FMLite.Core
 
         public static void Advance(int days)
         {
-            if (days <= 0) return;
+            if (days <= 0)
+                return;
             for (int i = 0; i < days; i++)
             {
                 CurrentDate = CurrentDate.AddDays(1);

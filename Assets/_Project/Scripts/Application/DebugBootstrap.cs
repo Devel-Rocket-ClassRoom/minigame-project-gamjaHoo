@@ -10,9 +10,9 @@
 
 using System;
 using System.Linq;
-using UnityEngine;
 using FMLite.Core;
 using FMLite.Domain;
+using UnityEngine;
 
 namespace FMLite.Application
 {
@@ -20,19 +20,19 @@ namespace FMLite.Application
     public class DebugBootstrap : MonoBehaviour
     {
         [Header("New Game Settings")]
-        public int seed             = 42;
-        public int seasonStartYear  = 2025;
+        public int seed = 42;
+        public int seasonStartYear = 2025;
         public int seasonStartMonth = 7;
-        public int seasonStartDay   = 1;     // 7/1 프리시즌 시작 (decisions #38 보강)
+        public int seasonStartDay = 1; // 7/1 프리시즌 시작 (decisions #38 보강)
 
         [Tooltip("PlayMode 진입 시 자동으로 설정할 유저 구단 ID. 0 이면 미선택 (-1 유지).")]
-        public int userClubId       = 1;
+        public int userClubId = 1;
 
         private void Awake()
         {
             // 1. GameDatabase Resources 로드
             GameDatabase.LoadAll();
-            var balance      = GameDatabase.GameBalance;
+            var balance = GameDatabase.GameBalance;
             var leagueConfig = Resources.LoadAll<LeagueConfigSO>(string.Empty).FirstOrDefault();
             if (balance == null)
             {
@@ -48,7 +48,8 @@ namespace FMLite.Application
             // 2. NewGame
             var seasonStart = new DateTime(seasonStartYear, seasonStartMonth, seasonStartDay);
             var state = GameInitializer.NewGame(seed, seasonStart, leagueConfig, balance);
-            if (userClubId > 0) state.userClubId = userClubId;
+            if (userClubId > 0)
+                state.userClubId = userClubId;
             GameTime.Reset(state.currentDate);
 
             // 3. GameManager 주입
@@ -56,9 +57,10 @@ namespace FMLite.Application
             gm.SetState(state);
 
             Debug.Log(
-                $"[DebugBootstrap] NewGame OK — seed={seed} / start={seasonStart:yyyy-MM-dd} / " +
-                $"userClub={state.userClubId} ({state.GetClub(state.userClubId)?.name ?? "-"}) / " +
-                $"clubs={state.allClubs.Count} / players={state.allPlayers.Count}");
+                $"[DebugBootstrap] NewGame OK — seed={seed} / start={seasonStart:yyyy-MM-dd} / "
+                    + $"userClub={state.userClubId} ({state.GetClub(state.userClubId)?.name ?? "-"}) / "
+                    + $"clubs={state.allClubs.Count} / players={state.allPlayers.Count}"
+            );
         }
     }
 }

@@ -4,17 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
     public class YouthSystemTests
     {
-        private GameBalanceSO  _balance;
+        private GameBalanceSO _balance;
         private LeagueConfigSO _leagueConfig;
         private readonly DateTime _today = new DateTime(2025, 6, 15);
 
@@ -49,14 +49,22 @@ namespace FMLite.Tests
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
             var i2 = YouthSystem.GenerateIntake(c2, s2, _balance, _leagueConfig);
 
-            Assert.AreEqual(i1.candidatePlayerIds.Count, i2.candidatePlayerIds.Count, "T1: 풀 사이즈 동일");
+            Assert.AreEqual(
+                i1.candidatePlayerIds.Count,
+                i2.candidatePlayerIds.Count,
+                "T1: 풀 사이즈 동일"
+            );
             for (int i = 0; i < i1.candidatePlayerIds.Count; i++)
             {
                 var p1 = s1.GetPlayer(i1.candidatePlayerIds[i]);
                 var p2 = s2.GetPlayer(i2.candidatePlayerIds[i]);
                 Assert.AreEqual(p1.potentialAbility, p2.potentialAbility, $"T1: [{i}] PA 동일");
-                Assert.AreEqual(p1.currentAbility,   p2.currentAbility,   $"T1: [{i}] CA 동일");
-                Assert.AreEqual(p1.info.primaryPosition, p2.info.primaryPosition, $"T1: [{i}] 포지션 동일");
+                Assert.AreEqual(p1.currentAbility, p2.currentAbility, $"T1: [{i}] CA 동일");
+                Assert.AreEqual(
+                    p1.info.primaryPosition,
+                    p2.info.primaryPosition,
+                    $"T1: [{i}] 포지션 동일"
+                );
             }
         }
 
@@ -72,8 +80,12 @@ namespace FMLite.Tests
             var i2 = YouthSystem.GenerateIntake(c2, s2, _balance, _leagueConfig);
 
             // 풀 PA 시퀀스가 서로 다른지 (대부분 케이스에서 거의 100% 다름)
-            var pa1 = i1.candidatePlayerIds.Select(id => s1.GetPlayer(id).potentialAbility).ToList();
-            var pa2 = i2.candidatePlayerIds.Select(id => s2.GetPlayer(id).potentialAbility).ToList();
+            var pa1 = i1
+                .candidatePlayerIds.Select(id => s1.GetPlayer(id).potentialAbility)
+                .ToList();
+            var pa2 = i2
+                .candidatePlayerIds.Select(id => s2.GetPlayer(id).potentialAbility)
+                .ToList();
             bool anyDiff = pa1.Where((x, idx) => x != pa2[idx]).Any();
             Assert.IsTrue(anyDiff, "T2: 자금 1원 차이로 풀 변동 (직플 영상 공유 차단)");
         }
@@ -86,12 +98,20 @@ namespace FMLite.Tests
             var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthLevel: 1, seed: 42);
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
             var facility1 = GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
-            Assert.AreEqual(facility1.youthPoolSize, i1.candidatePlayerIds.Count, "T3: Lv1 풀 사이즈");
+            Assert.AreEqual(
+                facility1.youthPoolSize,
+                i1.candidatePlayerIds.Count,
+                "T3: Lv1 풀 사이즈"
+            );
 
             var (s5, c5) = BuildScenario(userMoney: 10_000_000, youthLevel: 5, seed: 42);
             var i5 = YouthSystem.GenerateIntake(c5, s5, _balance, _leagueConfig);
             var facility5 = GameDatabase.GetFacilityLevel(FacilityType.Youth, 5);
-            Assert.AreEqual(facility5.youthPoolSize, i5.candidatePlayerIds.Count, "T3: Lv5 풀 사이즈");
+            Assert.AreEqual(
+                facility5.youthPoolSize,
+                i5.candidatePlayerIds.Count,
+                "T3: Lv5 풀 사이즈"
+            );
         }
 
         // ── T4. PA 분포 — 스타 픽 효과 ────────────────────────────────
@@ -102,11 +122,13 @@ namespace FMLite.Tests
             // Lv3 (avgPA 130) 으로 30 인스펙션 누적 → 약 600명 — 5% ≈ 30명 스타
             var pas = CollectPAs(youthLevel: 3, intakeCount: 30, baseSeed: 100);
 
-            int starCount = pas.Count(pa => pa >= 160);  // avgPA 130 + bonus 50 - some σ → 160+ 가 스타 영역
+            int starCount = pas.Count(pa => pa >= 160); // avgPA 130 + bonus 50 - some σ → 160+ 가 스타 영역
             double starRate = (double)starCount / pas.Count;
 
-            Assert.IsTrue(starRate >= 0.01 && starRate <= 0.15,
-                $"T4: PA 160+ 비율 1~15% (이론 5% 근처). 실측 {starRate:P1} ({starCount}/{pas.Count})");
+            Assert.IsTrue(
+                starRate >= 0.01 && starRate <= 0.15,
+                $"T4: PA 160+ 비율 1~15% (이론 5% 근처). 실측 {starRate:P1} ({starCount}/{pas.Count})"
+            );
         }
 
         // ── T5. CA-PA 의존성 약화 ───────────────────────────────────
@@ -115,9 +137,14 @@ namespace FMLite.Tests
         public void T5_CaPaCorrelation_BelowThreshold()
         {
             var pairs = CollectCaPaPairs(youthLevel: 3, intakeCount: 30, baseSeed: 200);
-            double corr = PearsonCorrelation(pairs.Select(p => (double)p.ca), pairs.Select(p => (double)p.pa));
-            Assert.IsTrue(corr < 0.85,
-                $"T5: CA-PA 상관계수 < 0.85 (PA 추정 어려움). 실측 {corr:F3}");
+            double corr = PearsonCorrelation(
+                pairs.Select(p => (double)p.ca),
+                pairs.Select(p => (double)p.pa)
+            );
+            Assert.IsTrue(
+                corr < 0.85,
+                $"T5: CA-PA 상관계수 < 0.85 (PA 추정 어려움). 실측 {corr:F3}"
+            );
         }
 
         // ── T6. 나이 가중치 분포 ────────────────────────────────────
@@ -131,9 +158,21 @@ namespace FMLite.Tests
             double r17 = (double)ages.Count(a => a == 17) / n;
             double r18 = (double)ages.Count(a => a == 18) / n;
 
-            Assert.That(r16, Is.EqualTo(0.40).Within(0.10), $"T6: age 16 ≈ 40% ±10% (실측 {r16:P1})");
-            Assert.That(r17, Is.EqualTo(0.40).Within(0.10), $"T6: age 17 ≈ 40% ±10% (실측 {r17:P1})");
-            Assert.That(r18, Is.EqualTo(0.20).Within(0.10), $"T6: age 18 ≈ 20% ±10% (실측 {r18:P1})");
+            Assert.That(
+                r16,
+                Is.EqualTo(0.40).Within(0.10),
+                $"T6: age 16 ≈ 40% ±10% (실측 {r16:P1})"
+            );
+            Assert.That(
+                r17,
+                Is.EqualTo(0.40).Within(0.10),
+                $"T6: age 17 ≈ 40% ±10% (실측 {r17:P1})"
+            );
+            Assert.That(
+                r18,
+                Is.EqualTo(0.20).Within(0.10),
+                $"T6: age 18 ≈ 20% ±10% (실측 {r18:P1})"
+            );
         }
 
         // ── T7. 국적 분포 ───────────────────────────────────────────
@@ -144,8 +183,11 @@ namespace FMLite.Tests
             var nats = CollectNationalities(youthLevel: 3, intakeCount: 30, baseSeed: 400);
             int n = nats.Count;
             double engRatio = (double)nats.Count(c => c == "ENG") / n;
-            Assert.That(engRatio, Is.EqualTo(0.78).Within(0.10),
-                $"T7: 자국 (ENG) 비율 78% ±10% (실측 {engRatio:P1})");
+            Assert.That(
+                engRatio,
+                Is.EqualTo(0.78).Within(0.10),
+                $"T7: 자국 (ENG) 비율 78% ±10% (실측 {engRatio:P1})"
+            );
         }
 
         // ── T8. 시설 등급별 평균 PA 차이 ────────────────────────────
@@ -193,7 +235,8 @@ namespace FMLite.Tests
             state.rerollTokens = 0;
             var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
             Assert.Throws<InvalidOperationException>(() =>
-                YouthSystem.UseRerollToken(intake, club, state, _balance, _leagueConfig));
+                YouthSystem.UseRerollToken(intake, club, state, _balance, _leagueConfig)
+            );
         }
 
         // ── T10. SignPlayers ────────────────────────────────────────
@@ -223,7 +266,11 @@ namespace FMLite.Tests
 
             // 미영입 검증
             var rejectedIds = allIds.Skip(2).ToList();
-            Assert.AreEqual(rejectedIds.Count, intake.rejectedPlayerIds.Count, "T10: 미영입 ID 수 일치");
+            Assert.AreEqual(
+                rejectedIds.Count,
+                intake.rejectedPlayerIds.Count,
+                "T10: 미영입 ID 수 일치"
+            );
             foreach (var id in rejectedIds)
             {
                 Assert.IsNull(state.GetPlayer(id), $"T10: 미영입 id={id} GameState 제거");
@@ -240,36 +287,41 @@ namespace FMLite.Tests
         {
             var state = new GameState
             {
-                currentDate  = _today,
-                randomSeed   = seed,
+                currentDate = _today,
+                randomSeed = seed,
                 rerollTokens = 3,
-                userClubId   = 1,
+                userClubId = 1,
                 nextPlayerId = 1,
                 nextIntakeId = 1,
             };
 
             var club = new Club
             {
-                id           = 1,
-                name         = "UserClub",
-                reputation   = 60,
-                leagueId     = 1,
-                facilities   = new Facilities { scoutLevel = 3, trainingLevel = 3, youthLevel = youthLevel },
-                finance      = new Finance { money = userMoney },
+                id = 1,
+                name = "UserClub",
+                reputation = 60,
+                leagueId = 1,
+                facilities = new Facilities
+                {
+                    scoutLevel = 3,
+                    trainingLevel = 3,
+                    youthLevel = youthLevel,
+                },
+                finance = new Finance { money = userMoney },
                 seniorSquadIds = new List<int>(),
-                youthSquadIds  = new List<int>(),
-                intakeHistory  = new List<YouthIntake>(),
+                youthSquadIds = new List<int>(),
+                intakeHistory = new List<YouthIntake>(),
             };
             state.AddClub(club);
 
             var league = new League
             {
-                id          = 1,
-                configSOId  = _leagueConfig.id,
-                seasonYear  = 2025,
-                clubIds     = new List<int> { 1 },
-                schedule    = new List<Match>(),
-                standings   = new Standings { entries = new List<StandingEntry>() },
+                id = 1,
+                configSOId = _leagueConfig.id,
+                seasonYear = 2025,
+                clubIds = new List<int> { 1 },
+                schedule = new List<Match>(),
+                standings = new Standings { entries = new List<StandingEntry>() },
             };
             state.leagues.Add(league);
 
@@ -280,7 +332,11 @@ namespace FMLite.Tests
         // nextIntakeId / nextPlayerId 가 자동 증가하면서 매 호출마다 다른 시드 → 풀 다양화.
         private IEnumerable<Player> CollectPlayers(int youthLevel, int intakeCount, int baseSeed)
         {
-            var (state, club) = BuildScenario(userMoney: 10_000_000, youthLevel: youthLevel, seed: baseSeed);
+            var (state, club) = BuildScenario(
+                userMoney: 10_000_000,
+                youthLevel: youthLevel,
+                seed: baseSeed
+            );
             var players = new List<Player>();
             for (int i = 0; i < intakeCount; i++)
             {
@@ -292,18 +348,28 @@ namespace FMLite.Tests
         }
 
         private List<int> CollectPAs(int youthLevel, int intakeCount, int baseSeed) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed).Select(p => p.potentialAbility).ToList();
-
-        private List<(int ca, int pa)> CollectCaPaPairs(int youthLevel, int intakeCount, int baseSeed) =>
             CollectPlayers(youthLevel, intakeCount, baseSeed)
-                .Select(p => (p.currentAbility, p.potentialAbility)).ToList();
+                .Select(p => p.potentialAbility)
+                .ToList();
+
+        private List<(int ca, int pa)> CollectCaPaPairs(
+            int youthLevel,
+            int intakeCount,
+            int baseSeed
+        ) =>
+            CollectPlayers(youthLevel, intakeCount, baseSeed)
+                .Select(p => (p.currentAbility, p.potentialAbility))
+                .ToList();
 
         private List<int> CollectAges(int youthLevel, int intakeCount, int baseSeed) =>
             CollectPlayers(youthLevel, intakeCount, baseSeed)
-                .Select(p => (_today.Year - p.info.birthDate.Year)).ToList();
+                .Select(p => (_today.Year - p.info.birthDate.Year))
+                .ToList();
 
         private List<string> CollectNationalities(int youthLevel, int intakeCount, int baseSeed) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed).Select(p => p.info.nationalityCode).ToList();
+            CollectPlayers(youthLevel, intakeCount, baseSeed)
+                .Select(p => p.info.nationalityCode)
+                .ToList();
 
         private static double PearsonCorrelation(IEnumerable<double> xs, IEnumerable<double> ys)
         {
@@ -312,7 +378,9 @@ namespace FMLite.Tests
             int n = xa.Length;
             double meanX = xa.Average();
             double meanY = ya.Average();
-            double sumXY = 0, sumX2 = 0, sumY2 = 0;
+            double sumXY = 0,
+                sumX2 = 0,
+                sumY2 = 0;
             for (int i = 0; i < n; i++)
             {
                 double dx = xa[i] - meanX;
@@ -346,7 +414,7 @@ namespace FMLite.Tests
             // Youth Lv1~5 — avgPA 80/100/120/140/160, poolSize 15/18/21/25/30
             var levels = new (int lv, int pool, int avgPa)[]
             {
-                (1, 15,  80),
+                (1, 15, 80),
                 (2, 18, 100),
                 (3, 21, 130),
                 (4, 25, 145),
@@ -365,20 +433,20 @@ namespace FMLite.Tests
 
         private static readonly (Position p, bool gk, bool t, bool m, bool ph)[] PosDefs =
         {
-            (Position.GK, true,  false, true,  true ),
-            (Position.CB, false, false, true,  true ),
-            (Position.LB, false, true,  true,  true ),
-            (Position.RB, false, true,  true,  true ),
-            (Position.WB, false, true,  true,  true ),
-            (Position.DM, false, true,  true,  true ),
-            (Position.CM, false, true,  true,  true ),
-            (Position.AM, false, true,  true,  false),
-            (Position.LM, false, true,  true,  true ),
-            (Position.RM, false, true,  true,  true ),
-            (Position.LW, false, true,  false, true ),
-            (Position.RW, false, true,  false, true ),
-            (Position.ST, false, true,  true,  true ),
-            (Position.CF, false, true,  true,  true ),
+            (Position.GK, true, false, true, true),
+            (Position.CB, false, false, true, true),
+            (Position.LB, false, true, true, true),
+            (Position.RB, false, true, true, true),
+            (Position.WB, false, true, true, true),
+            (Position.DM, false, true, true, true),
+            (Position.CM, false, true, true, true),
+            (Position.AM, false, true, true, false),
+            (Position.LM, false, true, true, true),
+            (Position.RM, false, true, true, true),
+            (Position.LW, false, true, false, true),
+            (Position.RW, false, true, false, true),
+            (Position.ST, false, true, true, true),
+            (Position.CF, false, true, true, true),
         };
 
         private static void RegisterPositions()
@@ -404,16 +472,19 @@ namespace FMLite.Tests
             var defs = new[]
             {
                 (1, "늦깎이형", 1.0f, 1),
-                (2, "조숙형",   1.0f, 1),
+                (2, "조숙형", 1.0f, 1),
                 (3, "부상 취약", 0.7f, 0),
                 (4, "멘탈 강자", 1.0f, 0),
-                (5, "빅매치형",  0.8f, 0),
-                (6, "만능형",    0.8f, 0),
+                (5, "빅매치형", 0.8f, 0),
+                (6, "만능형", 0.8f, 0),
             };
             foreach (var (id, name, weight, group) in defs)
             {
                 var so = ScriptableObject.CreateInstance<TraitSO>();
-                so.id = id; so.displayName = name; so.weight = weight; so.exclusionGroupId = group;
+                so.id = id;
+                so.displayName = name;
+                so.weight = weight;
+                so.exclusionGroupId = group;
                 GameDatabase.Register(so);
             }
         }
@@ -423,25 +494,138 @@ namespace FMLite.Tests
             // ENG + 외국 3개 (FRA / GER / ESP) — 외국 추첨 폴백 가능
             var defs = new[]
             {
-                (1, "ENG", new[]{ "James","John","Robert","Michael","William","David","Richard","Thomas","Daniel","Matthew" },
-                          new[]{ "Smith","Johnson","Williams","Brown","Jones","Miller","Davis","Wilson","Taylor","Moore" }),
-                (2, "FRA", new[]{ "Jean","Pierre","Michel","Alain","Philippe","Bernard","Claude","Daniel","Jacques","Henri" },
-                          new[]{ "Martin","Bernard","Dubois","Thomas","Robert","Richard","Petit","Durand","Leroy","Moreau" }),
-                (3, "GER", new[]{ "Hans","Peter","Klaus","Wolfgang","Helmut","Werner","Heinz","Karl","Manfred","Gerhard" },
-                          new[]{ "Müller","Schmidt","Schneider","Fischer","Weber","Meyer","Wagner","Becker","Schulz","Hoffmann" }),
-                (4, "ESP", new[]{ "Antonio","Manuel","José","Francisco","Juan","David","José Antonio","Javier","José Luis","Carlos" },
-                          new[]{ "García","Rodríguez","González","Fernández","López","Martínez","Sánchez","Pérez","Gómez","Martín" }),
+                (
+                    1,
+                    "ENG",
+                    new[]
+                    {
+                        "James",
+                        "John",
+                        "Robert",
+                        "Michael",
+                        "William",
+                        "David",
+                        "Richard",
+                        "Thomas",
+                        "Daniel",
+                        "Matthew",
+                    },
+                    new[]
+                    {
+                        "Smith",
+                        "Johnson",
+                        "Williams",
+                        "Brown",
+                        "Jones",
+                        "Miller",
+                        "Davis",
+                        "Wilson",
+                        "Taylor",
+                        "Moore",
+                    }
+                ),
+                (
+                    2,
+                    "FRA",
+                    new[]
+                    {
+                        "Jean",
+                        "Pierre",
+                        "Michel",
+                        "Alain",
+                        "Philippe",
+                        "Bernard",
+                        "Claude",
+                        "Daniel",
+                        "Jacques",
+                        "Henri",
+                    },
+                    new[]
+                    {
+                        "Martin",
+                        "Bernard",
+                        "Dubois",
+                        "Thomas",
+                        "Robert",
+                        "Richard",
+                        "Petit",
+                        "Durand",
+                        "Leroy",
+                        "Moreau",
+                    }
+                ),
+                (
+                    3,
+                    "GER",
+                    new[]
+                    {
+                        "Hans",
+                        "Peter",
+                        "Klaus",
+                        "Wolfgang",
+                        "Helmut",
+                        "Werner",
+                        "Heinz",
+                        "Karl",
+                        "Manfred",
+                        "Gerhard",
+                    },
+                    new[]
+                    {
+                        "Müller",
+                        "Schmidt",
+                        "Schneider",
+                        "Fischer",
+                        "Weber",
+                        "Meyer",
+                        "Wagner",
+                        "Becker",
+                        "Schulz",
+                        "Hoffmann",
+                    }
+                ),
+                (
+                    4,
+                    "ESP",
+                    new[]
+                    {
+                        "Antonio",
+                        "Manuel",
+                        "José",
+                        "Francisco",
+                        "Juan",
+                        "David",
+                        "José Antonio",
+                        "Javier",
+                        "José Luis",
+                        "Carlos",
+                    },
+                    new[]
+                    {
+                        "García",
+                        "Rodríguez",
+                        "González",
+                        "Fernández",
+                        "López",
+                        "Martínez",
+                        "Sánchez",
+                        "Pérez",
+                        "Gómez",
+                        "Martín",
+                    }
+                ),
             };
             foreach (var (id, code, first, last) in defs)
             {
                 var country = ScriptableObject.CreateInstance<CountrySO>();
-                country.id = id; country.code = code;
+                country.id = id;
+                country.code = code;
                 GameDatabase.Register(country);
 
                 var pool = ScriptableObject.CreateInstance<NamePoolSO>();
                 pool.countryId = id;
                 pool.firstNames = new List<string>(first);
-                pool.lastNames  = new List<string>(last);
+                pool.lastNames = new List<string>(last);
                 GameDatabase.Register(pool);
             }
         }

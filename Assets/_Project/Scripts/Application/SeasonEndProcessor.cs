@@ -21,8 +21,10 @@ namespace FMLite.Application
     {
         public static void Run(GameState state, GameBalanceSO balance)
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             // a. 계약 만료 → FA 전환
             ProcessExpiredContracts(state);
@@ -40,8 +42,10 @@ namespace FMLite.Application
             var today = state.currentDate;
             foreach (var player in state.allPlayers)
             {
-                if (player == null || player.contract == null) continue;
-                if (player.contract.endDate.Date > today.Date) continue;     // 만료 안 됨
+                if (player == null || player.contract == null)
+                    continue;
+                if (player.contract.endDate.Date > today.Date)
+                    continue; // 만료 안 됨
 
                 // 만료 — FA 전환
                 int oldClubId = player.currentClubId;
@@ -65,9 +69,11 @@ namespace FMLite.Application
             var toRetire = new List<int>();
             foreach (var player in state.allPlayers)
             {
-                if (player == null) continue;
+                if (player == null)
+                    continue;
                 int age = GetAge(player, state.currentDate);
-                if (age < balance.retirementMinAge) continue;
+                if (age < balance.retirementMinAge)
+                    continue;
                 if (rng.NextDouble() < balance.retirementProbabilityPerYear)
                     toRetire.Add(player.id);
             }
@@ -75,7 +81,8 @@ namespace FMLite.Application
             foreach (var id in toRetire)
             {
                 var player = state.GetPlayer(id);
-                if (player == null) continue;
+                if (player == null)
+                    continue;
                 // club squad 정리
                 if (player.currentClubId >= 0)
                 {
@@ -90,7 +97,8 @@ namespace FMLite.Application
         private static int GetAge(Player p, DateTime currentDate)
         {
             int age = currentDate.Year - p.info.birthDate.Year;
-            if (currentDate.DayOfYear < p.info.birthDate.DayOfYear) age--;
+            if (currentDate.DayOfYear < p.info.birthDate.DayOfYear)
+                age--;
             return age;
         }
     }

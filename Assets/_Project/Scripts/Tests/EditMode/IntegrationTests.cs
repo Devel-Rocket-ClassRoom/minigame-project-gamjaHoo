@@ -9,19 +9,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
 using FMLite.Persistence;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
     public class IntegrationTests
     {
-        private GameBalanceSO  _balance;
+        private GameBalanceSO _balance;
         private LeagueConfigSO _leagueConfig;
+
         // 프리시즌 시작 (7/1). 첫 매치는 GameBalanceSO.newSeasonOpening (8/15) 부터.
         private readonly DateTime _seasonStart = new DateTime(2025, 7, 1);
 
@@ -30,7 +31,7 @@ namespace FMLite.Tests
         {
             GameDatabase.Clear();
             EventBus.Clear();
-            _balance      = ScriptableObject.CreateInstance<GameBalanceSO>();
+            _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
             _leagueConfig = NewLeagueConfig(clubCount: 4);
             GameDatabase.Register(_balance);
             GameDatabase.Register(_leagueConfig);
@@ -80,8 +81,13 @@ namespace FMLite.Tests
             // 2. 첫 시즌 매치 결과 데이터 — 골 누적 검증 (standings 는 NewSeasonProcessor
             //    6/1 호출 시 초기화되어 365일 종료 시점에 0 으로 돌아감)
             int totalGoals = firstSeasonSchedule.Sum(m =>
-                (m.result?.homeScore ?? 0) + (m.result?.awayScore ?? 0));
-            Assert.Greater(totalGoals, 0, "T1: 첫 시즌 매치 골 누적 (MatchPostProcessor 가 result 채움)");
+                (m.result?.homeScore ?? 0) + (m.result?.awayScore ?? 0)
+            );
+            Assert.Greater(
+                totalGoals,
+                0,
+                "T1: 첫 시즌 매치 골 누적 (MatchPostProcessor 가 result 채움)"
+            );
 
             // 3. 시즌 종료 / 신규 시즌 시작 이벤트 발행
             Assert.GreaterOrEqual(seasonEndedReceived, 1, "T1: SeasonEndedEvent ≥ 1");
@@ -92,8 +98,10 @@ namespace FMLite.Tests
 
             // 5. 새 일정의 첫 매치 8/15 (새 시즌 개막)
             var newSchedule = state.leagues[0].schedule;
-            Assert.IsTrue(newSchedule.Any(m => m.date.Month == 8 && m.date.Day == 15),
-                "T1: 새 시즌 일정 8/15 매치 존재");
+            Assert.IsTrue(
+                newSchedule.Any(m => m.date.Month == 8 && m.date.Day == 15),
+                "T1: 새 시즌 일정 8/15 매치 존재"
+            );
 
             EventBus.Unsubscribe(hEnd);
             EventBus.Unsubscribe(hStart);
@@ -117,18 +125,25 @@ namespace FMLite.Tests
             Assert.Greater(state.allPlayers.Count, 0, "T1b: 선수 존재");
 
             // nextPlayerId 단조증가 (인스펙션 풀 추가)
-            Assert.GreaterOrEqual(state.nextPlayerId, initialNextPlayerId,
-                "T1b: nextPlayerId 증가 (유스 인스펙션)");
+            Assert.GreaterOrEqual(
+                state.nextPlayerId,
+                initialNextPlayerId,
+                "T1b: nextPlayerId 증가 (유스 인스펙션)"
+            );
 
             // 모든 클럽 squad 정합성 — seniorSquadIds 의 모든 ID 가 GameState 에 존재
             foreach (var club in state.allClubs)
             {
                 foreach (var id in club.seniorSquadIds)
-                    Assert.IsNotNull(state.GetPlayer(id),
-                        $"T1b: club {club.id} senior id={id} 존재");
+                    Assert.IsNotNull(
+                        state.GetPlayer(id),
+                        $"T1b: club {club.id} senior id={id} 존재"
+                    );
                 foreach (var id in club.youthSquadIds)
-                    Assert.IsNotNull(state.GetPlayer(id),
-                        $"T1b: club {club.id} youth id={id} 존재");
+                    Assert.IsNotNull(
+                        state.GetPlayer(id),
+                        $"T1b: club {club.id} youth id={id} 존재"
+                    );
             }
         }
 
@@ -167,7 +182,7 @@ namespace FMLite.Tests
                 Assert.AreEqual(beforePlayerCount, loaded.allPlayers.Count, "T2: allPlayers.Count");
                 Assert.AreEqual(beforeNextPlayerId, loaded.nextPlayerId, "T2: nextPlayerId");
                 Assert.AreEqual(beforeNextIntakeId, loaded.nextIntakeId, "T2: nextIntakeId");
-                Assert.AreEqual(beforeNextOfferId,  loaded.nextOfferId,  "T2: nextOfferId");
+                Assert.AreEqual(beforeNextOfferId, loaded.nextOfferId, "T2: nextOfferId");
                 Assert.AreEqual(beforeTokens, loaded.rerollTokens, "T2: rerollTokens");
                 Assert.AreEqual(beforeDate, loaded.currentDate, "T2: currentDate");
 
@@ -179,8 +194,10 @@ namespace FMLite.Tests
                 if (state.allPlayers.Count > 0)
                 {
                     var samplePlayerId = state.allPlayers[0].id;
-                    Assert.IsNotNull(loaded.GetPlayer(samplePlayerId),
-                        $"T2: 로드 후 GetPlayer(id={samplePlayerId}) 동작 (BuildIndexes)");
+                    Assert.IsNotNull(
+                        loaded.GetPlayer(samplePlayerId),
+                        $"T2: 로드 후 GetPlayer(id={samplePlayerId}) 동작 (BuildIndexes)"
+                    );
                 }
             }
             finally
@@ -257,12 +274,17 @@ namespace FMLite.Tests
             // 2. 각 선수의 currentClubId / CA / PA 동일
             for (int i = 0; i < s1.allPlayers.Count; i++)
             {
-                Assert.AreEqual(s1.allPlayers[i].id, s2.allPlayers[i].id,
-                    $"T3: player[{i}].id");
-                Assert.AreEqual(s1.allPlayers[i].currentClubId, s2.allPlayers[i].currentClubId,
-                    $"T3: player[{i}].currentClubId");
-                Assert.AreEqual(s1.allPlayers[i].currentAbility, s2.allPlayers[i].currentAbility,
-                    $"T3: player[{i}].currentAbility");
+                Assert.AreEqual(s1.allPlayers[i].id, s2.allPlayers[i].id, $"T3: player[{i}].id");
+                Assert.AreEqual(
+                    s1.allPlayers[i].currentClubId,
+                    s2.allPlayers[i].currentClubId,
+                    $"T3: player[{i}].currentClubId"
+                );
+                Assert.AreEqual(
+                    s1.allPlayers[i].currentAbility,
+                    s2.allPlayers[i].currentAbility,
+                    $"T3: player[{i}].currentAbility"
+                );
             }
 
             // 3. League standings 완전 동일
@@ -302,8 +324,10 @@ namespace FMLite.Tests
             bool anyDifferent = false;
             for (int i = 0; i < s1.leagues[0].standings.entries.Count; i++)
             {
-                if (s1.leagues[0].standings.entries[i].points
-                    != s2.leagues[0].standings.entries[i].points)
+                if (
+                    s1.leagues[0].standings.entries[i].points
+                    != s2.leagues[0].standings.entries[i].points
+                )
                 {
                     anyDifferent = true;
                     break;
@@ -319,32 +343,32 @@ namespace FMLite.Tests
         private static LeagueConfigSO NewLeagueConfig(int clubCount)
         {
             var cfg = ScriptableObject.CreateInstance<LeagueConfigSO>();
-            cfg.id              = 1;
-            cfg.displayName     = "Test EPL";
-            cfg.countryCode     = "ENG";
-            cfg.clubCount       = clubCount;
+            cfg.id = 1;
+            cfg.displayName = "Test EPL";
+            cfg.countryCode = "ENG";
+            cfg.clubCount = clubCount;
             cfg.relegationCount = 0;
-            cfg.playersPerClub  = 25;
-            cfg.clubNames       = Enumerable.Range(1, clubCount).Select(i => $"Club {i:D2}").ToList();
+            cfg.playersPerClub = 25;
+            cfg.clubNames = Enumerable.Range(1, clubCount).Select(i => $"Club {i:D2}").ToList();
             return cfg;
         }
 
         private static readonly (Position p, bool gk, bool t, bool m, bool ph)[] PosDefs =
         {
-            (Position.GK, true,  false, true,  true ),
-            (Position.CB, false, false, true,  true ),
-            (Position.LB, false, true,  true,  true ),
-            (Position.RB, false, true,  true,  true ),
-            (Position.WB, false, true,  true,  true ),
-            (Position.DM, false, true,  true,  true ),
-            (Position.CM, false, true,  true,  true ),
-            (Position.AM, false, true,  true,  false),
-            (Position.LM, false, true,  true,  true ),
-            (Position.RM, false, true,  true,  true ),
-            (Position.LW, false, true,  false, true ),
-            (Position.RW, false, true,  false, true ),
-            (Position.ST, false, true,  true,  true ),
-            (Position.CF, false, true,  true,  true ),
+            (Position.GK, true, false, true, true),
+            (Position.CB, false, false, true, true),
+            (Position.LB, false, true, true, true),
+            (Position.RB, false, true, true, true),
+            (Position.WB, false, true, true, true),
+            (Position.DM, false, true, true, true),
+            (Position.CM, false, true, true, true),
+            (Position.AM, false, true, true, false),
+            (Position.LM, false, true, true, true),
+            (Position.RM, false, true, true, true),
+            (Position.LW, false, true, false, true),
+            (Position.RW, false, true, false, true),
+            (Position.ST, false, true, true, true),
+            (Position.CF, false, true, true, true),
         };
 
         private static void RegisterPositions()
@@ -357,8 +381,8 @@ namespace FMLite.Tests
                 so.position = d.p;
                 so.isGoalkeeper = d.gk;
                 so.emphasizesTechnical = d.t;
-                so.emphasizesMental    = d.m;
-                so.emphasizesPhysical  = d.ph;
+                so.emphasizesMental = d.m;
+                so.emphasizesPhysical = d.ph;
                 so.affinities = new List<PositionAffinity>();
                 so.fallbackAffinityWeight = 0.05f;
                 GameDatabase.Register(so);
@@ -369,15 +393,20 @@ namespace FMLite.Tests
         {
             var defs = new[]
             {
-                (1, "늦깎이형", 1.0f, 1), (2, "조숙형", 1.0f, 1),
-                (3, "부상 취약", 0.7f, 0), (4, "멘탈 강자", 1.0f, 0),
-                (5, "빅매치형", 0.8f, 0), (6, "만능형", 0.8f, 0),
+                (1, "늦깎이형", 1.0f, 1),
+                (2, "조숙형", 1.0f, 1),
+                (3, "부상 취약", 0.7f, 0),
+                (4, "멘탈 강자", 1.0f, 0),
+                (5, "빅매치형", 0.8f, 0),
+                (6, "만능형", 0.8f, 0),
             };
             foreach (var (id, name, weight, group) in defs)
             {
                 var so = ScriptableObject.CreateInstance<TraitSO>();
-                so.id = id; so.displayName = name;
-                so.weight = weight; so.exclusionGroupId = group;
+                so.id = id;
+                so.displayName = name;
+                so.weight = weight;
+                so.exclusionGroupId = group;
                 GameDatabase.Register(so);
             }
         }
@@ -386,25 +415,107 @@ namespace FMLite.Tests
         {
             var defs = new[]
             {
-                (1, "ENG",
-                 new[]{ "James","John","Robert","Michael","William","David","Richard","Thomas","Daniel","Matthew" },
-                 new[]{ "Smith","Johnson","Williams","Brown","Jones","Miller","Davis","Wilson","Taylor","Moore" }),
-                (2, "FRA",
-                 new[]{ "Pierre","Jean","Jacques","Michel","Philippe","Nicolas","Alain","Bernard","Daniel","Christian" },
-                 new[]{ "Martin","Bernard","Dubois","Thomas","Robert","Petit","Richard","Durand","Moreau","Laurent" }),
-                (3, "ESP",
-                 new[]{ "Antonio","José","Manuel","Francisco","David","Juan","Javier","Daniel","Carlos","Miguel" },
-                 new[]{ "García","Rodríguez","González","Fernández","López","Martínez","Sánchez","Pérez","Gómez","Martín" }),
+                (
+                    1,
+                    "ENG",
+                    new[]
+                    {
+                        "James",
+                        "John",
+                        "Robert",
+                        "Michael",
+                        "William",
+                        "David",
+                        "Richard",
+                        "Thomas",
+                        "Daniel",
+                        "Matthew",
+                    },
+                    new[]
+                    {
+                        "Smith",
+                        "Johnson",
+                        "Williams",
+                        "Brown",
+                        "Jones",
+                        "Miller",
+                        "Davis",
+                        "Wilson",
+                        "Taylor",
+                        "Moore",
+                    }
+                ),
+                (
+                    2,
+                    "FRA",
+                    new[]
+                    {
+                        "Pierre",
+                        "Jean",
+                        "Jacques",
+                        "Michel",
+                        "Philippe",
+                        "Nicolas",
+                        "Alain",
+                        "Bernard",
+                        "Daniel",
+                        "Christian",
+                    },
+                    new[]
+                    {
+                        "Martin",
+                        "Bernard",
+                        "Dubois",
+                        "Thomas",
+                        "Robert",
+                        "Petit",
+                        "Richard",
+                        "Durand",
+                        "Moreau",
+                        "Laurent",
+                    }
+                ),
+                (
+                    3,
+                    "ESP",
+                    new[]
+                    {
+                        "Antonio",
+                        "José",
+                        "Manuel",
+                        "Francisco",
+                        "David",
+                        "Juan",
+                        "Javier",
+                        "Daniel",
+                        "Carlos",
+                        "Miguel",
+                    },
+                    new[]
+                    {
+                        "García",
+                        "Rodríguez",
+                        "González",
+                        "Fernández",
+                        "López",
+                        "Martínez",
+                        "Sánchez",
+                        "Pérez",
+                        "Gómez",
+                        "Martín",
+                    }
+                ),
             };
             foreach (var (id, code, first, last) in defs)
             {
                 var country = ScriptableObject.CreateInstance<CountrySO>();
-                country.id = id; country.code = code;
+                country.id = id;
+                country.code = code;
                 GameDatabase.Register(country);
                 var pool = ScriptableObject.CreateInstance<NamePoolSO>();
                 pool.countryId = id;
                 pool.firstNames = new List<string>(first);
-                pool.lastNames  = new List<string>(last);
+                pool.lastNames = new List<string>(last);
                 GameDatabase.Register(pool);
             }
         }
@@ -414,7 +525,11 @@ namespace FMLite.Tests
             // Youth Lv1~5 (인스펙션 검증용)
             var defs = new (int lv, int pool, int avgPa)[]
             {
-                (1, 15, 80), (2, 18, 100), (3, 21, 130), (4, 25, 145), (5, 30, 160),
+                (1, 15, 80),
+                (2, 18, 100),
+                (3, 21, 130),
+                (4, 25, 145),
+                (5, 30, 160),
             };
             foreach (var (lv, pool, avgPa) in defs)
             {

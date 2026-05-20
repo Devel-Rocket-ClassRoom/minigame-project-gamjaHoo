@@ -1,8 +1,8 @@
 // EventBusTests.cs
 // EventBus DoD 검증: v0.1-tasks.md Task 2.1.
 
-using NUnit.Framework;
 using FMLite.Core;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {

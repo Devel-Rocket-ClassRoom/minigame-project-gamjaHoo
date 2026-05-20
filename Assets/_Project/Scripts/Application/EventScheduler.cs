@@ -18,32 +18,39 @@ namespace FMLite.Application
         // 반환값: 정지 신호 (userClub 매치 / 유스 인스펙션) — 호출자 (GameLoop) 가 시간 진행 멈춤 결정.
         public static bool Run(GameState state)
         {
-            if (state == null) throw new ArgumentNullException(nameof(state));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
 
             bool stopRequested = false;
-            var  today         = state.currentDate.Date;
+            var today = state.currentDate.Date;
 
             // ── 매치 분기 (Task 8.1) ─────────────────────────────────
             foreach (var league in state.leagues)
             {
-                if (league?.schedule == null) continue;
+                if (league?.schedule == null)
+                    continue;
 
-                var todaysMatches = league.schedule
-                    .Where(m => m.date.Date == today)
-                    .ToList();
+                var todaysMatches = league.schedule.Where(m => m.date.Date == today).ToList();
 
-                if (todaysMatches.Count == 0) continue;
+                if (todaysMatches.Count == 0)
+                    continue;
 
-                bool isUserMatch = state.userClubId >= 0 && todaysMatches.Any(m =>
-                    m.homeClubId == state.userClubId || m.awayClubId == state.userClubId);
+                bool isUserMatch =
+                    state.userClubId >= 0
+                    && todaysMatches.Any(m =>
+                        m.homeClubId == state.userClubId || m.awayClubId == state.userClubId
+                    );
 
-                EventBus.Publish(new MatchDayEvent
-                {
-                    matchIds    = todaysMatches.Select(m => m.id).ToList(),
-                    isUserMatch = isUserMatch,
-                });
+                EventBus.Publish(
+                    new MatchDayEvent
+                    {
+                        matchIds = todaysMatches.Select(m => m.id).ToList(),
+                        isUserMatch = isUserMatch,
+                    }
+                );
 
-                if (isUserMatch) stopRequested = true;
+                if (isUserMatch)
+                    stopRequested = true;
             }
 
             // ── 유스 인스펙션 트리거 (Task 10.1, #39) ────────────────
@@ -66,7 +73,8 @@ namespace FMLite.Application
         private static bool TryTriggerSeasonEnd(GameState state, DateTime today)
         {
             var balance = GameDatabase.GameBalance;
-            if (balance == null) return false;
+            if (balance == null)
+                return false;
             if (today.Month != balance.seasonEndMonth || today.Day != balance.seasonEndDay)
                 return false;
             SeasonEndProcessor.Run(state, balance);
@@ -76,8 +84,12 @@ namespace FMLite.Application
         private static bool TryTriggerNewSeason(GameState state, DateTime today)
         {
             var balance = GameDatabase.GameBalance;
-            if (balance == null) return false;
-            if (today.Month != balance.fiscalYearStartMonth || today.Day != balance.fiscalYearStartDay)
+            if (balance == null)
+                return false;
+            if (
+                today.Month != balance.fiscalYearStartMonth
+                || today.Day != balance.fiscalYearStartDay
+            )
                 return false;
             NewSeasonProcessor.Run(state, balance);
             return true;
@@ -85,29 +97,38 @@ namespace FMLite.Application
 
         private static bool TryTriggerYouthIntake(GameState state, DateTime today)
         {
-            if (state.userClubId < 0) return false;
+            if (state.userClubId < 0)
+                return false;
 
             var balance = GameDatabase.GameBalance;
-            if (balance == null) return false;     // GameDatabase 미초기화 (테스트 등) — 스킵
+            if (balance == null)
+                return false; // GameDatabase 미초기화 (테스트 등) — 스킵
 
-            bool isMainDay   = today.Month == balance.youthIntakeMainMonth
-                            && today.Day   == balance.youthIntakeMainDay;
-            bool isSecondDay = today.Month == balance.youthIntakeSecondMonth
-                            && today.Day   == balance.youthIntakeSecondDay;
-            if (!isMainDay && !isSecondDay) return false;
+            bool isMainDay =
+                today.Month == balance.youthIntakeMainMonth
+                && today.Day == balance.youthIntakeMainDay;
+            bool isSecondDay =
+                today.Month == balance.youthIntakeSecondMonth
+                && today.Day == balance.youthIntakeSecondDay;
+            if (!isMainDay && !isSecondDay)
+                return false;
 
             var userClub = state.GetClub(state.userClubId);
-            if (userClub == null) return false;
+            if (userClub == null)
+                return false;
 
             var league = state.leagues.FirstOrDefault(l =>
-                l != null && l.clubIds != null && l.clubIds.Contains(userClub.id));
-            if (league == null) return false;
+                l != null && l.clubIds != null && l.clubIds.Contains(userClub.id)
+            );
+            if (league == null)
+                return false;
 
             var leagueConfig = GameDatabase.GetLeagueConfig(league.configSOId);
-            if (leagueConfig == null) return false;
+            if (leagueConfig == null)
+                return false;
 
             YouthSystem.GenerateIntake(userClub, state, balance, leagueConfig);
-            return true;     // 정지 신호 — UI 유스 풀 화면
+            return true; // 정지 신호 — UI 유스 풀 화면
         }
     }
 }

@@ -7,9 +7,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using FMLite.Domain;
 using FMLite.Utils;
+using UnityEngine;
 using Random = System.Random;
 
 namespace FMLite.Application
@@ -18,20 +18,29 @@ namespace FMLite.Application
     {
         public static MatchResult Simulate(Match match, GameState state, GameBalanceSO balance)
         {
-            if (match == null)   throw new ArgumentNullException(nameof(match));
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
-            var home = state.GetClub(match.homeClubId)
-                       ?? throw new ArgumentException($"homeClub id={match.homeClubId} not found");
-            var away = state.GetClub(match.awayClubId)
-                       ?? throw new ArgumentException($"awayClub id={match.awayClubId} not found");
+            var home =
+                state.GetClub(match.homeClubId)
+                ?? throw new ArgumentException($"homeClub id={match.homeClubId} not found");
+            var away =
+                state.GetClub(match.awayClubId)
+                ?? throw new ArgumentException($"awayClub id={match.awayClubId} not found");
 
             if (match.type != CompetitionType.League)
-                Debug.LogWarning($"[MatchSimulator] V0.1 호출 경로 없음 — match.type={match.type}. League 와 동일 처리.");
+                Debug.LogWarning(
+                    $"[MatchSimulator] V0.1 호출 경로 없음 — match.type={match.type}. League 와 동일 처리."
+                );
 
             if (balance.scoringWeightByLine == null || balance.scoringWeightByLine.Length != 4)
-                throw new ArgumentException("scoringWeightByLine 은 4-length 배열이어야 함 (GK/DF/MF/AT)");
+                throw new ArgumentException(
+                    "scoringWeightByLine 은 4-length 배열이어야 함 (GK/DF/MF/AT)"
+                );
 
             // 1단계: 시드 고정 (design-decisions.md #17)
             var rng = new Random(match.id ^ state.randomSeed);
@@ -62,12 +71,15 @@ namespace FMLite.Application
                 strengthRatio = sh / (sh + sa);
             }
 
-            double homeLambda = balance.avgGoalsPerMatch * strengthRatio + balance.homeAdvantageGoalBonus;
+            double homeLambda =
+                balance.avgGoalsPerMatch * strengthRatio + balance.homeAdvantageGoalBonus;
             double awayLambda = balance.avgGoalsPerMatch * (1.0 - strengthRatio);
 
             // 음수 λ 방어 (avgGoalsPerMatch 가 비정상으로 0 이거나 ratio 가 극단인 경우)
-            if (homeLambda < 0) homeLambda = 0;
-            if (awayLambda < 0) awayLambda = 0;
+            if (homeLambda < 0)
+                homeLambda = 0;
+            if (awayLambda < 0)
+                awayLambda = 0;
 
             int homeScore = rng.NextPoisson(homeLambda);
             int awayScore = rng.NextPoisson(awayLambda);
@@ -97,8 +109,8 @@ namespace FMLite.Application
         // 이 메서드는 폐기 또는 폴백으로 격하 (algorithms.md #2 V1.0 Migration Notes).
         private static List<int> SelectStartingEleven(Club club, GameState state)
         {
-            return club.seniorSquadIds
-                .Select(id => state.GetPlayer(id))
+            return club
+                .seniorSquadIds.Select(id => state.GetPlayer(id))
                 .Where(p => p != null && p.state.injury.injuryTypeId == -1)
                 .OrderByDescending(p => p.currentAbility)
                 .Take(11)
@@ -112,7 +124,8 @@ namespace FMLite.Application
             for (int i = 0; i < playerIds.Count; i++)
             {
                 var p = state.GetPlayer(playerIds[i]);
-                if (p != null) sum += p.currentAbility;
+                if (p != null)
+                    sum += p.currentAbility;
             }
             return sum;
         }
@@ -120,24 +133,33 @@ namespace FMLite.Application
         // ── 5단계: 득점자 선정 ────────────────────────────────────────
 
         private static Dictionary<int, int> PickScorers(
-            List<int> starting11, GameState state, int totalGoals,
-            GameBalanceSO balance, Random rng)
+            List<int> starting11,
+            GameState state,
+            int totalGoals,
+            GameBalanceSO balance,
+            Random rng
+        )
         {
             var result = new Dictionary<int, int>();
-            if (totalGoals == 0 || starting11.Count == 0) return result;
+            if (totalGoals == 0 || starting11.Count == 0)
+                return result;
 
             // WeightedSample 는 IList<T> 받음. starting11 자체가 List<int> 이므로 그대로 사용.
             // weightFn 은 매 호출마다 같은 ID 에 같은 weight 반환 — Player lookup 캐시는 V1.0+.
             for (int g = 0; g < totalGoals; g++)
             {
-                int scorerId = rng.WeightedSample(starting11, id =>
-                {
-                    var p = state.GetPlayer(id);
-                    if (p == null) return 0.0;
-                    int lineIdx = (int)StartingSquadGacha.LineOf(p.info.primaryPosition);
-                    double lineWeight = balance.scoringWeightByLine[lineIdx];
-                    return lineWeight * (p.currentAbility / 100.0);
-                });
+                int scorerId = rng.WeightedSample(
+                    starting11,
+                    id =>
+                    {
+                        var p = state.GetPlayer(id);
+                        if (p == null)
+                            return 0.0;
+                        int lineIdx = (int)StartingSquadGacha.LineOf(p.info.primaryPosition);
+                        double lineWeight = balance.scoringWeightByLine[lineIdx];
+                        return lineWeight * (p.currentAbility / 100.0);
+                    }
+                );
                 result[scorerId] = result.TryGetValue(scorerId, out var c) ? c + 1 : 1;
             }
             return result;
@@ -146,22 +168,26 @@ namespace FMLite.Application
         // ── 6단계: PlayerMatchStat 빌드 ────────────────────────────────
 
         private static List<PlayerMatchStat> BuildPlayerStats(
-            List<int> starting11, Dictionary<int, int> goalsByPlayer)
+            List<int> starting11,
+            Dictionary<int, int> goalsByPlayer
+        )
         {
             var stats = new List<PlayerMatchStat>(starting11.Count);
             for (int i = 0; i < starting11.Count; i++)
             {
                 int id = starting11[i];
-                stats.Add(new PlayerMatchStat
-                {
-                    playerId      = id,
-                    minutesPlayed = 90,                                              // V0.1: 교체 X
-                    goals         = goalsByPlayer.TryGetValue(id, out var g) ? g : 0,
-                    assists       = 0,                                               // V1.0+
-                    rating        = 0f,                                              // V1.0+
-                    yellowCards   = 0,                                               // V1.0+
-                    redCards      = 0,                                               // V1.0+
-                });
+                stats.Add(
+                    new PlayerMatchStat
+                    {
+                        playerId = id,
+                        minutesPlayed = 90, // V0.1: 교체 X
+                        goals = goalsByPlayer.TryGetValue(id, out var g) ? g : 0,
+                        assists = 0, // V1.0+
+                        rating = 0f, // V1.0+
+                        yellowCards = 0, // V1.0+
+                        redCards = 0, // V1.0+
+                    }
+                );
             }
             return stats;
         }

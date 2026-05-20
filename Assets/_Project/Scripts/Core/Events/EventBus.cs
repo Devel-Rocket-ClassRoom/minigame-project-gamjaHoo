@@ -13,14 +13,16 @@ namespace FMLite.Core
 
         public static void Subscribe<T>(Action<T> handler)
         {
-            if (handler == null) throw new ArgumentNullException(nameof(handler));
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
 
             var type = typeof(T);
             if (_handlers.TryGetValue(type, out var existing))
             {
                 foreach (var d in existing.GetInvocationList())
                 {
-                    if (d.Equals(handler)) return;
+                    if (d.Equals(handler))
+                        return;
                 }
                 _handlers[type] = Delegate.Combine(existing, handler);
             }
@@ -32,14 +34,18 @@ namespace FMLite.Core
 
         public static void Unsubscribe<T>(Action<T> handler)
         {
-            if (handler == null) return;
+            if (handler == null)
+                return;
 
             var type = typeof(T);
-            if (!_handlers.TryGetValue(type, out var existing)) return;
+            if (!_handlers.TryGetValue(type, out var existing))
+                return;
 
             var remaining = Delegate.Remove(existing, handler);
-            if (remaining == null) _handlers.Remove(type);
-            else _handlers[type] = remaining;
+            if (remaining == null)
+                _handlers.Remove(type);
+            else
+                _handlers[type] = remaining;
         }
 
         public static void Publish<T>(T evt)

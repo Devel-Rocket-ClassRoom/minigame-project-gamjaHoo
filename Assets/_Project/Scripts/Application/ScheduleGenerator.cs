@@ -6,8 +6,8 @@
 
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using FMLite.Domain;
+using UnityEngine;
 
 namespace FMLite.Application
 {
@@ -18,20 +18,24 @@ namespace FMLite.Application
             DateTime seasonStart,
             int leagueId,
             int startMatchId,
-            int roundIntervalDays = 7)
+            int roundIntervalDays = 7
+        )
         {
             if (clubIds == null || clubIds.Count < 2)
             {
-                Debug.LogWarning($"[ScheduleGenerator] clubIds.Count = {clubIds?.Count ?? 0} → 빈 일정 반환");
+                Debug.LogWarning(
+                    $"[ScheduleGenerator] clubIds.Count = {clubIds?.Count ?? 0} → 빈 일정 반환"
+                );
                 return new List<Match>();
             }
             if (clubIds.Count % 2 != 0)
                 throw new ArgumentException(
-                    $"ScheduleGenerator: clubIds.Count 는 짝수여야 함 (현재 {clubIds.Count}). " +
-                    "홀수 팀은 'bye' 처리가 필요한데 V0.1 스코프 외.");
+                    $"ScheduleGenerator: clubIds.Count 는 짝수여야 함 (현재 {clubIds.Count}). "
+                        + "홀수 팀은 'bye' 처리가 필요한데 V0.1 스코프 외."
+                );
 
-            int n      = clubIds.Count;
-            int rounds = n - 1;            // 1차 라운드 수 = n-1
+            int n = clubIds.Count;
+            int rounds = n - 1; // 1차 라운드 수 = n-1
             var matches = new List<Match>();
             int nextId = startMatchId;
 
@@ -48,7 +52,7 @@ namespace FMLite.Application
             {
                 DateTime roundDate = seasonStart.AddDays((rounds + r) * roundIntervalDays);
                 foreach (var (homeId, awayId) in GeneratePairs(clubIds, r))
-                    matches.Add(BuildMatch(nextId++, roundDate, awayId, homeId));   // 반전
+                    matches.Add(BuildMatch(nextId++, roundDate, awayId, homeId)); // 반전
             }
 
             return matches;
@@ -57,12 +61,12 @@ namespace FMLite.Application
         private static Match BuildMatch(int id, DateTime date, int homeId, int awayId) =>
             new Match
             {
-                id         = id,
-                date       = date,
-                type       = CompetitionType.League,
+                id = id,
+                date = date,
+                type = CompetitionType.League,
                 homeClubId = homeId,
                 awayClubId = awayId,
-                events     = new List<MatchEvent>(),
+                events = new List<MatchEvent>(),
                 // result 는 시뮬 전까지 default (null)
             };
 
@@ -70,11 +74,11 @@ namespace FMLite.Application
         // clubIds[0] 고정, clubIds[1..n-1] 회전. 홈/원정은 alternation.
         private static List<(int home, int away)> GeneratePairs(List<int> clubIds, int round)
         {
-            int n          = clubIds.Count;
-            int rotateLen  = n - 1;
-            int fixedId    = clubIds[0];
+            int n = clubIds.Count;
+            int rotateLen = n - 1;
+            int fixedId = clubIds[0];
             int rotatedIdx = round % rotateLen;
-            int rotatedId  = clubIds[1 + rotatedIdx];
+            int rotatedId = clubIds[1 + rotatedIdx];
 
             var pairs = new List<(int, int)>(n / 2);
 
@@ -84,8 +88,8 @@ namespace FMLite.Application
             // 나머지 페어들 (회전 그룹 내부 매칭): i 짝수/홀수로 홈/원정 alternation
             for (int i = 1; i < n / 2; i++)
             {
-                int idxA  = (rotatedIdx + i) % rotateLen;
-                int idxB  = (rotatedIdx - i + rotateLen) % rotateLen;
+                int idxA = (rotatedIdx + i) % rotateLen;
+                int idxB = (rotatedIdx - i + rotateLen) % rotateLen;
                 int teamA = clubIds[1 + idxA];
                 int teamB = clubIds[1 + idxB];
                 pairs.Add(i % 2 == 0 ? (teamA, teamB) : (teamB, teamA));

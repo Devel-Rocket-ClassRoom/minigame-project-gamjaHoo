@@ -4,27 +4,31 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using FMLite.Domain;
 using FMLite.Application;
+using FMLite.Domain;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {
     public class ScheduleGeneratorTests
     {
-        private readonly DateTime _seasonStart = new DateTime(2025, 8, 16);    // EPL 풍 8월 중순
-        private const int LeagueId     = 1;
+        private readonly DateTime _seasonStart = new DateTime(2025, 8, 16); // EPL 풍 8월 중순
+        private const int LeagueId = 1;
         private const int StartMatchId = 1;
 
-        private static List<int> ClubIds(int n) =>
-            Enumerable.Range(1, n).ToList();
+        private static List<int> ClubIds(int n) => Enumerable.Range(1, n).ToList();
 
         // ── T1. 경기 총수 (20팀 → 380경기) ───────────────────────────
 
         [Test]
         public void T1_TotalMatchCount_20Clubs_Equals380()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
             Assert.AreEqual(380, matches.Count, "T1: 20팀 → 380경기 (38라운드 × 10경기)");
         }
 
@@ -33,7 +37,12 @@ namespace FMLite.Tests
         [Test]
         public void T2_EachClubPlays38Matches_20Clubs()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
             foreach (int id in ClubIds(20))
             {
                 int played = matches.Count(m => m.homeClubId == id || m.awayClubId == id);
@@ -46,14 +55,20 @@ namespace FMLite.Tests
         [Test]
         public void T3_EachPair_OneHomeOneAway()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
-            var ids     = ClubIds(20);
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
+            var ids = ClubIds(20);
 
             foreach (int a in ids)
             {
                 foreach (int b in ids)
                 {
-                    if (a >= b) continue;
+                    if (a >= b)
+                        continue;
                     int aHome = matches.Count(m => m.homeClubId == a && m.awayClubId == b);
                     int bHome = matches.Count(m => m.homeClubId == b && m.awayClubId == a);
                     Assert.AreEqual(1, aHome, $"T3: {a} 홈 vs {b} 원정 1경기");
@@ -67,7 +82,12 @@ namespace FMLite.Tests
         [Test]
         public void T4_NoTeamPlaysTwiceInSameRound()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
             // 라운드 = 같은 date 그룹
             var byDate = matches.GroupBy(m => m.date);
             foreach (var round in byDate)
@@ -78,10 +98,16 @@ namespace FMLite.Tests
                     teamsInRound.Add(m.homeClubId);
                     teamsInRound.Add(m.awayClubId);
                 }
-                Assert.AreEqual(teamsInRound.Count, teamsInRound.Distinct().Count(),
-                                $"T4: 라운드 {round.Key:yyyy-MM-dd} 내 팀 중복 없음");
-                Assert.AreEqual(20, teamsInRound.Count,
-                                $"T4: 라운드 {round.Key:yyyy-MM-dd} 에 20개 클럽 모두 출전");
+                Assert.AreEqual(
+                    teamsInRound.Count,
+                    teamsInRound.Distinct().Count(),
+                    $"T4: 라운드 {round.Key:yyyy-MM-dd} 내 팀 중복 없음"
+                );
+                Assert.AreEqual(
+                    20,
+                    teamsInRound.Count,
+                    $"T4: 라운드 {round.Key:yyyy-MM-dd} 에 20개 클럽 모두 출전"
+                );
             }
         }
 
@@ -96,8 +122,8 @@ namespace FMLite.Tests
             Assert.AreEqual(m1.Count, m2.Count);
             for (int i = 0; i < m1.Count; i++)
             {
-                Assert.AreEqual(m1[i].id,         m2[i].id);
-                Assert.AreEqual(m1[i].date,       m2[i].date);
+                Assert.AreEqual(m1[i].id, m2[i].id);
+                Assert.AreEqual(m1[i].date, m2[i].date);
                 Assert.AreEqual(m1[i].homeClubId, m2[i].homeClubId);
                 Assert.AreEqual(m1[i].awayClubId, m2[i].awayClubId);
             }
@@ -108,18 +134,29 @@ namespace FMLite.Tests
         [Test]
         public void T6_DatesMonotonicNonDecreasing_AndRoundInterval()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
 
             for (int i = 1; i < matches.Count; i++)
-                Assert.That(matches[i].date, Is.GreaterThanOrEqualTo(matches[i - 1].date),
-                            $"T6: matches[{i}].date >= matches[{i-1}].date");
+                Assert.That(
+                    matches[i].date,
+                    Is.GreaterThanOrEqualTo(matches[i - 1].date),
+                    $"T6: matches[{i}].date >= matches[{i - 1}].date"
+                );
 
             // 라운드 = 같은 날짜. 라운드 첫 날짜들이 7일 간격
             var roundDates = matches.Select(m => m.date).Distinct().OrderBy(d => d).ToList();
             Assert.AreEqual(38, roundDates.Count, "T6: 38라운드 (=38개 distinct date)");
             for (int i = 1; i < roundDates.Count; i++)
-                Assert.AreEqual(7, (roundDates[i] - roundDates[i - 1]).TotalDays,
-                                $"T6: 라운드 {i} 와 {i-1} 사이 7일 간격");
+                Assert.AreEqual(
+                    7,
+                    (roundDates[i] - roundDates[i - 1]).TotalDays,
+                    $"T6: 라운드 {i} 와 {i - 1} 사이 7일 간격"
+                );
         }
 
         // ── T7. 가변 팀 수 (10팀, 12팀, 8팀) ──────────────────────────
@@ -129,15 +166,27 @@ namespace FMLite.Tests
         {
             foreach (int n in new[] { 4, 8, 10, 12 })
             {
-                var matches = ScheduleGenerator.Generate(ClubIds(n), _seasonStart, LeagueId, StartMatchId);
-                Assert.AreEqual(n * (n - 1), matches.Count,
-                                $"T7: n={n} → {n}*{n-1}={n * (n - 1)} 경기");
+                var matches = ScheduleGenerator.Generate(
+                    ClubIds(n),
+                    _seasonStart,
+                    LeagueId,
+                    StartMatchId
+                );
+                Assert.AreEqual(
+                    n * (n - 1),
+                    matches.Count,
+                    $"T7: n={n} → {n}*{n - 1}={n * (n - 1)} 경기"
+                );
 
                 // 각 팀이 2(n-1)경기
                 foreach (int id in ClubIds(n))
                 {
                     int played = matches.Count(m => m.homeClubId == id || m.awayClubId == id);
-                    Assert.AreEqual(2 * (n - 1), played, $"T7: n={n} 클럽 {id} 가 {2*(n-1)}경기");
+                    Assert.AreEqual(
+                        2 * (n - 1),
+                        played,
+                        $"T7: n={n} 클럽 {id} 가 {2 * (n - 1)}경기"
+                    );
                 }
             }
         }
@@ -147,11 +196,16 @@ namespace FMLite.Tests
         [Test]
         public void T8_MatchIdsUniqueAndMonotonic()
         {
-            var matches = ScheduleGenerator.Generate(ClubIds(20), _seasonStart, LeagueId, StartMatchId);
-            var ids     = matches.Select(m => m.id).ToList();
+            var matches = ScheduleGenerator.Generate(
+                ClubIds(20),
+                _seasonStart,
+                LeagueId,
+                StartMatchId
+            );
+            var ids = matches.Select(m => m.id).ToList();
             Assert.AreEqual(ids.Count, ids.Distinct().Count(), "T8: id 중복 없음");
-            Assert.AreEqual(StartMatchId,             ids.Min(), "T8: 시작 id");
-            Assert.AreEqual(StartMatchId + 380 - 1,   ids.Max(), "T8: 끝 id");
+            Assert.AreEqual(StartMatchId, ids.Min(), "T8: 시작 id");
+            Assert.AreEqual(StartMatchId + 380 - 1, ids.Max(), "T8: 끝 id");
 
             for (int i = 1; i < ids.Count; i++)
                 Assert.AreEqual(ids[i - 1] + 1, ids[i], $"T8: id 단조증가 (i={i})");
@@ -163,7 +217,8 @@ namespace FMLite.Tests
         public void T9_OddClubCount_Throws()
         {
             Assert.Throws<ArgumentException>(() =>
-                ScheduleGenerator.Generate(ClubIds(19), _seasonStart, LeagueId, StartMatchId));
+                ScheduleGenerator.Generate(ClubIds(19), _seasonStart, LeagueId, StartMatchId)
+            );
         }
     }
 }

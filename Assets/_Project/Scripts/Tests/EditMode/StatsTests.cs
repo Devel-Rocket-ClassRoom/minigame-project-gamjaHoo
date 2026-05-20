@@ -1,8 +1,8 @@
 // StatsTests.cs
 // ApplyToAll 헬퍼 sanity 검증. 카테고리별 패턴 동일하므로 TechnicalStats 로 대표.
 
-using NUnit.Framework;
 using FMLite.Domain;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {

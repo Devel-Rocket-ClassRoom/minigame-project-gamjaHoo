@@ -3,11 +3,11 @@
 
 using System;
 using System.Collections.Generic;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
@@ -36,23 +36,29 @@ namespace FMLite.Tests
             EventBus.Clear();
         }
 
-        private GameState MakeState(List<Match> schedule = null, int userClubId = -1, int initialFatigue = 30)
+        private GameState MakeState(
+            List<Match> schedule = null,
+            int userClubId = -1,
+            int initialFatigue = 30
+        )
         {
             var state = new GameState { currentDate = _start, userClubId = userClubId };
-            state.leagues.Add(new League
-            {
-                id        = 1,
-                schedule  = schedule ?? new List<Match>(),
-                clubIds   = new List<int> { 1, 2 },
-                standings = new Standings { entries = new List<StandingEntry>() },
-            });
+            state.leagues.Add(
+                new League
+                {
+                    id = 1,
+                    schedule = schedule ?? new List<Match>(),
+                    clubIds = new List<int> { 1, 2 },
+                    standings = new Standings { entries = new List<StandingEntry>() },
+                }
+            );
             var p = new Player
             {
                 id = 1,
                 state = new PlayerState
                 {
                     fatigue = initialFatigue,
-                    injury  = new InjuryInfo { injuryTypeId = -1 },
+                    injury = new InjuryInfo { injuryTypeId = -1 },
                 },
             };
             state.AddPlayer(p);
@@ -60,7 +66,14 @@ namespace FMLite.Tests
         }
 
         private static Match Md(int id, DateTime date, int home, int away) =>
-            new Match { id = id, date = date, type = CompetitionType.League, homeClubId = home, awayClubId = away };
+            new Match
+            {
+                id = id,
+                date = date,
+                type = CompetitionType.League,
+                homeClubId = home,
+                awayClubId = away,
+            };
 
         // ── T1. AdvanceDay 1회 — currentDate +1 + DayAdvancedEvent ────
 
@@ -86,8 +99,11 @@ namespace FMLite.Tests
 
             GameLoop.AdvanceDay(state, _balance);
 
-            Assert.AreEqual(15, state.allPlayers[0].state.fatigue,
-                            "T2: fatigue 30 → 15 (DailyProcessor)");
+            Assert.AreEqual(
+                15,
+                state.allPlayers[0].state.fatigue,
+                "T2: fatigue 30 → 15 (DailyProcessor)"
+            );
         }
 
         // ── T3. EventScheduler 호출 — 매치 정지 신호 ──────────────────
@@ -98,7 +114,8 @@ namespace FMLite.Tests
             // 다음 날에 userClub 매치
             var state = MakeState(
                 schedule: new List<Match> { Md(1, _start.AddDays(1), 1, 2) },
-                userClubId: 1);
+                userClubId: 1
+            );
 
             var r = GameLoop.AdvanceDay(state, _balance);
 
@@ -114,7 +131,8 @@ namespace FMLite.Tests
             var matchDate = _start.AddDays(7);
             var state = MakeState(
                 schedule: new List<Match> { Md(1, matchDate, 1, 2) },
-                userClubId: 1);
+                userClubId: 1
+            );
 
             var r = GameLoop.ContinueUntilStop(state, _balance, maxDays: 30);
 
