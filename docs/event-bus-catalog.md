@@ -36,9 +36,10 @@ Assets/_Project/Scripts/Core/Events/
 > **V0.1 진행 상태**:
 > - `GameEvents.cs` — DayAdvancedEvent / GameLoadedEvent / GameSavedEvent ✓
 > - `MatchEvents.cs` — MatchDayEvent ✓ (Stage 8 Task 8.1, #103) / MatchFinishedEvent ✓ (Stage 9 Task 9.2, #117). PlayerInjuredEvent 는 V1.0+ (부상 시스템 도입 시).
-> - `YouthEvents.cs` — 명세 확정 (#123 Sub-A). 본 PR 머지 후 Stage 10 Sub-B 에서 코드 추가 (3 이벤트: YouthIntakeAvailableEvent / YouthRerolledEvent / YouthSignedEvent).
-> - `TokenGrantedEvent` — Youth 와 Facility 양쪽에서 발행. Stage 10 / Stage 11 작업 시 통합 검토.
-> - 나머지 2개 파일 (TransferEvents / SeasonEvents) 은 해당 Stage 작업 시 생성. 카탈로그의 이벤트 정의는 명세 선반영.
+> - `YouthEvents.cs` — 3 이벤트 ✓ (Stage 10 Sub-B, PR #125).
+> - `TransferEvents.cs` — 명세 확정 (#130 Sub-A, 2026-05-20). Stage 11 Sub-B 에서 코드 추가 (3 이벤트: OfferSubmittedEvent / OfferRespondedEvent / TransferCompletedEvent).
+> - `TokenGrantedEvent` — Youth 와 Facility 양쪽에서 발행. Stage 11 / Stage 12 작업 시 통합 검토.
+> - 나머지 1개 파일 (SeasonEvents) 은 Stage 12 작업 시 생성. 카탈로그의 이벤트 정의는 명세 선반영.
 
 ---
 

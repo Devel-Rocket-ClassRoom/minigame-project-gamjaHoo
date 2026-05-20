@@ -267,59 +267,91 @@
 
 ## 5. 이적 흐름
 
-### Trigger
-- 이적창 오픈 기간 중 유저 행동 (영입 / 판매)
-- AI 구단의 자동 이적 (V1.0+)
+> **용어 — 이적시장 vs 이적시장 활성화 기간 (사용자 합의, `design-decisions.md` #37)**:
+> - **이적시장 (Transfer Market)**: 검색·오퍼·협상 시스템 전체 — **상시 활성**
+> - **이적시장 활성화 기간 (Transfer Window)**: 실제 체결 발효 시기 (6/1~8/31 여름 + 1/1~1/31 겨울) — **체결만 시기 제약**
+> - 영어 변수명 `transferWindow*` 그대로 (도메인 표준). 한국어 docs / UI 표현만 정정.
 
-### Sequence (유저 영입)
+### Trigger
+- **검색·오퍼**: 시점 제약 X (V0.1, 사용자 클럽 능동 행동)
+- **AI 응답**: DailyProcessor 가 매일 호출 (시점 제약 X)
+- **체결**: Accepted 오퍼가 이적시장 활성화 기간 진입 시 자동
+- **AI 구단의 자동 이적**: V1.0+ (V0.1 미구현)
+
+### Sequence (유저 영입, V0.1, algorithms.md #3 명세)
 
 ```
-[1] UI: 이적 검색 화면
-    a. 필터 입력 (포지션, 연령, 능력치 등)
-    b. TransferSystem.SearchPlayers(filter, state) 호출
-    c. 결과 목록 표시 (스카우팅 범위 내 + 능력치 정확도 시설 등급 영향)
+[1] TransferMarket.SearchPlayers(filter, state) — 상시 호출 가능 (시점 제약 X)
+    a. UI 또는 호출자가 TransferSearchFilter 구성 (position / minAge,maxAge / minCA,maxCA / excludeUserClub)
+    b. state.allPlayers LINQ 필터링 → 매칭 선수 반환
+    c. V0.1: 모든 선수 정확한 CA/PA 노출 (스카우트 시스템 V1.0+)
 
 [2] 유저가 특정 선수 선택 → 오퍼 작성:
     a. 이적료 입력
     b. 제안 계약 조건 입력 (주급, 기간)
     c. "Submit Offer" 클릭
 
-[3] TransferSystem.SubmitOffer():
-    a. TransferOffer 생성, status = Pending
-    b. state.activeOffers에 추가
-    c. EventBus.Publish(new OfferSubmittedEvent)
+[3] TransferSystem.SubmitOffer() — 시점 제약 X (활성화 기간 외에도 가능, 미리 협상):
+    a. 사전 검증: 양 구단 존재 / 선수 fromClubId 소속 / amount > 0
+    b. TransferOffer 생성: status = Pending, id = state.nextOfferId++
+    c. state.activeOffers에 추가
+    d. EventBus.Publish(new OfferSubmittedEvent { offerId })
 
-[4] TransferSystem.ProcessOffers() (매일 호출):
-    - 각 Pending 오퍼에 대해 판매 구단 의사 결정
-      · 시장 가치 대비 오퍼 평가
-      · 구단 명성, 선수 잉여 여부, 라이벌 관계 등 고려
-    - 결과:
-      [수락] → status = Negotiating, 선수 개인 협상 단계로
-      [거절] → status = Rejected, 유저에게 알림
-      [역제안] → status = CounterOffer, 새 금액 제시
+[4] TransferSystem.ProcessOffers() — DailyProcessor.Run 안에서 매일 호출:
+    foreach offer in state.activeOffers:
+      switch offer.status:
+        case Pending:
+            # AI 응답 (algorithms.md #3.1 [3-a])
+            rng = new Random(state.randomSeed ^ offer.id ^ currentDate.Ticks)
+            marketValue = CalculateMarketValue(player, state, balance)
+            aiPerceivedValue = marketValue * rng.NextNormal(1.0, balance.aiValueNoiseSigma)  # ±10% noise
+            ratio = offer.amount / aiPerceivedValue
+            if ratio >= balance.aiAcceptRatio (1.20):
+                status = Accepted
+            else:
+                status = Rejected
+            EventBus.Publish(new OfferRespondedEvent)
+        
+        case Accepted:
+            # 활성화 기간 시 자동 체결
+            if IsTransferWindowOpen(state.currentDate, balance):
+                CompleteTransfer(offer, state)
+        
+        # Rejected / Completed: skip
 
-[5] 선수 개인 협상 (status = Negotiating):
-    - 선수가 제시된 계약 조건 평가
-    - 명성, 출전시간 기대, 야망 등 고려
-    - 결과:
-      [수락] → status = Accepted, 이적 완료 처리
-      [거절] → status = Rejected
-      [더 좋은 조건 요구] → 유저 추가 결정
+[5] 선수 개인 협상 — V0.1 자동 통과 (V1.0+ 협상 시스템):
+    - V0.1: status = Negotiating 단계 스킵 → AI 판매 구단 Accepted = 곧바로 체결 대기
+    - V1.0+: 주급 / 명성 / 출전시간 기대 / 야망 평가 + 다중 라운드
 
-[6] 이적 완료 처리 (status = Accepted):
-    a. Player.currentClubId 변경
-    b. 양 구단 squad 리스트 갱신
-    c. 양 구단 finance 갱신 (이적료 이동)
-    d. Player.contract 갱신
+[6] 이적 완료 처리 (CompleteTransfer, status = Accepted → Completed):
+    a. Player.currentClubId 변경 (fromClubId → toClubId)
+    b. 양 구단 squad 리스트 갱신 (fromClub.seniorSquadIds 제거 / toClub 추가)
+    c. 양 구단 finance.money 갱신 (이적료 이동)
+    d. Player.contract = offer.proposed (새 계약 적용)
     e. status = Completed
-    f. EventBus.Publish(new TransferCompletedEvent)
+    f. EventBus.Publish(new TransferCompletedEvent { offerId, playerId, fromClubId, toClubId, amount })
+```
+
+### 자연스러운 시나리오 — 미리 협상 + 활성화 기간 자동 체결
+
+```
+11/15 (시즌 중간) — 유저가 다른 클럽 슈퍼스타 검색 → 오퍼 (시장가 9.5M, offer 12M)
+                     status = Pending
+11/16             — DailyProcessor.ProcessOffers → AI 응답: ratio=1.26 ≥ 1.20 → Accepted
+                     OfferRespondedEvent 발행, status = Accepted (대기)
+11/17 ~ 12/31     — 매일 ProcessOffers 호출. Accepted 이지만 IsTransferWindowOpen=false → 체결 보류
+1/1 (윈터 시작)   — IsTransferWindowOpen=true → CompleteTransfer
+                     선수 이적 발효 + TransferCompletedEvent 발행
 ```
 
 ### Key Points
-- V0.1은 단순화: 오퍼 → 협상 → 체결 3단계.
-- V1.0에서 협상 / 메디컬 / 에이전트 단계 추가.
-- 같은 선수에 대해 동시에 여러 오퍼 가능.
-- 이적창 마감 시 미체결 오퍼 자동 무산.
+
+- **이적시장 vs 활성화 기간 분리** — 검색·오퍼·협상 상시 / 체결만 시기 제약. 실제 축구 메커닉 반영.
+- **V0.1 단일 라운드** — AI 응답 (Accept/Reject) 만. 역제안 / 다중 협상 / 선수 협상 V1.0+.
+- **AI 구단 능동 영입 V0.1 미구현** — 사용자 클럽만 오퍼. V1.0+ CpuTransferAi.
+- **시드 결정성 (`design-decisions.md` #17)** — AI 응답이 결정적. ±10% noise 로 평가 부정확성 표현.
+- **같은 선수 여러 오퍼 가능** — 각자 독립 처리. 첫 체결 시 player.currentClubId 변경 → 후속 오퍼는 fromClubId 불일치 스킵.
+- **V1.0+ 보완** — `algorithms.md #3` V1.0 Migration Notes 30+ 항목 (AI 협상 / 스카우트 / 임대 / FA / 트랜스퍼 리스트 등).
 
 ---
 

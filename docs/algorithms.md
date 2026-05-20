@@ -46,7 +46,7 @@ V0.1 시작 전 정해야 할 알고리즘 (우선순위):
 2. **구단 생성 (Club Generation)** ★★★★★ — `## 5` 작성 완료
 3. **스타팅 스쿼드 가챠 (Starting Squad Gacha)** ★★★★ — `## 6` 작성 완료
 4. **경기 결과 계산 (Match Simulation)** ★★★★★ — `## 2` 작성 완료
-5. **선수 가치 계산 (Market Value)** ★★★★ — `## 3` 미작성
+5. **선수 가치 계산 (Market Value)** ★★★★ — `## 3` 작성 완료
 6. **유스 풀 생성 (Youth Pool Generation)** ★★★★ — `## 4` 작성 완료
 
 > 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례. Gacha 는 섹션 `## 6` 으로 끝에 추가. Match Simulation 은 섹션 `## 2` 자리에 후속 작성.
@@ -794,7 +794,367 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분. 각 항목의 영향 �
 
 ## 3. Market Value
 
-*(미작성)*
+### Purpose
+
+- 단일 `Player` 의 **시장 가치 (Market Value)** 산출. 이적 협상의 기준점.
+- 호출 시점:
+  - **유저 검색 시 (이적시장)** — `TransferMarket.SearchPlayers` 결과에 가치 표시
+  - **AI 응답 시** — `TransferSystem.ProcessOffers` 가 오퍼 금액 vs 시장가치 비교
+  - **V1.0+ AI 영입 의사결정** — 다른 클럽 AI 가 영입 가치 평가
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `player` | `Player` | CA / PA / info.primaryPosition / state.injury / contract |
+| `currentDate` | `DateTime` | 계약 잔여 기간 계산 |
+| `balance` | `GameBalanceSO` | 모든 수치 외부화 |
+
+### Outputs
+
+`int marketValue` — 100,000 단위 반올림 (가독성).
+
+### Logic — 6 요소 곱셈 공식
+
+```
+caFactor       = pow(CA / 100.0, balance.marketValueCaExponent)         # 기본 4.0 — 슈퍼스타 압도적
+paGapBonus     = max(0, PA - CA) * balance.marketValuePaCoeff           # PA-CA 갭 가치 (잠재력)
+ageFactor      = AgeCurve(age, balance)                                  # 연령별 가치 곡선
+contractFactor = ContractCurve(remainingYears, balance)                  # 계약 잔여 기간
+positionFactor = PositionFactor(line, balance)                            # 4라인 (GK/DF/MF/AT)
+injuryFactor   = (player.state.injury.injuryTypeId == -1) ? 1.0 : balance.marketValueInjuryFactor
+
+rawValue   = (balance.marketValueBase * caFactor + paGapBonus)
+             * ageFactor * contractFactor * positionFactor * injuryFactor
+
+marketValue = Round100k(max(0, rawValue))    # 100,000 단위 반올림
+```
+
+#### AgeCurve
+
+연령별 가치 곡선 — 16~21 = 0.85 / 22~28 = 1.20 (피크) / 29~33 = 0.75 / 34+ = 0.35.
+
+```
+AgeCurve(age, balance) → float:
+    if age <= 21:        return balance.marketValueAgeCurve[0]      # 0.85 (유망주)
+    elif age <= 28:      return balance.marketValueAgeCurve[1]      # 1.20 (피크)
+    elif age <= 33:      return balance.marketValueAgeCurve[2]      # 0.75 (노장)
+    else:                return balance.marketValueAgeCurve[3]      # 0.35 (말년)
+```
+
+#### ContractCurve
+
+계약 잔여 1년 = 0.50 (마지막 해, 자유 이적 임박 → 헐값) / 2년 = 0.80 / 3년 = 1.00 / 4+년 = 1.05.
+
+```
+ContractCurve(remainingYears, balance) → float:
+    idx = clamp(remainingYears - 1, 0, balance.marketValueContractCurve.Length - 1)
+    return balance.marketValueContractCurve[idx]
+```
+
+#### PositionFactor
+
+`StartingSquadGacha.LineOf(position)` 재활용 (4 라인 분류). GK=0.75 / DF=0.85 / MF=1.00 / AT=1.20.
+
+```
+PositionFactor(line, balance) → float:
+    return balance.marketValuePositionFactor[(int)line]    # Line enum 순서
+```
+
+### 예시 검증
+
+| 선수 | 공식 | marketValue |
+| --- | --- | --- |
+| **평범** CA 100 PA 100, 25세 CM 잔여 3년 | 500k × 1.0 × 1.20 × 1.00 × 1.00 × 1.0 | **600k** |
+| **강한** CA 150 PA 170, 24세 ST 잔여 4년 | (500k × 5.06 + 1M) × 1.20 × 1.05 × 1.20 × 1.0 | **5.3M** |
+| **슈퍼스타** CA 180 PA 200, 22세 ST 잔여 5년 | (500k × 10.5 + 1M) × 1.20 × 1.05 × 1.20 × 1.0 | **9.5M** |
+| **절정** CA 200 PA 200, 22세 ST 잔여 5년 | (500k × 16) × 1.20 × 1.05 × 1.20 × 1.0 | **14.5M** |
+| **베테랑** CA 90 PA 95, 32세 CB 잔여 1년 | (500k × 0.656 + 250k) × 0.75 × 0.50 × 0.85 × 1.0 | **180k** |
+| **부상자** CA 150 PA 170, 24세 ST 잔여 4년 / injury | 5.3M × 0.50 | **2.7M** |
+
+**평범 vs 슈퍼스타 = 15.7배** 차이. 디자인 의도 "비교도 안 되게" 충족.
+
+**ClubGen 자금과 균형**:
+- 빅클럽 자금 ~9M / transferBudget 20% ≈ 1.8M
+- 슈퍼스타 9~15M → 빅클럽도 한두 시즌 모아야 영입 가능
+
+### Balancing Parameters → GameBalanceSO
+
+```csharp
+public int     marketValueBase            = 500_000;         // CA=100 기준점
+public float   marketValueCaExponent      = 4.0f;            // pow 지수
+public float   marketValuePaCoeff         = 50_000f;         // PA-CA 갭 1 = 50k
+public float[] marketValueAgeCurve        = { 0.85f, 1.20f, 0.75f, 0.35f };  // 16~21 / 22~28 / 29~33 / 34+
+public float[] marketValueContractCurve   = { 0.50f, 0.80f, 1.00f, 1.05f };  // 잔여 1/2/3/4+년
+public float[] marketValuePositionFactor  = { 0.75f, 0.85f, 1.00f, 1.20f };  // GK/DF/MF/AT (Line enum 순서)
+public float   marketValueInjuryFactor    = 0.50f;
+```
+
+### Edge Cases
+
+| Case | 처리 |
+| --- | --- |
+| `CA == 0` (생성 오류) | `caFactor = 0`, `paGapBonus` 만으로 가치 계산. 최소 100k 보장 |
+| `PA < CA` (있을 수 없으나 방어) | `paGapBonus = 0` (max 처리) |
+| `remainingYears < 0` (계약 만료) | `ContractCurve` index 0 (잔여 1년 취급) + 경고. V1.0+ 자유계약 처리 |
+| `remainingYears > Curve.Length` | Clamp 마지막 index |
+| `age < 16 or > 40` | AgeCurve 가 마지막 index (말년) — 비정상 데이터 알림 |
+| `positionFactor.Length != 4` | Assert |
+| `player.state == null` | injuryFactor = 1.0 폴백 |
+| 음수 rawValue | `max(0, rawValue)` |
+
+### Test Scenarios
+
+`Random(seed: 42)` 고정. 통계 테스트는 PlayerGen 1000명 batch + Market Value 계산 → 분포 검증.
+
+**T1. 결정성**
+- 같은 Player + 같은 currentDate + 같은 balance → 같은 marketValue.
+- PlayerGen 의 결정성 (`#17`) 과 짝.
+
+**T2. 슈퍼스타 vs 평범 — 차이 ≥ 10배**
+- CA 180 PA 200 22세 ST 잔여 5년 / CA 100 PA 100 25세 CM 잔여 3년 → ratio ≥ 10.
+
+**T3. AgeCurve — 피크 시기 = 가장 비싼**
+- 같은 CA/PA, 25세 (피크) > 19세 (유망주) > 30세 (노장) > 35세 (말년)
+- 22~28 구간이 최댓값.
+
+**T4. ContractCurve — 잔여 1년이 가장 싸**
+- 같은 선수, 잔여 1년 = 0.50 / 잔여 4년 = 1.05 (2.1배 차이).
+
+**T5. PositionFactor — ST > MF > DF > GK**
+- 같은 CA/PA, ST > MF > DF > GK.
+
+**T6. Injury — 50% 디스카운트**
+- 같은 선수, 부상자 = 정상의 0.50.
+
+**T7. Round100k**
+- 마이너 단위 무시. 530,000 / 9,500,000 처럼 100k 단위.
+
+### V1.0+ Migration Notes (Market Value)
+
+V0.1 단순 공식. V1.0+ 에서 정교화 가능한 항목 모두 기록:
+
+| 항목 | V0.1 동작 | V1.0+ 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **선수 reputation** | 미반영 | `player.reputation: int` 신규 필드 — 빅네임 프리미엄 (`× pow(rep/50, 1.5)` 같은) | 새 도메인 필드 + 공식 |
+| **club reputation** | 미반영 | 현 소속 클럽 명성 곱셈 보정 — 빅클럽 선수 가치 ↑ | 공식 |
+| **form 보정** | 미반영 (V0.1 form=50 정적) | `state.form/50` 곱셈 (0.5~1.5) | 공식 + 시즌 시스템 |
+| **morale 보정** | 미반영 (V0.1 morale=50 정적) | `state.morale/50` 곱셈 (0.7~1.3) | 공식 + 사기 시스템 |
+| **이번 시즌 통계** | 미반영 | 현재 시즌 골/어시/평점 → 호황 시 가치 ↑ | `Player.career` 시즌 stat 사용 |
+| **시장 수요** | 미반영 | 해당 포지션 부족 + 다른 클럽 관심 → 가치 ↑ | 새 시스템 (PositionDemandSystem) |
+| **AskingPrice (보드 의지)** | 미반영 | 판매 의향 X → 1.5~3.0배 부풀림 | Board 시스템과 연동 |
+| **에이전트 수수료** | 미반영 | 별도 외부화 — 이적료의 5~15% | 새 시스템 |
+| **계약 만료 자유이적** | 잔여 0년 폴백 | 잔여 ≤ 6개월 → 자유이적 임박 (보스만 룰 #용어집) → 가격 폭락 / 자유이적 가능 | `EstimateInitialWage` 연동 |
+| **포지션별 시장 prepay** | 4 라인 단순 | 14개 포지션 세분 (GK 특수 / ST 프리미엄 등) | 공식 |
+| **세컨더리 포지션 가치** | 미반영 | secondaryPositions 보유 시 + 5~10% (다재다능) | 공식 |
+| **트레잇 가치** | 미반영 | 트레잇별 가치 보정 (빅매치형 +, 부상취약 -) | 공식 + Trait 시스템 |
+| **AgeCurve 정밀화** | 4 구간 | 매년 별도 곡선 (16=0.7 17=0.8 ... 28=1.30 29=1.20 30=1.05 31=0.90 ...) | 공식 + 외부화 |
+| **시즌 인플레이션** | 미반영 | 시즌 진행에 따라 시장 인플레 (보드 자금 늘면 가치 ↑) | 새 시스템 |
+| **국가 / 리그 차등** | 미반영 | EPL 선수 vs 하위 리그 선수 가치 차등 | LeagueConfigSO 필드 |
+
+---
+
+## 3.1. Transfer Flow (이적 흐름)
+
+### Purpose
+
+이적시장 / 오퍼 / AI 응답 / 체결의 전체 흐름. **이적시장 (검색·오퍼·협상)** 과 **이적시장 활성화 기간 (체결만)** 명확히 구분.
+
+> **용어 정정**: "이적창" 모호 → **"이적시장 활성화 기간"** (Transfer Window 의 한국어 표현). 영어 코드 변수명은 `transferWindow*` 그대로 (도메인 표준 용어).
+
+### Inputs / Outputs
+
+`TransferSystem` 의 메서드 시그니처 (Sub-B 구현):
+
+```csharp
+public static class TransferSystem {
+    public static int          CalculateMarketValue(Player p, GameState state, GameBalanceSO balance);
+    public static TransferOffer SubmitOffer(int playerId, int fromClubId, int toClubId,
+                                            int amount, Contract proposed,
+                                            GameState state, GameBalanceSO balance);
+    public static void          ProcessOffers(GameState state, GameBalanceSO balance);
+    public static bool          IsTransferWindowOpen(DateTime date, GameBalanceSO balance);
+    public static List<Player>  SearchPlayers(TransferSearchFilter filter, GameState state);
+}
+```
+
+### Logic
+
+전체 흐름:
+
+```
+[1] TransferMarket.SearchPlayers(filter, state)
+    - 시점 제약 X — 언제든지 호출 가능 (이적시장 활성화 기간 무관)
+    - V0.1: 모든 선수 정확한 CA/PA 노출 (스카우트 시스템 V1.0+)
+
+[2] SubmitOffer(playerId, fromClubId, toClubId, amount, contract, state, balance)
+    - 시점 제약 X — 활성화 기간 외에도 가능 (미리 협상)
+    - 사전 검증: 양 구단 존재, 선수가 fromClubId 소속, amount > 0, contract 유효
+    - TransferOffer 생성: status = Pending, id = state.nextOfferId++
+    - state.activeOffers 추가
+    - EventBus.Publish(new OfferSubmittedEvent { offerId })
+
+[3] ProcessOffers(state, balance)  — DailyProcessor.Run 안에서 매일 호출
+    foreach offer in state.activeOffers:
+        switch offer.status:
+            case Pending:
+                AiRespondToOffer(offer, state, balance)
+            case Accepted:
+                if IsTransferWindowOpen(state.currentDate, balance):
+                    CompleteTransfer(offer, state)
+            // Rejected / Completed: skip
+
+[3-a] AiRespondToOffer(offer, state, balance):
+    rng = new Random(state.randomSeed ^ offer.id ^ state.currentDate.Ticks)
+    marketValue = CalculateMarketValue(player, state, balance)
+    
+    # AI 평가 ±10% noise — 결정성 유지하며 정확한 가치 평가 어려움 표현
+    noise = rng.NextNormal(1.0, balance.aiValueNoiseSigma)
+    aiPerceivedValue = marketValue * max(0.5, noise)
+    
+    ratio = offer.amount / aiPerceivedValue
+    if ratio >= balance.aiAcceptRatio:        # 1.20
+        offer.status = Accepted
+    else:
+        offer.status = Rejected
+    
+    EventBus.Publish(new OfferRespondedEvent { offerId, newStatus })
+
+[4] CompleteTransfer(offer, state):
+    player = state.GetPlayer(offer.playerId)
+    fromClub = state.GetClub(offer.fromClubId)
+    toClub = state.GetClub(offer.toClubId)
+    
+    # 선수 이적
+    player.currentClubId = toClub.id
+    fromClub.seniorSquadIds.Remove(offer.playerId)
+    toClub.seniorSquadIds.Add(offer.playerId)
+    player.contract = offer.proposed     # 새 계약 적용
+    
+    # 자금 이동
+    fromClub.finance.money += offer.amount
+    toClub.finance.money -= offer.amount
+    
+    offer.status = Completed
+    EventBus.Publish(new TransferCompletedEvent {
+        offerId, playerId, fromClubId, toClubId, amount
+    })
+```
+
+#### IsTransferWindowOpen
+
+```
+IsTransferWindowOpen(date, balance) → bool:
+    summerStart = new DateTime(year, balance.transferWindowSummerStartMonth, balance.transferWindowSummerStartDay)
+    summerEnd   = new DateTime(year, balance.transferWindowSummerEndMonth,   balance.transferWindowSummerEndDay)
+    winterStart = new DateTime(year, balance.transferWindowWinterStartMonth, balance.transferWindowWinterStartDay)
+    winterEnd   = new DateTime(year, balance.transferWindowWinterEndMonth,   balance.transferWindowWinterEndDay)
+    return (date >= summerStart && date <= summerEnd) || (date >= winterStart && date <= winterEnd)
+```
+
+기본값:
+- 여름: 6/1 ~ 8/31 (시즌 종료 직후)
+- 겨울: 1/1 ~ 1/31 (시즌 중간)
+
+#### TransferSearchFilter (Task 11.2)
+
+```csharp
+public class TransferSearchFilter {
+    public Position? position;        // null = 전체
+    public int minAge, maxAge;
+    public int minCA, maxCA;
+    public bool excludeUserClub = true;
+}
+```
+
+```
+SearchPlayers(filter, state) → List<Player>:
+    return state.allPlayers
+        .Where(p => filter.position == null || p.info.primaryPosition == filter.position)
+        .Where(p => p.GetAge(state.currentDate) >= filter.minAge && p.GetAge(state.currentDate) <= filter.maxAge)
+        .Where(p => p.currentAbility >= filter.minCA && p.currentAbility <= filter.maxCA)
+        .Where(p => !filter.excludeUserClub || p.currentClubId != state.userClubId)
+        .ToList()
+```
+
+> **V0.1 단순화**: 시점 제약 X / 정확도 100%. V1.0+ 스카우트 범위 / 정확도 / 시설 등급 영향.
+
+### Edge Cases (이적 흐름)
+
+| Case | 처리 |
+| --- | --- |
+| 같은 선수에 여러 오퍼 동시 | 허용. 각자 독립 처리. V1.0+ 선수가 최선 오퍼 선택 |
+| `amount` < 0 또는 0 | `ArgumentException` |
+| `fromClubId` 가 선수 소속 아님 | `ArgumentException` |
+| `toClubId == fromClubId` | `ArgumentException` |
+| `toClub.finance.money < amount` | V0.1 허용 (자금 부족 후 적자). V1.0+ Reject |
+| 활성화 기간 외에 `Accepted` 오퍼가 쌓임 | `state.activeOffers` 에 보관 — 활성화 기간 시 일괄 체결 |
+| Accepted 상태에서 player.currentClubId 변경 (다른 이적) | CompleteTransfer 가 fromClubId 검증 — 불일치 시 status = Rejected (또는 Completed 스킵) |
+| `Completed` 상태 오퍼 후 처리 | `ProcessOffers` 가 skip (switch default) |
+| `Rejected` 상태 오퍼 | `state.activeOffers` 에 잔존 (UI history 용). V1.0+ archive 검토 |
+
+### Test Scenarios (이적 흐름)
+
+`Random(seed: 42)` 고정.
+
+**T1. 결정성 — AI 응답**
+- 같은 offer.id / state.randomSeed / currentDate → 같은 AI 응답 (Accepted or Rejected).
+
+**T2. SubmitOffer — 정상 흐름**
+- offer 추가 / Pending / activeOffers 길이 +1 / OfferSubmittedEvent 발행.
+
+**T3. AI 응답 — Acceptance**
+- amount = marketValue × 1.30 → Accepted.
+- amount = marketValue × 1.00 → Rejected (< 1.20).
+- amount = marketValue × 1.20 (경계) → Accepted (이론, noise 영향 가능).
+
+**T4. 체결 — 활성화 기간 안**
+- Accepted 오퍼 + currentDate 8/15 (여름 활성화 기간) → ProcessOffers 호출 시 Completed.
+- 선수 currentClubId / squad 갱신 / 자금 이동 / TransferCompletedEvent 발행.
+
+**T5. Accepted 대기 — 활성화 기간 외**
+- Accepted 오퍼 + currentDate 11/15 (활성화 기간 외) → status = Accepted 유지.
+- currentDate 1/1 도달 시 다음 ProcessOffers → Completed.
+
+**T6. 활성화 기간 검증**
+- IsTransferWindowOpen(6/1) = true / 9/1 = false / 1/15 = true / 2/1 = false.
+
+**T7. 시점 제약 X — 오퍼 / 검색**
+- 11/15 currentDate 에 SubmitOffer 호출 → 정상 (Pending).
+- 11/15 SearchPlayers 호출 → 정상 (시점 무관).
+
+**T8. 검색 필터**
+- position=ST / minAge=18 / maxAge=25 / minCA=120 → 조건 일치 선수만 반환.
+- excludeUserClub=true → 유저 클럽 선수 제외.
+
+**T9. 같은 선수 여러 오퍼**
+- 두 클럽이 같은 player 에 오퍼 → 둘 다 Accepted 가능. 그 후 첫 체결 시 player.currentClubId 변경. 두 번째 체결 시 fromClubId 불일치 → 스킵.
+
+### V1.0+ Migration Notes (Transfer Flow)
+
+| 항목 | V0.1 동작 | V1.0+ 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **AI 협상 / 역제안** | 단일 라운드 (Accept/Reject) | CounterOffer status — 시장가치 × 1.3 역제안 + 유저 응답 라운드 | ProcessOffers + 새 status |
+| **선수 개인 협상** | V0.1 자동 통과 | `Negotiating` 단계 — 주급 / 명성 / 출전시간 기대 / 야망 평가 | 새 시스템 |
+| **AI 구단 영입 행동** | 미구현 (사용자 클럽만 오퍼) | AI 클럽이 자체 영입 결정 — 약점 포지션 / 자금 여유 / 명성 기준 | 새 AI 시스템 (CpuTransferAi) |
+| **스카우트 시스템** | V0.1 정확도 100% | `Club.facilities.scoutLevel` 영향 — PA 추정치 범위 / 트레잇 노출 정도 / 검색 가능 영역 (국내 / 글로벌) | SearchPlayers + 새 ScoutingSystem |
+| **에이전트 / 보너스** | 미구현 | 사이닝 보너스 / 에이전트 수수료 / 충성 보너스 등 추가 비용 | Contract + Finance |
+| **이적창 외 협상 보류** | Accepted 대기 자동 체결 | 협상 상태 유지 (Negotiating) → 활성화 기간 진입 시 양 측 재확인 → 체결 / 무산 | ProcessOffers |
+| **임대 (Loan)** | 미구현 | 임대 시스템 — 임대료 / 옵션 / 의무 영구 이적 조항 | 새 도메인 + 새 메서드 |
+| **계약 갱신** | 미구현 | 만료 6개월 전부터 갱신 협상 (`data-flows.md` #6 시즌 종료 흐름) | 새 시스템 |
+| **자유계약 (FA)** | 미구현 | 잔여 0년 선수는 자유이적 (이적료 0, 사이닝 보너스만) | SubmitOffer 분기 |
+| **활성화 기간 시기 데이터** | balance.transferWindow* 4 쌍 외부화 | LeagueConfigSO 로 이전 — 리그별 다른 이적창 일정 | balance → LeagueConfigSO |
+| **트랜스퍼 리스트 (Transfer Listed)** | `Player.state.transferListed` 필드만 존재, 미사용 | 보드 / 매니저가 선수 트랜스퍼 리스트 등록 → 시장가 × 0.7 거래 가능 | SubmitOffer + UI |
+| **다른 클럽 인지 (Interest)** | 미구현 | 어떤 클럽이 어떤 선수에 관심 있는지 시스템 — 다중 오퍼 경쟁 | 새 시스템 |
+| **이적 시장 활동량** | 미구현 | 시즌별 시장 활성도 (자금 인플레 / 빅 무브 등) — 시장가치 인플레이션 | 새 시스템 |
+| **선수 transferListed 자동 결정** | 미구현 | 사기 낮음 / 출전시간 미달 시 자동 트랜스퍼 리스트 요청 | 사기 시스템 연동 |
+| **다중 라운드 협상** | 단일 라운드 | 협상 라운드 수 외부화 + 라운드별 양 측 의지 변화 | ProcessOffers |
+
+### Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-20 | All | Initial spec for V0.1. Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age curve + contract curve + position factor + injury). 슈퍼스타 vs 평범 ~15.7배 가격 차이. 이적 흐름 단일 라운드 (Submit → AI 응답 → Accepted 대기 → 활성화 기간 시 자동 체결). 이적시장 (검색·오퍼·협상) 상시 / 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31. `design-decisions.md` #37 (V0.1 정책) 와 연동. V1.0+ Migration Notes 30+ 항목 (Market Value 15 + Flow 15+). |
 
 ---
 
@@ -1760,3 +2120,4 @@ public float tierWeakRatio     = 0.75f;
 | 2026-05-19 | #2 Test Scenarios | Sub-C 본 구현 시 정규근사 (Skellam) 재계산 + 실측 검증 결과로 T3~T6 임계치/매치수 미세조정 (#113). T3 강팀 승률 70%→60% (홈) / 60%→45% (원정) — 정규근사 기대 ~64%/51% 에 표본오차 마진. 강팀 원정은 거의 50/50 (홈 보너스가 약팀 측 가산되는 게 큰 영향). T4 분포 명세 추가 (45/22/33%). T5 무득점 비율 8~10%→2~10% (이론 5%, 명세 초안 오기 수정). T6 매치 수 1000→500, 라인 분포 명세화 (GK3/DF8/MF8/AT6) + 가중치 합 계산 명시. **시드 well-distributed 정책 추가** — `(seedBase+i)^i` collision 회피 위해 `seedGen.Next()` 패턴 명시. |
 | 2026-05-19 | #2 4단계 / Balancing / V1.0 Notes / T3 | **`strengthExponent` (k) 도입** (#113). 단순 선형 ratio 가 CA 1.89배 차이를 골 1.43배 차이로만 반영 → 강팀 원정 51% 라 디자인 의도 (압도적 강팀이 자주 이김) 부족. `pow(s, k)` 비선형화로 강팀 우월함 증폭 (k=1.5 기본 → 강팀 홈 72% / 원정 59%). V0.1 임시 변통 — V1.0+ 매치 엔진 재작성 시 finishing 등 개별 stats 가 결정력 직접 표현하므로 k=1 회귀 또는 폐기. T3 임계치 재조정 (홈 60→65, 원정 45→50). |
 | 2026-05-20 | Priority Order + #4 | Youth Pool Generation `## 4` 섹션 신규 작성 (Task 10 Sub-A, #123). PA 진실값 / CA derived 역방향 모델. 스타 픽 메커닉 (5% PA bonus). 시드 = `currentDate.Ticks` + `userActionHash` 결합 (외부 마이닝 + 직플 영상 공유 둘 다 방어). V0.1 시설 통합 등급 + V1.0+ 분리 명세. `design-decisions.md` #35/#36 와 연동. |
+| 2026-05-20 | Priority Order + #3 + #3.1 | Market Value + Transfer Flow `## 3` 섹션 신규 작성 (Stage 11 Sub-A, #130). Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury). 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도 "비교도 안 되게"). 이적 흐름 — 이적시장 (검색·오퍼·협상) 상시 / 이적시장 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31. Accepted 대기 → 활성화 기간 시 자동 체결. AI 응답 ±10% noise. V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. `design-decisions.md` #37 연동. V1.0+ Migration Notes 30+ 항목. |
