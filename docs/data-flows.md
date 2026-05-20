@@ -169,13 +169,15 @@
 
 ### Sequence (비활성 구단 경기)
 
-[V0.1] **단일 `Simulate` 메서드** — 활성 / 비활성 구분 알고리즘 X.
-- `BackgroundSimulator` (Task 9.3) 가 `MatchSimulator.Simulate(match, state)` 호출 (활성 경기와 동일).
-- `MatchPostProcessor` 가 `match.result =` 적용 + 순위 갱신.
-- **이벤트 발행 차이만** — 비활성 구단 경기는 `MatchFinishedEvent` 발행 생략 (`BackgroundSimulator` 가 결정. UI 갱신 불필요).
-- V0.1 텍스트 이벤트 / 평점 시스템 없으므로 활성/비활성 알고리즘 분리 의미 없음.
+**[V0.1]** 활성 / 비활성 구분 알고리즘 / 이벤트 발행 모두 **동일** (옵션 A — 단순화).
+- `BackgroundSimulator.SimulateDay(state, balance)` (Task 9.3) 가 `state.currentDate` 모든 매치 일괄 처리.
+- 각 매치: `MatchSimulator.Simulate` → `MatchPostProcessor.Process`.
+- **모든 매치 `MatchFinishedEvent` 발행** — V0.1 UI 없으므로 구독자 0, `EventBus.Publish` 비용 ~0. 인터페이스 단순화 우선.
+- 이미 처리된 매치 (`match.result != null`) 는 스킵 (PostProcessor 의 재처리 예외 회피).
 
-> **V1.0+ 보완 포인트**: 이벤트 시퀀스 시스템 (`design-decisions.md` #34) 도입 후 비활성 구단 경기는 분 단위 시뮬레이션 비용 회피 위해 경량 경로 (`SimulateLite`) 분리 검토. V0.1 에선 폐기.
+> **V1.0+ 보완 포인트**:
+> 1. **UI 도입 시 `publishEvent` 옵션** — `MatchPostProcessor.Process(..., publishEvent: bool)` 추가. 유저 구단 매치만 `true` (UI 결과 화면 갱신용), 비활성 매치는 `false` (백그라운드).
+> 2. **분 단위 이벤트 시뮬 도입 시 경량 경로** — 비활성 구단 경기는 텍스트 이벤트 생성 비용 회피 위해 별도 `SimulateLite` 분리 검토 (`design-decisions.md` #34).
 
 ### Key Points
 - 시드는 매치 ID + 게임 시드 조합. 같은 매치는 항상 같은 결과 (`algorithms.md` #2 1단계).
