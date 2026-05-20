@@ -1,7 +1,7 @@
 // DailyProcessor.cs
 // data-flows.md #2 [2] 매일 백그라운드 처리.
 // Stateless 시스템 (design-decisions.md #3) — state 입력받아 변경.
-// V0.1 책임: fatigue 회복 + 부상 회복 카운트다운.
+// V0.1 책임: fatigue 회복 + 부상 회복 카운트다운 + TransferSystem.ProcessOffers (Stage 11).
 // V1.0 추가 예정: 사기/모랄 일일 변동, 계약 만료 ContractExpiringEvent.
 
 using System;
@@ -23,6 +23,10 @@ namespace FMLite.Application
                 // TODO V1.0: ContractExpiring 알림 — currentDate vs contract.endDate
                 //              (임계점: 6개월 전 / 1개월 전 / 만료일)
             }
+
+            // 이적 오퍼 처리 — Pending → AI 응답 / Accepted → 활성화 기간 시 자동 체결
+            // (algorithms.md #3.1 ProcessOffers)
+            TransferSystem.ProcessOffers(state, balance);
         }
 
         private static void RecoverFatigue(Player p, GameBalanceSO b)

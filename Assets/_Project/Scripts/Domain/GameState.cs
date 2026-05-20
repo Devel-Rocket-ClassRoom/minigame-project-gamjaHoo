@@ -28,6 +28,11 @@ namespace FMLite.Domain
         // algorithms.md #4 1단계 시드 공식에 들어가 풀 결정성 기반.
         public int nextIntakeId = 1;
 
+        // 모든 TransferOffer id 발급의 단일 진실의 원천 (algorithms.md #3.1).
+        // SubmitOffer 호출 시 이 카운터로 id 부여 후 +1.
+        // AI 응답 시드에 들어가 결정성 기반.
+        public int nextOfferId = 1;
+
         // 마스터 리스트 (직렬화 대상)
         public List<Player> allPlayers = new List<Player>();
         public List<Club> allClubs = new List<Club>();

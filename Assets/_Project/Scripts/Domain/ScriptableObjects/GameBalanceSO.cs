@@ -208,8 +208,36 @@ namespace FMLite.Domain
         public float retirementProbabilityPerYear = 0.15f;
         public int seasonRerollTokenGrant = 3;
 
-        [Header("Transfer")]
-        public float marketValueAgeFactor = 1.0f;
-        public float marketValueCAFactor = 100f;
+        // ============================================================
+        // Transfer Market (algorithms.md #3 / #3.1)
+        // ============================================================
+
+        [Header("Transfer Market — Value")]
+        public int     marketValueBase            = 500_000;        // CA=100 기준점 (algorithms.md #3 Logic)
+        public float   marketValueCaExponent      = 4.0f;            // pow 지수 (슈퍼스타 압도)
+        public float   marketValuePaCoeff         = 50_000f;         // PA-CA 갭 1 = 50k
+        // AgeCurve 4 구간: 16~21 / 22~28 (피크) / 29~33 / 34+
+        public float[] marketValueAgeCurve        = { 0.85f, 1.20f, 0.75f, 0.35f };
+        // ContractCurve 4 구간: 잔여 1 / 2 / 3 / 4+년
+        public float[] marketValueContractCurve   = { 0.50f, 0.80f, 1.00f, 1.05f };
+        // PositionFactor 4 구간: GK / DF / MF / AT (Line enum 순서)
+        public float[] marketValuePositionFactor  = { 0.75f, 0.85f, 1.00f, 1.20f };
+        public float   marketValueInjuryFactor    = 0.50f;
+        public float   aiValueNoiseSigma          = 0.10f;           // AI 평가 ±10% noise
+
+        [Header("Transfer Market — Acceptance")]
+        public float aiAcceptRatio = 1.20f;     // offer/marketValue 비율 >= 시 Accept
+
+        [Header("Transfer Market — 이적시장 활성화 기간 (Transfer Window)")]
+        // 여름: 6/1 ~ 8/31 (시즌 종료 직후)
+        public int transferWindowSummerStartMonth = 6;
+        public int transferWindowSummerStartDay   = 1;
+        public int transferWindowSummerEndMonth   = 8;
+        public int transferWindowSummerEndDay     = 31;
+        // 겨울: 1/1 ~ 1/31 (시즌 중간)
+        public int transferWindowWinterStartMonth = 1;
+        public int transferWindowWinterStartDay   = 1;
+        public int transferWindowWinterEndMonth   = 1;
+        public int transferWindowWinterEndDay     = 31;
     }
 }
