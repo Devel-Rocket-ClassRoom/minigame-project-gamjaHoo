@@ -11,10 +11,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
-using UnityEngine;
 using FMLite.Core;
 using FMLite.Domain;
+using Newtonsoft.Json;
+using UnityEngine;
 
 namespace FMLite.Persistence
 {
@@ -30,8 +30,10 @@ namespace FMLite.Persistence
 
         public static void Save(GameState state, string slotName)
         {
-            if (state == null) throw new ArgumentNullException(nameof(state));
-            if (string.IsNullOrWhiteSpace(slotName)) throw new ArgumentException("slotName must be non-empty", nameof(slotName));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (string.IsNullOrWhiteSpace(slotName))
+                throw new ArgumentException("slotName must be non-empty", nameof(slotName));
 
             var slotPath = GetSlotPath(slotName);
             Directory.CreateDirectory(slotPath);
@@ -55,25 +57,30 @@ namespace FMLite.Persistence
 
         public static GameState Load(string slotName)
         {
-            if (string.IsNullOrWhiteSpace(slotName)) throw new ArgumentException("slotName must be non-empty", nameof(slotName));
+            if (string.IsNullOrWhiteSpace(slotName))
+                throw new ArgumentException("slotName must be non-empty", nameof(slotName));
 
             var statePath = Path.Combine(GetSlotPath(slotName), StateFile);
-            if (!File.Exists(statePath)) return null;
+            if (!File.Exists(statePath))
+                return null;
 
             var json = File.ReadAllText(statePath);
             var state = JsonConvert.DeserializeObject<GameState>(json);
             state?.BuildIndexes();
 
-            if (state != null) EventBus.Publish(new GameLoadedEvent());
+            if (state != null)
+                EventBus.Publish(new GameLoadedEvent());
             return state;
         }
 
         public static SaveSlotMeta LoadSlotMeta(string slotName)
         {
-            if (string.IsNullOrWhiteSpace(slotName)) throw new ArgumentException("slotName must be non-empty", nameof(slotName));
+            if (string.IsNullOrWhiteSpace(slotName))
+                throw new ArgumentException("slotName must be non-empty", nameof(slotName));
 
             var metaPath = Path.Combine(GetSlotPath(slotName), MetaFile);
-            if (!File.Exists(metaPath)) return null;
+            if (!File.Exists(metaPath))
+                return null;
 
             var json = File.ReadAllText(metaPath);
             return JsonConvert.DeserializeObject<SaveSlotMeta>(json);
@@ -82,23 +89,27 @@ namespace FMLite.Persistence
         public static List<SaveSlotMeta> ListSlots()
         {
             var result = new List<SaveSlotMeta>();
-            if (!Directory.Exists(SavesPath)) return result;
+            if (!Directory.Exists(SavesPath))
+                return result;
 
             foreach (var dir in Directory.GetDirectories(SavesPath))
             {
                 var slotName = Path.GetFileName(dir);
                 var meta = LoadSlotMeta(slotName);
-                if (meta != null) result.Add(meta);
+                if (meta != null)
+                    result.Add(meta);
             }
             return result;
         }
 
         public static bool DeleteSlot(string slotName)
         {
-            if (string.IsNullOrWhiteSpace(slotName)) throw new ArgumentException("slotName must be non-empty", nameof(slotName));
+            if (string.IsNullOrWhiteSpace(slotName))
+                throw new ArgumentException("slotName must be non-empty", nameof(slotName));
 
             var slotPath = GetSlotPath(slotName);
-            if (!Directory.Exists(slotPath)) return false;
+            if (!Directory.Exists(slotPath))
+                return false;
 
             Directory.Delete(slotPath, recursive: true);
             return true;

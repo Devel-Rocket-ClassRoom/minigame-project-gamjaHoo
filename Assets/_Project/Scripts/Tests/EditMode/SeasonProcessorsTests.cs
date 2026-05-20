@@ -4,11 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
@@ -35,12 +35,21 @@ namespace FMLite.Tests
             var club = state.GetClub(1);
             // 만료 (endDate <= currentDate) 선수 1명, 미만료 1명
             var expired = NewPlayer(1, age: 25);
-            expired.contract = new Contract { startDate = new DateTime(2023, 1, 1), endDate = new DateTime(2026, 1, 1) };
+            expired.contract = new Contract
+            {
+                startDate = new DateTime(2023, 1, 1),
+                endDate = new DateTime(2026, 1, 1),
+            };
             expired.currentClubId = club.id;
             var active = NewPlayer(2, age: 25);
-            active.contract = new Contract { startDate = state.currentDate, endDate = state.currentDate.AddYears(2) };
+            active.contract = new Contract
+            {
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(2),
+            };
             active.currentClubId = club.id;
-            state.AddPlayer(expired); state.AddPlayer(active);
+            state.AddPlayer(expired);
+            state.AddPlayer(active);
             club.seniorSquadIds.AddRange(new[] { 1, 2 });
 
             SeasonEndProcessor.Run(state, _balance);
@@ -59,9 +68,13 @@ namespace FMLite.Tests
             var club = state.GetClub(1);
             for (int i = 1; i <= 100; i++)
             {
-                var p = NewPlayer(i, age: 35);   // 35세 (>= 33)
+                var p = NewPlayer(i, age: 35); // 35세 (>= 33)
                 p.currentClubId = club.id;
-                p.contract = new Contract { startDate = state.currentDate, endDate = state.currentDate.AddYears(2) };
+                p.contract = new Contract
+                {
+                    startDate = state.currentDate,
+                    endDate = state.currentDate.AddYears(2),
+                };
                 state.AddPlayer(p);
                 club.seniorSquadIds.Add(i);
             }
@@ -72,8 +85,11 @@ namespace FMLite.Tests
             int afterCount = state.allPlayers.Count;
             int retired = beforeCount - afterCount;
             // P(retire) = 0.15 → 100 시 평균 15 ±5. 5 <= retired <= 25 범위
-            Assert.That(retired, Is.InRange(5, 30),
-                $"T2: 33+ 100명 중 은퇴자 5~30 (이론 15, 실측 {retired})");
+            Assert.That(
+                retired,
+                Is.InRange(5, 30),
+                $"T2: 33+ 100명 중 은퇴자 5~30 (이론 15, 실측 {retired})"
+            );
         }
 
         [Test]
@@ -84,10 +100,15 @@ namespace FMLite.Tests
             var club = state.GetClub(1);
             for (int i = 1; i <= 50; i++)
             {
-                var p = NewPlayer(i, age: 32);   // 32세 (< 33)
+                var p = NewPlayer(i, age: 32); // 32세 (< 33)
                 p.currentClubId = club.id;
-                p.contract = new Contract { startDate = state.currentDate, endDate = state.currentDate.AddYears(2) };
-                state.AddPlayer(p); club.seniorSquadIds.Add(i);
+                p.contract = new Contract
+                {
+                    startDate = state.currentDate,
+                    endDate = state.currentDate.AddYears(2),
+                };
+                state.AddPlayer(p);
+                club.seniorSquadIds.Add(i);
             }
             int before = state.allPlayers.Count;
 
@@ -141,7 +162,8 @@ namespace FMLite.Tests
                 var p = NewPlayer(i, age: 25);
                 p.state.fatigue = 80;
                 p.state.form = 30;
-                state.AddPlayer(p); club.seniorSquadIds.Add(i);
+                state.AddPlayer(p);
+                club.seniorSquadIds.Add(i);
             }
 
             NewSeasonProcessor.Run(state, _balance);
@@ -166,21 +188,54 @@ namespace FMLite.Tests
             };
             for (int i = 1; i <= 4; i++)
             {
-                var c = new Club { id = i, name = $"C{i}", reputation = 100 - (i * 5), leagueId = 1, finance = new Finance() };
+                var c = new Club
+                {
+                    id = i,
+                    name = $"C{i}",
+                    reputation = 100 - (i * 5),
+                    leagueId = 1,
+                    finance = new Finance(),
+                };
                 state.AddClub(c);
             }
             var league = new League
             {
-                id = 1, seasonYear = 2025, clubIds = new List<int> { 1, 2, 3, 4 },
+                id = 1,
+                seasonYear = 2025,
+                clubIds = new List<int> { 1, 2, 3, 4 },
                 schedule = new List<Match>(),
                 standings = new Standings
                 {
                     entries = new List<StandingEntry>
                     {
-                        new StandingEntry { clubId = 1, played = 6, won = 4, points = 12 },
-                        new StandingEntry { clubId = 2, played = 6, won = 2, points = 6 },
-                        new StandingEntry { clubId = 3, played = 6, won = 3, points = 9 },
-                        new StandingEntry { clubId = 4, played = 6, won = 1, points = 3 },
+                        new StandingEntry
+                        {
+                            clubId = 1,
+                            played = 6,
+                            won = 4,
+                            points = 12,
+                        },
+                        new StandingEntry
+                        {
+                            clubId = 2,
+                            played = 6,
+                            won = 2,
+                            points = 6,
+                        },
+                        new StandingEntry
+                        {
+                            clubId = 3,
+                            played = 6,
+                            won = 3,
+                            points = 9,
+                        },
+                        new StandingEntry
+                        {
+                            clubId = 4,
+                            played = 6,
+                            won = 1,
+                            points = 3,
+                        },
                     },
                 },
             };
@@ -198,8 +253,16 @@ namespace FMLite.Tests
 
             // 4팀 더블 라운드 로빈 = 12 경기
             Assert.AreEqual(12, league.schedule.Count, "T7: 새 일정 12 경기");
-            DateTime opening = new DateTime(2026, _balance.newSeasonOpeningMonth, _balance.newSeasonOpeningDay);
-            Assert.AreEqual(opening, league.schedule[0].date.Date, "T7: 첫 매치 newSeasonOpening 날짜");
+            DateTime opening = new DateTime(
+                2026,
+                _balance.newSeasonOpeningMonth,
+                _balance.newSeasonOpeningDay
+            );
+            Assert.AreEqual(
+                opening,
+                league.schedule[0].date.Date,
+                "T7: 첫 매치 newSeasonOpening 날짜"
+            );
         }
 
         [Test]
@@ -207,15 +270,49 @@ namespace FMLite.Tests
         {
             var state = new GameState { currentDate = new DateTime(2026, 6, 1), randomSeed = 1 };
             // rep 90 / 70 / 50 / 30 — 명성 순위 1/2/3/4
-            var c1 = new Club { id = 1, name = "Top",  reputation = 90, leagueId = 1, finance = new Finance() };
-            var c2 = new Club { id = 2, name = "High", reputation = 70, leagueId = 1, finance = new Finance() };
-            var c3 = new Club { id = 3, name = "Mid",  reputation = 50, leagueId = 1, finance = new Finance() };
-            var c4 = new Club { id = 4, name = "Low",  reputation = 30, leagueId = 1, finance = new Finance() };
-            state.AddClub(c1); state.AddClub(c2); state.AddClub(c3); state.AddClub(c4);
+            var c1 = new Club
+            {
+                id = 1,
+                name = "Top",
+                reputation = 90,
+                leagueId = 1,
+                finance = new Finance(),
+            };
+            var c2 = new Club
+            {
+                id = 2,
+                name = "High",
+                reputation = 70,
+                leagueId = 1,
+                finance = new Finance(),
+            };
+            var c3 = new Club
+            {
+                id = 3,
+                name = "Mid",
+                reputation = 50,
+                leagueId = 1,
+                finance = new Finance(),
+            };
+            var c4 = new Club
+            {
+                id = 4,
+                name = "Low",
+                reputation = 30,
+                leagueId = 1,
+                finance = new Finance(),
+            };
+            state.AddClub(c1);
+            state.AddClub(c2);
+            state.AddClub(c3);
+            state.AddClub(c4);
             var league = new League
             {
-                id = 1, seasonYear = 2025, clubIds = new List<int> { 1, 2, 3, 4 },
-                schedule = new List<Match>(), standings = new Standings(),
+                id = 1,
+                seasonYear = 2025,
+                clubIds = new List<int> { 1, 2, 3, 4 },
+                schedule = new List<Match>(),
+                standings = new Standings(),
             };
             state.leagues.Add(league);
 
@@ -225,7 +322,11 @@ namespace FMLite.Tests
             Assert.AreEqual(2, c2.season.targetLeaguePosition);
             Assert.AreEqual(3, c3.season.targetLeaguePosition);
             Assert.AreEqual(4, c4.season.targetLeaguePosition);
-            Assert.AreEqual(_balance.initialBoardConfidence, c1.season.boardConfidence, "T8: boardConfidence 초기화");
+            Assert.AreEqual(
+                _balance.initialBoardConfidence,
+                c1.season.boardConfidence,
+                "T8: boardConfidence 초기화"
+            );
         }
 
         [Test]
@@ -249,28 +350,39 @@ namespace FMLite.Tests
         {
             var state = new GameState
             {
-                currentDate  = seasonEndDate,
-                randomSeed   = 42,
-                userClubId   = -1,
+                currentDate = seasonEndDate,
+                randomSeed = 42,
+                userClubId = -1,
                 rerollTokens = 0,
                 nextPlayerId = 1,
             };
             // 4 클럽 (T7 외 테스트용 — 단순 1 클럽)
             for (int i = 1; i <= 4; i++)
             {
-                var c = new Club { id = i, name = $"C{i}", reputation = 100 - (i * 10), leagueId = 1, finance = new Finance() };
+                var c = new Club
+                {
+                    id = i,
+                    name = $"C{i}",
+                    reputation = 100 - (i * 10),
+                    leagueId = 1,
+                    finance = new Finance(),
+                };
                 state.AddClub(c);
             }
             var league = new League
             {
-                id = 1, seasonYear = 2025, clubIds = new List<int> { 1, 2, 3, 4 },
+                id = 1,
+                seasonYear = 2025,
+                clubIds = new List<int> { 1, 2, 3, 4 },
                 schedule = new List<Match>(),
                 standings = new Standings
                 {
                     entries = new List<StandingEntry>
                     {
-                        new StandingEntry { clubId = 1 }, new StandingEntry { clubId = 2 },
-                        new StandingEntry { clubId = 3 }, new StandingEntry { clubId = 4 },
+                        new StandingEntry { clubId = 1 },
+                        new StandingEntry { clubId = 2 },
+                        new StandingEntry { clubId = 3 },
+                        new StandingEntry { clubId = 4 },
                     },
                 },
             };
@@ -284,16 +396,21 @@ namespace FMLite.Tests
             return new Player
             {
                 id = id,
-                currentAbility = 100, potentialAbility = 100,
+                currentAbility = 100,
+                potentialAbility = 100,
                 info = new PersonalInfo
                 {
-                    primaryPosition = Position.CM, firstName = "F", lastName = "L",
+                    primaryPosition = Position.CM,
+                    firstName = "F",
+                    lastName = "L",
                     birthDate = new DateTime(refDate.Year - age, refDate.Month, refDate.Day),
                 },
                 state = new PlayerState
                 {
                     injury = new InjuryInfo { injuryTypeId = -1 },
-                    fatigue = 0, morale = 50, form = 50,
+                    fatigue = 0,
+                    morale = 50,
+                    form = 50,
                 },
                 contract = new Contract
                 {

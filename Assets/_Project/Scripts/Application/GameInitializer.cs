@@ -21,20 +21,23 @@ namespace FMLite.Application
             int seed,
             DateTime seasonStart,
             LeagueConfigSO leagueConfig,
-            GameBalanceSO balance)
+            GameBalanceSO balance
+        )
         {
-            if (leagueConfig == null) throw new ArgumentNullException(nameof(leagueConfig));
-            if (balance == null)      throw new ArgumentNullException(nameof(balance));
+            if (leagueConfig == null)
+                throw new ArgumentNullException(nameof(leagueConfig));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             var rng = new Random(seed);
 
             // (a) 빈 GameState 메타 설정
             var state = new GameState
             {
-                randomSeed   = seed,
-                currentDate  = seasonStart,
+                randomSeed = seed,
+                currentDate = seasonStart,
                 rerollTokens = balance.initialRerollTokens,
-                userClubId   = -1,             // UI 가 구단 선택 후 갱신
+                userClubId = -1, // UI 가 구단 선택 후 갱신
                 nextPlayerId = 1,
             };
 
@@ -42,24 +45,30 @@ namespace FMLite.Application
             const int LeagueId = 1;
             var league = new League
             {
-                id          = LeagueId,
-                configSOId  = leagueConfig.id,
-                seasonYear  = seasonStart.Year,
-                clubIds     = new List<int>(),
-                schedule    = new List<Match>(),
-                standings   = new Standings { entries = new List<StandingEntry>() },
+                id = LeagueId,
+                configSOId = leagueConfig.id,
+                seasonYear = seasonStart.Year,
+                clubIds = new List<int>(),
+                schedule = new List<Match>(),
+                standings = new Standings { entries = new List<StandingEntry>() },
             };
             state.leagues.Add(league);
 
             // (c-d) ClubGen → state 에 일괄 등록 + nextPlayerId 갱신
             var clubGenResult = ClubGenerator.Generate(
-                rng, leagueConfig, balance, seasonStart,
-                leagueId:      LeagueId,
-                startClubId:   1,
-                startPlayerId: state.nextPlayerId);
+                rng,
+                leagueConfig,
+                balance,
+                seasonStart,
+                leagueId: LeagueId,
+                startClubId: 1,
+                startPlayerId: state.nextPlayerId
+            );
 
-            foreach (var club in clubGenResult.Clubs)     state.AddClub(club);
-            foreach (var player in clubGenResult.Players) state.AddPlayer(player);
+            foreach (var club in clubGenResult.Clubs)
+                state.AddClub(club);
+            foreach (var player in clubGenResult.Players)
+                state.AddPlayer(player);
 
             league.clubIds = clubGenResult.Clubs.Select(c => c.id).ToList();
             if (clubGenResult.Players.Count > 0)
@@ -68,15 +77,23 @@ namespace FMLite.Application
             // (e) Schedule → League.schedule
             // 첫 매치일 = seasonStart 이후 가장 가까운 newSeasonOpening (프리시즌 분리).
             DateTime firstMatchDate = new DateTime(
-                seasonStart.Year, balance.newSeasonOpeningMonth, balance.newSeasonOpeningDay);
-            if (firstMatchDate < seasonStart) firstMatchDate = firstMatchDate.AddYears(1);
+                seasonStart.Year,
+                balance.newSeasonOpeningMonth,
+                balance.newSeasonOpeningDay
+            );
+            if (firstMatchDate < seasonStart)
+                firstMatchDate = firstMatchDate.AddYears(1);
 
             league.schedule = ScheduleGenerator.Generate(
-                league.clubIds, firstMatchDate, LeagueId, startMatchId: 1);
+                league.clubIds,
+                firstMatchDate,
+                LeagueId,
+                startMatchId: 1
+            );
 
             // (e-2) Standings 초기화 (모든 구단 0:0:0:0)
-            league.standings.entries = league.clubIds
-                .Select(id => new StandingEntry { clubId = id })
+            league.standings.entries = league
+                .clubIds.Select(id => new StandingEntry { clubId = id })
                 .ToList();
 
             // (f) 안전망 — AddClub/AddPlayer 가 이미 인덱스 동기화하므로 사실상 no-op

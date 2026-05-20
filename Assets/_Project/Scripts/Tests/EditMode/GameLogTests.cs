@@ -1,10 +1,10 @@
 // GameLogTests.cs
 // DoD 검증: v0.1-tasks.md Task 2.4.
 
+using FMLite.Core;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using FMLite.Core;
 
 namespace FMLite.Tests
 {

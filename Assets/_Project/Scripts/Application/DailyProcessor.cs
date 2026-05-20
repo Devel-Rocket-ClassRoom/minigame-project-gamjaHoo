@@ -13,8 +13,10 @@ namespace FMLite.Application
     {
         public static void Run(GameState state, GameBalanceSO balance)
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             foreach (var player in state.allPlayers)
             {
@@ -31,16 +33,20 @@ namespace FMLite.Application
 
         private static void RecoverFatigue(Player p, GameBalanceSO b)
         {
-            if (p.state == null) return;     // 방어 (PlayerGen 산출은 항상 non-null)
+            if (p.state == null)
+                return; // 방어 (PlayerGen 산출은 항상 non-null)
             p.state.fatigue = Math.Max(0, p.state.fatigue - b.fatigueRecoveryPerDay);
         }
 
         private static void CheckInjuryRecovery(Player p, DateTime today)
         {
             var injury = p.state?.injury;
-            if (injury == null) return;
-            if (injury.injuryTypeId == -1) return;     // 부상 없음 sentinel
-            if (today < injury.expectedReturn) return;  // 아직 회복 안 됨
+            if (injury == null)
+                return;
+            if (injury.injuryTypeId == -1)
+                return; // 부상 없음 sentinel
+            if (today < injury.expectedReturn)
+                return; // 아직 회복 안 됨
 
             // 회복 — sentinel 로 리셋
             injury.injuryTypeId = -1;

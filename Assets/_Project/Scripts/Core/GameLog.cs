@@ -23,7 +23,8 @@ namespace FMLite.Core
 
         public static void Log(LogCategory category, string message)
         {
-            if (!IsDebugMode) return;
+            if (!IsDebugMode)
+                return;
             Debug.Log($"[{category}] {message}");
         }
 

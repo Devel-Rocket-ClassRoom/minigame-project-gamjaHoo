@@ -1,14 +1,15 @@
 // GameStateTests.cs
 // DoD 검증: v0.1-tasks.md Task 3.3.
 
-using NUnit.Framework;
 using FMLite.Domain;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {
     public class GameStateTests
     {
         private static Player MakePlayer(int id) => new Player { id = id };
+
         private static Club MakeClub(int id) => new Club { id = id };
 
         [Test]
@@ -27,7 +28,7 @@ namespace FMLite.Tests
         {
             var state = new GameState();
             var p = MakePlayer(7);
-            state.allPlayers.Add(p);   // 마스터 리스트에 직접 추가 (로드 시뮬레이션)
+            state.allPlayers.Add(p); // 마스터 리스트에 직접 추가 (로드 시뮬레이션)
 
             state.BuildIndexes();
 
@@ -62,7 +63,7 @@ namespace FMLite.Tests
         {
             var state = new GameState();
             var p = MakePlayer(1);
-            state.allPlayers.Add(p);  // BuildIndexes 호출 없이
+            state.allPlayers.Add(p); // BuildIndexes 호출 없이
 
             Assert.AreSame(p, state.GetPlayer(1));
         }
@@ -105,7 +106,7 @@ namespace FMLite.Tests
         public void NextPlayerId_CanBeUpdatedAndReadBack()
         {
             var state = new GameState();
-            state.nextPlayerId = 501;        // ClubGen 호출 후 500명 생성 시뮬
+            state.nextPlayerId = 501; // ClubGen 호출 후 500명 생성 시뮬
             Assert.AreEqual(501, state.nextPlayerId);
         }
     }

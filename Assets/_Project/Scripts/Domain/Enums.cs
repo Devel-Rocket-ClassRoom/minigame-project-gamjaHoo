@@ -6,9 +6,19 @@ namespace FMLite.Domain
     public enum Position
     {
         GK,
-        CB, LB, RB, WB,
-        DM, CM, AM, LM, RM,
-        LW, RW, ST, CF,
+        CB,
+        LB,
+        RB,
+        WB,
+        DM,
+        CM,
+        AM,
+        LM,
+        RM,
+        LW,
+        RW,
+        ST,
+        CF,
     }
 
     public enum Foot

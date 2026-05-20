@@ -2,10 +2,10 @@
 // DoD: Task 8.2 fatigue 회복 + 부상 카운트다운. T1~T6.
 
 using System;
+using FMLite.Application;
+using FMLite.Domain;
 using NUnit.Framework;
 using UnityEngine;
-using FMLite.Domain;
-using FMLite.Application;
 
 namespace FMLite.Tests
 {
@@ -24,7 +24,8 @@ namespace FMLite.Tests
         private GameState NewState(params Player[] players)
         {
             var state = new GameState { currentDate = _today };
-            foreach (var p in players) state.AddPlayer(p);
+            foreach (var p in players)
+                state.AddPlayer(p);
             return state;
         }
 
@@ -35,7 +36,7 @@ namespace FMLite.Tests
                 state = new PlayerState
                 {
                     fatigue = fatigue,
-                    injury  = injury ?? new InjuryInfo { injuryTypeId = -1 },
+                    injury = injury ?? new InjuryInfo { injuryTypeId = -1 },
                 },
             };
 
@@ -49,8 +50,11 @@ namespace FMLite.Tests
 
             DailyProcessor.Run(state, _balance);
 
-            Assert.AreEqual(15, p.state.fatigue,
-                            $"T1: fatigue 30 - {_balance.fatigueRecoveryPerDay} = 15");
+            Assert.AreEqual(
+                15,
+                p.state.fatigue,
+                $"T1: fatigue 30 - {_balance.fatigueRecoveryPerDay} = 15"
+            );
         }
 
         // ── T2. fatigue 0 clamp ───────────────────────────────────────
@@ -63,8 +67,7 @@ namespace FMLite.Tests
 
             DailyProcessor.Run(state, _balance);
 
-            Assert.AreEqual(0, p.state.fatigue,
-                            "T2: fatigue 5 - 15 → 음수 X, 0 clamp");
+            Assert.AreEqual(0, p.state.fatigue, "T2: fatigue 5 - 15 → 음수 X, 0 clamp");
         }
 
         // ── T3. 부상 회복 — expectedReturn ≤ today ────────────────────
@@ -72,13 +75,16 @@ namespace FMLite.Tests
         [Test]
         public void T3_InjuryRecovery_WhenExpectedReturnReached()
         {
-            var p = NewPlayer(1, injury: new InjuryInfo
-            {
-                injuryTypeId        = 5,
-                startDate           = _today.AddDays(-10),
-                expectedReturn      = _today,           // 오늘 회복일
-                isCareerThreatening = true,
-            });
+            var p = NewPlayer(
+                1,
+                injury: new InjuryInfo
+                {
+                    injuryTypeId = 5,
+                    startDate = _today.AddDays(-10),
+                    expectedReturn = _today, // 오늘 회복일
+                    isCareerThreatening = true,
+                }
+            );
             var state = NewState(p);
 
             DailyProcessor.Run(state, _balance);
@@ -92,11 +98,14 @@ namespace FMLite.Tests
         [Test]
         public void T4_InjuryNotRecovered_WhenExpectedReturnFuture()
         {
-            var p = NewPlayer(1, injury: new InjuryInfo
-            {
-                injuryTypeId   = 5,
-                expectedReturn = _today.AddDays(7),   // 일주일 후
-            });
+            var p = NewPlayer(
+                1,
+                injury: new InjuryInfo
+                {
+                    injuryTypeId = 5,
+                    expectedReturn = _today.AddDays(7), // 일주일 후
+                }
+            );
             var state = NewState(p);
 
             DailyProcessor.Run(state, _balance);
@@ -109,7 +118,7 @@ namespace FMLite.Tests
         [Test]
         public void T5_HealthyPlayer_InjuryFieldUnchanged()
         {
-            var p = NewPlayer(1);  // injury 디폴트 = -1
+            var p = NewPlayer(1); // injury 디폴트 = -1
             var state = NewState(p);
 
             DailyProcessor.Run(state, _balance);

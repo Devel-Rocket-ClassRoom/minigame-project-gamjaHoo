@@ -2,11 +2,11 @@
 // DoD 검증: v0.1-tasks.md Task 2.3.
 
 using System.Collections;
+using FMLite.Core;
+using FMLite.Domain;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using FMLite.Core;
-using FMLite.Domain;
 
 namespace FMLite.Tests
 {

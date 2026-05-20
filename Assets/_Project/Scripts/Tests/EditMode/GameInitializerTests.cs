@@ -4,24 +4,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FMLite.Application;
+using FMLite.Domain;
 using NUnit.Framework;
 using UnityEngine;
-using FMLite.Domain;
-using FMLite.Application;
 
 namespace FMLite.Tests
 {
     public class GameInitializerTests
     {
-        private GameBalanceSO   _balance;
-        private LeagueConfigSO  _leagueConfig;
+        private GameBalanceSO _balance;
+        private LeagueConfigSO _leagueConfig;
         private readonly DateTime _seasonStart = new DateTime(2025, 8, 16);
 
         [SetUp]
         public void Setup()
         {
             GameDatabase.Clear();
-            _balance      = ScriptableObject.CreateInstance<GameBalanceSO>();
+            _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
             _leagueConfig = NewLeagueConfig();
             RegisterPositions();
             RegisterTraits();
@@ -39,7 +39,7 @@ namespace FMLite.Tests
             var s1 = GameInitializer.NewGame(42, _seasonStart, _leagueConfig, _balance);
             var s2 = GameInitializer.NewGame(42, _seasonStart, _leagueConfig, _balance);
 
-            Assert.AreEqual(s1.allClubs.Count,   s2.allClubs.Count);
+            Assert.AreEqual(s1.allClubs.Count, s2.allClubs.Count);
             Assert.AreEqual(s1.allPlayers.Count, s2.allPlayers.Count);
             Assert.AreEqual(s1.leagues[0].schedule.Count, s2.leagues[0].schedule.Count);
 
@@ -118,8 +118,11 @@ namespace FMLite.Tests
         public void T5_UserClubId_Sentinel_BeforeSelection()
         {
             var state = GameInitializer.NewGame(42, _seasonStart, _leagueConfig, _balance);
-            Assert.AreEqual(-1, state.userClubId,
-                            "T5: GameInitializer 는 userClub 선정 안 함. UI 가 선택 후 설정.");
+            Assert.AreEqual(
+                -1,
+                state.userClubId,
+                "T5: GameInitializer 는 userClub 선정 안 함. UI 가 선택 후 설정."
+            );
         }
 
         // ── T6. nextPlayerId == 501 ───────────────────────────────────
@@ -129,8 +132,11 @@ namespace FMLite.Tests
         {
             var state = GameInitializer.NewGame(42, _seasonStart, _leagueConfig, _balance);
 
-            Assert.AreEqual(501, state.nextPlayerId,
-                            "T6: ClubGen 500명 (id 1~500) 후 nextPlayerId = 501");
+            Assert.AreEqual(
+                501,
+                state.nextPlayerId,
+                "T6: ClubGen 500명 (id 1~500) 후 nextPlayerId = 501"
+            );
         }
 
         // ── T7. 메타 필드 ─────────────────────────────────────────────
@@ -153,48 +159,78 @@ namespace FMLite.Tests
         private LeagueConfigSO NewLeagueConfig()
         {
             var cfg = ScriptableObject.CreateInstance<LeagueConfigSO>();
-            cfg.id              = 1;
-            cfg.displayName     = "Test EPL";
-            cfg.countryCode     = "ENG";
-            cfg.clubCount       = 20;
+            cfg.id = 1;
+            cfg.displayName = "Test EPL";
+            cfg.countryCode = "ENG";
+            cfg.clubCount = 20;
             cfg.relegationCount = 3;
-            cfg.playersPerClub  = 25;
-            cfg.clubNames       = Enumerable.Range(1, 20).Select(i => $"Club {i:D2}").ToList();
+            cfg.playersPerClub = 25;
+            cfg.clubNames = Enumerable.Range(1, 20).Select(i => $"Club {i:D2}").ToList();
             return cfg;
         }
 
         private static readonly (Position p, bool gk, bool t, bool m, bool ph)[] PosDefs =
         {
-            (Position.GK, true,  false, true,  true ),
-            (Position.CB, false, false, true,  true ),
-            (Position.LB, false, true,  true,  true ),
-            (Position.RB, false, true,  true,  true ),
-            (Position.WB, false, true,  true,  true ),
-            (Position.DM, false, true,  true,  true ),
-            (Position.CM, false, true,  true,  true ),
-            (Position.AM, false, true,  true,  false),
-            (Position.LM, false, true,  true,  true ),
-            (Position.RM, false, true,  true,  true ),
-            (Position.LW, false, true,  false, true ),
-            (Position.RW, false, true,  false, true ),
-            (Position.ST, false, true,  true,  true ),
-            (Position.CF, false, true,  true,  true ),
+            (Position.GK, true, false, true, true),
+            (Position.CB, false, false, true, true),
+            (Position.LB, false, true, true, true),
+            (Position.RB, false, true, true, true),
+            (Position.WB, false, true, true, true),
+            (Position.DM, false, true, true, true),
+            (Position.CM, false, true, true, true),
+            (Position.AM, false, true, true, false),
+            (Position.LM, false, true, true, true),
+            (Position.RM, false, true, true, true),
+            (Position.LW, false, true, false, true),
+            (Position.RW, false, true, false, true),
+            (Position.ST, false, true, true, true),
+            (Position.CF, false, true, true, true),
         };
 
         private static readonly Dictionary<Position, (Position pos, float w)[]> AffDefs = new()
         {
-            [Position.ST] = new[] { (Position.CF, 8f), (Position.LW, 5f), (Position.RW, 5f), (Position.AM, 3f) },
-            [Position.CF] = new[] { (Position.ST, 8f), (Position.AM, 5f), (Position.LW, 3f), (Position.RW, 3f) },
+            [Position.ST] = new[]
+            {
+                (Position.CF, 8f),
+                (Position.LW, 5f),
+                (Position.RW, 5f),
+                (Position.AM, 3f),
+            },
+            [Position.CF] = new[]
+            {
+                (Position.ST, 8f),
+                (Position.AM, 5f),
+                (Position.LW, 3f),
+                (Position.RW, 3f),
+            },
             [Position.LW] = new[] { (Position.LM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
             [Position.RW] = new[] { (Position.RM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
-            [Position.AM] = new[] { (Position.CM, 6f), (Position.CF, 4f), (Position.LW, 3f), (Position.RW, 3f) },
-            [Position.CM] = new[] { (Position.AM, 5f), (Position.DM, 5f), (Position.LM, 3f), (Position.RM, 3f) },
+            [Position.AM] = new[]
+            {
+                (Position.CM, 6f),
+                (Position.CF, 4f),
+                (Position.LW, 3f),
+                (Position.RW, 3f),
+            },
+            [Position.CM] = new[]
+            {
+                (Position.AM, 5f),
+                (Position.DM, 5f),
+                (Position.LM, 3f),
+                (Position.RM, 3f),
+            },
             [Position.DM] = new[] { (Position.CM, 6f), (Position.CB, 4f) },
             [Position.LM] = new[] { (Position.LW, 6f), (Position.CM, 4f), (Position.LB, 3f) },
             [Position.RM] = new[] { (Position.RW, 6f), (Position.CM, 4f), (Position.RB, 3f) },
             [Position.LB] = new[] { (Position.WB, 8f), (Position.LM, 4f), (Position.CB, 3f) },
             [Position.RB] = new[] { (Position.WB, 8f), (Position.RM, 4f), (Position.CB, 3f) },
-            [Position.WB] = new[] { (Position.LB, 8f), (Position.RB, 8f), (Position.LM, 5f), (Position.RM, 5f) },
+            [Position.WB] = new[]
+            {
+                (Position.LB, 8f),
+                (Position.RB, 8f),
+                (Position.LM, 5f),
+                (Position.RM, 5f),
+            },
             [Position.CB] = new[] { (Position.DM, 4f), (Position.LB, 3f), (Position.RB, 3f) },
         };
 
@@ -202,14 +238,14 @@ namespace FMLite.Tests
         {
             for (int i = 0; i < PosDefs.Length; i++)
             {
-                var d  = PosDefs[i];
+                var d = PosDefs[i];
                 var so = ScriptableObject.CreateInstance<PositionSO>();
                 so.id = i + 1;
                 so.position = d.p;
                 so.isGoalkeeper = d.gk;
                 so.emphasizesTechnical = d.t;
-                so.emphasizesMental    = d.m;
-                so.emphasizesPhysical  = d.ph;
+                so.emphasizesMental = d.m;
+                so.emphasizesPhysical = d.ph;
                 so.affinities = new List<PositionAffinity>();
                 if (AffDefs.TryGetValue(d.p, out var entries))
                     foreach (var e in entries)
@@ -224,17 +260,19 @@ namespace FMLite.Tests
             var defs = new[]
             {
                 (1, "늦깎이형", 1.0f, 1),
-                (2, "조숙형",   1.0f, 1),
+                (2, "조숙형", 1.0f, 1),
                 (3, "부상 취약", 0.7f, 0),
                 (4, "멘탈 강자", 1.0f, 0),
-                (5, "빅매치형",  0.8f, 0),
-                (6, "만능형",    0.8f, 0),
+                (5, "빅매치형", 0.8f, 0),
+                (6, "만능형", 0.8f, 0),
             };
             foreach (var (id, name, weight, group) in defs)
             {
                 var so = ScriptableObject.CreateInstance<TraitSO>();
-                so.id = id; so.displayName = name;
-                so.weight = weight; so.exclusionGroupId = group;
+                so.id = id;
+                so.displayName = name;
+                so.weight = weight;
+                so.exclusionGroupId = group;
                 GameDatabase.Register(so);
             }
         }
@@ -243,26 +281,108 @@ namespace FMLite.Tests
         {
             var defs = new[]
             {
-                (1, "ENG",
-                 new[]{ "James","John","Robert","Michael","William","David","Richard","Thomas","Daniel","Matthew" },
-                 new[]{ "Smith","Johnson","Williams","Brown","Jones","Miller","Davis","Wilson","Taylor","Moore" }),
-                (2, "FRA",
-                 new[]{ "Pierre","Jean","Jacques","Michel","Philippe","Nicolas","Alain","Bernard","Daniel","Christian" },
-                 new[]{ "Martin","Bernard","Dubois","Thomas","Robert","Petit","Richard","Durand","Moreau","Laurent" }),
-                (3, "ESP",
-                 new[]{ "Antonio","José","Manuel","Francisco","David","Juan","Javier","Daniel","Carlos","Miguel" },
-                 new[]{ "García","Rodríguez","González","Fernández","López","Martínez","Sánchez","Pérez","Gómez","Martín" }),
+                (
+                    1,
+                    "ENG",
+                    new[]
+                    {
+                        "James",
+                        "John",
+                        "Robert",
+                        "Michael",
+                        "William",
+                        "David",
+                        "Richard",
+                        "Thomas",
+                        "Daniel",
+                        "Matthew",
+                    },
+                    new[]
+                    {
+                        "Smith",
+                        "Johnson",
+                        "Williams",
+                        "Brown",
+                        "Jones",
+                        "Miller",
+                        "Davis",
+                        "Wilson",
+                        "Taylor",
+                        "Moore",
+                    }
+                ),
+                (
+                    2,
+                    "FRA",
+                    new[]
+                    {
+                        "Pierre",
+                        "Jean",
+                        "Jacques",
+                        "Michel",
+                        "Philippe",
+                        "Nicolas",
+                        "Alain",
+                        "Bernard",
+                        "Daniel",
+                        "Christian",
+                    },
+                    new[]
+                    {
+                        "Martin",
+                        "Bernard",
+                        "Dubois",
+                        "Thomas",
+                        "Robert",
+                        "Petit",
+                        "Richard",
+                        "Durand",
+                        "Moreau",
+                        "Laurent",
+                    }
+                ),
+                (
+                    3,
+                    "ESP",
+                    new[]
+                    {
+                        "Antonio",
+                        "José",
+                        "Manuel",
+                        "Francisco",
+                        "David",
+                        "Juan",
+                        "Javier",
+                        "Daniel",
+                        "Carlos",
+                        "Miguel",
+                    },
+                    new[]
+                    {
+                        "García",
+                        "Rodríguez",
+                        "González",
+                        "Fernández",
+                        "López",
+                        "Martínez",
+                        "Sánchez",
+                        "Pérez",
+                        "Gómez",
+                        "Martín",
+                    }
+                ),
             };
             foreach (var (id, code, first, last) in defs)
             {
                 var country = ScriptableObject.CreateInstance<CountrySO>();
-                country.id = id; country.code = code;
+                country.id = id;
+                country.code = code;
                 GameDatabase.Register(country);
 
                 var pool = ScriptableObject.CreateInstance<NamePoolSO>();
                 pool.countryId = id;
                 pool.firstNames = new List<string>(first);
-                pool.lastNames  = new List<string>(last);
+                pool.lastNames = new List<string>(last);
                 GameDatabase.Register(pool);
             }
         }

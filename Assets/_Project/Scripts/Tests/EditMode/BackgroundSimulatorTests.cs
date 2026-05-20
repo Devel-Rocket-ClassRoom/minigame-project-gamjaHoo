@@ -4,11 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
@@ -20,11 +20,11 @@ namespace FMLite.Tests
         public void Setup()
         {
             _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
-            _balance.avgGoalsPerMatch       = 2.70f;
+            _balance.avgGoalsPerMatch = 2.70f;
             _balance.homeAdvantageGoalBonus = 0.30f;
-            _balance.strengthExponent       = 1.5f;
-            _balance.scoringWeightByLine    = new[] { 0.0f, 0.4f, 1.5f, 5.0f };
-            _balance.fatigueGainPerMatch    = 30;
+            _balance.strengthExponent = 1.5f;
+            _balance.scoringWeightByLine = new[] { 0.0f, 0.4f, 1.5f, 5.0f };
+            _balance.fatigueGainPerMatch = 30;
             EventBus.Clear();
         }
 
@@ -62,8 +62,10 @@ namespace FMLite.Tests
 
             // 총 점수 합 일관성 (승+승=6 / 무무=4 또는 그 조합)
             int totalPoints = league.standings.entries.Sum(e => e.points);
-            Assert.IsTrue(totalPoints == 6 || totalPoints == 4 || totalPoints == 2,
-                $"T1: 2매치 → 가능한 총점 6/4/2 (무 0개/1개/2개) (실측 {totalPoints})");
+            Assert.IsTrue(
+                totalPoints == 6 || totalPoints == 4 || totalPoints == 2,
+                $"T1: 2매치 → 가능한 총점 6/4/2 (무 0개/1개/2개) (실측 {totalPoints})"
+            );
         }
 
         // ── T2. 결정성 (Stateless) ───────────────────────────────────
@@ -84,16 +86,24 @@ namespace FMLite.Tests
 
             for (int i = 0; i < matches1.Count; i++)
             {
-                Assert.AreEqual(matches1[i].result.homeScore, matches2[i].result.homeScore,
-                    $"T2: match[{i}] homeScore 결정적");
-                Assert.AreEqual(matches1[i].result.awayScore, matches2[i].result.awayScore,
-                    $"T2: match[{i}] awayScore 결정적");
+                Assert.AreEqual(
+                    matches1[i].result.homeScore,
+                    matches2[i].result.homeScore,
+                    $"T2: match[{i}] homeScore 결정적"
+                );
+                Assert.AreEqual(
+                    matches1[i].result.awayScore,
+                    matches2[i].result.awayScore,
+                    $"T2: match[{i}] awayScore 결정적"
+                );
             }
             // 순위 entry 별 points 일치
             for (int i = 0; i < s1.leagues[0].standings.entries.Count; i++)
-                Assert.AreEqual(s1.leagues[0].standings.entries[i].points,
-                                s2.leagues[0].standings.entries[i].points,
-                                $"T2: entry[{i}] points 결정적");
+                Assert.AreEqual(
+                    s1.leagues[0].standings.entries[i].points,
+                    s2.leagues[0].standings.entries[i].points,
+                    $"T2: entry[{i}] points 결정적"
+                );
         }
 
         // ── T3. 이미 처리된 매치 스킵 ────────────────────────────────
@@ -110,10 +120,11 @@ namespace FMLite.Tests
             var first = league.schedule.First(m => m.date.Date == date);
             var preset = new MatchResult
             {
-                homeScore      = 9, awayScore = 9,
+                homeScore = 9,
+                awayScore = 9,
                 homeStarting11 = new List<int>(),
                 awayStarting11 = new List<int>(),
-                playerStats    = new List<PlayerMatchStat>(),
+                playerStats = new List<PlayerMatchStat>(),
             };
             first.result = preset;
 
@@ -125,7 +136,9 @@ namespace FMLite.Tests
             Assert.AreEqual(9, first.result.homeScore, "T3: preset 점수 유지");
 
             // 나머지 매치는 처리됨
-            var others = league.schedule.Where(m => m.date.Date == date && m.id != first.id).ToList();
+            var others = league
+                .schedule.Where(m => m.date.Date == date && m.id != first.id)
+                .ToList();
             foreach (var m in others)
                 Assert.IsNotNull(m.result, $"T3: 다른 매치 id={m.id} 정상 처리");
         }
@@ -137,7 +150,7 @@ namespace FMLite.Tests
         {
             var date = new DateTime(2025, 8, 15);
             var state = BuildLeague(clubCount: 4, matchDate: date, seed: 42);
-            state.currentDate = new DateTime(2025, 8, 16);   // 매치 없는 날
+            state.currentDate = new DateTime(2025, 8, 16); // 매치 없는 날
 
             Assert.DoesNotThrow(() => BackgroundSimulator.SimulateDay(state, _balance));
 
@@ -180,11 +193,7 @@ namespace FMLite.Tests
         // 실제 경기 수: floor(N/2) 매치 (1라운드).
         private static GameState BuildLeague(int clubCount, DateTime matchDate, int seed)
         {
-            var state = new GameState
-            {
-                randomSeed = seed,
-                currentDate = matchDate,
-            };
+            var state = new GameState { randomSeed = seed, currentDate = matchDate };
 
             // Clubs
             var clubs = new List<Club>();
@@ -225,32 +234,43 @@ namespace FMLite.Tests
             int nextMatchId = 1;
             for (int i = 0; i < clubCount; i += 2)
             {
-                if (i + 1 >= clubCount) break;
-                league.schedule.Add(new Match
-                {
-                    id = nextMatchId++,
-                    date = matchDate,
-                    type = CompetitionType.League,
-                    homeClubId = clubs[i].id,
-                    awayClubId = clubs[i + 1].id,
-                });
+                if (i + 1 >= clubCount)
+                    break;
+                league.schedule.Add(
+                    new Match
+                    {
+                        id = nextMatchId++,
+                        date = matchDate,
+                        type = CompetitionType.League,
+                        homeClubId = clubs[i].id,
+                        awayClubId = clubs[i + 1].id,
+                    }
+                );
             }
             state.leagues.Add(league);
 
             return state;
         }
 
-        private static Player NewPlayer(int id, int ca) => new Player
-        {
-            id = id,
-            currentAbility = ca,
-            potentialAbility = ca + 10,
-            info = new PersonalInfo { primaryPosition = Position.CM, firstName = "F", lastName = "L" },
-            state = new PlayerState
+        private static Player NewPlayer(int id, int ca) =>
+            new Player
             {
-                injury = new InjuryInfo { injuryTypeId = -1 },
-                fatigue = 0, morale = 50, form = 50,
-            },
-        };
+                id = id,
+                currentAbility = ca,
+                potentialAbility = ca + 10,
+                info = new PersonalInfo
+                {
+                    primaryPosition = Position.CM,
+                    firstName = "F",
+                    lastName = "L",
+                },
+                state = new PlayerState
+                {
+                    injury = new InjuryInfo { injuryTypeId = -1 },
+                    fatigue = 0,
+                    morale = 50,
+                    form = 50,
+                },
+            };
     }
 }

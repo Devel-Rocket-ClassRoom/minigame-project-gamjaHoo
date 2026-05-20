@@ -3,8 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using NUnit.Framework;
 using FMLite.Core;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {

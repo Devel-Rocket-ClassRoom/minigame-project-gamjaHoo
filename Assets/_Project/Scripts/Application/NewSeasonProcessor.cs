@@ -22,8 +22,10 @@ namespace FMLite.Application
     {
         public static void Run(GameState state, GameBalanceSO balance)
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             // a. 리롤 토큰 지급 (max 적용)
             state.rerollTokens += balance.seasonRerollTokenGrant;
@@ -33,9 +35,10 @@ namespace FMLite.Application
             // b. 모든 선수 fatigue / form 리셋
             foreach (var player in state.allPlayers)
             {
-                if (player?.state == null) continue;
+                if (player?.state == null)
+                    continue;
                 player.state.fatigue = 0;
-                player.state.form    = 50;
+                player.state.form = 50;
             }
 
             // c. 새 시즌 매치 일정 + Standings 초기화
@@ -44,7 +47,8 @@ namespace FMLite.Application
 
             foreach (var league in state.leagues)
             {
-                if (league == null) continue;
+                if (league == null)
+                    continue;
                 league.seasonYear += 1;
 
                 // Standings 초기화 (clubIds 기반 재구성)
@@ -62,7 +66,11 @@ namespace FMLite.Application
                 if (league.clubIds != null && league.clubIds.Count >= 2)
                 {
                     var newSchedule = ScheduleGenerator.Generate(
-                        league.clubIds, openingDate, league.id, nextMatchId);
+                        league.clubIds,
+                        openingDate,
+                        league.id,
+                        nextMatchId
+                    );
                     league.schedule = newSchedule;
                     nextMatchId += newSchedule.Count;
                 }
@@ -80,7 +88,10 @@ namespace FMLite.Application
             EventBus.Publish(new SeasonStartedEvent { seasonYear = seasonYear });
         }
 
-        private static DateTime ComputeNewSeasonOpeningDate(DateTime currentDate, GameBalanceSO balance)
+        private static DateTime ComputeNewSeasonOpeningDate(
+            DateTime currentDate,
+            GameBalanceSO balance
+        )
         {
             // currentDate = 6/1 — 같은 해 8/15 가 매치 개막
             int year = currentDate.Year;
@@ -92,9 +103,11 @@ namespace FMLite.Application
             int max = 0;
             foreach (var league in state.leagues)
             {
-                if (league?.schedule == null) continue;
+                if (league?.schedule == null)
+                    continue;
                 foreach (var m in league.schedule)
-                    if (m != null && m.id > max) max = m.id;
+                    if (m != null && m.id > max)
+                        max = m.id;
             }
             return max + 1;
         }
@@ -111,8 +124,8 @@ namespace FMLite.Application
                 if (c.season == null)
                     c.season = new SeasonState();
                 c.season.targetLeaguePosition = i + 1;
-                c.season.cupTarget            = CupTarget.None;            // V0.1 컵 미구현
-                c.season.boardConfidence      = balance.initialBoardConfidence;
+                c.season.cupTarget = CupTarget.None; // V0.1 컵 미구현
+                c.season.boardConfidence = balance.initialBoardConfidence;
             }
         }
     }

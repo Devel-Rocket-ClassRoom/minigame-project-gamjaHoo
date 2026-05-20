@@ -3,8 +3,8 @@
 // State 는 GameInitializer / SaveSystem 가 SetState 로 주입.
 // 위치: Core Layer — 인프라/컨테이너 성격 (design-decisions.md #29 참조).
 
-using UnityEngine;
 using FMLite.Domain;
+using UnityEngine;
 
 namespace FMLite.Core
 {
@@ -29,7 +29,8 @@ namespace FMLite.Core
 
         private void OnDestroy()
         {
-            if (Instance == this) Instance = null;
+            if (Instance == this)
+                Instance = null;
         }
 
         public void SetState(GameState state)

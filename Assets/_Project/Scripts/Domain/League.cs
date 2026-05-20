@@ -10,7 +10,7 @@ namespace FMLite.Domain
     public class League
     {
         public int id;
-        public int configSOId;          // LeagueConfigSO 참조 ID
+        public int configSOId; // LeagueConfigSO 참조 ID
         public int seasonYear;
         public List<int> clubIds = new List<int>();
         public List<Match> schedule = new List<Match>();

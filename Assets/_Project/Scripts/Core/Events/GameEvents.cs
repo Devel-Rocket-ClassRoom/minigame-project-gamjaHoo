@@ -10,9 +10,7 @@ namespace FMLite.Core
         public DateTime newDate;
     }
 
-    public class GameLoadedEvent
-    {
-    }
+    public class GameLoadedEvent { }
 
     public class GameSavedEvent
     {

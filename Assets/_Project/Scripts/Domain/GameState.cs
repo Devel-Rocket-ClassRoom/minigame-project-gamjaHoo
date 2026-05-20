@@ -13,7 +13,7 @@ namespace FMLite.Domain
     {
         // 메타 필드
         public DateTime currentDate;
-        public int userClubId = -1;     // -1 = "선택 안 됨" sentinel. UI 구단 선택 후 설정.
+        public int userClubId = -1; // -1 = "선택 안 됨" sentinel. UI 구단 선택 후 설정.
         public int rerollTokens;
         public int randomSeed;
 
@@ -40,42 +40,54 @@ namespace FMLite.Domain
         public List<TransferOffer> activeOffers = new List<TransferOffer>();
 
         // 런타임 인덱스 (직렬화 제외, 로드 후 BuildIndexes 필요)
-        [JsonIgnore] private Dictionary<int, Player> _playerById;
-        [JsonIgnore] private Dictionary<int, Club> _clubById;
+        [JsonIgnore]
+        private Dictionary<int, Player> _playerById;
+
+        [JsonIgnore]
+        private Dictionary<int, Club> _clubById;
 
         public void BuildIndexes()
         {
             _playerById = new Dictionary<int, Player>(allPlayers.Count);
-            foreach (var p in allPlayers) _playerById[p.id] = p;
+            foreach (var p in allPlayers)
+                _playerById[p.id] = p;
 
             _clubById = new Dictionary<int, Club>(allClubs.Count);
-            foreach (var c in allClubs) _clubById[c.id] = c;
+            foreach (var c in allClubs)
+                _clubById[c.id] = c;
         }
 
         public Player GetPlayer(int id)
         {
-            if (_playerById == null) BuildIndexes();
+            if (_playerById == null)
+                BuildIndexes();
             return _playerById.TryGetValue(id, out var p) ? p : null;
         }
 
         public Club GetClub(int id)
         {
-            if (_clubById == null) BuildIndexes();
+            if (_clubById == null)
+                BuildIndexes();
             return _clubById.TryGetValue(id, out var c) ? c : null;
         }
 
         public void AddPlayer(Player p)
         {
-            if (p == null) throw new ArgumentNullException(nameof(p));
+            if (p == null)
+                throw new ArgumentNullException(nameof(p));
             allPlayers.Add(p);
-            if (_playerById == null) BuildIndexes();
-            else _playerById[p.id] = p;
+            if (_playerById == null)
+                BuildIndexes();
+            else
+                _playerById[p.id] = p;
         }
 
         public bool RemovePlayer(int id)
         {
-            if (_playerById == null) BuildIndexes();
-            if (!_playerById.TryGetValue(id, out var p)) return false;
+            if (_playerById == null)
+                BuildIndexes();
+            if (!_playerById.TryGetValue(id, out var p))
+                return false;
             allPlayers.Remove(p);
             _playerById.Remove(id);
             return true;
@@ -83,16 +95,21 @@ namespace FMLite.Domain
 
         public void AddClub(Club c)
         {
-            if (c == null) throw new ArgumentNullException(nameof(c));
+            if (c == null)
+                throw new ArgumentNullException(nameof(c));
             allClubs.Add(c);
-            if (_clubById == null) BuildIndexes();
-            else _clubById[c.id] = c;
+            if (_clubById == null)
+                BuildIndexes();
+            else
+                _clubById[c.id] = c;
         }
 
         public bool RemoveClub(int id)
         {
-            if (_clubById == null) BuildIndexes();
-            if (!_clubById.TryGetValue(id, out var c)) return false;
+            if (_clubById == null)
+                BuildIndexes();
+            if (!_clubById.TryGetValue(id, out var c))
+                return false;
             allClubs.Remove(c);
             _clubById.Remove(id);
             return true;

@@ -4,11 +4,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework;
-using UnityEngine;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
+using UnityEngine;
 
 namespace FMLite.Tests
 {
@@ -51,7 +51,9 @@ namespace FMLite.Tests
             var (state, match, result) = BuildScenario(homeScore: 1, awayScore: 0);
             var home = state.GetClub(match.homeClubId);
             // 벤치 = 스쿼드 - starting11
-            var benchIds = home.seniorSquadIds.Where(id => !result.homeStarting11.Contains(id)).ToList();
+            var benchIds = home
+                .seniorSquadIds.Where(id => !result.homeStarting11.Contains(id))
+                .ToList();
             Assert.IsNotEmpty(benchIds, "T2 사전: 벤치가 존재해야 함 (25명 - 11명 = 14)");
 
             // starting11 중 1명을 fatigue=85 로 초기화 → Clamp 100 검증용
@@ -64,14 +66,20 @@ namespace FMLite.Tests
             foreach (var id in result.homeStarting11.Concat(result.awayStarting11))
             {
                 int expected = (id == highFatigueId) ? 100 : 30;
-                Assert.AreEqual(expected, state.GetPlayer(id).state.fatigue,
-                    $"T2: starting11 id={id} fatigue 예상 {expected}");
+                Assert.AreEqual(
+                    expected,
+                    state.GetPlayer(id).state.fatigue,
+                    $"T2: starting11 id={id} fatigue 예상 {expected}"
+                );
             }
 
             // 벤치 = 변화 없음
             foreach (var id in benchIds)
-                Assert.AreEqual(0, state.GetPlayer(id).state.fatigue,
-                    $"T2: 벤치 id={id} fatigue 0 유지");
+                Assert.AreEqual(
+                    0,
+                    state.GetPlayer(id).state.fatigue,
+                    $"T2: 벤치 id={id} fatigue 0 유지"
+                );
         }
 
         // ── T3. 순위 갱신 ────────────────────────────────────────────
@@ -168,15 +176,18 @@ namespace FMLite.Tests
 
             var (h1, a1) = GetEntries(s1, m1);
             var (h2, a2) = GetEntries(s2, m2);
-            Assert.AreEqual(h1.points,       h2.points,       "T5: home points 결정적");
-            Assert.AreEqual(h1.goalsFor,     h2.goalsFor,     "T5: home goalsFor 결정적");
-            Assert.AreEqual(a1.points,       a2.points,       "T5: away points 결정적");
+            Assert.AreEqual(h1.points, h2.points, "T5: home points 결정적");
+            Assert.AreEqual(h1.goalsFor, h2.goalsFor, "T5: home goalsFor 결정적");
+            Assert.AreEqual(a1.points, a2.points, "T5: away points 결정적");
             Assert.AreEqual(a1.goalsAgainst, a2.goalsAgainst, "T5: away goalsAgainst 결정적");
 
             // starting11 모든 선수 fatigue 동일 (peer id 비교)
             foreach (var id in r1.homeStarting11)
-                Assert.AreEqual(s1.GetPlayer(id).state.fatigue, s2.GetPlayer(id).state.fatigue,
-                    $"T5: id={id} fatigue 결정적");
+                Assert.AreEqual(
+                    s1.GetPlayer(id).state.fatigue,
+                    s2.GetPlayer(id).state.fatigue,
+                    $"T5: id={id} fatigue 결정적"
+                );
         }
 
         // ── T6. 이미 처리된 매치 재처리 → throw ──────────────────────
@@ -188,23 +199,35 @@ namespace FMLite.Tests
             MatchPostProcessor.Process(match, result, state, _balance);
             // 두 번째 호출 — match.result 가 이미 채워졌으므로 InvalidOperationException
             Assert.Throws<InvalidOperationException>(() =>
-                MatchPostProcessor.Process(match, result, state, _balance));
+                MatchPostProcessor.Process(match, result, state, _balance)
+            );
         }
 
         // ── Helpers ───────────────────────────────────────────────────
 
         // 단일 매치 시나리오 생성 — League 1개, 클럽 2개, 각 클럽 25명 (CA 100 균등),
         // Standings 초기화, MatchResult 합성 (starting11 = 양 팀 첫 11명).
-        private (GameState state, Match match, MatchResult result) BuildScenario(int homeScore, int awayScore)
+        private (GameState state, Match match, MatchResult result) BuildScenario(
+            int homeScore,
+            int awayScore
+        )
         {
-            var state = new GameState
-            {
-                randomSeed = 42,
-                currentDate = new DateTime(2025, 8, 15),
-            };
+            var state = new GameState { randomSeed = 42, currentDate = new DateTime(2025, 8, 15) };
 
-            var home = new Club { id = 1, name = "Home", reputation = 60, leagueId = 1 };
-            var away = new Club { id = 2, name = "Away", reputation = 60, leagueId = 1 };
+            var home = new Club
+            {
+                id = 1,
+                name = "Home",
+                reputation = 60,
+                leagueId = 1,
+            };
+            var away = new Club
+            {
+                id = 2,
+                name = "Away",
+                reputation = 60,
+                leagueId = 1,
+            };
             state.AddClub(home);
             state.AddClub(away);
 
@@ -257,30 +280,41 @@ namespace FMLite.Tests
             }
             var result = new MatchResult
             {
-                homeScore      = homeScore,
-                awayScore      = awayScore,
+                homeScore = homeScore,
+                awayScore = awayScore,
                 homeStarting11 = homeStarting11,
                 awayStarting11 = awayStarting11,
-                playerStats    = playerStats,
+                playerStats = playerStats,
             };
 
             return (state, match, result);
         }
 
-        private static Player NewPlayer(int id, int ca) => new Player
-        {
-            id = id,
-            currentAbility = ca,
-            potentialAbility = ca + 10,
-            info = new PersonalInfo { primaryPosition = Position.CM, firstName = "F", lastName = "L" },
-            state = new PlayerState
+        private static Player NewPlayer(int id, int ca) =>
+            new Player
             {
-                injury = new InjuryInfo { injuryTypeId = -1 },
-                fatigue = 0, morale = 50, form = 50,
-            },
-        };
+                id = id,
+                currentAbility = ca,
+                potentialAbility = ca + 10,
+                info = new PersonalInfo
+                {
+                    primaryPosition = Position.CM,
+                    firstName = "F",
+                    lastName = "L",
+                },
+                state = new PlayerState
+                {
+                    injury = new InjuryInfo { injuryTypeId = -1 },
+                    fatigue = 0,
+                    morale = 50,
+                    form = 50,
+                },
+            };
 
-        private static (StandingEntry home, StandingEntry away) GetEntries(GameState state, Match match)
+        private static (StandingEntry home, StandingEntry away) GetEntries(
+            GameState state,
+            Match match
+        )
         {
             var league = state.leagues[0];
             var home = league.standings.entries.First(e => e.clubId == match.homeClubId);

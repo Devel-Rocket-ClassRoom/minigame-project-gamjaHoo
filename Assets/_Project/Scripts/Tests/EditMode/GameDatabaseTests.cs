@@ -2,9 +2,9 @@
 // DoD 검증: v0.1-tasks.md Task 5.2 — Register/Get 동작 + null 안전.
 // Resources.LoadAll 자체는 UnityEngine 의존이라 in-memory ScriptableObject.CreateInstance 로 검증.
 
+using FMLite.Domain;
 using NUnit.Framework;
 using UnityEngine;
-using FMLite.Domain;
 
 namespace FMLite.Tests
 {
@@ -117,7 +117,8 @@ namespace FMLite.Tests
             GameDatabase.Register(t2);
 
             int count = 0;
-            foreach (var _ in GameDatabase.AllTraits) count++;
+            foreach (var _ in GameDatabase.AllTraits)
+                count++;
             Assert.AreEqual(2, count);
         }
     }

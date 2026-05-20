@@ -10,7 +10,7 @@ namespace FMLite.Domain
     public class FacilityLevelSO : ScriptableObject
     {
         public FacilityType facilityType;
-        public int level;                       // 1~5
+        public int level; // 1~5
 
         [Header("Upgrade")]
         public int upgradeCost;

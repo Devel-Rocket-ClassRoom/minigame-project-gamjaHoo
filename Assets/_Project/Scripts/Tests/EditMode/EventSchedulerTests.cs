@@ -3,10 +3,10 @@
 
 using System;
 using System.Collections.Generic;
-using NUnit.Framework;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
-using FMLite.Application;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {
@@ -34,34 +34,37 @@ namespace FMLite.Tests
 
         private GameState MakeState(List<Match> schedule, int userClubId = -1)
         {
-            var state = new GameState
-            {
-                currentDate = _today,
-                userClubId  = userClubId,
-            };
-            state.leagues.Add(new League
-            {
-                id       = 1,
-                clubIds  = new List<int> { 1, 2, 3, 4 },
-                schedule = schedule,
-                standings = new Standings { entries = new List<StandingEntry>() },
-            });
+            var state = new GameState { currentDate = _today, userClubId = userClubId };
+            state.leagues.Add(
+                new League
+                {
+                    id = 1,
+                    clubIds = new List<int> { 1, 2, 3, 4 },
+                    schedule = schedule,
+                    standings = new Standings { entries = new List<StandingEntry>() },
+                }
+            );
             return state;
         }
 
         private static Match Md(int id, DateTime date, int home, int away) =>
-            new Match { id = id, date = date, type = CompetitionType.League, homeClubId = home, awayClubId = away };
+            new Match
+            {
+                id = id,
+                date = date,
+                type = CompetitionType.League,
+                homeClubId = home,
+                awayClubId = away,
+            };
 
         // ── T1. 오늘 매치 없음 ────────────────────────────────────────
 
         [Test]
         public void T1_NoMatchesToday_NoEventPublished()
         {
-            var state = MakeState(new List<Match>
-            {
-                Md(1, _today.AddDays(7), 1, 2),
-                Md(2, _today.AddDays(-3), 3, 4),
-            });
+            var state = MakeState(
+                new List<Match> { Md(1, _today.AddDays(7), 1, 2), Md(2, _today.AddDays(-3), 3, 4) }
+            );
 
             bool stop = EventScheduler.Run(state);
 
@@ -74,11 +77,10 @@ namespace FMLite.Tests
         [Test]
         public void T2_MatchesToday_NotUserClub_NoStop()
         {
-            var state = MakeState(new List<Match>
-            {
-                Md(1, _today, 1, 2),
-                Md(2, _today, 3, 4),
-            }, userClubId: 99);  // 99 는 schedule 에 없음
+            var state = MakeState(
+                new List<Match> { Md(1, _today, 1, 2), Md(2, _today, 3, 4) },
+                userClubId: 99
+            ); // 99 는 schedule 에 없음
 
             bool stop = EventScheduler.Run(state);
 
@@ -94,11 +96,10 @@ namespace FMLite.Tests
         [Test]
         public void T3_MatchesToday_UserClubPlaying_StopRequested()
         {
-            var state = MakeState(new List<Match>
-            {
-                Md(1, _today, 1, 2),
-                Md(2, _today, 3, 4),
-            }, userClubId: 1);  // userClub 출전
+            var state = MakeState(
+                new List<Match> { Md(1, _today, 1, 2), Md(2, _today, 3, 4) },
+                userClubId: 1
+            ); // userClub 출전
 
             bool stop = EventScheduler.Run(state);
 
@@ -112,12 +113,15 @@ namespace FMLite.Tests
         [Test]
         public void T4_OtherDayMatches_Ignored()
         {
-            var state = MakeState(new List<Match>
-            {
-                Md(1, _today.AddDays(-1), 1, 2),
-                Md(2, _today.AddDays(1), 3, 4),
-                Md(3, _today, 1, 3),                // 오늘만 1개
-            }, userClubId: -1);
+            var state = MakeState(
+                new List<Match>
+                {
+                    Md(1, _today.AddDays(-1), 1, 2),
+                    Md(2, _today.AddDays(1), 3, 4),
+                    Md(3, _today, 1, 3), // 오늘만 1개
+                },
+                userClubId: -1
+            );
 
             bool stop = EventScheduler.Run(state);
 
@@ -131,10 +135,7 @@ namespace FMLite.Tests
         [Test]
         public void T5_UserClubSentinel_IsUserMatchFalse()
         {
-            var state = MakeState(new List<Match>
-            {
-                Md(1, _today, 1, 2),
-            }, userClubId: -1);
+            var state = MakeState(new List<Match> { Md(1, _today, 1, 2) }, userClubId: -1);
 
             bool stop = EventScheduler.Run(state);
 

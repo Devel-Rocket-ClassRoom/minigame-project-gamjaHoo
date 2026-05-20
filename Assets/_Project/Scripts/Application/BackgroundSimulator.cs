@@ -11,8 +11,8 @@
 //   - 분 단위 이벤트 시뮬 도입 시 비활성 구단 경량 경로 (SimulateLite) 분리 검토.
 
 using System;
-using UnityEngine;
 using FMLite.Domain;
+using UnityEngine;
 
 namespace FMLite.Application
 {
@@ -21,28 +21,39 @@ namespace FMLite.Application
         // state.currentDate 매치 일괄 처리. 이미 처리된 매치 (match.result != null) 는 스킵.
         public static void SimulateDay(GameState state, GameBalanceSO balance)
         {
-            if (state == null)   throw new ArgumentNullException(nameof(state));
-            if (balance == null) throw new ArgumentNullException(nameof(balance));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
 
             var today = state.currentDate.Date;
 
             for (int li = 0; li < state.leagues.Count; li++)
             {
                 var league = state.leagues[li];
-                if (league?.schedule == null) continue;
+                if (league?.schedule == null)
+                    continue;
 
                 for (int mi = 0; mi < league.schedule.Count; mi++)
                 {
                     var match = league.schedule[mi];
-                    if (match == null) continue;
-                    if (match.date.Date != today) continue;
-                    if (match.result != null) continue;       // 이미 처리됨 (PostProcessor 가 throw 하기 전 필터)
+                    if (match == null)
+                        continue;
+                    if (match.date.Date != today)
+                        continue;
+                    if (match.result != null)
+                        continue; // 이미 처리됨 (PostProcessor 가 throw 하기 전 필터)
 
                     // 데이터 정합성 방어 — 클럽 누락 시 스킵 (테스트 fixture 단순화 / 데이터 깨짐 방어).
                     // MatchSimulator 가 throw 하기 전에 graceful skip.
-                    if (state.GetClub(match.homeClubId) == null || state.GetClub(match.awayClubId) == null)
+                    if (
+                        state.GetClub(match.homeClubId) == null
+                        || state.GetClub(match.awayClubId) == null
+                    )
                     {
-                        Debug.LogWarning($"[BackgroundSimulator] match.id={match.id} 클럽 누락 — 시뮬 스킵");
+                        Debug.LogWarning(
+                            $"[BackgroundSimulator] match.id={match.id} 클럽 누락 — 시뮬 스킵"
+                        );
                         continue;
                     }
 
