@@ -100,6 +100,49 @@ gh project item-add 50 --owner Devel-Rocket-ClassRoom \
 
 > 이슈 / PR 생성 시점에 보드 자동 추가 안 됨. **항상 `gh project item-add` 를 별도로 호출**.
 
+### PR 본문 — `Closes` 구문 함정
+
+PR 본문에 닫을 이슈 명시 시 **각 이슈 앞에 키워드 필요**. 콤마로만 묶으면 GitHub 가 **첫 번째만 close**.
+
+```
+❌ Closes #39, #40, #41          → #39 만 close (#40, #41 OPEN 남음)
+❌ Closes #39 #40 #41             → #39 만 close
+✅ Closes #39, closes #40, closes #41
+✅ - Closes #39
+   - Closes #40
+   - Closes #41
+```
+
+여러 이슈를 한 PR 로 닫을 때 매번 검증 — 머지 후 GitHub 가 닫은 이슈 목록 확인.
+
+### 이슈 Close 시 — Start / Target Date / Iteration 자동 입력 (필수)
+
+> **이슈 close 시 Claude 가 즉시 보드 업데이트** (사용자 명시 요청, 2026-05-20). FM-Lite 작업 패턴 = "같은 날 시작 + 같은 날 완료" 라 `Start = Target = closedAt`.
+
+| 보드 필드 | 값 |
+| --- | --- |
+| **Start date** | `closedAt` 의 date 부분 (`yyyy-MM-dd`) |
+| **Target date** | 동일 (`closedAt`) |
+| **Iteration** | `closedAt` 이 속한 iteration 매핑 (현재: 1=5/18~5/24, 2=5/25~5/31, 3=6/1~6/7) |
+
+**처리 흐름** (PR 머지 직후 또는 이슈 수동 close 시):
+
+```powershell
+# 1. 보드 미등록이면 추가
+gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <issue-url>
+
+# 2. closedAt 가져옴
+$closedAt = (gh issue view <n> --json closedAt | ConvertFrom-Json).closedAt
+$dateStr = $closedAt.ToString("yyyy-MM-dd")
+
+# 3. Start/Target date + Iteration mutation (PowerShell + gh api graphql)
+# (필드 ID 는 gh project field-list 50 --owner ... 로 조회)
+```
+
+**일괄 처리 스크립트**는 PR #126 머지 코멘트 또는 `feedback_issue_close_workflow.md` 메모리 참조.
+
+> **GitHub Projects 의 한계**: GitHub Action / webhook 없이는 close 시 자동 채워지지 않음. Claude 가 매 close 시점에 처리 책임.
+
 ---
 
 ## 3. Issue Metadata
@@ -406,13 +449,20 @@ PlayerGenerator 만들기
 >   --url https://github.com/Devel-Rocket-ClassRoom/minigame-project-gamjaHoo/pull/{n}
 > ```
 
-작업 완료 시:
+작업 완료 시 (PR 머지 직후):
 
 ```
 1. v0.1-tasks.md의 해당 Task 체크박스 갱신 ([x])
 2. 결정 사항 있으면 design-decisions.md 추가
 3. 새 이벤트 있으면 event-bus-catalog.md 등록
 4. Change Log 갱신
+5. PR 본문 Closes #N 이 여러 이슈 닫는 경우 GitHub 가 실제로 close 했는지 검증
+   (콤마만 사용 시 첫 항목만 close — §2 "Closes 구문 함정" 참조)
+6. 닫힌 이슈마다 보드 메타데이터 입력:
+   - 보드 미등록이면 `gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <url>` 추가
+   - Start date = Target date = closedAt
+   - Iteration = closedAt 이 속한 iteration
+   - (§2 "이슈 Close 시 — Start / Target Date / Iteration 자동 입력" 참조)
 ```
 
 ---
@@ -424,3 +474,4 @@ PlayerGenerator 만들기
 | 2025-05-15 | 초안 작성 (FM-Lite 영역 라벨 반영) |
 | 2026-01-12 | Issue Type 마이그레이션 (#90) — `type:feature/task/bug` 라벨 → GitHub Issue Type 필드. 60개 이슈 일괄 마이그레이션 + 라벨 3개 삭제. §3 메타데이터 표 / §4 라벨 가이드 / §7 매핑 표 / §8 Anti-Patterns / §9 Cheatsheet 갱신. |
 | 2026-05-20 | PR 메타데이터 규칙 명시 (#121) — 그동안 PR 생성 시 label/milestone/assignee/Projects 누락. §2 "PR Metadata" 신규 섹션 + §3 Projects 항목에 FM-Lite 보드 (#50, owner Devel-Rocket-ClassRoom) 정보 + §9 PR gh CLI 예시 추가. 본 PR 부터 메타데이터 완비 적용. |
+| 2026-05-20 | 이슈 close 시 보드 메타데이터 규칙 + `Closes` 구문 함정 — §2 "Closes 구문 함정" 섹션 (콤마만 쓰면 첫 항목만 close, PR #125 가 #40/#41 누락한 사례) + "이슈 Close 시 Start/Target Date/Iteration 자동 입력" 섹션 (사용자 요청: "같은 날 시작/완료라 closedAt 통일"). §9 Cheatsheet 의 작업 완료 흐름에 보드 메타데이터 입력 단계 추가. 그동안 보드 미등록 닫힌 이슈 22개 일괄 추가 + 닫힌 이슈 57개 전체 Start/Target/Iteration 입력 (PowerShell + gh api graphql 일괄 처리). |
