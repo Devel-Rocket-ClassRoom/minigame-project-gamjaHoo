@@ -736,6 +736,85 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 
 ---
 
+## 35. V0.1 Youth Pool Generation 정책
+
+**결정:** 유스 인스펙션 풀 생성은 **PA 진실값 + CA derived 역방향** 모델 (PlayerGen 의 CA 진실값 모델과 대비). V0.1 시설 통합 등급 + 스타 픽 메커닉 + 강화된 시드 공식 (외부 마이닝 + 직플 영상 공유 둘 다 방어).
+
+```
+1. 시드 = state.randomSeed ^ currentDate.Ticks ^ userActionHash ^ club.id ^ intake.id ^ rerollsUsed
+2. 풀 사이즈 = FacilityLevelSO(Youth).youthPoolSize (시드 자산)
+3. 각 선수: PA 추첨 (스타 픽 5% + 일반 95%) → CA derived (PA 역방향 + σ=25 약화)
+4. 나이/국적/포지션/트레잇/계약 = PlayerGen 부분 재활용
+```
+
+**이유 — 사용자 의도별 정리:**
+
+1. **PA 진실값 / CA derived (사용자 #3)**: V0.1 유스는 PA 가 핵심 (잠재력). CA 는 어차피 어릴 때라 낮음. `youthPaGapStdDev=25` (PlayerGen σ=15 의 1.67배) 로 CA 분산 ↑ → 같은 PA 라도 CA 변동 커서 PA 추정 어려움. **CA 만 보고 PA 유추 불가** = 디자인 의도.
+
+2. **스타 픽 메커닉 (사용자 #2)**: 5% 확률 PA 평균 +50 보너스. **시설 구려도 가끔 천재 발굴**. 시설 Lv1 (avgPA 100) 도 가끔 PA 150 슈퍼유망주. 시설 좋아도 평범한 풀 가능 — 게임 진행 재미 ↑.
+
+3. **시드 공식 — 옵션 2+3 결합 (사용자 #6)**:
+   - `currentDate.Ticks` 포함 → **외부 시드 마이닝 차단** (newgame seed 단독으로 미래 시점 예측 어려움, DateTime.Ticks 가 100-nanosecond 단위)
+   - `userActionHash` (`finance.money ^ squad.Count ^ tokens` 등) → **직플 영상 공유 차단** (자금 1원 / 영입 1명 / 토큰 1개 차이로도 hash 변동)
+   - **결정성 (`#17`) / 멀티세이브 일관성 보존** — 같은 행동 = 같은 hash = 같은 결과
+   - **본질적 한계 인정**: 완벽히 동일 플레이는 같은 결과 (결정론의 본질, 막으면 세이브 깨짐)
+
+4. **V0.1 시설 통합 등급 (사용자 #1)**: `FacilityLevelSO(Youth)` 가 시설 + 코치 + 모집 통합 책임. 실제 FM 메커닉 (시설 ≠ 코치 ≠ 모집) 은 V1.0+ 분리 트리거로 명세. V0.1 단순화.
+
+5. **미영입 V0.1 단순화 (사용자 #9)**: 영입 결정 후 미영입 후보 모두 GameState 제거. `intake.rejectedPlayerIds` 에 ID 만 보관 (`#7` 영구 저장). V1.0+ AI 다른 구단 영입 시스템 트리거.
+
+6. **나이 가중치 + birthDate 저장 (사용자 #4)**: 16=40%, 17=40%, 18=20%. `PersonalInfo.birthDate` 저장 (age 필드 별도 X) — PlayerGen 패턴 그대로. 미래 홈그로운 / 출전 가능 나이 / 적응 기간 등 계산 시 birthDate 필수.
+
+7. **국적 자국 78% (사용자 #8)**: ClubGen 의 `primaryNationalityRatio=0.70` 보다 ↑. 유스는 자국 출신 비중이 더 큰 게 현실적 + 게임 만족감.
+
+**외부화:** `GameBalanceSO` 신규 13개 필드 (`youthStarPickProbability=0.05`, `youthStarPaBonus=50`, `youthPaStdDev=15`, `youthPaGapStdDev=25`, `youthIntakeMinAge=16`, `youthIntakeMaxAge=18`, `youthIntakeAgeWeights={0.40, 0.40, 0.20}`, `youthPrimaryNationalityRatio=0.78`, `youthIntakeMainMonth/Day=6/15`, `youthIntakeSecondMonth/Day=1/15`). `algorithms.md #4` 참조.
+
+### V1.0+ 보완 포인트
+
+- **유스 시설 분리** — `FacilityLevelSO(Youth)` 통합 등급 → `Club.youthCoachLevel` (PA 평균) / `Club.youthRecruitmentLevel` (풀 크기) 분리. 시설 등급은 다른 효과 (스타플레이어 인지도 / 외국 유스 영입 가능 / 보드 신뢰도 +) 로 재정의.
+- **포지션 가중치 변동** — V0.1 균등 → V1.0+ 라운드별 가중치 가챠 (어떤 인스펙션은 GK 0명, ST 다수 / 다른 인스펙션은 반대). `youthPositionWeightVolatility` 같은 외부화 도입.
+- **AI 다른 구단 영입** — 미영입 후보 일정 확률 (`youthRejectedToOtherClubRatio`) 로 다른 구단 영입. 알림 이벤트 + 추후 조우 시 디스플레이.
+- **CA-Stats 정합성 (algorithms.md #1 V1.0 트리거와 짝)** — PA → CA 단순 derived 대신 stats 가중합 기반 derived 검토. 같은 PA 라도 stats 분포에 따라 CA 다양화.
+- **트레잇 가중치 차등** — 유스 시설 등급별 "고급 트레잇 (빅매치형 등)" 가중치 ↑. PlayerGen 트레잇 부여 알고리즘에 분기 추가.
+- **시드 강화** — userActionHash 정교화 (`intakeHistory.Sum(...)` 과거 영입 패턴 / `state.activeOffers.Count` 등 추가).
+- **추가 스카우트 (`data-flows.md #4 [3-c]`)** — 비용 차감 + UI 정보 정확도 ↑ (PA 추정치 범위 좁힘 / 트레잇 노출 정도).
+- **계약 기간 차등** — V0.1 균등 2~4년 → 시설 / 나이 / PA 에 따라 차등 (천재는 짧게 — 빅클럽 위협, 잠재력 낮으면 길게 — 위험 헤지).
+- **다른 클럽 인스펙션** — V0.1 유저 클럽만 → 시즌 사이클에 AI 클럽도 인스펙션 실행 + 영입 결정.
+
+---
+
+## 36. GameState.nextIntakeId 단조증가 카운터
+
+**결정:** `GameState` 에 `int nextIntakeId` 신규 필드 (디폴트 1). 모든 YouthIntake 의 id 발급 단일 진실의 원천 (PlayerGen 의 `nextPlayerId` 패턴).
+
+```csharp
+public class GameState {
+    // ... 기존 필드 ...
+    public int nextPlayerId = 1;     // 기존 (#31)
+    public int nextIntakeId = 1;     // 신규
+}
+```
+
+**이유:**
+
+- **결정성 + 디버그 명확성** (`#17`, `#31` 패턴 일관) — 같은 id 가 다른 intake 데이터를 가지면 세이브 / 디버그 혼란.
+- **세이브 일관성** — 세이브 / 로드 시 intake 객체 동일성 보장.
+- **단조증가** — 시즌별 메인/보조 인스펙션 누적. 시즌 1 메인 = id=1, 보조 = id=2, 시즌 2 메인 = id=3, ...
+- **시드 공식 의존** (`#35` 1단계) — `intake.id` 가 시드에 들어가므로 ID 결정성이 풀 결정성으로 이어짐.
+
+**구현 영향:**
+
+- `YouthSystem.GenerateIntake` 가 `state.nextIntakeId++` 로 발급
+- `GameInitializer` 가 `state.nextIntakeId = 1` 초기화 (이미 디폴트라 사실상 no-op)
+- 세이브 / 로드 라운드트립 검증 필요 (PlayerGen 의 `nextPlayerId` 패턴 그대로)
+
+### V1.0+ 보완 포인트
+
+- **id 재사용 검토 X** — `#31` 과 동일 정책. 디스크 / 메모리 절약 미미. 디버그 / 결정성 손실 큼.
+- **derived seed 헬퍼 추출** — 현재 `state.randomSeed ^ currentDate.Ticks ^ userActionHash ^ club.id ^ intake.id ^ rerollsUsed` 가 호출자 수동 조합. V1.0 에서 `IntakeSeed.Compute(state, club, intake)` 헬퍼 추출.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -749,3 +828,4 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 | 2026-05-19 | #28 갱신 + #30~32 추가 | algorithms.md #6 Starting Squad Gacha 명세 작성 시 결정. 분배표 정책 `FormationConfig` 단위로 갱신 (필수 23 + 랜덤 2). Gacha 평가 정책 (4라인 + 명성 대비 + ACE). Reroll 재생성 + 새 id (`GameState.nextPlayerId` 신규). V0.1 단일 포메이션 → V1.0 가챠 랜덤화 확장 경로 명시. 출전 시간 시스템은 V1.0+ 보완 포인트로만 기록. |
 | 2026-05-19 | #33, #34 추가 | algorithms.md #2 Match Simulation 명세 작성 (Task 9.1 Sub-A, #109) 시 결정. #33 V0.1 정책 (단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자). #34 V1.0+ 이벤트 시퀀스 진화 경로 — 옐로 2장/부상→교체/외침 등 누적 처리 가능 구조. 인터페이스 유지로 V0.1 호출자 영향 없이 내부 교체 가능. |
 | 2026-05-19 | #33 보강 | Sub-C 본 구현 검증 시 (#113) 단순 선형 ratio 의 결정력 부족 발견 — 강팀 원정 승률 51% 로 디자인 의도 부족. `strengthExponent` (k=1.5 기본) 비선형화 도입. V0.1 임시 변통으로 명시 — V1.0+ 매치 엔진 재작성 (#34) 시 폐기 예정. |
+| 2026-05-20 | #35, #36 추가 | algorithms.md #4 Youth Pool Generation 명세 작성 (Task 10 Sub-A, #123). #35 V0.1 정책 (PA 진실값 + CA derived 역방향 / 스타 픽 5% PA bonus / 시드=`currentDate.Ticks`+`userActionHash` 결합으로 외부 마이닝+직플 영상 공유 둘 다 방어 / 시설 통합 등급 / 미영입 단순 제거 / 나이 가중치 / 자국 78%). #36 `GameState.nextIntakeId` 단조증가 카운터 (PlayerGen `nextPlayerId` 패턴). V1.0+ 보완 포인트 9개 정리 (시설 분리 / 포지션 가중치 / AI 영입 / CA-Stats 정합성 / 시드 강화 / 추가 스카우트 / 계약 차등 등). |
