@@ -47,7 +47,7 @@ V0.1 시작 전 정해야 할 알고리즘 (우선순위):
 3. **스타팅 스쿼드 가챠 (Starting Squad Gacha)** ★★★★ — `## 6` 작성 완료
 4. **경기 결과 계산 (Match Simulation)** ★★★★★ — `## 2` 작성 완료
 5. **선수 가치 계산 (Market Value)** ★★★★ — `## 3` 미작성
-6. **유스 풀 생성 (Youth Pool Generation)** ★★★★ — `## 4` 미작성
+6. **유스 풀 생성 (Youth Pool Generation)** ★★★★ — `## 4` 작성 완료
 
 > 섹션 번호(`## N.`)는 작성 순서 기준이고, 우선순위와 1:1 일치하지 않는다. ClubGen 은 PlayerGen 이후 작성되어 섹션 `## 5` 이지만 호출 흐름상 PlayerGen 다음 차례. Gacha 는 섹션 `## 6` 으로 끝에 추가. Match Simulation 은 섹션 `## 2` 자리에 후속 작성.
 
@@ -800,7 +800,382 @@ V0.1 → V1.0 진행 시 손댈 가능성 있는 부분. 각 항목의 영향 �
 
 ## 4. Youth Pool Generation
 
-*(미작성)*
+### Purpose
+
+- 단일 `YouthIntake` 생성 — 후보 선수 N명을 PlayerGenerator 로 만든 후 `GameState.allPlayers` 등록 + `YouthIntake` 객체 빌드.
+- 호출 시점:
+  - **메인 인스펙션** (6/15) — 시즌 종료 후, 풀 사이즈 ↑
+  - **보조 인스펙션** (1/15) — 시즌 중간
+  - `EventScheduler` 가 위 날짜 도래 시 `YouthSystem.GenerateIntake(club, state, ...)` 호출
+- 추가 책임 (Task 10.2/10.3):
+  - **리롤** — 토큰 1개 소모, 미영입 후보 제거 후 새 풀 생성
+  - **영입 처리** — 선택된 후보 → `club.youthSquadIds`. 미영입 후보 → `GameState` 제거 (V0.1)
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `club` | `Club` | 인스펙션 대상 (V0.1: 유저 클럽만). `facilities.youthLevel` 사용. |
+| `state` | `GameState` | `nextIntakeId` / `nextPlayerId` / `randomSeed` / `currentDate` / `userClub` 사용. 풀 추가/제거. |
+| `balance` | `GameBalanceSO` | 모든 수치 외부화. |
+| `db` | `GameDatabase` | `FacilityLevelSO(Youth, club.facilities.youthLevel)` / `PositionSO` / `TraitSO` / `NamePoolSO` 조회. |
+| `leagueConfig` | `LeagueConfigSO` | 국적 분배 시 `countryCode` 사용. |
+
+### Outputs
+
+```csharp
+public YouthIntake {
+    public int id;                              // state.nextIntakeId++ 로 발급
+    public int clubId;
+    public DateTime intakeDate;                 // currentDate
+    public List<int> candidatePlayerIds;        // 풀 사이즈만큼
+    public List<int> signedPlayerIds;           // 영입 처리 후 (Task 10.3)
+    public List<int> rejectedPlayerIds;         // 영입 처리 후 (Task 10.3)
+    public int rerollsUsed;                     // 리롤 시 +1
+}
+```
+
+- 후보 선수들은 `GameState.allPlayers` 에 등록 (`currentClubId = -1`, `origin = YouthIntake`, `youthClubId = club.id`).
+- 영입 안 된 선수는 `signPlayers` 호출 후 GameState 에서 제거 (V0.1) — `rejectedPlayerIds` 에 ID 만 남음 (`design-decisions.md #7` 영구 저장).
+
+### Logic
+
+전체 순서:
+
+```
+1. 시드 고정         (state + 시점 + 유저 행동 + intake.id + rerollsUsed)
+2. 풀 사이즈 결정     (FacilityLevelSO.youthPoolSize 직접 사용)
+3. 후보 선수 N명 생성  (PlayerGenerator 재활용 + 유스 전용 PA/CA/나이/포지션/국적)
+4. YouthIntake 빌드 + GameState 등록
+```
+
+리롤 / 영입 / 미영입 처리는 별도 메서드 (`Reroll`, `SignPlayers`).
+
+#### 1단계: 시드 고정 — 외부 마이닝 + 직플 영상 공유 둘 다 방어
+
+```
+userActionHash = (state.userClubId >= 0)
+    ? state.userClub.finance.money
+      ^ (state.userClub.seniorSquadIds.Count * 7919)
+      ^ (state.userClub.youthSquadIds.Count   * 9973)
+      ^ (state.rerollTokens                   * 16007)
+    : 0
+
+rng = new Random(
+    state.randomSeed
+    ^ unchecked((int)state.currentDate.Ticks)   # 시점별 시드 (옵션 2)
+    ^ userActionHash                            # 유저 행동 영향 (옵션 3)
+    ^ club.id
+    ^ intake.id                                 # state.nextIntakeId 발급
+    ^ intake.rerollsUsed                        # 리롤마다 다른 풀
+)
+```
+
+**효과** (`design-decisions.md` #35 V0.1 결정):
+
+- **외부 시드 마이닝 차단** — `currentDate.Ticks` (100-nanosecond 단위, 단일 newgame seed 만으로 미래 시점 예측 어려움)
+- **직플 영상 공유 사실상 차단** — `userActionHash` 가 자금 1원 / 영입 1명 / 토큰 1개 차이로도 변동. 완벽히 동일 플레이만 같은 결과.
+- **결정성 보존 (`design-decisions.md #17`)** — 같은 newgame seed + 같은 행동 → 같은 결과 (세이브/로드 일관성)
+- **리롤 메커닉 자연 발현** — `intake.rerollsUsed` 가 시드에 들어가 토큰 사용 시 자동으로 다른 풀
+
+#### 2단계: 풀 사이즈 결정
+
+```
+facility = db.GetFacilityLevel(FacilityType.Youth, club.facilities.youthLevel)
+poolSize = facility.youthPoolSize     # 시드 자산에서 외부화 (Lv1=15 / Lv5=30 등)
+```
+
+> **V0.1 시설 통합 정책 (`design-decisions.md #35`)**: `FacilityLevelSO(Youth)` 가 V0.1 에선 "유소년 시스템 종합 등급" (시설 + 코치 + 모집 통합). V1.0+ 에서 `Club.youthCoachLevel` / `Club.youthRecruitmentLevel` 분리.
+
+#### 3단계: 후보 선수 N명 생성
+
+```
+candidates = []
+nextId = state.nextPlayerId
+
+for i in 0..poolSize:
+    age         = SampleYouthAge(rng, balance)
+    nat         = SampleYouthNationality(rng, leagueConfig.countryCode, db, balance)
+    position    = (Position)rng.Next(0, 14)        # V0.1: 균등 랜덤 (14개 포지션)
+    pa          = SampleYouthPA(rng, facility, balance)
+    
+    player = BuildYouthPlayer(rng, nextId, age, nat, position, pa,
+                              club.id, currentDate, balance, db)
+    
+    candidates.add(player.id)
+    state.AddPlayer(player)
+    nextId++
+
+state.nextPlayerId = nextId
+```
+
+**PA 샘플링 — 스타 픽 메커닉 (사용자 의도: 톡톡 튀는 천재 발굴)**:
+
+```
+SampleYouthPA(rng, facility, balance) → int:
+    isStar = rng.NextDouble() < balance.youthStarPickProbability     # 0.05 (5%)
+    mu     = facility.youthAvgPA + (isStar ? balance.youthStarPaBonus : 0)   # +50 if star
+    rawPA  = rng.NextNormal(mu, balance.youthPaStdDev)               # σ=15
+    return Clamp(round(rawPA), balance.minPA, balance.maxPA)
+```
+
+- 시설 Lv1 (avgPA 100) 도 5% 확률 평균 150 PA 천재 등장
+- 시설 Lv5 (avgPA 150) 도 5% 확률 평균 200 (상한) 슈퍼 천재
+- **재미 디자인**: 시설 구려도 가끔 슈퍼유망주 발굴, 시설 좋아도 평범한 풀 가능
+
+**나이 샘플링 — 가중치 분포 (16/17 위주)**:
+
+```
+SampleYouthAge(rng, balance) → int:
+    # balance.youthIntakeAgeWeights = [0.40, 0.40, 0.20] (16, 17, 18 순)
+    return rng.WeightedSample([16, 17, 18], balance.youthIntakeAgeWeights)
+```
+
+**국적 샘플링 — 자국 비율 ClubGen 보다 ↑**:
+
+```
+SampleYouthNationality(rng, leagueCountry, db, balance) → string:
+    if rng.NextDouble() < balance.youthPrimaryNationalityRatio:    # 0.78 (자국 78%)
+        return leagueCountry
+    others = db.AllCountries.Where(c => c.code != leagueCountry).ToList()
+    return others.empty ? leagueCountry : others[rng.Next(others.Count)].code
+```
+
+**선수 빌드 — PlayerGenerator 부분 재활용 + CA-PA 역방향**:
+
+PlayerGen 은 `CA → PA` 방향 (CA 진실값). 유스는 **PA → CA 역방향** (PA 진실값, CA derived).
+
+```
+BuildYouthPlayer(rng, id, age, nat, position, pa,
+                 clubId, currentDate, balance, db) → Player:
+    
+    # ── CA 결정 (PA 역방향, CA-PA 의존성 약화) ──
+    ageBlend = Clamp01((age - balance.youthIntakeMinAge) /
+                       (balance.paGapZeroAge - balance.youthIntakeMinAge))
+    caGap    = Lerp(balance.paGapMaxMean, 0, ageBlend)             # 16세 → ~46
+    rawCA    = pa - rng.NextNormal(caGap, balance.youthPaGapStdDev) # σ=25 (PlayerGen σ=15 × 1.67)
+    ca       = Clamp(round(rawCA), balance.minCA, pa)               # CA ≤ PA 보장
+    
+    # ── Stats 분배 (PlayerGen 3단계 재활용) ──
+    stats    = FillStatsByPlayerGen(rng, ca, position, balance, db)
+    
+    # ── 트레잇 (PlayerGen 4단계 재활용) ──
+    traitIds = SelectTraitsByPlayerGen(rng, balance, db)
+    
+    # ── 인적사항 ──
+    namePool   = db.GetNamePool(nat)
+    firstName  = rng.Choice(namePool.firstNames)
+    lastName   = rng.Choice(namePool.lastNames)
+    birthDate  = SampleBirthDate(rng, currentDate, age)             # PersonalInfo.birthDate 저장 (age 별도 X)
+    foot       = SampleFoot(rng, balance)                           # PlayerGen 5단계 재활용
+    secondaryPositions = GenerateSecondaryPositions(position, rng, db, balance)
+    
+    # ── 계약 (V0.1 단순) ──
+    contract = new Contract {
+        weeklyWage = EstimateInitialWage(ca, age, balance),
+        startDate  = currentDate,
+        endDate    = currentDate.AddYears(rng.Range(2, 5)),         # 2~4년 (유스는 일반 1~4 보다 약간 길게)
+        releaseClause = 0,
+    }
+    
+    return new Player {
+        id = id, info = {firstName, lastName, birthDate, nat, position, secondaryPositions, foot},
+        stats = stats, currentAbility = ca, potentialAbility = pa,
+        traitIds = traitIds,
+        currentClubId = -1,           # 미소속 — 영입 시 club.id 로 갱신
+        youthClubId = clubId,         # 인스펙션 출처 (영입 안 돼도 기록)
+        origin = PlayerOrigin.YouthIntake,
+        contract = contract,
+        state = new PlayerState {
+            fatigue = 0, morale = 50, form = 50,
+            injury = new InjuryInfo { injuryTypeId = -1 },
+        },
+        career = [],
+        faceSeed = rng.Next(),
+    }
+
+
+SampleBirthDate(rng, currentDate, age):
+    # age 가 currentDate 기준 만 나이가 되도록 birthDate 계산
+    birthYear  = currentDate.Year - age
+    birthMonth = rng.Range(1, 13)
+    birthDay   = rng.Range(1, 29)        # 1..28 (28일까지 안전하게)
+    return new DateTime(birthYear, birthMonth, birthDay)
+```
+
+> **CA-PA 의존성 약화 (사용자 의도)**: `youthPaGapStdDev=25` (PlayerGen `paGapStdDev=15` 의 1.67배). 같은 PA 라도 CA σ 가 커 PA 추정 어려움.
+>
+> 예: PA=150 → CA ≈ 100±25 (75~125). PA=120 → CA ≈ 70±25 (45~95). **CA 70 선수가 PA 100~145 어디든 가능** — 단순 CA 만으로 PA 추정 불가.
+
+#### 4단계: YouthIntake 빌드 + GameState 등록
+
+```
+intake = new YouthIntake {
+    id           = state.nextIntakeId++,
+    clubId       = club.id,
+    intakeDate   = state.currentDate,
+    candidatePlayerIds = candidates,
+    signedPlayerIds    = [],
+    rejectedPlayerIds  = [],
+    rerollsUsed        = 0,
+}
+club.intakeHistory.Add(intake)
+EventBus.Publish(new YouthIntakeAvailableEvent { intakeId = intake.id, clubId = club.id })
+```
+
+### Reroll 메커닉 (Task 10.2)
+
+```
+UseRerollToken(intake, club, state, balance, db, leagueConfig):
+    if state.rerollTokens <= 0:
+        throw InvalidOperationException("토큰 부족")
+    
+    state.rerollTokens -= 1
+    intake.rerollsUsed += 1
+    
+    # 영입 안 된 기존 후보 제거 (signedPlayerIds 는 유지)
+    foreach id in intake.candidatePlayerIds.Where(id => id not in intake.signedPlayerIds):
+        state.RemovePlayer(id)
+    intake.candidatePlayerIds.Clear()
+    intake.candidatePlayerIds.AddRange(intake.signedPlayerIds)   # 이미 영입한 선수는 유지
+    
+    # 새 후보 생성 — 시드는 rerollsUsed 가 +1 됐으므로 자동으로 다른 결과
+    # (Logic 3단계 재호출, candidates 에 새 풀 추가)
+    [3단계 반복, candidates 를 intake.candidatePlayerIds 에 추가]
+    
+    EventBus.Publish(new YouthRerolledEvent { intakeId, remainingTokens = state.rerollTokens })
+```
+
+### 영입 / 미영입 처리 (Task 10.3)
+
+```
+SignPlayers(intake, playerIds, club, state):
+    # 영입
+    foreach id in playerIds:
+        player = state.GetPlayer(id)
+        player.currentClubId = club.id
+        club.youthSquadIds.Add(id)
+        intake.signedPlayerIds.Add(id)
+    
+    # 미영입 (V0.1 — 모두 GameState 제거, ID 만 보관)
+    foreach id in intake.candidatePlayerIds:
+        if id not in intake.signedPlayerIds:
+            state.RemovePlayer(id)
+            intake.rejectedPlayerIds.Add(id)
+    
+    # candidatePlayerIds 비우기 (영입된 ID 는 signedPlayerIds, 거절된 ID 는 rejectedPlayerIds 에)
+    intake.candidatePlayerIds.Clear()
+    
+    EventBus.Publish(new YouthSignedEvent { intakeId, signedPlayerIds = playerIds })
+```
+
+> **V0.1 단순화 (`design-decisions.md #35`)**: 미영입 후보 모두 제거. V1.0+ 에서 일정 확률로 AI 다른 구단 영입.
+
+### Balancing Parameters → GameBalanceSO
+
+```csharp
+// === Youth Intake (algorithms.md #4) ===
+public float   youthStarPickProbability     = 0.05f;      // 5% 스타 픽
+public float   youthStarPaBonus             = 50f;        // 스타 PA 평균 보너스
+public float   youthPaStdDev                = 15f;        // PA 분포 σ
+public float   youthPaGapStdDev             = 25f;        // CA-PA 갭 σ (PlayerGen 의 1.67배)
+public int     youthIntakeMinAge            = 16;
+public int     youthIntakeMaxAge            = 18;
+public float[] youthIntakeAgeWeights        = { 0.40f, 0.40f, 0.20f };  // 16, 17, 18 순
+public float   youthPrimaryNationalityRatio = 0.78f;      // 자국 78% (ClubGen 의 0.70 보다 ↑)
+public int     youthIntakeMainMonth         = 6;
+public int     youthIntakeMainDay           = 15;         // 메인: 6/15
+public int     youthIntakeSecondMonth       = 1;
+public int     youthIntakeSecondDay         = 15;         // 보조: 1/15
+```
+
+> 기존 PlayerGen 필드 (`paGapMaxMean`, `paGapZeroAge`, `caRepBase`, `caRepCoeff`, `traitProbabilityPerPlayer`, `additionalTraitProbability`, `secondaryPositionProbability`, `thirdPositionProbability`, `footRightRatio/leftRatio/bothRatio`, `wageBaseAtMinCA`, `wagePerCAPoint`, `wageFloor`) 재활용.
+
+### Edge Cases
+
+| Case | 처리 |
+| --- | --- |
+| `club.facilities.youthLevel` 범위 밖 (Lv 1~5 외) | Assert + 경고. Lv1 폴백. |
+| `FacilityLevelSO(Youth, level)` 미등록 | 경고 로그 + Lv1 SO 폴백 + GenerateIntake 진행. |
+| `db.AllCountries` 가 leagueCountry 하나뿐 | 외국인 추첨 시 leagueCountry 폴백 (ClubGen 패턴). |
+| `state.userClubId < 0` (테스트 등) | userActionHash = 0. 시드 분산 약화하지만 동작 OK. |
+| `state.nextIntakeId` 미초기화 (= 0) | 첫 인스펙션 = 1 발급 후 +1 (PlayerGen `nextPlayerId` 패턴). |
+| Reroll 시 `state.rerollTokens == 0` | `InvalidOperationException`. UI 단에서 미리 차단해야 함. |
+| Reroll 시 `intake.candidatePlayerIds` 비어있음 (모두 영입됨) | 새 풀만 추가. signedPlayerIds 유지. |
+| SignPlayers 의 `playerIds` 가 빈 리스트 | 미영입 전체 제거만 수행. EventBus 정상 발행. |
+| SignPlayers 의 `playerIds` 에 `candidatePlayerIds` 외 ID 포함 | Assert + 경고. 무시 (skip). |
+| age 가 `[youthIntakeMinAge, youthIntakeMaxAge]` 외 | Assert (가중치 정의 오류). |
+| Stats 분배 / 트레잇 부여 — PlayerGen 의 모든 edge case 동일하게 적용 |  |
+
+### Test Scenarios
+
+`Random(seed: 42)` 고정. 통계 테스트는 1000명 batch (10 인스펙션 × 100명 각).
+
+**T1. 결정성 — 같은 입력 동일 결과**
+- 같은 `state.randomSeed` + 같은 `state.currentDate` + 같은 `userActionHash` (자금/스쿼드/토큰) + 같은 `intake.id` + 같은 `rerollsUsed` → 동일 풀.
+
+**T2. 시드 옵션 검증 — userActionHash 가 시드에 영향**
+- 같은 newgame seed 두 fixture. 한쪽 `state.userClub.finance.money` 만 +1 변경.
+- → 두 fixture 의 intake 풀이 다름 (대부분 / 100% 보장 X — XOR collision 가능성 있으나 우연 수준).
+
+**T3. 풀 사이즈 — FacilityLevelSO 직접 사용**
+- Lv1 시설 → `candidatePlayerIds.Count == facility.youthPoolSize`
+- Lv5 시설 → 같은 검증
+
+**T4. PA 분포 — 스타 픽 효과 (1000명 batch)**
+- 시설 Lv1 (avgPA=100) 1000명 생성:
+  - 평균 PA ≈ 100 + (0.05 × 50) = 102.5 ±5
+  - 일반 분포 (95%) 의 σ 검증 + 스타 (5%) 의 PA 평균이 150 근처
+  - **PA 140 이상 비율 ≈ 5% (스타 픽 효과 확인)**
+- 시설 Lv5 (avgPA=150) → 평균 152.5 / PA 190 이상 비율 ≈ 5%
+
+**T5. CA-PA 의존성 약화 — corr(CA, PA) < 0.85**
+- 1000명 batch (시설 등급 다양) → CA / PA 의 피어슨 상관계수 < 0.85
+- (PlayerGen 의 derived CA 와 비교 — PlayerGen 은 ~0.7 정도, 유스는 σ 큰 만큼 ~0.6 정도 기대)
+
+**T6. 나이 가중치 분포 (1000명 batch)**
+- age 16 비율 ≈ 40% ±5%
+- age 17 비율 ≈ 40% ±5%
+- age 18 비율 ≈ 20% ±5%
+
+**T7. 국적 분포 (500명 batch, leagueCountry="ENG")**
+- ENG 비율 ≈ 78% ±5%
+- 외국 합 ≈ 22% ±5%
+
+**T8. 시설 등급별 평균 PA 차이 — 핵심 디자인 검증**
+- Lv1 (avgPA=100) batch 1000명 평균 PA < Lv5 (avgPA=150) batch 1000명 평균 PA
+- 평균 차이 ≈ 50 (시드 자산의 youthAvgPA 차이) ±5
+
+**T9. Reroll — 토큰 차감 + 풀 변경**
+- state.rerollTokens=3 → UseRerollToken → tokens=2
+- intake.rerollsUsed=0 → 1
+- 새 풀의 candidatePlayerIds 가 기존과 다름 (영입 안 된 ID 제거됨)
+
+**T10. SignPlayers — 영입 / 미영입 처리**
+- 풀 15명 중 3명 영입:
+  - 영입된 3명: `currentClubId = club.id` / `club.youthSquadIds` 추가 / `intake.signedPlayerIds` 추가
+  - 미영입 12명: `state.allPlayers` 에서 제거 / `intake.rejectedPlayerIds` 에 ID 만 보관
+
+### V1.0+ Migration Notes
+
+| 항목 | V0.1 동작 | V1.0+ 변경 후보 | 영향 범위 |
+| --- | --- | --- | --- |
+| **유스 시설 통합 등급** | `FacilityLevelSO(Youth)` 가 시설 + 코치 + 모집 통합 | `Club.youthCoachLevel` / `Club.youthRecruitmentLevel` 분리. 시설 등급은 다른 효과 (인지도 / 외국 유스 영입 가능) | 2단계 + `Club` 도메인 + 새 SO |
+| **포지션 균등 랜덤** | 14개 포지션 균등 | 라운드별 가중치 가챠 — 어떤 인스펙션은 GK 0명, AT 다수 / 다른 인스펙션은 반대 | 3단계 + `youthPositionWeightVolatility` 신규 |
+| **미영입 후보 V0.1 단순 제거** | 모두 GameState 제거 | 일정 확률로 AI 다른 구단 영입 → 후속 알림 이벤트 | SignPlayers + 새 AI 시스템 |
+| **CA-PA 의존성** | σ=25 로 약화 | finishing / composure / decisions 같은 개별 stats 가 CA 표면적 능력에 가산 → 같은 PA 라도 stats 분포에 따라 CA 다양화 | `algorithms.md #1 V1.0 변경 트리거` (CA-Stats Option B) 와 짝 |
+| **트레잇 가중치** | PlayerGen 동일 | 유스 시설 등급별 "고급 트레잇 (빅매치형 등)" 가중치 ↑ | 트레잇 부여 단계 |
+| **시드 강화 (옵션 3)** | userActionHash = 4 필드 (finance / squad / youth / tokens) | hash 정교화 — `intakeHistory.Sum(...)` (과거 영입 패턴) / `state.activeOffers.Count` 등 추가 | 1단계 + Sub-A 명세 갱신 |
+| **다른 클럽 인스펙션 (AI 영입)** | V0.1: 유저 클럽만 호출 | 시즌 사이클에 AI 클럽도 인스펙션 → 다른 클럽 유스 영입 결정 | 새 호출자 + AI 의사결정 |
+| **추가 스카우트 (data-flows.md #4 [3-c])** | V0.1: 정보 정확도 시스템 부재 | 비용 차감 + UI 정보 정확도 ↑ (PA 추정치 범위 좁힘 / 트레잇 노출) | 새 시스템 |
+| **인스펙션 시기 데이터** | 6/15 / 1/15 (월/일만 외부화) | LeagueConfigSO 로 이전 — 리그별 다른 인스펙션 일정 | balance → LeagueConfigSO |
+| **계약 기간** | 2~4년 균등 | 시설 / 나이 / PA 에 따라 차등 (천재는 짧게, 잠재력 낮으면 길게) | BuildYouthPlayer + Contract |
+
+### Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-20 | All | Initial spec for V0.1. PA 진실값 / CA derived 역방향 모델 (PlayerGen 과 대비). 스타 픽 메커닉 (5% PA +50). 시드 = currentDate.Ticks + userActionHash 결합 (외부 마이닝 + 직플 영상 공유 둘 다 방어). 시설 통합 등급 V0.1 + V1.0+ 분리 명세. 포지션 V0.1 균등 / V1.0+ 가중치 변동 트리거. 미영입 V0.1 모두 제거 / V1.0+ AI 영입 트리거. age 가중치 16=40/17=40/18=20. 국적 자국 78%. `design-decisions.md` #35 (V0.1 정책) / #36 (`GameState.nextIntakeId`) 와 연동. |
 
 ---
 
@@ -1384,3 +1759,4 @@ public float tierWeakRatio     = 0.75f;
 | 2026-05-19 | Priority Order + #2 | Match Simulation `## 2` 섹션 신규 작성 (Task 9.1 Sub-A, #109). 단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자. starting11 = top-11 by CA. `design-decisions.md` #33 (V0.1 정책) / #34 (V1.0+ 이벤트 시퀀스 진화) 와 연동. |
 | 2026-05-19 | #2 Test Scenarios | Sub-C 본 구현 시 정규근사 (Skellam) 재계산 + 실측 검증 결과로 T3~T6 임계치/매치수 미세조정 (#113). T3 강팀 승률 70%→60% (홈) / 60%→45% (원정) — 정규근사 기대 ~64%/51% 에 표본오차 마진. 강팀 원정은 거의 50/50 (홈 보너스가 약팀 측 가산되는 게 큰 영향). T4 분포 명세 추가 (45/22/33%). T5 무득점 비율 8~10%→2~10% (이론 5%, 명세 초안 오기 수정). T6 매치 수 1000→500, 라인 분포 명세화 (GK3/DF8/MF8/AT6) + 가중치 합 계산 명시. **시드 well-distributed 정책 추가** — `(seedBase+i)^i` collision 회피 위해 `seedGen.Next()` 패턴 명시. |
 | 2026-05-19 | #2 4단계 / Balancing / V1.0 Notes / T3 | **`strengthExponent` (k) 도입** (#113). 단순 선형 ratio 가 CA 1.89배 차이를 골 1.43배 차이로만 반영 → 강팀 원정 51% 라 디자인 의도 (압도적 강팀이 자주 이김) 부족. `pow(s, k)` 비선형화로 강팀 우월함 증폭 (k=1.5 기본 → 강팀 홈 72% / 원정 59%). V0.1 임시 변통 — V1.0+ 매치 엔진 재작성 시 finishing 등 개별 stats 가 결정력 직접 표현하므로 k=1 회귀 또는 폐기. T3 임계치 재조정 (홈 60→65, 원정 45→50). |
+| 2026-05-20 | Priority Order + #4 | Youth Pool Generation `## 4` 섹션 신규 작성 (Task 10 Sub-A, #123). PA 진실값 / CA derived 역방향 모델. 스타 픽 메커닉 (5% PA bonus). 시드 = `currentDate.Ticks` + `userActionHash` 결합 (외부 마이닝 + 직플 영상 공유 둘 다 방어). V0.1 시설 통합 등급 + V1.0+ 분리 명세. `design-decisions.md` #35/#36 와 연동. |

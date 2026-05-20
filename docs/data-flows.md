@@ -190,25 +190,39 @@
 ## 4. 유스 인스펙션 흐름
 
 ### Trigger
-- 6월 중순 (메인) 또는 1월 중순 (보조)
-- EventScheduler가 YouthIntakeEvent 발행
+- **메인 인스펙션 — 6/15** (시즌 종료 직후)
+- **보조 인스펙션 — 1/15** (시즌 중간)
+- `EventScheduler` 가 `state.currentDate` 가 위 날짜 (월/일) 도달 시 `YouthSystem.GenerateIntake(userClub, state, ...)` 호출 + `YouthIntakeAvailableEvent` 발행 + 정지 신호 (UI 유스 풀 화면)
+- 외부화: `GameBalanceSO.youthIntakeMainMonth/Day = 6/15`, `youthIntakeSecondMonth/Day = 1/15`
 
 ### Sequence
 
 ```
-[1] YouthSystem.GenerateIntake(userClub, state):
-    a. PlayerGenerator로 후보 선수 생성 (15~30명)
-       - 유스 시설 등급에 따라 PA 분포 결정
-       - 트레잇 부여 (확률 기반)
-       - 나이: 16~18세
-    b. YouthIntake 객체 생성
-       - candidatePlayerIds = 생성된 선수들의 ID
-    c. 생성된 후보 선수들을 GameState.allPlayers에 추가
-       - currentClubId = -1 (아직 미소속)
-       - origin = YouthIntake
-       - youthClubId = userClub.id (영입 안 되어도 출처 기록)
-    d. club.intakeHistory에 추가
-    e. EventBus.Publish(new YouthIntakeAvailableEvent(intake))
+[1] YouthSystem.GenerateIntake(club, state, balance, db, leagueConfig) (algorithms.md #4 명세):
+    a. 시드 고정 (외부 마이닝 + 직플 영상 공유 방어):
+       rng = new Random(
+           state.randomSeed
+           ^ unchecked((int)state.currentDate.Ticks)   # 옵션 2 — 시점별 시드
+           ^ userActionHash                            # 옵션 3 — 유저 행동 반영
+           ^ club.id ^ intake.id ^ intake.rerollsUsed
+       )
+       userActionHash = club.finance.money ^ squad.Count*7919 ^ youthSquad.Count*9973 ^ tokens*16007
+    b. 풀 사이즈 결정 = FacilityLevelSO(Youth, club.facilities.youthLevel).youthPoolSize
+       - V0.1: 시설 = 유소년 시스템 종합 등급 (시설+코치+모집 통합, design-decisions.md #35)
+       - V1.0+: Club.youthCoachLevel / youthRecruitmentLevel 분리
+    c. 후보 선수 N명 생성 (algorithms.md #4 3단계):
+       - PA 추첨: 5% 스타 픽 (PA 평균 +50) / 95% 일반 (NextNormal(facility.youthAvgPA, σ=15))
+       - CA 추첨: PA 역방향 (PA - NextNormal(caGap, σ=25) — 의존성 약화로 PA 추정 차단)
+       - 나이: 16=40% / 17=40% / 18=20% (PersonalInfo.birthDate 저장, age 별도 X)
+       - 국적: 자국 78% / 외국 22% (ClubGen 0.70 보다 ↑)
+       - 포지션: V0.1 균등 / V1.0+ 라운드별 가중치 변동
+       - 트레잇: PlayerGenerator 재활용
+    d. YouthIntake 빌드:
+       intake.id = state.nextIntakeId++  (design-decisions.md #36)
+       candidatePlayerIds = 생성된 선수들 ID
+       currentClubId = -1, youthClubId = club.id, origin = YouthIntake
+    e. club.intakeHistory.Add(intake)
+    f. EventBus.Publish(new YouthIntakeAvailableEvent { intakeId, clubId })
 
 [2] UI: 유스 풀 화면 표시
     a. 후보 선수 목록 표시
@@ -219,34 +233,35 @@
        [추가 스카우트] → 비용 지불, 정보 정확도 ↑
        [완료]      → 결정 마무리
 
-[3-a] 영입 결정:
+[3-a] 영입 결정 — YouthSystem.SignPlayers(intake, playerIds, club, state):
     - 영입된 선수들:
       currentClubId = userClub.id
       club.youthSquadIds에 추가
       intake.signedPlayerIds에 추가
-    - 미영입 후보들 처리:
-      일정 확률로 다른 구단에 영입 (AI)
-      나머지는 무명으로 사라짐 (GameState에서 제거 또는 보관)
-      intake.rejectedPlayerIds에 추가
-    - EventBus.Publish(new YouthSignedEvent)
+    - 미영입 후보들 처리 (V0.1 단순화, design-decisions.md #35):
+      **V0.1: 모두 GameState에서 제거 — intake.rejectedPlayerIds에 ID만 보관 (#7 영구 저장, 회고용)**
+      V1.0+: 일정 확률 (youthRejectedToOtherClubRatio) 로 AI 다른 구단 영입 (algorithms.md #4 V1.0 Notes)
+    - intake.candidatePlayerIds.Clear() — signed/rejected 로 모두 이동
+    - EventBus.Publish(new YouthSignedEvent { intakeId, signedPlayerIds })
 
-[3-b] 리롤 결정:
-    a. state.rerollTokens -= 1
-    b. intake.rerollsUsed += 1
-    c. 기존 candidatePlayerIds의 선수들을 GameState에서 제거 (영입 안 된 것들)
-    d. 새 풀 생성 ([1] 단계 반복, 같은 intake 객체에 덮어쓰기)
-    e. UI 갱신
+[3-b] 리롤 결정 — YouthSystem.UseRerollToken(intake, club, state, balance, db, leagueConfig):
+    a. state.rerollTokens -= 1 (사전: > 0, 아니면 InvalidOperationException)
+    b. intake.rerollsUsed += 1 → 시드 변경 보장 (algorithms.md #4 1단계)
+    c. 기존 candidatePlayerIds 중 영입 안 된 선수만 GameState 에서 제거 (이미 영입된 signed 는 유지)
+    d. 새 풀 생성 ([1] 단계 c~d 반복) — rerollsUsed 가 +1 됐으므로 자동으로 다른 풀
+    e. EventBus.Publish(new YouthRerolledEvent { intakeId, remainingTokens })
 
-[3-c] 추가 스카우트:
-    a. 비용 차감
-    b. UI 정보 정확도 향상 (intake 자체는 변경 X, UI 표시 옵션만)
+[3-c] 추가 스카우트 — V1.0+ (V0.1 미구현):
+    V0.1: 정보 정확도 시스템 부재 — UI 가 항상 풀 정보 그대로 표시
+    V1.0+: 비용 차감 + UI 정보 정확도 향상 (PA 추정치 범위 좁힘 / 트레잇 노출 정도). intake 자체 변경 X.
 ```
 
 ### Key Points
-- 후보 선수도 일반 Player 인스턴스. GameState.allPlayers에 들어감.
-- 영입 안 된 후보는 게임 세계에서 사라지는 게 아니라 다른 구단으로 갈 수 있음.
-- 리롤 시 미영입 후보를 어떻게 처리할지 결정 필요 (TBD: 모두 삭제 vs 일부 다른 구단 가게 유지).
-- 인스펙션 이력은 영구 저장 (회고 재미).
+- 후보 선수도 일반 Player 인스턴스. GameState.allPlayers에 들어감 (`origin = YouthIntake`, `currentClubId = -1`).
+- **V0.1: 미영입 후보 모두 GameState 제거** + `rejectedPlayerIds` 에 ID 만 보관 (`design-decisions.md` #7 영구 저장 / #35).
+- **V1.0+: 일정 확률 AI 다른 구단 영입** — `algorithms.md #4` V1.0 Migration Notes.
+- 인스펙션 이력 (`intakeHistory`) 은 ID 만이라도 영구 저장 (회고 재미).
+- **결정성 정신 보존 (`#17`)** — 같은 newgame + 같은 행동 → 같은 풀. 다만 `currentDate.Ticks` + `userActionHash` 로 외부 마이닝 + 직플 영상 공유 사실상 차단.
 
 ---
 
@@ -482,7 +497,7 @@ public class GameState {
 
 ## TBD (이 문서에서 나중에 결정)
 
-- 유스 인스펙션 리롤 시 미영입 후보 처리 방식 (모두 삭제 vs 일부 다른 구단)
+- ~~유스 인스펙션 리롤 시 미영입 후보 처리 방식~~ — 해결됨 (`#35`, 2026-05-20). V0.1 모두 제거 / V1.0+ AI 영입 트리거.
 - 자동 저장 빈도 (옵션 / 매일 / 시즌만)
 - 비활성 구단의 "경량 시뮬" 구체적 알고리즘
 - 이적창 마감 시 미체결 오퍼 처리 (자동 무산 외 추가 처리?)
