@@ -105,6 +105,21 @@ MonoBehaviour:
   - 0.4
   - 1.5
   - 5
+  youthStarPickProbability: 0.05
+  youthStarPaBonus: 50
+  youthPaStdDev: 15
+  youthPaGapStdDev: 25
+  youthIntakeMinAge: 16
+  youthIntakeMaxAge: 18
+  youthIntakeAgeWeights:
+  - 0.4
+  - 0.4
+  - 0.2
+  youthPrimaryNationalityRatio: 0.78
+  youthIntakeMainMonth: 6
+  youthIntakeMainDay: 15
+  youthIntakeSecondMonth: 1
+  youthIntakeSecondDay: 15
   fatigueRecoveryPerDay: 15
   fatigueGainPerMatch: 30
   retirementMinAge: 33
