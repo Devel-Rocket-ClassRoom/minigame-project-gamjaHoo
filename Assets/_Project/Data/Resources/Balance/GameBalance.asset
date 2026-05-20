@@ -125,6 +125,12 @@ MonoBehaviour:
   retirementMinAge: 33
   retirementProbabilityPerYear: 0.15
   seasonRerollTokenGrant: 3
+  seasonEndMonth: 5
+  seasonEndDay: 15
+  fiscalYearStartMonth: 6
+  fiscalYearStartDay: 1
+  newSeasonOpeningMonth: 8
+  newSeasonOpeningDay: 15
   marketValueBase: 500000
   marketValueCaExponent: 4
   marketValuePaCoeff: 50000
