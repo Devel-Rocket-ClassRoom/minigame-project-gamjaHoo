@@ -815,6 +815,55 @@ public class GameState {
 
 ---
 
+## 37. V0.1 Transfer Market 정책
+
+**결정:** V0.1 이적 시스템 = **이적시장 (검색·오퍼·협상) 상시** + **이적시장 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31** 분리 + 단일 라운드 AI 응답 + 사용자 클럽 능동 영입 + 슈퍼스타 압도적 가격.
+
+```
+[검색] TransferMarket.SearchPlayers — 시점 제약 X, V0.1 정확도 100%
+[제출] SubmitOffer — 시점 제약 X (활성화 기간 외에도 미리 협상 가능)
+[응답] ProcessOffers (매일, DailyProcessor) — AI 가 ratio >= 1.20 면 Accepted 아니면 Rejected
+[대기] Accepted 오퍼는 활성화 기간 외엔 status 유지
+[체결] 활성화 기간 진입 시 ProcessOffers 가 자동 CompleteTransfer
+```
+
+**이유 — 사용자 의도별 정리:**
+
+1. **이적시장 vs 활성화 기간 분리 (사용자 #2)**: 실제 축구 메커닉 반영. **검색·오퍼·협상은 상시** — 시즌 중간에도 미리 다른 클럽 선수 영입 협상 가능. **체결만 활성화 기간** — 협상 합의돼도 시장 열린 후 발효.
+   - 시나리오: 11/15 (시즌 중) 협상 합의 → Accepted 대기 → 1/1 (윈터 활성화) 시 자동 체결.
+
+2. **Market Value 슈퍼스타 압도 (사용자 "비교도 안 되게")**: `caFactor = pow(CA / 100, 4)` 비선형 + `marketValueBase = 500k` + `marketValuePaCoeff = 50k`. CA 100 (평범 600k) vs CA 180 슈퍼스타 (9.5M) = **15.7배 차이**. 빅클럽 자금 (~9M) 도 한두 시즌 모아야 슈퍼스타 영입 가능.
+
+3. **V0.1 단일 라운드 / 자동 통과**: AI 판매 구단 응답 (Accept/Reject) 만. 역제안 / 다중 라운드 / 선수 협상 V1.0+. V0.1 단순화 우선.
+
+4. **AI 구단 영입 미구현 (V0.1)**: 다른 AI 구단은 능동 영입 행동 X. 사용자 클럽만 오퍼 제출. V1.0+ AI 영입 시스템 (CpuTransferAi).
+
+5. **PA 노출 V0.1 정확도 100%**: 스카우트 시스템 V1.0+. V0.1 검색 결과 모든 선수 정확한 CA/PA 표시.
+
+6. **시드 결정성 (`#17`)**: `rng = new Random(state.randomSeed ^ offer.id ^ currentDate.Ticks)` AI 응답 결정성. ±10% noise (aiValueNoiseSigma) 로 평가 부정확성 표현.
+
+7. **DailyProcessor 통합**: `ProcessOffers` 가 매일 호출. Pending → AI 응답, Accepted → 활성화 기간 시 자동 체결.
+
+8. **활성화 기간 외부화**: `transferWindowSummerStart/End` + `transferWindowWinterStart/End` (4쌍 month/day). V1.0+ LeagueConfigSO 로 이전.
+
+9. **용어 정정**: ❌ "이적창" (모호) → ✅ **"이적시장 활성화 기간"** (한국어 docs / UI 라벨). 영어 변수명 `transferWindow*` / `IsTransferWindowOpen` 그대로 (도메인 표준).
+
+**외부화:** `GameBalanceSO` 신규 ~13개 필드 (`marketValueBase`, `marketValueCaExponent`, `marketValuePaCoeff`, `marketValueAgeCurve[4]`, `marketValueContractCurve[4]`, `marketValuePositionFactor[4]`, `marketValueInjuryFactor`, `aiValueNoiseSigma`, `aiAcceptRatio`, transferWindow* 4쌍). `algorithms.md #3` 참조.
+
+### V1.0+ 보완 포인트
+
+`algorithms.md #3` V1.0 Migration Notes 30+ 항목 종합 — 가장 중요한 큰 트리거만 여기 정리:
+
+- **선수/구단 reputation 도입** → Market Value 곱셈 보정. 빅네임 / 빅클럽 프리미엄.
+- **AI 협상 시스템** — 역제안 (CounterOffer status) + 다중 라운드 + 선수 개인 협상.
+- **AI 구단 영입 시스템 (CpuTransferAi)** — 약점 포지션 / 자금 여유 / 명성 기준 자동 의사결정.
+- **스카우트 시스템** — `Club.facilities.scoutLevel` 기반 검색 정확도. PA 추정치 / 트레잇 노출 정도.
+- **에이전트 / 보너스 / 임대 시스템** — Contract 확장.
+- **계약 갱신 + FA (자유계약)** — 만료 6개월 전 갱신 협상 / 자유이적.
+- **트랜스퍼 리스트 / 다른 클럽 인지 (Interest)** — 다중 오퍼 경쟁.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -829,3 +878,4 @@ public class GameState {
 | 2026-05-19 | #33, #34 추가 | algorithms.md #2 Match Simulation 명세 작성 (Task 9.1 Sub-A, #109) 시 결정. #33 V0.1 정책 (단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자). #34 V1.0+ 이벤트 시퀀스 진화 경로 — 옐로 2장/부상→교체/외침 등 누적 처리 가능 구조. 인터페이스 유지로 V0.1 호출자 영향 없이 내부 교체 가능. |
 | 2026-05-19 | #33 보강 | Sub-C 본 구현 검증 시 (#113) 단순 선형 ratio 의 결정력 부족 발견 — 강팀 원정 승률 51% 로 디자인 의도 부족. `strengthExponent` (k=1.5 기본) 비선형화 도입. V0.1 임시 변통으로 명시 — V1.0+ 매치 엔진 재작성 (#34) 시 폐기 예정. |
 | 2026-05-20 | #35, #36 추가 | algorithms.md #4 Youth Pool Generation 명세 작성 (Task 10 Sub-A, #123). #35 V0.1 정책 (PA 진실값 + CA derived 역방향 / 스타 픽 5% PA bonus / 시드=`currentDate.Ticks`+`userActionHash` 결합으로 외부 마이닝+직플 영상 공유 둘 다 방어 / 시설 통합 등급 / 미영입 단순 제거 / 나이 가중치 / 자국 78%). #36 `GameState.nextIntakeId` 단조증가 카운터 (PlayerGen `nextPlayerId` 패턴). V1.0+ 보완 포인트 9개 정리 (시설 분리 / 포지션 가중치 / AI 영입 / CA-Stats 정합성 / 시드 강화 / 추가 스카우트 / 계약 차등 등). |
+| 2026-05-20 | #37 추가 | algorithms.md #3 Market Value + Transfer Flow 명세 작성 (Stage 11 Sub-A, #130). 이적시장 (상시) / 이적시장 활성화 기간 (체결만, 6/1~8/31 + 1/1~1/31) 분리 — 미리 협상 가능 + 체결만 시기 제약. Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury) — 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도). V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. AI 응답 ±10% noise. 용어 정정 ("이적창" → "이적시장 활성화 기간"). V1.0+ 보완 포인트 7+ 항목. |
