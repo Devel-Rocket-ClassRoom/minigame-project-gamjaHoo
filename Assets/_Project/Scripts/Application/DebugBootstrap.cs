@@ -30,8 +30,17 @@ namespace FMLite.Application
 
         private void Awake()
         {
-            // 1. GameDatabase Resources 로드
+            // GameDatabase는 항상 로드 — NamePool 등 런타임 조회에 필요
             GameDatabase.LoadAll();
+
+            // 이미 다른 씬에서 GameManager + State 가 초기화된 경우 스킵
+            // (MainMenu → ClubSelect → Gacha → Dashboard 실제 플로우 보호)
+            if (GameManager.Instance != null && GameManager.Instance.State != null)
+            {
+                Debug.Log("[DebugBootstrap] 기존 State 감지 — 초기화 스킵");
+                return;
+            }
+
             var balance = GameDatabase.GameBalance;
             var leagueConfig = Resources.LoadAll<LeagueConfigSO>(string.Empty).FirstOrDefault();
             if (balance == null)
@@ -45,16 +54,15 @@ namespace FMLite.Application
                 return;
             }
 
-            // 2. NewGame
+            // NewGame
             var seasonStart = new DateTime(seasonStartYear, seasonStartMonth, seasonStartDay);
             var state = GameInitializer.NewGame(seed, seasonStart, leagueConfig, balance);
             if (userClubId > 0)
                 state.userClubId = userClubId;
-            GameTime.Reset(state.currentDate);
 
-            // 3. GameManager 주입
+            // GameManager 주입
             var gm = GetComponent<GameManager>();
-            gm.SetState(state);
+            gm.SetState(state); // SetState 내부에서 GameTime.Reset 호출
 
             Debug.Log(
                 $"[DebugBootstrap] NewGame OK — seed={seed} / start={seasonStart:yyyy-MM-dd} / "

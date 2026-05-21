@@ -36,6 +36,8 @@ namespace FMLite.Core
         public void SetState(GameState state)
         {
             State = state;
+            if (state != null)
+                GameTime.Reset(state.currentDate);
         }
     }
 }
