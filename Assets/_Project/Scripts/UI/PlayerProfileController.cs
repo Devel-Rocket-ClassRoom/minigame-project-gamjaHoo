@@ -100,7 +100,11 @@ namespace FMLite.UI
                 careerText.text = BuildCareerText(player, state);
         }
 
-        public void OnBackClicked() => SceneManager.LoadScene(SquadScene);
+        public void OnBackClicked()
+        {
+            Debug.Log("[PlayerProfileController] Back button clicked. Loading SquadScene...");
+            SceneManager.LoadScene(SquadScene);
+        }
 
         // ── 능력치 ──────────────────────────────────────────────────────────
 
