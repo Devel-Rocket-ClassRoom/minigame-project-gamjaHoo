@@ -21,11 +21,20 @@
 [2] GameInitializer (Application Layer):
     a. 빈 GameState 생성
     b. LeagueConfigSO 로드 → League 인스턴스 생성
-    c. ClubGenerator: 명성별 Club 인스턴스 생성 (20팀)
-    d. PlayerGenerator: 각 Club에 25명씩 생성 → GameState.allPlayers 추가
+    c. ClubGenerator.Generate(rng, leagueConfig, balance, ...):
+       - 명성별 Club 인스턴스 생성 (clubCount 기본 20, 가변 대응 — algorithms.md #5)
+       - 내부에서 PlayerGenerator 호출 (각 구단당 playersPerClub 명)
+       - 반환: ClubGenerationResult { List<Club> Clubs, List<Player> Players }
+    d. GameInitializer 가 GameState 에 일괄 등록:
+       - foreach club in result.Clubs:  state.AddClub(club)
+       - foreach player in result.Players: state.AddPlayer(player)
     e. ScheduleGenerator: 시즌 일정 생성 → League.schedule 추가
-    f. GameState.BuildIndexes() 호출
-    g. GameState.currentDate = 시즌 시작일
+       - 첫 매치일 = seasonStart 이후 가장 가까운 newSeasonOpening (예: 8/15)
+       - seasonStart 는 프리시즌 시작일 (예: 7/1) — 첫 매치일과 분리.
+         사용자가 프리시즌 기간 동안 구단 선택 / 스쿼드·전술 조정 가능 (FM 표준 흐름).
+       - design-decisions.md #38 보강 참조.
+    f. GameState.BuildIndexes() 호출 (AddClub/AddPlayer 가 인덱스 동기화하므로 사실상 no-op, 안전망)
+    g. GameState.currentDate = seasonStart (= 프리시즌 시작일)
 
 [3] UI: 구단 선택 화면 표시
        유저가 구단 선택 → GameState.userClubId 설정
@@ -129,22 +138,29 @@
 
 [3] MatchSimulator.Simulate(match, state):
     a. 시드 고정: rng = new Random(match.id ^ state.randomSeed)
-    b. 결과 산출 (V0.1):
-       - 양 팀 전력 계산
-       - 골 분포 샘플링 → 스코어 결정
-       - 득점자 선정
-    c. MatchResult 반환
+    b. 결과 산출 (V0.1, algorithms.md #2 명세):
+       - starting11 자동 선정 (top-11 by CA, 부상자 제외)
+       - 양 팀 전력 계산 (starting11 CA 합)
+       - λ 계산 + Poisson 샘플링 → home/away 골수 결정 (홈 어드밴티지 가산)
+       - 골수 만큼 라인 가중치 × CA 비례 추첨으로 득점자 선정
+    c. MatchResult 반환 (스코어 + 득점자 + starting11 + playerStats)
+       - playerStats: goals + minutesPlayed=90 만 채움 (V0.1)
+       - assists / rating / yellowCards / redCards 는 0 (V1.0+)
+       - match.result 에 쓰지 않음 — Task 9.2 가 적용
+       - MatchFinishedEvent 발행하지 않음 — Task 9.2 가 발행
 
-[4] MatchPostProcessor: 결과 적용
-    a. match.result = result
+[4] MatchPostProcessor: 결과 적용 (Task 9.2)
+    a. match.result = result  (사전: match.result == null, 재처리 시 InvalidOperationException)
     b. 선수별 처리:
-       - PlayerMatchStat 기록 (출전시간, 평점)
-       - 피로도 누적
-       - 폼 / 사기 갱신
-    c. 리그 순위 갱신: League.standings.Update(result)
-    d. 부상자 발생 처리 (V1.0~)
-    e. 카드 누적 처리 (V1.0~)
-    f. EventBus.Publish(new MatchFinishedEvent(match))
+       - PlayerMatchStat 기록 — MatchSimulator 가 이미 채움 (V0.1: goals + minutesPlayed=90 만)
+       - 피로도 누적 — starting11 22명에 balance.fatigueGainPerMatch (30) 가산, Clamp 0..100
+       - 폼 / 사기 갱신 — **V0.1 미구현** (design-decisions.md #30 V1.0+ 보완 포인트)
+         · 평점 시스템 부재 + 사기 시스템 자체가 V1.0+ → 폼/사기 묶음으로 V1.0 도입
+    c. 리그 순위 갱신 — match.type == League 일 때만. Standings.entries 의 양 팀 entry 갱신
+       (played+1 / goalsFor / goalsAgainst / 승무패 / points: 승 3 · 무 1 · 패 0)
+    d. 부상자 발생 처리 — V1.0+ (`design-decisions.md` #34 이벤트 시퀀스 도입 시 자연 발생)
+    e. 카드 누적 처리 — V1.0+ (위와 동일)
+    f. EventBus.Publish(new MatchFinishedEvent { matchId, result })
 
 [5] UI: 경기 결과 화면
     a. 스코어, 득점자, 평점 표시
@@ -156,40 +172,61 @@
 ```
 
 ### Sequence (비활성 구단 경기)
-- MatchSimulator.SimulateLite(match, state) 호출
-- 결과만 산출 (선수별 디테일 없음)
-- 순위만 갱신
-- 이벤트 발행 안 함 (UI 갱신 불필요)
+
+**[V0.1]** 활성 / 비활성 구분 알고리즘 / 이벤트 발행 모두 **동일** (옵션 A — 단순화).
+- `BackgroundSimulator.SimulateDay(state, balance)` (Task 9.3) 가 `state.currentDate` 모든 매치 일괄 처리.
+- 각 매치: `MatchSimulator.Simulate` → `MatchPostProcessor.Process`.
+- **모든 매치 `MatchFinishedEvent` 발행** — V0.1 UI 없으므로 구독자 0, `EventBus.Publish` 비용 ~0. 인터페이스 단순화 우선.
+- 이미 처리된 매치 (`match.result != null`) 는 스킵 (PostProcessor 의 재처리 예외 회피).
+
+> **V1.0+ 보완 포인트**:
+> 1. **UI 도입 시 `publishEvent` 옵션** — `MatchPostProcessor.Process(..., publishEvent: bool)` 추가. 유저 구단 매치만 `true` (UI 결과 화면 갱신용), 비활성 매치는 `false` (백그라운드).
+> 2. **분 단위 이벤트 시뮬 도입 시 경량 경로** — 비활성 구단 경기는 텍스트 이벤트 생성 비용 회피 위해 별도 `SimulateLite` 분리 검토 (`design-decisions.md` #34).
 
 ### Key Points
-- 시드는 매치 ID + 게임 시드 조합. 같은 매치는 항상 같은 결과.
-- V0.1은 스코어만. V1.0에서 텍스트 이벤트 / 통계 추가.
-- 결과 적용은 별도 단계로 분리 (테스트 시 시뮬만 돌려보고 적용 안 하기 가능).
+- 시드는 매치 ID + 게임 시드 조합. 같은 매치는 항상 같은 결과 (`algorithms.md` #2 1단계).
+- V0.1은 스코어 + 득점자만. V1.0에서 텍스트 이벤트 / 평점 / 카드 / 부상 추가 (`design-decisions.md` #34).
+- 결과 적용은 별도 단계 (Task 9.2 `MatchPostProcessor`) 로 분리 — 테스트 시 시뮬만 돌려보고 적용 안 하기 가능.
+- 활성 / 비활성 분기는 V0.1 에선 이벤트 발행 여부만 다름.
 
 ---
 
 ## 4. 유스 인스펙션 흐름
 
 ### Trigger
-- 6월 중순 (메인) 또는 1월 중순 (보조)
-- EventScheduler가 YouthIntakeEvent 발행
+- **메인 인스펙션 — 6/15** (시즌 종료 직후)
+- **보조 인스펙션 — 1/15** (시즌 중간)
+- `EventScheduler` 가 `state.currentDate` 가 위 날짜 (월/일) 도달 시 `YouthSystem.GenerateIntake(userClub, state, ...)` 호출 + `YouthIntakeAvailableEvent` 발행 + 정지 신호 (UI 유스 풀 화면)
+- 외부화: `GameBalanceSO.youthIntakeMainMonth/Day = 6/15`, `youthIntakeSecondMonth/Day = 1/15`
 
 ### Sequence
 
 ```
-[1] YouthSystem.GenerateIntake(userClub, state):
-    a. PlayerGenerator로 후보 선수 생성 (15~30명)
-       - 유스 시설 등급에 따라 PA 분포 결정
-       - 트레잇 부여 (확률 기반)
-       - 나이: 16~18세
-    b. YouthIntake 객체 생성
-       - candidatePlayerIds = 생성된 선수들의 ID
-    c. 생성된 후보 선수들을 GameState.allPlayers에 추가
-       - currentClubId = -1 (아직 미소속)
-       - origin = YouthIntake
-       - youthClubId = userClub.id (영입 안 되어도 출처 기록)
-    d. club.intakeHistory에 추가
-    e. EventBus.Publish(new YouthIntakeAvailableEvent(intake))
+[1] YouthSystem.GenerateIntake(club, state, balance, db, leagueConfig) (algorithms.md #4 명세):
+    a. 시드 고정 (외부 마이닝 + 직플 영상 공유 방어):
+       rng = new Random(
+           state.randomSeed
+           ^ unchecked((int)state.currentDate.Ticks)   # 옵션 2 — 시점별 시드
+           ^ userActionHash                            # 옵션 3 — 유저 행동 반영
+           ^ club.id ^ intake.id ^ intake.rerollsUsed
+       )
+       userActionHash = club.finance.money ^ squad.Count*7919 ^ youthSquad.Count*9973 ^ tokens*16007
+    b. 풀 사이즈 결정 = FacilityLevelSO(Youth, club.facilities.youthLevel).youthPoolSize
+       - V0.1: 시설 = 유소년 시스템 종합 등급 (시설+코치+모집 통합, design-decisions.md #35)
+       - V1.0+: Club.youthCoachLevel / youthRecruitmentLevel 분리
+    c. 후보 선수 N명 생성 (algorithms.md #4 3단계):
+       - PA 추첨: 5% 스타 픽 (PA 평균 +50) / 95% 일반 (NextNormal(facility.youthAvgPA, σ=15))
+       - CA 추첨: PA 역방향 (PA - NextNormal(caGap, σ=25) — 의존성 약화로 PA 추정 차단)
+       - 나이: 16=40% / 17=40% / 18=20% (PersonalInfo.birthDate 저장, age 별도 X)
+       - 국적: 자국 78% / 외국 22% (ClubGen 0.70 보다 ↑)
+       - 포지션: V0.1 균등 / V1.0+ 라운드별 가중치 변동
+       - 트레잇: PlayerGenerator 재활용
+    d. YouthIntake 빌드:
+       intake.id = state.nextIntakeId++  (design-decisions.md #36)
+       candidatePlayerIds = 생성된 선수들 ID
+       currentClubId = -1, youthClubId = club.id, origin = YouthIntake
+    e. club.intakeHistory.Add(intake)
+    f. EventBus.Publish(new YouthIntakeAvailableEvent { intakeId, clubId })
 
 [2] UI: 유스 풀 화면 표시
     a. 후보 선수 목록 표시
@@ -200,150 +237,198 @@
        [추가 스카우트] → 비용 지불, 정보 정확도 ↑
        [완료]      → 결정 마무리
 
-[3-a] 영입 결정:
+[3-a] 영입 결정 — YouthSystem.SignPlayers(intake, playerIds, club, state):
     - 영입된 선수들:
       currentClubId = userClub.id
       club.youthSquadIds에 추가
       intake.signedPlayerIds에 추가
-    - 미영입 후보들 처리:
-      일정 확률로 다른 구단에 영입 (AI)
-      나머지는 무명으로 사라짐 (GameState에서 제거 또는 보관)
-      intake.rejectedPlayerIds에 추가
-    - EventBus.Publish(new YouthSignedEvent)
+    - 미영입 후보들 처리 (V0.1 단순화, design-decisions.md #35):
+      **V0.1: 모두 GameState에서 제거 — intake.rejectedPlayerIds에 ID만 보관 (#7 영구 저장, 회고용)**
+      V1.0+: 일정 확률 (youthRejectedToOtherClubRatio) 로 AI 다른 구단 영입 (algorithms.md #4 V1.0 Notes)
+    - intake.candidatePlayerIds.Clear() — signed/rejected 로 모두 이동
+    - EventBus.Publish(new YouthSignedEvent { intakeId, signedPlayerIds })
 
-[3-b] 리롤 결정:
-    a. state.rerollTokens -= 1
-    b. intake.rerollsUsed += 1
-    c. 기존 candidatePlayerIds의 선수들을 GameState에서 제거 (영입 안 된 것들)
-    d. 새 풀 생성 ([1] 단계 반복, 같은 intake 객체에 덮어쓰기)
-    e. UI 갱신
+[3-b] 리롤 결정 — YouthSystem.UseRerollToken(intake, club, state, balance, db, leagueConfig):
+    a. state.rerollTokens -= 1 (사전: > 0, 아니면 InvalidOperationException)
+    b. intake.rerollsUsed += 1 → 시드 변경 보장 (algorithms.md #4 1단계)
+    c. 기존 candidatePlayerIds 중 영입 안 된 선수만 GameState 에서 제거 (이미 영입된 signed 는 유지)
+    d. 새 풀 생성 ([1] 단계 c~d 반복) — rerollsUsed 가 +1 됐으므로 자동으로 다른 풀
+    e. EventBus.Publish(new YouthRerolledEvent { intakeId, remainingTokens })
 
-[3-c] 추가 스카우트:
-    a. 비용 차감
-    b. UI 정보 정확도 향상 (intake 자체는 변경 X, UI 표시 옵션만)
+[3-c] 추가 스카우트 — V1.0+ (V0.1 미구현):
+    V0.1: 정보 정확도 시스템 부재 — UI 가 항상 풀 정보 그대로 표시
+    V1.0+: 비용 차감 + UI 정보 정확도 향상 (PA 추정치 범위 좁힘 / 트레잇 노출 정도). intake 자체 변경 X.
 ```
 
 ### Key Points
-- 후보 선수도 일반 Player 인스턴스. GameState.allPlayers에 들어감.
-- 영입 안 된 후보는 게임 세계에서 사라지는 게 아니라 다른 구단으로 갈 수 있음.
-- 리롤 시 미영입 후보를 어떻게 처리할지 결정 필요 (TBD: 모두 삭제 vs 일부 다른 구단 가게 유지).
-- 인스펙션 이력은 영구 저장 (회고 재미).
+- 후보 선수도 일반 Player 인스턴스. GameState.allPlayers에 들어감 (`origin = YouthIntake`, `currentClubId = -1`).
+- **V0.1: 미영입 후보 모두 GameState 제거** + `rejectedPlayerIds` 에 ID 만 보관 (`design-decisions.md` #7 영구 저장 / #35).
+- **V1.0+: 일정 확률 AI 다른 구단 영입** — `algorithms.md #4` V1.0 Migration Notes.
+- 인스펙션 이력 (`intakeHistory`) 은 ID 만이라도 영구 저장 (회고 재미).
+- **결정성 정신 보존 (`#17`)** — 같은 newgame + 같은 행동 → 같은 풀. 다만 `currentDate.Ticks` + `userActionHash` 로 외부 마이닝 + 직플 영상 공유 사실상 차단.
 
 ---
 
 ## 5. 이적 흐름
 
-### Trigger
-- 이적창 오픈 기간 중 유저 행동 (영입 / 판매)
-- AI 구단의 자동 이적 (V1.0+)
+> **용어 — 이적시장 vs 이적시장 활성화 기간 (사용자 합의, `design-decisions.md` #37)**:
+> - **이적시장 (Transfer Market)**: 검색·오퍼·협상 시스템 전체 — **상시 활성**
+> - **이적시장 활성화 기간 (Transfer Window)**: 실제 체결 발효 시기 (6/1~8/31 여름 + 1/1~1/31 겨울) — **체결만 시기 제약**
+> - 영어 변수명 `transferWindow*` 그대로 (도메인 표준). 한국어 docs / UI 표현만 정정.
 
-### Sequence (유저 영입)
+### Trigger
+- **검색·오퍼**: 시점 제약 X (V0.1, 사용자 클럽 능동 행동)
+- **AI 응답**: DailyProcessor 가 매일 호출 (시점 제약 X)
+- **체결**: Accepted 오퍼가 이적시장 활성화 기간 진입 시 자동
+- **AI 구단의 자동 이적**: V1.0+ (V0.1 미구현)
+
+### Sequence (유저 영입, V0.1, algorithms.md #3 명세)
 
 ```
-[1] UI: 이적 검색 화면
-    a. 필터 입력 (포지션, 연령, 능력치 등)
-    b. TransferSystem.SearchPlayers(filter, state) 호출
-    c. 결과 목록 표시 (스카우팅 범위 내 + 능력치 정확도 시설 등급 영향)
+[1] TransferMarket.SearchPlayers(filter, state) — 상시 호출 가능 (시점 제약 X)
+    a. UI 또는 호출자가 TransferSearchFilter 구성 (position / minAge,maxAge / minCA,maxCA / excludeUserClub)
+    b. state.allPlayers LINQ 필터링 → 매칭 선수 반환
+    c. V0.1: 모든 선수 정확한 CA/PA 노출 (스카우트 시스템 V1.0+)
 
 [2] 유저가 특정 선수 선택 → 오퍼 작성:
     a. 이적료 입력
     b. 제안 계약 조건 입력 (주급, 기간)
     c. "Submit Offer" 클릭
 
-[3] TransferSystem.SubmitOffer():
-    a. TransferOffer 생성, status = Pending
-    b. state.activeOffers에 추가
-    c. EventBus.Publish(new OfferSubmittedEvent)
+[3] TransferSystem.SubmitOffer() — 시점 제약 X (활성화 기간 외에도 가능, 미리 협상):
+    a. 사전 검증: 양 구단 존재 / 선수 fromClubId 소속 / amount > 0
+    b. TransferOffer 생성: status = Pending, id = state.nextOfferId++
+    c. state.activeOffers에 추가
+    d. EventBus.Publish(new OfferSubmittedEvent { offerId })
 
-[4] TransferSystem.ProcessOffers() (매일 호출):
-    - 각 Pending 오퍼에 대해 판매 구단 의사 결정
-      · 시장 가치 대비 오퍼 평가
-      · 구단 명성, 선수 잉여 여부, 라이벌 관계 등 고려
-    - 결과:
-      [수락] → status = Negotiating, 선수 개인 협상 단계로
-      [거절] → status = Rejected, 유저에게 알림
-      [역제안] → status = CounterOffer, 새 금액 제시
+[4] TransferSystem.ProcessOffers() — DailyProcessor.Run 안에서 매일 호출:
+    foreach offer in state.activeOffers:
+      switch offer.status:
+        case Pending:
+            # AI 응답 (algorithms.md #3.1 [3-a])
+            rng = new Random(state.randomSeed ^ offer.id ^ currentDate.Ticks)
+            marketValue = CalculateMarketValue(player, state, balance)
+            aiPerceivedValue = marketValue * rng.NextNormal(1.0, balance.aiValueNoiseSigma)  # ±10% noise
+            ratio = offer.amount / aiPerceivedValue
+            if ratio >= balance.aiAcceptRatio (1.20):
+                status = Accepted
+            else:
+                status = Rejected
+            EventBus.Publish(new OfferRespondedEvent)
+        
+        case Accepted:
+            # 활성화 기간 시 자동 체결
+            if IsTransferWindowOpen(state.currentDate, balance):
+                CompleteTransfer(offer, state)
+        
+        # Rejected / Completed: skip
 
-[5] 선수 개인 협상 (status = Negotiating):
-    - 선수가 제시된 계약 조건 평가
-    - 명성, 출전시간 기대, 야망 등 고려
-    - 결과:
-      [수락] → status = Accepted, 이적 완료 처리
-      [거절] → status = Rejected
-      [더 좋은 조건 요구] → 유저 추가 결정
+[5] 선수 개인 협상 — V0.1 자동 통과 (V1.0+ 협상 시스템):
+    - V0.1: status = Negotiating 단계 스킵 → AI 판매 구단 Accepted = 곧바로 체결 대기
+    - V1.0+: 주급 / 명성 / 출전시간 기대 / 야망 평가 + 다중 라운드
 
-[6] 이적 완료 처리 (status = Accepted):
-    a. Player.currentClubId 변경
-    b. 양 구단 squad 리스트 갱신
-    c. 양 구단 finance 갱신 (이적료 이동)
-    d. Player.contract 갱신
+[6] 이적 완료 처리 (CompleteTransfer, status = Accepted → Completed):
+    a. Player.currentClubId 변경 (fromClubId → toClubId)
+    b. 양 구단 squad 리스트 갱신 (fromClub.seniorSquadIds 제거 / toClub 추가)
+    c. 양 구단 finance.money 갱신 (이적료 이동)
+    d. Player.contract = offer.proposed (새 계약 적용)
     e. status = Completed
-    f. EventBus.Publish(new TransferCompletedEvent)
+    f. EventBus.Publish(new TransferCompletedEvent { offerId, playerId, fromClubId, toClubId, amount })
+```
+
+### 자연스러운 시나리오 — 미리 협상 + 활성화 기간 자동 체결
+
+```
+11/15 (시즌 중간) — 유저가 다른 클럽 슈퍼스타 검색 → 오퍼 (시장가 9.5M, offer 12M)
+                     status = Pending
+11/16             — DailyProcessor.ProcessOffers → AI 응답: ratio=1.26 ≥ 1.20 → Accepted
+                     OfferRespondedEvent 발행, status = Accepted (대기)
+11/17 ~ 12/31     — 매일 ProcessOffers 호출. Accepted 이지만 IsTransferWindowOpen=false → 체결 보류
+1/1 (윈터 시작)   — IsTransferWindowOpen=true → CompleteTransfer
+                     선수 이적 발효 + TransferCompletedEvent 발행
 ```
 
 ### Key Points
-- V0.1은 단순화: 오퍼 → 협상 → 체결 3단계.
-- V1.0에서 협상 / 메디컬 / 에이전트 단계 추가.
-- 같은 선수에 대해 동시에 여러 오퍼 가능.
-- 이적창 마감 시 미체결 오퍼 자동 무산.
+
+- **이적시장 vs 활성화 기간 분리** — 검색·오퍼·협상 상시 / 체결만 시기 제약. 실제 축구 메커닉 반영.
+- **V0.1 단일 라운드** — AI 응답 (Accept/Reject) 만. 역제안 / 다중 협상 / 선수 협상 V1.0+.
+- **AI 구단 능동 영입 V0.1 미구현** — 사용자 클럽만 오퍼. V1.0+ CpuTransferAi.
+- **시드 결정성 (`design-decisions.md` #17)** — AI 응답이 결정적. ±10% noise 로 평가 부정확성 표현.
+- **같은 선수 여러 오퍼 가능** — 각자 독립 처리. 첫 체결 시 player.currentClubId 변경 → 후속 오퍼는 fromClubId 불일치 스킵.
+- **V1.0+ 보완** — `algorithms.md #3` V1.0 Migration Notes 30+ 항목 (AI 협상 / 스카우트 / 임대 / FA / 트랜스퍼 리스트 등).
 
 ---
 
 ## 6. 시즌 종료 / 신규 시즌 흐름
 
 ### Trigger
-- 시즌 마지막 경기 종료
-- EventScheduler가 SeasonEndEvent 발행
 
-### Sequence
+> V0.1 — **3 시점 변수명 분리** (혼동 회피, `design-decisions.md #38`):
+> - `seasonEndMonth/Day = 5/15` — **시즌 종료** (마지막 매치 시점)
+> - `fiscalYearStartMonth/Day = 6/1` — **회계연도 / 신규 시즌 행정 처리**
+> - `newSeasonOpeningMonth/Day = 8/15` — **매치 개막** (ScheduleGenerator 가 새 시즌 첫 매치 배치)
+>
+> V1.0+ 트리거: 캘린더 / 요일 정보 도입 시 "5월 마지막 토요일" 같은 dynamic 계산 + 매년 가변 일정.
+
+- **5/15 (시즌 종료) 도래** → `EventScheduler` 가 `SeasonEndProcessor.Run` 호출 + `SeasonEndedEvent` 발행 + 정지 신호
+- **6/1 (회계연도) 도래** → `EventScheduler` 가 `NewSeasonProcessor.Run` 호출 + `SeasonStartedEvent` 발행 + 정지 신호
+
+### Sequence (V0.1)
 
 ```
-[1] SeasonEndProcessor 실행:
-    a. 리그 최종 순위 확정
-    b. 승강 처리 (V0.1은 단일 리그라 생략, V1.0+)
-    c. 시상 (MVP, 득점왕 등)
-    d. 보드 시즌 평가:
-       - 목표 vs 실제 성적 비교
-       - 보드 신뢰도 변동
-       - 경질 가능성 체크
-    e. 재정 결산 (입장료, 중계권, 상금)
+[5/15] SeasonEndProcessor.Run(state, balance):
+    a. 리그 최종 순위 확정 (이미 매치 완료된 상태 — 변경 X)
+    b. 승강 처리 — V0.1 단일 리그 미구현 (V1.0+ 다중 리그)
+    c. 시상 — V0.1 미구현 (V1.0+ 시상 시스템)
+    d. 보드 시즌 평가 / 경질 — V0.1 미구현 (V1.0+ 보드 시스템)
+    e. 재정 결산 — V0.1 미구현 (V1.0+ 입장료/중계권/상금)
+    f. 사기 / 모랄 정산 — V0.1 미구현 (#30, V1.0+ 사기 시스템)
+    g. 계약 만료 → FA 전환 (V0.1 도입):
+       foreach player in state.allPlayers:
+           if player.contract.endDate <= state.currentDate:
+               from = state.GetClub(player.currentClubId)
+               from?.seniorSquadIds.Remove(player.id)
+               from?.youthSquadIds.Remove(player.id)
+               player.currentClubId = -1
+    h. 은퇴 처리 (V0.1 도입):
+       rng = new Random(state.randomSeed ^ state.currentDate.Ticks)
+       foreach player in state.allPlayers (V0.1: copy):
+           if GetAge(player) >= balance.retirementMinAge (33)
+              && rng.NextDouble() < balance.retirementProbabilityPerYear (0.15):
+               state.RemovePlayer(player.id)
+               # club squad 도 정리 (헬퍼)
+    i. Match 데이터 압축 — V0.1 미구현 (V1.0+ 저장 최적화)
+    j. EventBus.Publish(new SeasonEndedEvent { seasonYear, summary })
 
-[2] 사기 / 모랄 정산:
-    - 우승팀 선수: 사기 ++
-    - 강등팀 선수: 사기 --
-    - 약속 출전시간 미달자: 불만 ↑
-    - 시즌 베스트 선수: 사기 ↑
+[5/16 ~ 5/31] 오프시즌 — UI 정산 / 인스펙션 대기
 
-[3] 계약 처리:
-    - 만료 선수 → 자유계약(FA) 전환
-      Player.currentClubId = -1
-    - 갱신 협상 시작 (만료 6개월 전부터)
+[6/1] NewSeasonProcessor.Run(state, balance, db, leagueConfig):
+    a. state.currentDate 갱신 (GameTime.Reset + 동기화)
+    b. state.rerollTokens += balance.seasonRerollTokenGrant (3)
+       state.rerollTokens = min(state.rerollTokens, balance.maxRerollStockpile (5))
+    c. 모든 선수 fatigue = 0 / form = 50 리셋
+    d. 모든 League.standings.entries 초기화 (played/won/drawn/lost/goals/points = 0)
+    e. 새 시즌 매치 일정 생성:
+       foreach league in state.leagues:
+           ScheduleGenerator.Generate(...)  # newSeasonOpening 부터 ~ seasonEnd 까지
+           league.seasonYear += 1
+    f. 클럽별 season 갱신:
+       targetLeaguePosition = i + 1  # 명성 순위 (#27 패턴)
+       boardConfidence = balance.initialBoardConfidence (50)
+       cupTarget = CupTarget.None  # V0.1 컵 미구현
+    g. EventBus.Publish(new SeasonStartedEvent { seasonYear, target })
 
-[4] 은퇴 처리:
-    - 33세 이상 + 능력치 하락폭 큰 선수 확률적 은퇴
-    - 은퇴 선수는 GameState에서 제거하거나 isRetired 플래그
-
-[5] Match 데이터 압축:
-    - 이번 시즌 경기들 → 요약만 남기고 디테일 제거
-    - 우승 / 강등 / 시상 정보만 보존
-
-[6] 신규 시즌 준비 (회계연도 6/1):
-    - GameState.currentDate = 6/1
-    - 리롤 토큰 지급 (state.rerollTokens += 3, 최대 5)
-    - 보드 신규 시즌 목표 제시
-    - 이적 예산 / 연봉 예산 재배정
-    - 새 시즌 일정 생성 (ScheduleGenerator)
-    - 선수 나이 +1, 컨디션 / 폼 리셋
-
-[7] EventBus.Publish(new NewSeasonStartedEvent)
-
-[8] UI: 시즌 요약 화면 → 신규 시즌 목표 화면
+[6/15] Stage 10 메인 인스펙션 자동 트리거 (이미 통합됨)
+[6/1 ~ 8/31] Stage 11 여름 이적시장 활성화 기간 (이미 통합됨)
+[8/15] 새 시즌 첫 매치 (ScheduleGenerator 가 배치)
 ```
 
 ### Key Points
-- 시즌 종료는 게임의 자연스러운 정지점. 자동 저장.
-- 압축 시점이 명확해야 세이브 크기 관리 가능.
-- 신규 시즌은 거의 새 게임 시작과 비슷한 양의 초기화 필요.
+- **시즌 종료 5/15 / 매치 개막 8/15** = 사용자 명시 V0.1 고정값. V1.0+ 캘린더/요일 dynamic.
+- **3 시점 변수명 분리** — 5/15 (matches end) / 6/1 (fiscal year) / 8/15 (opening day). 사용자 혼동 회피 요청 (2026-05-20).
+- **시즌 종료는 자동 정지점** — UI 시즌 요약 화면. 자동 저장.
+- **나이는 birthDate 로 자동 계산** — 신규 시즌에서 별도 +1 처리 X (PlayerGen 패턴 그대로).
+- **V0.1 도입 vs V1.0+ 미루기** 분기 명확. `design-decisions.md #38` 참조.
 
 ---
 
@@ -463,7 +548,7 @@ public class GameState {
 
 ## TBD (이 문서에서 나중에 결정)
 
-- 유스 인스펙션 리롤 시 미영입 후보 처리 방식 (모두 삭제 vs 일부 다른 구단)
+- ~~유스 인스펙션 리롤 시 미영입 후보 처리 방식~~ — 해결됨 (`#35`, 2026-05-20). V0.1 모두 제거 / V1.0+ AI 영입 트리거.
 - 자동 저장 빈도 (옵션 / 매일 / 시즌만)
 - 비활성 구단의 "경량 시뮬" 구체적 알고리즘
 - 이적창 마감 시 미체결 오퍼 처리 (자동 무산 외 추가 처리?)

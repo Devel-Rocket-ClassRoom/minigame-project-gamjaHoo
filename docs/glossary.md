@@ -30,9 +30,20 @@
 | 스타팅 가챠 | 게임 시작 시 구단 스쿼드를 명성 기반으로 랜덤 생성하는 시스템 |
 | 5단계 티어 | Elite / Strong / Average / Weak / Poor — 스쿼드 평가 표시 단위 |
 | 시드 | Random Seed. 같은 시드는 같은 초기 상태 생성 |
-| 비활성 구단 | `isActiveSimulation == false`인 구단. 경량 시뮬만 받음 |
+| 비활성 구단 | `isActiveSimulation == false`인 구단. V0.1 은 활성과 동일 알고리즘, 이벤트 발행만 생략 (V1.0+ 이벤트 시퀀스 도입 후 경량 분기 검토) |
 | 활성 시뮬 | 유저 구단 + 같은 리그 + 주요 컴페티터의 풀 시뮬레이션 |
 | 인스펙션 풀 | Youth Intake Pool. 유스 영입 시점에 떠오르는 후보 선수 집합 |
+| 베스트 일레븐 | Starting 11. 경기 출전 11명. V0.1 은 `MatchSimulator` 가 top-11 by CA (부상자 제외) 자동 선정. 라인업 결정 UI 는 V1.0+. |
+| 홈 어드밴티지 | Home Advantage. 홈 경기 시 홈팀 골 기대값 (λ) 에 가산 보너스. V0.1 은 `balance.homeAdvantageGoalBonus = 0.3`. |
+
+## Statistics / Math Terms
+
+| 용어 | 설명 |
+| --- | --- |
+| 포아송 분포 | Poisson Distribution. 평균 발생 횟수 (λ) 가 일정한 사건의 발생 횟수 분포. V0.1 골 분포 모델 (`algorithms.md` #2). 같은 λ 라도 매번 다른 결과 — 약팀 이변 / 강팀 무득점 같은 자연 분산 가능. |
+| λ (Lambda) | 포아송 분포의 평균 모수. 매치 시뮬레이션에선 한 팀의 평균 골 기대값. `λ_home = totalLambda * strengthRatio + homeAdvantageGoalBonus` 같은 식. |
+| 결정성 | Determinism. 같은 입력 (시드 포함) → 항상 같은 출력. 매치 결과 / 선수 생성 / 가챠 모두 RNG 인스턴스를 시드 고정해 결정성 보장 (`design-decisions.md` #17). |
+| 정규분포 | Normal Distribution. 평균 μ, 표준편차 σ 인 종 모양 분포. `RngExtensions.NextNormal(μ, σ)` (Box-Muller). PlayerGen 의 CA / Stats 분포 모델. |
 
 ## Technical Terms
 

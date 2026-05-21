@@ -46,12 +46,16 @@
 ```
 Presentation Layer    — UI, Unity Scenes
         ↕
-Application Layer     — GameManager, Systems
+Application Layer     — Systems (Stateless: MatchSimulator / TransferSystem / YouthSystem / PlayerGenerator / ClubGenerator …)
         ↕
-Domain Layer          — Game rules, data classes
+Core Layer            — Infra (GameManager / GameTime / EventBus / GameLog …) — 진입점·인프라
+        ↕
+Domain Layer          — Game rules, data classes (가장 안쪽, 외부 의존 0)
         ↕
 Data Layer            — Save/Load, ScriptableObject
 ```
+
+> **`GameManager` 는 Core Layer** (design-decisions.md #29). 진입점/컨테이너 성격이고 도메인 로직은 Application 시스템에 위임함.
 
 ### Dependency Strategy
 

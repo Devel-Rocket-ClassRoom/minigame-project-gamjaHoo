@@ -3,9 +3,9 @@
 // 기존 에셋은 새 필드만 덮어쓰고 GUID 유지 — 시드 재실행해도 참조 안 깨짐.
 
 using System.Collections.Generic;
+using FMLite.Domain;
 using UnityEditor;
 using UnityEngine;
-using FMLite.Domain;
 
 namespace FMLite.Editor
 {
@@ -36,7 +36,18 @@ namespace FMLite.Editor
         {
             EnsureFolder("Assets/_Project", "Data");
             EnsureFolder(DataRoot, "Resources");
-            foreach (var sub in new[] { "Balance", "Positions", "Traits", "Countries", "NamePools", "Leagues", "Facilities" })
+            foreach (
+                var sub in new[]
+                {
+                    "Balance",
+                    "Positions",
+                    "Traits",
+                    "Countries",
+                    "NamePools",
+                    "Leagues",
+                    "Facilities",
+                }
+            )
             {
                 EnsureFolder(Resources, sub);
             }
@@ -49,10 +60,12 @@ namespace FMLite.Editor
                 AssetDatabase.CreateFolder(parent, name);
         }
 
-        private static T CreateOrLoad<T>(string path) where T : ScriptableObject
+        private static T CreateOrLoad<T>(string path)
+            where T : ScriptableObject
         {
             var existing = AssetDatabase.LoadAssetAtPath<T>(path);
-            if (existing != null) return existing;
+            if (existing != null)
+                return existing;
             var asset = ScriptableObject.CreateInstance<T>();
             AssetDatabase.CreateAsset(asset, path);
             return asset;
@@ -72,38 +85,68 @@ namespace FMLite.Editor
             // (Position, displayName, isGoalkeeper, emphasizesTechnical, emphasizesMental, emphasizesPhysical)
             var rows = new (Position pos, string name, bool gk, bool tech, bool mental, bool phys)[]
             {
-                (Position.GK, "골키퍼",            true,  false, true,  true ),
-                (Position.CB, "센터백",            false, false, true,  true ),
-                (Position.LB, "레프트백",          false, true,  true,  true ),
-                (Position.RB, "라이트백",          false, true,  true,  true ),
-                (Position.WB, "윙백",              false, true,  true,  true ),
-                (Position.DM, "수비형 미드필더",   false, true,  true,  true ),
-                (Position.CM, "센트럴 미드필더",   false, true,  true,  true ),
-                (Position.AM, "공격형 미드필더",   false, true,  true,  false),
-                (Position.LM, "레프트 미드필더",   false, true,  true,  true ),
-                (Position.RM, "라이트 미드필더",   false, true,  true,  true ),
-                (Position.LW, "레프트 윙",         false, true,  false, true ),
-                (Position.RW, "라이트 윙",         false, true,  false, true ),
-                (Position.ST, "스트라이커",        false, true,  true,  true ),
-                (Position.CF, "센터 포워드",       false, true,  true,  true ),
+                (Position.GK, "골키퍼", true, false, true, true),
+                (Position.CB, "센터백", false, false, true, true),
+                (Position.LB, "레프트백", false, true, true, true),
+                (Position.RB, "라이트백", false, true, true, true),
+                (Position.WB, "윙백", false, true, true, true),
+                (Position.DM, "수비형 미드필더", false, true, true, true),
+                (Position.CM, "센트럴 미드필더", false, true, true, true),
+                (Position.AM, "공격형 미드필더", false, true, true, false),
+                (Position.LM, "레프트 미드필더", false, true, true, true),
+                (Position.RM, "라이트 미드필더", false, true, true, true),
+                (Position.LW, "레프트 윙", false, true, false, true),
+                (Position.RW, "라이트 윙", false, true, false, true),
+                (Position.ST, "스트라이커", false, true, true, true),
+                (Position.CF, "센터 포워드", false, true, true, true),
             };
 
             // 2차 포지션 affinity 데이터 (algorithms.md #1 5단계 예시 표).
             // GK 는 비워둠 — algorithms.md 의 PickSecondary 가 GK 를 명시적으로 제외.
             var affinityData = new Dictionary<Position, (Position pos, float w)[]>
             {
-                [Position.ST] = new[] { (Position.CF, 8f), (Position.LW, 5f), (Position.RW, 5f), (Position.AM, 3f) },
-                [Position.CF] = new[] { (Position.ST, 8f), (Position.AM, 5f), (Position.LW, 3f), (Position.RW, 3f) },
+                [Position.ST] = new[]
+                {
+                    (Position.CF, 8f),
+                    (Position.LW, 5f),
+                    (Position.RW, 5f),
+                    (Position.AM, 3f),
+                },
+                [Position.CF] = new[]
+                {
+                    (Position.ST, 8f),
+                    (Position.AM, 5f),
+                    (Position.LW, 3f),
+                    (Position.RW, 3f),
+                },
                 [Position.LW] = new[] { (Position.LM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
                 [Position.RW] = new[] { (Position.RM, 6f), (Position.AM, 4f), (Position.ST, 3f) },
-                [Position.AM] = new[] { (Position.CM, 6f), (Position.CF, 4f), (Position.LW, 3f), (Position.RW, 3f) },
-                [Position.CM] = new[] { (Position.AM, 5f), (Position.DM, 5f), (Position.LM, 3f), (Position.RM, 3f) },
+                [Position.AM] = new[]
+                {
+                    (Position.CM, 6f),
+                    (Position.CF, 4f),
+                    (Position.LW, 3f),
+                    (Position.RW, 3f),
+                },
+                [Position.CM] = new[]
+                {
+                    (Position.AM, 5f),
+                    (Position.DM, 5f),
+                    (Position.LM, 3f),
+                    (Position.RM, 3f),
+                },
                 [Position.DM] = new[] { (Position.CM, 6f), (Position.CB, 4f) },
                 [Position.LM] = new[] { (Position.LW, 6f), (Position.CM, 4f), (Position.LB, 3f) },
                 [Position.RM] = new[] { (Position.RW, 6f), (Position.CM, 4f), (Position.RB, 3f) },
                 [Position.LB] = new[] { (Position.WB, 8f), (Position.LM, 4f), (Position.CB, 3f) },
                 [Position.RB] = new[] { (Position.WB, 8f), (Position.RM, 4f), (Position.CB, 3f) },
-                [Position.WB] = new[] { (Position.LB, 8f), (Position.RB, 8f), (Position.LM, 5f), (Position.RM, 5f) },
+                [Position.WB] = new[]
+                {
+                    (Position.LB, 8f),
+                    (Position.RB, 8f),
+                    (Position.LM, 5f),
+                    (Position.RM, 5f),
+                },
                 [Position.CB] = new[] { (Position.DM, 4f), (Position.LB, 3f), (Position.RB, 3f) },
                 // GK: 빈 affinity
             };
@@ -111,7 +154,9 @@ namespace FMLite.Editor
             for (int i = 0; i < rows.Length; i++)
             {
                 var r = rows[i];
-                var so = CreateOrLoad<PositionSO>(Resources + "/Positions/Position_" + r.pos + ".asset");
+                var so = CreateOrLoad<PositionSO>(
+                    Resources + "/Positions/Position_" + r.pos + ".asset"
+                );
                 so.id = i + 1;
                 so.position = r.pos;
                 so.displayName = r.name;
@@ -137,16 +182,18 @@ namespace FMLite.Editor
             // exclusionGroupId: 0=충돌 없음. 늦깎이형/조숙형은 동일 그룹(1) — 동시 부여 불가 (design-decisions.md #25).
             var rows = new (int id, string name, string desc, float weight, int exclusionGroupId)[]
             {
-                (1, "늦깎이형",   "성장이 늦지만 PA 가 높음",          1.0f, 1),
-                (2, "조숙형",     "어린 나이에 빠르게 성장",            1.0f, 1),
-                (3, "부상 취약",  "부상 발생 빈도가 높음",              0.7f, 0),
-                (4, "멘탈 강자",  "큰 경기에 강함",                     1.0f, 0),
-                (5, "빅매치형",   "강팀 상대 경기에서 활약",            0.8f, 0),
-                (6, "만능형",     "여러 포지션을 소화 가능",            0.8f, 0),
+                (1, "늦깎이형", "성장이 늦지만 PA 가 높음", 1.0f, 1),
+                (2, "조숙형", "어린 나이에 빠르게 성장", 1.0f, 1),
+                (3, "부상 취약", "부상 발생 빈도가 높음", 0.7f, 0),
+                (4, "멘탈 강자", "큰 경기에 강함", 1.0f, 0),
+                (5, "빅매치형", "강팀 상대 경기에서 활약", 0.8f, 0),
+                (6, "만능형", "여러 포지션을 소화 가능", 0.8f, 0),
             };
             foreach (var r in rows)
             {
-                var so = CreateOrLoad<TraitSO>(Resources + "/Traits/Trait_" + r.id + "_" + Sanitize(r.name) + ".asset");
+                var so = CreateOrLoad<TraitSO>(
+                    Resources + "/Traits/Trait_" + r.id + "_" + Sanitize(r.name) + ".asset"
+                );
                 so.id = r.id;
                 so.displayName = r.name;
                 so.description = r.desc;
@@ -160,20 +207,22 @@ namespace FMLite.Editor
         {
             var rows = new (int id, string code, string name, Color primary, Color secondary)[]
             {
-                (1,  "ENG", "잉글랜드",     Color.white,                       Color.red),
-                (2,  "FRA", "프랑스",       new Color(0f, 0.34f, 0.69f),       Color.white),
-                (3,  "GER", "독일",         Color.black,                       new Color(1f, 0.81f, 0f)),
-                (4,  "ESP", "스페인",       new Color(0.78f, 0.06f, 0.18f),    new Color(1f, 0.79f, 0f)),
-                (5,  "ITA", "이탈리아",     new Color(0f, 0.55f, 0.27f),       Color.white),
-                (6,  "BRA", "브라질",       new Color(0f, 0.61f, 0.28f),       new Color(1f, 0.86f, 0f)),
-                (7,  "ARG", "아르헨티나",   new Color(0.45f, 0.71f, 0.85f),    Color.white),
-                (8,  "NED", "네덜란드",     new Color(1f, 0.49f, 0f),          Color.white),
-                (9,  "POR", "포르투갈",     new Color(0.78f, 0.06f, 0.18f),    new Color(0f, 0.5f, 0.25f)),
-                (10, "KOR", "대한민국",     Color.white,                       Color.red),
+                (1, "ENG", "잉글랜드", Color.white, Color.red),
+                (2, "FRA", "프랑스", new Color(0f, 0.34f, 0.69f), Color.white),
+                (3, "GER", "독일", Color.black, new Color(1f, 0.81f, 0f)),
+                (4, "ESP", "스페인", new Color(0.78f, 0.06f, 0.18f), new Color(1f, 0.79f, 0f)),
+                (5, "ITA", "이탈리아", new Color(0f, 0.55f, 0.27f), Color.white),
+                (6, "BRA", "브라질", new Color(0f, 0.61f, 0.28f), new Color(1f, 0.86f, 0f)),
+                (7, "ARG", "아르헨티나", new Color(0.45f, 0.71f, 0.85f), Color.white),
+                (8, "NED", "네덜란드", new Color(1f, 0.49f, 0f), Color.white),
+                (9, "POR", "포르투갈", new Color(0.78f, 0.06f, 0.18f), new Color(0f, 0.5f, 0.25f)),
+                (10, "KOR", "대한민국", Color.white, Color.red),
             };
             foreach (var r in rows)
             {
-                var so = CreateOrLoad<CountrySO>(Resources + "/Countries/Country_" + r.code + ".asset");
+                var so = CreateOrLoad<CountrySO>(
+                    Resources + "/Countries/Country_" + r.code + ".asset"
+                );
                 so.id = r.id;
                 so.code = r.code;
                 so.displayName = r.name;
@@ -187,31 +236,403 @@ namespace FMLite.Editor
         {
             var pools = new Dictionary<int, (string code, string[] firstNames, string[] lastNames)>
             {
-                [1] = ("ENG", new[]{ "James","John","Robert","Michael","William","David","Richard","Joseph","Thomas","Charles","Daniel","Matthew","Anthony","Mark","Steven" },
-                              new[]{ "Smith","Johnson","Williams","Brown","Jones","Miller","Davis","Wilson","Anderson","Taylor","Thomas","Moore","Jackson","Martin","Lee" }),
-                [2] = ("FRA", new[]{ "Pierre","Jean","Jacques","Michel","Philippe","Nicolas","Alain","Bernard","Daniel","Christian","Patrick","Marc","André","Yves","Olivier" },
-                              new[]{ "Martin","Bernard","Dubois","Thomas","Robert","Petit","Richard","Durand","Moreau","Laurent","Simon","Michel","Lefebvre","Leroy","Roux" }),
-                [3] = ("GER", new[]{ "Hans","Michael","Stefan","Klaus","Wolfgang","Thomas","Peter","Andreas","Christian","Manfred","Werner","Jürgen","Helmut","Dieter","Frank" },
-                              new[]{ "Müller","Schmidt","Schneider","Fischer","Weber","Meyer","Wagner","Becker","Schulz","Hoffmann","Schäfer","Koch","Bauer","Richter","Klein" }),
-                [4] = ("ESP", new[]{ "Antonio","José","Manuel","Francisco","David","Juan","Javier","Daniel","Jesús","Carlos","Alejandro","Miguel","Rafael","Pedro","Sergio" },
-                              new[]{ "García","Rodríguez","González","Fernández","López","Martínez","Sánchez","Pérez","Gómez","Martín","Jiménez","Ruiz","Hernández","Díaz","Moreno" }),
-                [5] = ("ITA", new[]{ "Marco","Andrea","Luca","Alessandro","Stefano","Francesco","Matteo","Davide","Antonio","Giuseppe","Roberto","Luigi","Paolo","Riccardo","Federico" },
-                              new[]{ "Rossi","Russo","Ferrari","Esposito","Bianchi","Romano","Colombo","Ricci","Marino","Greco","Bruno","Gallo","Conti","De Luca","Costa" }),
-                [6] = ("BRA", new[]{ "João","José","Antonio","Francisco","Carlos","Paulo","Pedro","Lucas","Luiz","Marcos","Luis","Gabriel","Rafael","Daniel","Marcelo" },
-                              new[]{ "Silva","Santos","Oliveira","Souza","Rodrigues","Ferreira","Alves","Pereira","Lima","Gomes","Costa","Ribeiro","Martins","Carvalho","Almeida" }),
-                [7] = ("ARG", new[]{ "Juan","José","Carlos","Luis","Miguel","Jorge","Roberto","Daniel","Pablo","Diego","Alejandro","Eduardo","Sergio","Marcelo","Fernando" },
-                              new[]{ "González","Rodríguez","Gómez","Fernández","López","Díaz","Martínez","Pérez","García","Sánchez","Romero","Sosa","Álvarez","Torres","Ruiz" }),
-                [8] = ("NED", new[]{ "Daan","Sem","Lucas","Levi","Bram","Tim","Mees","Thijs","Jesse","Stijn","Finn","Sven","Noah","Liam","Lars" },
-                              new[]{ "De Jong","Jansen","De Vries","Van den Berg","Van Dijk","Bakker","Janssen","Visser","Smit","Meijer","De Boer","Mulder","De Groot","Bos","Vos" }),
-                [9] = ("POR", new[]{ "João","Pedro","Tiago","Diogo","Rui","Miguel","Bruno","Luís","Carlos","André","Daniel","Ricardo","Filipe","Hugo","Rafael" },
-                              new[]{ "Silva","Santos","Pereira","Ferreira","Oliveira","Costa","Rodrigues","Martins","Sousa","Fernandes","Gonçalves","Lopes","Marques","Almeida","Ribeiro" }),
-                [10]= ("KOR", new[]{ "민준","서준","도윤","예준","시우","주원","하준","지호","지후","준서","준우","현우","도현","우진","건우" },
-                              new[]{ "김","이","박","최","정","강","조","윤","장","임","한","오","서","신","권" }),
+                [1] = (
+                    "ENG",
+                    new[]
+                    {
+                        "James",
+                        "John",
+                        "Robert",
+                        "Michael",
+                        "William",
+                        "David",
+                        "Richard",
+                        "Joseph",
+                        "Thomas",
+                        "Charles",
+                        "Daniel",
+                        "Matthew",
+                        "Anthony",
+                        "Mark",
+                        "Steven",
+                    },
+                    new[]
+                    {
+                        "Smith",
+                        "Johnson",
+                        "Williams",
+                        "Brown",
+                        "Jones",
+                        "Miller",
+                        "Davis",
+                        "Wilson",
+                        "Anderson",
+                        "Taylor",
+                        "Thomas",
+                        "Moore",
+                        "Jackson",
+                        "Martin",
+                        "Lee",
+                    }
+                ),
+                [2] = (
+                    "FRA",
+                    new[]
+                    {
+                        "Pierre",
+                        "Jean",
+                        "Jacques",
+                        "Michel",
+                        "Philippe",
+                        "Nicolas",
+                        "Alain",
+                        "Bernard",
+                        "Daniel",
+                        "Christian",
+                        "Patrick",
+                        "Marc",
+                        "André",
+                        "Yves",
+                        "Olivier",
+                    },
+                    new[]
+                    {
+                        "Martin",
+                        "Bernard",
+                        "Dubois",
+                        "Thomas",
+                        "Robert",
+                        "Petit",
+                        "Richard",
+                        "Durand",
+                        "Moreau",
+                        "Laurent",
+                        "Simon",
+                        "Michel",
+                        "Lefebvre",
+                        "Leroy",
+                        "Roux",
+                    }
+                ),
+                [3] = (
+                    "GER",
+                    new[]
+                    {
+                        "Hans",
+                        "Michael",
+                        "Stefan",
+                        "Klaus",
+                        "Wolfgang",
+                        "Thomas",
+                        "Peter",
+                        "Andreas",
+                        "Christian",
+                        "Manfred",
+                        "Werner",
+                        "Jürgen",
+                        "Helmut",
+                        "Dieter",
+                        "Frank",
+                    },
+                    new[]
+                    {
+                        "Müller",
+                        "Schmidt",
+                        "Schneider",
+                        "Fischer",
+                        "Weber",
+                        "Meyer",
+                        "Wagner",
+                        "Becker",
+                        "Schulz",
+                        "Hoffmann",
+                        "Schäfer",
+                        "Koch",
+                        "Bauer",
+                        "Richter",
+                        "Klein",
+                    }
+                ),
+                [4] = (
+                    "ESP",
+                    new[]
+                    {
+                        "Antonio",
+                        "José",
+                        "Manuel",
+                        "Francisco",
+                        "David",
+                        "Juan",
+                        "Javier",
+                        "Daniel",
+                        "Jesús",
+                        "Carlos",
+                        "Alejandro",
+                        "Miguel",
+                        "Rafael",
+                        "Pedro",
+                        "Sergio",
+                    },
+                    new[]
+                    {
+                        "García",
+                        "Rodríguez",
+                        "González",
+                        "Fernández",
+                        "López",
+                        "Martínez",
+                        "Sánchez",
+                        "Pérez",
+                        "Gómez",
+                        "Martín",
+                        "Jiménez",
+                        "Ruiz",
+                        "Hernández",
+                        "Díaz",
+                        "Moreno",
+                    }
+                ),
+                [5] = (
+                    "ITA",
+                    new[]
+                    {
+                        "Marco",
+                        "Andrea",
+                        "Luca",
+                        "Alessandro",
+                        "Stefano",
+                        "Francesco",
+                        "Matteo",
+                        "Davide",
+                        "Antonio",
+                        "Giuseppe",
+                        "Roberto",
+                        "Luigi",
+                        "Paolo",
+                        "Riccardo",
+                        "Federico",
+                    },
+                    new[]
+                    {
+                        "Rossi",
+                        "Russo",
+                        "Ferrari",
+                        "Esposito",
+                        "Bianchi",
+                        "Romano",
+                        "Colombo",
+                        "Ricci",
+                        "Marino",
+                        "Greco",
+                        "Bruno",
+                        "Gallo",
+                        "Conti",
+                        "De Luca",
+                        "Costa",
+                    }
+                ),
+                [6] = (
+                    "BRA",
+                    new[]
+                    {
+                        "João",
+                        "José",
+                        "Antonio",
+                        "Francisco",
+                        "Carlos",
+                        "Paulo",
+                        "Pedro",
+                        "Lucas",
+                        "Luiz",
+                        "Marcos",
+                        "Luis",
+                        "Gabriel",
+                        "Rafael",
+                        "Daniel",
+                        "Marcelo",
+                    },
+                    new[]
+                    {
+                        "Silva",
+                        "Santos",
+                        "Oliveira",
+                        "Souza",
+                        "Rodrigues",
+                        "Ferreira",
+                        "Alves",
+                        "Pereira",
+                        "Lima",
+                        "Gomes",
+                        "Costa",
+                        "Ribeiro",
+                        "Martins",
+                        "Carvalho",
+                        "Almeida",
+                    }
+                ),
+                [7] = (
+                    "ARG",
+                    new[]
+                    {
+                        "Juan",
+                        "José",
+                        "Carlos",
+                        "Luis",
+                        "Miguel",
+                        "Jorge",
+                        "Roberto",
+                        "Daniel",
+                        "Pablo",
+                        "Diego",
+                        "Alejandro",
+                        "Eduardo",
+                        "Sergio",
+                        "Marcelo",
+                        "Fernando",
+                    },
+                    new[]
+                    {
+                        "González",
+                        "Rodríguez",
+                        "Gómez",
+                        "Fernández",
+                        "López",
+                        "Díaz",
+                        "Martínez",
+                        "Pérez",
+                        "García",
+                        "Sánchez",
+                        "Romero",
+                        "Sosa",
+                        "Álvarez",
+                        "Torres",
+                        "Ruiz",
+                    }
+                ),
+                [8] = (
+                    "NED",
+                    new[]
+                    {
+                        "Daan",
+                        "Sem",
+                        "Lucas",
+                        "Levi",
+                        "Bram",
+                        "Tim",
+                        "Mees",
+                        "Thijs",
+                        "Jesse",
+                        "Stijn",
+                        "Finn",
+                        "Sven",
+                        "Noah",
+                        "Liam",
+                        "Lars",
+                    },
+                    new[]
+                    {
+                        "De Jong",
+                        "Jansen",
+                        "De Vries",
+                        "Van den Berg",
+                        "Van Dijk",
+                        "Bakker",
+                        "Janssen",
+                        "Visser",
+                        "Smit",
+                        "Meijer",
+                        "De Boer",
+                        "Mulder",
+                        "De Groot",
+                        "Bos",
+                        "Vos",
+                    }
+                ),
+                [9] = (
+                    "POR",
+                    new[]
+                    {
+                        "João",
+                        "Pedro",
+                        "Tiago",
+                        "Diogo",
+                        "Rui",
+                        "Miguel",
+                        "Bruno",
+                        "Luís",
+                        "Carlos",
+                        "André",
+                        "Daniel",
+                        "Ricardo",
+                        "Filipe",
+                        "Hugo",
+                        "Rafael",
+                    },
+                    new[]
+                    {
+                        "Silva",
+                        "Santos",
+                        "Pereira",
+                        "Ferreira",
+                        "Oliveira",
+                        "Costa",
+                        "Rodrigues",
+                        "Martins",
+                        "Sousa",
+                        "Fernandes",
+                        "Gonçalves",
+                        "Lopes",
+                        "Marques",
+                        "Almeida",
+                        "Ribeiro",
+                    }
+                ),
+                [10] = (
+                    "KOR",
+                    new[]
+                    {
+                        "민준",
+                        "서준",
+                        "도윤",
+                        "예준",
+                        "시우",
+                        "주원",
+                        "하준",
+                        "지호",
+                        "지후",
+                        "준서",
+                        "준우",
+                        "현우",
+                        "도현",
+                        "우진",
+                        "건우",
+                    },
+                    new[]
+                    {
+                        "김",
+                        "이",
+                        "박",
+                        "최",
+                        "정",
+                        "강",
+                        "조",
+                        "윤",
+                        "장",
+                        "임",
+                        "한",
+                        "오",
+                        "서",
+                        "신",
+                        "권",
+                    }
+                ),
             };
             foreach (var kv in pools)
             {
                 var (code, first, last) = kv.Value;
-                var so = CreateOrLoad<NamePoolSO>(Resources + "/NamePools/NamePool_" + code + ".asset");
+                var so = CreateOrLoad<NamePoolSO>(
+                    Resources + "/NamePools/NamePool_" + code + ".asset"
+                );
                 so.countryId = kv.Key;
                 so.firstNames = new List<string>(first);
                 so.lastNames = new List<string>(last);
@@ -221,6 +642,37 @@ namespace FMLite.Editor
 
         private static void GenerateLeagueConfigs()
         {
+            // 명성 내림차순 (algorithms.md #5). 인덱스 0 이 Top4 최상위.
+            // 사용자 매핑 표 (가상 ↔ 원본 구단) — 저작권 회피용 가상명.
+            // 명성 순서는 최근 EPL 평균 성적 + 역사적 명성 종합 추정.
+            var clubNames = new List<string>
+            {
+                // Top4 (rep 85~95): 4구단
+                "Skyblues", // 맨시티
+                "Ravens", // 리버풀
+                "Cannons", // 아스날
+                "Red Devils", // 맨유
+                // Euro (rep 65~80): 6구단
+                "Blues", // 첼시
+                "Cockerels", // 토트넘
+                "Magpies", // 뉴캐슬
+                "Lions", // 아스톤 빌라
+                "Seagulls", // 브라이턴
+                "Hammers", // 웨스트햄
+                // Mid (rep 45~60): 7구단
+                "Eagles", // 크리스탈 팰리스
+                "Cottagers", // 풀럼
+                "Bees", // 브렌트퍼드
+                "Toffees", // 에버턴
+                "Foxes", // 울브스
+                "Foresters", // 노팅엄 포레스트
+                "Cherries", // 본머스
+                // Rel (rep 25~40): 3구단
+                "Clarets", // 번리
+                "Black Cats", // 선덜랜드
+                "Peacocks", // 리즈
+            };
+
             var so = CreateOrLoad<LeagueConfigSO>(Resources + "/Leagues/League_EPL.asset");
             so.id = 1;
             so.displayName = "Premier League";
@@ -228,28 +680,31 @@ namespace FMLite.Editor
             so.clubCount = 20;
             so.relegationCount = 3;
             so.playersPerClub = 25;
+            so.clubNames = clubNames;
             EditorUtility.SetDirty(so);
         }
 
         private static void GenerateFacilityLevels()
         {
             // 5 단계: 비용/기간 기하급수, Youth 수치는 선형 증가
-            var costs    = new[] { 50_000, 100_000, 200_000, 400_000, 800_000 };
-            var days     = new[] { 30, 60, 90, 120, 150 };
-            var poolSize = new[] { 5, 6, 7, 8, 9 };       // Youth only
-            var avgPA    = new[] { 100, 115, 130, 145, 160 }; // Youth only
+            var costs = new[] { 50_000, 100_000, 200_000, 400_000, 800_000 };
+            var days = new[] { 30, 60, 90, 120, 150 };
+            var poolSize = new[] { 5, 6, 7, 8, 9 }; // Youth only
+            var avgPA = new[] { 100, 115, 130, 145, 160 }; // Youth only
 
             foreach (FacilityType t in System.Enum.GetValues(typeof(FacilityType)))
             {
                 for (int level = 1; level <= 5; level++)
                 {
-                    var so = CreateOrLoad<FacilityLevelSO>(Resources + "/Facilities/Facility_" + t + "_Lv" + level + ".asset");
+                    var so = CreateOrLoad<FacilityLevelSO>(
+                        Resources + "/Facilities/Facility_" + t + "_Lv" + level + ".asset"
+                    );
                     so.facilityType = t;
                     so.level = level;
                     so.upgradeCost = costs[level - 1];
                     so.upgradeDurationDays = days[level - 1];
                     so.youthPoolSize = (t == FacilityType.Youth) ? poolSize[level - 1] : 0;
-                    so.youthAvgPA   = (t == FacilityType.Youth) ? avgPA[level - 1]   : 0;
+                    so.youthAvgPA = (t == FacilityType.Youth) ? avgPA[level - 1] : 0;
                     EditorUtility.SetDirty(so);
                 }
             }

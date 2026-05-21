@@ -5,22 +5,29 @@
 ## Layer Overview
 
 ```
-┌────────────────────────────────────────┐
-│  Presentation Layer (UI, Scenes)       │
-├────────────────────────────────────────┤
-│  Application Layer (Systems)           │
-│    GameManager, GameTime, EventBus     │
-│    MatchSimulator, TransferSystem      │
-│    YouthSystem, SaveSystem             │
-├────────────────────────────────────────┤
-│  Domain Layer (Game state, instances)  │
-│    GameState, Player, Club, League     │
-│    Match, TransferOffer, YouthIntake   │
-├────────────────────────────────────────┤
-│  Data Layer (Persistence, SO)          │
-│    JSON files, ScriptableObjects       │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  Presentation Layer (UI, Scenes)               │
+├────────────────────────────────────────────────┤
+│  Application Layer (Systems, Stateless)        │
+│    MatchSimulator, TransferSystem,             │
+│    YouthSystem,                                │
+│    PlayerGenerator, ClubGenerator              │
+├────────────────────────────────────────────────┤
+│  Core Layer (Infra, 진입점/컨테이너)            │
+│    GameManager, GameTime, EventBus, GameLog    │
+├────────────────────────────────────────────────┤
+│  Domain Layer (Game state, instances)          │
+│    GameState, Player, Club, League             │
+│    Match, TransferOffer, YouthIntake           │
+│    GameDatabase                                │
+├────────────────────────────────────────────────┤
+│  Data / Persistence Layer (I/O 어댑터)          │
+│    SaveSystem (Newtonsoft.Json + File I/O)     │
+│    JSON files, ScriptableObjects               │
+└────────────────────────────────────────────────┘
 ```
+
+> **의존 방향**: Domain 가장 안쪽 (외부 의존 0). Core → Domain. Application → Core + Domain. Persistence → Core + Domain. Presentation → Application + Core + Persistence. `GameManager` 가 Core 인 이유는 `design-decisions.md` #29. `SaveSystem` 이 Persistence 인 이유는 본질이 I/O 어댑터 (`Newtonsoft.Json` + `File.Replace`) 이기 때문 — Application 시스템(Stateless 도메인 변환) 과 본질이 다름.
 
 ## Domain Layer Classes
 
@@ -157,6 +164,37 @@ public class YouthIntake {
     public List<int> signedPlayerIds;
     public List<int> rejectedPlayerIds;
     public int rerollsUsed;
+}
+```
+
+### GameDatabase
+
+정적 SO 카탈로그 (게임 룰북의 in-memory 인덱스). 빌드 / 런타임 SO 인스턴스를 ID 키로 조회. 테스트에서는 `Register` / `Clear` 로 in-memory 주입.
+
+**위치 근거**: 데이터 자체가 도메인 룰북 (TraitSO / PositionSO / CountrySO 등). `GameManager` 같은 흐름 컨테이너가 아니라 도메인 데이터 컨테이너 → Domain Layer.
+
+```csharp
+public static class GameDatabase {
+    // 단일 인스턴스
+    public static GameBalanceSO GameBalance { get; }
+
+    // 컬렉션 (가챠 / 추첨 순회용)
+    public static IEnumerable<TraitSO>    AllTraits    { get; }
+    public static IEnumerable<PositionSO> AllPositions { get; }
+    public static IEnumerable<CountrySO> AllCountries { get; }
+
+    // 라이프사이클
+    public static void LoadAll();             // Resources.LoadAll<T>("") 일괄 로드
+    public static void Clear();               // 테스트 격리용
+    public static void Register(object so);   // 테스트/디버그 in-memory 주입
+
+    // 조회 (id 미존재 시 null)
+    public static TraitSO         GetTrait(int id);
+    public static PositionSO      GetPosition(int id);
+    public static CountrySO       GetCountry(int id);
+    public static NamePoolSO      GetNamePool(int countryId);
+    public static LeagueConfigSO  GetLeagueConfig(int id);
+    public static FacilityLevelSO GetFacilityLevel(FacilityType type, int level);
 }
 ```
 
@@ -459,32 +497,62 @@ public class PositionAffinity {
 }
 ```
 
-## Application Layer (Systems)
+## Core Layer (Infra)
 
-상태 없음. GameState를 입력받아 변경.
+진입점·인프라. 도메인 로직은 가지지 않고 Application 시스템에 위임 (`design-decisions.md` #29).
 
 ```csharp
-// 최상위 매니저 (싱글톤)
+// 최상위 매니저 (싱글톤). GameState 는 보유만 하고 변경은 시스템이 함.
 public class GameManager : MonoBehaviour {
     public static GameManager Instance { get; private set; }
     public GameState State { get; private set; }
-    public Club UserClub => State.GetClub(State.userClubId);
+    public Club UserClub => State?.GetClub(State.userClubId);
+    public void SetState(GameState state);
 }
 
 // 시간 진행
-public class GameTime {
-    public DateTime Current { get; private set; }
-    public void Advance(int days) { ... }
+public static class GameTime {
+    public static DateTime CurrentDate { get; private set; }
+    public static void Reset(DateTime d);
+    public static void Advance(int days);   // 하루씩 N번 DayAdvancedEvent 발행
 }
 
 // 이벤트 시스템 (정적)
 public static class EventBus {
-    public static void Publish<T>(T evt) { ... }
-    public static void Subscribe<T>(Action<T> handler) { ... }
-    public static void Unsubscribe<T>(Action<T> handler) { ... }
+    public static void Publish<T>(T evt);
+    public static void Subscribe<T>(Action<T> handler);
+    public static void Unsubscribe<T>(Action<T> handler);
+}
+```
+
+## Application Layer (Systems)
+
+상태 없음. GameState를 입력받아 변경 (`design-decisions.md` #3).
+
+```csharp
+// ── 생성기 (Stateless 도메인 변환) ─────────────────────────
+
+public static class PlayerGenerator {
+    public static Player Generate(
+        Random rng, int clubReputation, Position targetPosition,
+        int age, string nationalityCode, int clubId, int youthClubId,
+        PlayerOrigin origin, DateTime currentDate, GameBalanceSO balance);
 }
 
-// 도메인별 시스템 (stateless)
+public static class ClubGenerator {
+    public static ClubGenerationResult Generate(
+        Random rng, LeagueConfigSO leagueConfig, GameBalanceSO balance,
+        DateTime currentDate, int leagueId,
+        int startClubId, int startPlayerId);
+}
+
+public class ClubGenerationResult {
+    public List<Club>   Clubs;     // count == leagueConfig.clubCount
+    public List<Player> Players;   // count == clubCount × playersPerClub
+}
+
+// ── 시뮬레이션 / 도메인 시스템 ────────────────────────────
+
 public class MatchSimulator {
     public MatchResult Simulate(Match match, GameState state);
 }
@@ -498,12 +566,35 @@ public class YouthSystem {
     public YouthIntake GenerateIntake(Club club, GameState state);
     public void UseRerollToken(YouthIntake intake, GameState state);
 }
+```
 
-public class SaveSystem {
-    public void Save(GameState state, string slotName);
-    public GameState Load(string slotName);
+## Data / Persistence Layer (I/O 어댑터)
+
+파일 I/O + 직렬화. 도메인 로직 없음. Clean Architecture 의 Repository/Adapter 위치.
+
+```csharp
+// FMLite.Persistence
+public static class SaveSystem {
+    public static string SavesPath { get; }
+    public static string GetSlotPath(string slotName);
+
+    public static void Save(GameState state, string slotName);     // atomic write
+    public static GameState Load(string slotName);                 // null if missing
+    public static SaveSlotMeta LoadSlotMeta(string slotName);
+    public static List<SaveSlotMeta> ListSlots();
+    public static bool DeleteSlot(string slotName);
+}
+
+[Serializable]
+public class SaveSlotMeta {
+    public string slotName;
+    public DateTime savedAt;
+    public DateTime gameDate;
+    public string userClubName;
 }
 ```
+
+> **위치 근거**: `JsonConvert.SerializeObject` + `File.Replace` (atomic) + `Application.persistentDataPath` 사용. Application 시스템(Stateless 도메인 변환) 과 본질이 다른 I/O 어댑터.
 
 ## Relationship Diagram (Mermaid)
 

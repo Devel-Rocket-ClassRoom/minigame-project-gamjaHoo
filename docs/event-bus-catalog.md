@@ -26,12 +26,20 @@ public static class EventBus {
 
 ```
 Assets/_Project/Scripts/Core/Events/
-├─ GameEvents.cs       (게임 메타 이벤트)
-├─ MatchEvents.cs      (경기 관련)
-├─ TransferEvents.cs   (이적 관련)
-├─ YouthEvents.cs      (유스 관련)
-└─ SeasonEvents.cs     (시즌 관련)
+├─ GameEvents.cs       (게임 메타 이벤트)        [V0.1 작성됨]
+├─ MatchEvents.cs      (경기 관련)               [V0.1 일부 — MatchDayEvent 만, FinishedEvent 는 Stage 9]
+├─ TransferEvents.cs   (이적 관련)               [Stage 11 작업 시 작성]
+├─ YouthEvents.cs      (유스 관련)               [Stage 10 작업 시 작성]
+└─ SeasonEvents.cs     (시즌 관련)               [Stage 12 작업 시 작성]
 ```
+
+> **V0.1 진행 상태**:
+> - `GameEvents.cs` — DayAdvancedEvent / GameLoadedEvent / GameSavedEvent ✓
+> - `MatchEvents.cs` — MatchDayEvent ✓ (Stage 8 Task 8.1, #103) / MatchFinishedEvent ✓ (Stage 9 Task 9.2, #117). PlayerInjuredEvent 는 V1.0+ (부상 시스템 도입 시).
+> - `YouthEvents.cs` — 3 이벤트 ✓ (Stage 10 Sub-B, PR #125).
+> - `TransferEvents.cs` — 3 이벤트 ✓ (Stage 11 Sub-B, PR #132).
+> - `SeasonEvents.cs` — 명세 확정 (#135 Sub-A, 2026-05-20). Stage 12 Sub-B 에서 코드 추가 (2 이벤트: SeasonStartedEvent / SeasonEndedEvent. BoardReviewEvent 는 V1.0+ 보드 시스템).
+> - `TokenGrantedEvent` — Youth 와 Facility 양쪽에서 발행. Stage 12 작업 시 통합 검토.
 
 ---
 

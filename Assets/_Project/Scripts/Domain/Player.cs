@@ -17,7 +17,7 @@ namespace FMLite.Domain
         public List<int> traitIds = new List<int>();
 
         public int currentClubId;
-        public int youthClubId;       // 유스 데뷔 구단 (-1 = 외부)
+        public int youthClubId; // 유스 데뷔 구단 (-1 = 외부)
         public PlayerOrigin origin;
 
         public Contract contract;

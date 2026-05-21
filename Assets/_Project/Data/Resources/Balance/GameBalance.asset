@@ -46,6 +46,50 @@ MonoBehaviour:
   wageBaseAtMinCA: 500
   wagePerCAPoint: 350
   wageFloor: 500
+  tierClubRatios:
+  - 0.2
+  - 0.3
+  - 0.35
+  - 0.15
+  tierRepMin: 55000000410000002d00000019000000
+  tierRepMax: 5f000000500000003c00000028000000
+  financeBaseMoney: 5000000
+  financeRepCoeff: 4000000
+  financeNoiseSigma: 0.15
+  financeFloor: 1000000
+  transferBudgetRatio: 0.2
+  wageBudgetRatio: 0.5
+  facilityNoiseSigma: 1
+  minFacilityLevel: 1
+  maxFacilityLevel: 5
+  formation:
+    name: 4-4-2
+    gk: 3
+    cbMin: 4
+    lbMin: 2
+    rbMin: 2
+    dmCmGroupMin: 4
+    lmLwGroupMin: 2
+    rmRwGroupMin: 2
+    stCfGroupMin: 4
+    randomSlots: 2
+  youthAgeRatio: 0.2
+  primeAgeRatio: 0.6
+  veteranAgeRatio: 0.2
+  youthAgeMin: 16
+  youthAgeMax: 21
+  primeAgeMin: 22
+  primeAgeMax: 28
+  veteranAgeMin: 29
+  veteranAgeMax: 35
+  clubMinAgeYears: 50
+  clubMaxAgeYears: 150
+  homegrownRatio: 0.2
+  initialBoardConfidence: 50
+  tierEliteRatio: 1.2
+  tierStrongRatio: 1.05
+  tierAverageRatio: 0.9
+  tierWeakRatio: 0.75
   initialRerollTokens: 3
   maxRerollStockpile: 5
   tierThresholdsAccumulated:
@@ -54,11 +98,65 @@ MonoBehaviour:
   - 0.8
   - 0.95
   avgGoalsPerMatch: 2.7
-  homeAdvantageBonus: 0.1
+  homeAdvantageGoalBonus: 0.3
+  strengthExponent: 1.5
+  scoringWeightByLine:
+  - 0
+  - 0.4
+  - 1.5
+  - 5
+  youthStarPickProbability: 0.05
+  youthStarPaBonus: 50
+  youthPaStdDev: 15
+  youthPaGapStdDev: 25
+  youthIntakeMinAge: 16
+  youthIntakeMaxAge: 18
+  youthIntakeAgeWeights:
+  - 0.4
+  - 0.4
+  - 0.2
+  youthPrimaryNationalityRatio: 0.78
+  youthIntakeMainMonth: 6
+  youthIntakeMainDay: 15
+  youthIntakeSecondMonth: 1
+  youthIntakeSecondDay: 15
   fatigueRecoveryPerDay: 15
   fatigueGainPerMatch: 30
   retirementMinAge: 33
   retirementProbabilityPerYear: 0.15
   seasonRerollTokenGrant: 3
-  marketValueAgeFactor: 1
-  marketValueCAFactor: 100
+  seasonEndMonth: 5
+  seasonEndDay: 15
+  fiscalYearStartMonth: 6
+  fiscalYearStartDay: 1
+  newSeasonOpeningMonth: 8
+  newSeasonOpeningDay: 15
+  marketValueBase: 500000
+  marketValueCaExponent: 4
+  marketValuePaCoeff: 50000
+  marketValueAgeCurve:
+  - 0.85
+  - 1.2
+  - 0.75
+  - 0.35
+  marketValueContractCurve:
+  - 0.5
+  - 0.8
+  - 1
+  - 1.05
+  marketValuePositionFactor:
+  - 0.75
+  - 0.85
+  - 1
+  - 1.2
+  marketValueInjuryFactor: 0.5
+  aiValueNoiseSigma: 0.1
+  aiAcceptRatio: 1.2
+  transferWindowSummerStartMonth: 6
+  transferWindowSummerStartDay: 1
+  transferWindowSummerEndMonth: 8
+  transferWindowSummerEndDay: 31
+  transferWindowWinterStartMonth: 1
+  transferWindowWinterStartDay: 1
+  transferWindowWinterEndMonth: 1
+  transferWindowWinterEndDay: 31

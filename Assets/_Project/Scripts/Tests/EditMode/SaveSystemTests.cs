@@ -3,9 +3,9 @@
 
 using System;
 using System.IO;
-using NUnit.Framework;
 using FMLite.Domain;
 using FMLite.Persistence;
+using NUnit.Framework;
 
 namespace FMLite.Tests
 {
@@ -23,7 +23,8 @@ namespace FMLite.Tests
         public void TearDown()
         {
             var path = SaveSystem.GetSlotPath(_slot);
-            if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
         }
 
         [Test]
@@ -35,6 +36,7 @@ namespace FMLite.Tests
                 userClubId = 1,
                 rerollTokens = 3,
                 randomSeed = 42,
+                nextPlayerId = 501, // ClubGen 500명 호출 후 시뮬
             };
 
             SaveSystem.Save(original, _slot);
@@ -45,13 +47,21 @@ namespace FMLite.Tests
             Assert.AreEqual(original.userClubId, loaded.userClubId);
             Assert.AreEqual(original.rerollTokens, loaded.rerollTokens);
             Assert.AreEqual(original.randomSeed, loaded.randomSeed);
+            Assert.AreEqual(original.nextPlayerId, loaded.nextPlayerId);
         }
 
         [Test]
         public void SaveLoad_PopulatedState_IndexesRebuilt()
         {
             var original = new GameState { userClubId = 7 };
-            original.AddClub(new Club { id = 7, name = "TestClub", reputation = 50 });
+            original.AddClub(
+                new Club
+                {
+                    id = 7,
+                    name = "TestClub",
+                    reputation = 50,
+                }
+            );
             original.AddPlayer(new Player { id = 100, currentClubId = 7 });
             original.AddPlayer(new Player { id = 200, currentClubId = 7 });
 
