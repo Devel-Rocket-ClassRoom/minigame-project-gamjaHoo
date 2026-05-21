@@ -70,6 +70,8 @@ namespace FMLite.UI
                 marketValueText.text = $"£{mv / 1000000.0:0.0}M";
             }
 
+            if (offerButton == null)
+                return;
             offerButton.onClick.RemoveAllListeners();
             offerButton.onClick.AddListener(() => onOffer(player.id));
         }
