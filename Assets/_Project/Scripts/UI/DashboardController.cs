@@ -21,6 +21,7 @@ namespace FMLite.UI
         private const string TransferScene = "TransferScene";
         private const string ScheduleScene = "ScheduleScene";
         private const string FacilityScene = "FacilityScene";
+        private const string StandingsScene = "StandingsScene";
 
         [Header("요약 정보")]
         [SerializeField]
@@ -73,6 +74,8 @@ namespace FMLite.UI
         public void OnTransferClicked() => SceneManager.LoadScene(TransferScene);
 
         public void OnScheduleClicked() => SceneManager.LoadScene(ScheduleScene);
+
+        public void OnStandingsClicked() => SceneManager.LoadScene(StandingsScene);
 
         public void OnFacilityClicked() => SceneManager.LoadScene(FacilityScene);
 
