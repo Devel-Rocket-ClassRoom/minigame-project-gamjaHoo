@@ -142,6 +142,8 @@ namespace FMLite.Editor
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             DrawStatus(state);
             EditorGUILayout.Space();
+            DrawDebugModeSection(balance);
+            EditorGUILayout.Space();
             DrawTimeSection(state, balance);
             EditorGUILayout.Space();
             DrawStandingsSection(state);
@@ -204,6 +206,28 @@ namespace FMLite.Editor
         }
 
         // ── 섹션들 ──────────────────────────────────────────────────────
+
+        private void DrawDebugModeSection(GameBalanceSO balance)
+        {
+            EditorGUILayout.LabelField("── 디버그 모드 ──", EditorStyles.miniBoldLabel);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(
+                $"현재: {(balance.isDebugMode ? "ON (CA/PA 정확 수치 노출)" : "OFF (티어만 표시)")}",
+                EditorStyles.miniLabel
+            );
+            if (GUILayout.Button(balance.isDebugMode ? "OFF 로 전환" : "ON 으로 전환", GUILayout.Width(120)))
+            {
+                balance.isDebugMode = !balance.isDebugMode;
+                EditorUtility.SetDirty(balance);
+                Debug.Log($"[Debug] isDebugMode → {balance.isDebugMode}");
+                Repaint();
+            }
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.LabelField(
+                "※ PlayerProfile 화면에서 CA/PA 수치 노출 여부가 달라집니다.",
+                EditorStyles.miniLabel
+            );
+        }
 
         private static void DrawStatus(GameState state)
         {
