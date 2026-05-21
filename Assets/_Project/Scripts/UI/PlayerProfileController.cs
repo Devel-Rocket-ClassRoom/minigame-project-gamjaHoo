@@ -4,6 +4,7 @@
 // GameBalanceSO.isDebugMode 활성 시 정확한 수치 추가 노출 (Task 14.2 연동).
 
 using System.Text;
+using FMLite.Core;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
