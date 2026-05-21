@@ -5,7 +5,8 @@
         "FMLite.Core",
         "FMLite.Domain",
         "FMLite.Application",
-        "FMLite.Persistence"
+        "FMLite.Persistence",
+        "Unity.TextMeshPro"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
