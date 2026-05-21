@@ -76,6 +76,7 @@ namespace FMLite.UI
 
         public void OnConfirmNewGame()
         {
+            GameDatabase.LoadAll();
             int seed = ParseSeed(seedInput != null ? seedInput.text : string.Empty);
             var seasonStart = new DateTime(DateTime.Today.Year, 7, 1);
             var state = GameInitializer.NewGame(seed, seasonStart, leagueConfig, balance);
@@ -102,6 +103,7 @@ namespace FMLite.UI
 
         private void LoadSlot(string slotName)
         {
+            GameDatabase.LoadAll();
             var state = SaveSystem.Load(slotName);
             if (state == null)
             {
