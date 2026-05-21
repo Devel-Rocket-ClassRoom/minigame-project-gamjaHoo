@@ -11,5 +11,9 @@ namespace FMLite.Domain
         public int scoutLevel;
         public int trainingLevel;
         public int youthLevel;
+
+        public bool hasPendingUpgrade;
+        public FacilityType pendingUpgradeType;
+        public DateTime upgradeCompletionDate;
     }
 }

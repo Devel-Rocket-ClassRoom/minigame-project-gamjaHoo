@@ -29,6 +29,8 @@ namespace FMLite.Application
             // 이적 오퍼 처리 — Pending → AI 응답 / Accepted → 활성화 기간 시 자동 체결
             // (algorithms.md #3.1 ProcessOffers)
             TransferSystem.ProcessOffers(state, balance);
+
+            FacilitySystem.ProcessUpgrades(state);
         }
 
         private static void RecoverFatigue(Player p, GameBalanceSO b)
