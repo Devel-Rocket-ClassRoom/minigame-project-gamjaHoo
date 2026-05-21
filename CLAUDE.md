@@ -19,6 +19,11 @@
 
 > **읽지 않고 추측으로 진행했을 때 일어난 일들**: `GameManager` 를 Application 으로 옮기자고 잘못 추천 → 사용자 정정. `type:*` 라벨 자동 사용 → 폐지된 방식. `main` 직접 푸시 시도 → 워크플로우 위반. 같은 실수 반복 = 사용자 신뢰 ↓.
 
+## 🗂️ 현재 진행 상태 (세션 간 이어받기)
+
+- **V0.1 완료** (2026-05-21) — Stage 13 UI 전체 + Stage 14 디버그 도구 + Stage 15 통합 테스트 모두 머지됨.
+- **다음 작업: V1.0 이슈 생성 및 작업 시작** — `docs/design-decisions.md` V1.0+ 보완 포인트 + `docs/v0.1-tasks.md` V1.0+ 항목 참고. GitHub Milestone `V1.0` 으로 이슈 생성.
+
 ---
 
 ## ⚠️ Common Pitfalls — 자주 빠지는 함정
@@ -36,6 +41,8 @@
 
 - **`main` 직접 푸시 절대 금지**. 항상 **이슈 → 브랜치 → PR → 머지** 패턴. 브랜치 prefix: `feature/<n>-` / `fix/<n>-` / `chore/<n>-` / `docs/<n>-`. `github-workflow.md` §1.
 - **이슈 Type = GitHub Issue Type 필드** (사이드바). `type:*` 라벨 사용 금지 — 2026-01-12 폐지됨. gh CLI 로 생성 후 `gh api -X PATCH ... -f type=Feature` 로 설정.
+- **PR 생성 시 메타데이터 필수** — `--label "area:*"` + `--milestone "V0.1"` + `--assignee "@me"` + `gh project item-add 50` 보드 추가. 하나라도 빠지면 보드 추적 누락. `github-workflow.md` §2 참조.
+- **PR 본문에 `Closes #N` 반드시 명시** — 없으면 머지 후 이슈가 자동 close 안 됨. 수동 close + 보드 메타데이터 처리 필요.
 - **커밋 메시지에 `Co-authored-by: Claude ...` 트레일러 추가 금지**. 사용자가 명시적으로 요청 안 했음.
 - **PR 본문에 "🤖 Generated with Claude Code" 같은 footer 금지** (위와 같은 이유).
 
@@ -43,6 +50,7 @@
 
 - **EditMode / PlayMode 테스트는 사용자가 Unity Test Runner 에서 실행**. Claude 가 직접 실행 불가. 코드 / 테스트 작성 후 사용자에게 ⏸️ 확인 요청 → 통과 후 commit.
 - **SO 시드 asset (`Balance/GameBalance.asset` 등) 갱신은 사용자가 `FM-Lite/Seed/Generate V0.1 Data` 메뉴 실행 후 별도 chore PR**. 코드 PR 과 분리.
+- **Unity AI Assistant 가 코드 파일을 임의로 수정할 수 있음** — Unity AI 작업 후 `.cs` 파일 커밋 전 반드시 diff 확인. 특히 상수 값(`const string SceneName`) 변경 사례 있음.
 - **LF/CRLF 경고** — Windows + git core.autocrlf 정상 동작. 무시.
 
 ### 코드
