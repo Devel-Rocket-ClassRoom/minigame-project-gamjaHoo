@@ -43,11 +43,13 @@ namespace FMLite.UI
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
+            EventBus.Subscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<DayAdvancedEvent>(OnDayAdvanced);
+            EventBus.Unsubscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
         }
 
         private void Start()
@@ -77,6 +79,12 @@ namespace FMLite.UI
         private void OnDayAdvanced(DayAdvancedEvent e)
         {
             RefreshInfo();
+        }
+
+        private void OnYouthIntakeAvailable(YouthIntakeAvailableEvent e)
+        {
+            if (e.clubId == GameManager.Instance?.State?.userClubId)
+                SceneManager.LoadScene(YouthScene);
         }
 
         private void RefreshInfo()
