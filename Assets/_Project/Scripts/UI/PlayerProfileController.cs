@@ -16,6 +16,12 @@ namespace FMLite.UI
     {
         private const string SquadScene = "SquadScene";
 
+        // 개별 스탯 티어 컷오프 (스탯 스케일 1-20)
+        private const int StatElite = 17;
+        private const int StatStrong = 13;
+        private const int StatAverage = 9;
+        private const int StatWeak = 5;
+
         [Header("헤더")]
         [SerializeField] private TMP_Text nameText;
         [SerializeField] private TMP_Text positionAgeText;
@@ -100,10 +106,10 @@ namespace FMLite.UI
 
         private static string StatTier(int value)
         {
-            if (value >= 17) return "Elite";
-            if (value >= 13) return "Strong";
-            if (value >= 9)  return "Average";
-            if (value >= 5)  return "Weak";
+            if (value >= StatElite)   return "Elite";
+            if (value >= StatStrong)  return "Strong";
+            if (value >= StatAverage) return "Average";
+            if (value >= StatWeak)    return "Weak";
             return "Poor";
         }
 
