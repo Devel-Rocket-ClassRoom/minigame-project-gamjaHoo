@@ -19,7 +19,7 @@ namespace FMLite.UI
         private const string SquadScene = "SquadScene";
         private const string YouthScene = "YouthScene";
         private const string TransferScene = "TransferScene";
-        private const string ScheduleScene = "FixtureScene";
+        private const string ScheduleScene = "ScheduleScene";
         private const string FacilityScene = "FacilityScene";
 
         [Header("요약 정보")]
