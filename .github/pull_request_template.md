@@ -2,6 +2,8 @@
 - 
 
 ## 관련 이슈
+<!-- 여러 이슈 닫을 때 각 항목 앞에 키워드 필수: "Closes #1, closes #2, closes #3"
+     ("Closes #1, #2, #3" 처럼 콤마만 쓰면 GitHub 가 첫 항목만 close — github-workflow.md §2) -->
 Closes #
 
 ## 명세 참조
@@ -19,3 +21,10 @@ Closes #
 
 ## 스크린샷 / GIF
 <!-- UI 변경 시 첨부 -->
+
+---
+**메타데이터 체크리스트** (PR 생성 후 확인 — github-workflow.md §2)
+- [ ] Area 라벨 추가 (이슈와 동일하게 1+)
+- [ ] Milestone 설정 (V0.1 / V1.0 / V1.x)
+- [ ] Assignee 설정 (`@me`)
+- [ ] Projects 보드 #50 (FM-Lite) 추가 — `gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <PR url>` 별도 호출 (자동 안 됨)
