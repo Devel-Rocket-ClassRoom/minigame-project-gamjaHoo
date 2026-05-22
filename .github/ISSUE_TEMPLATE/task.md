@@ -2,7 +2,6 @@
 name: Task
 about: 잡일 / 설정 / 리팩터링 / 조사·스파이크
 title: "[영역] "
-labels: ["type:task"]
 assignees: []
 ---
 
