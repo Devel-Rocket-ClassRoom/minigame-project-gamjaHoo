@@ -2,11 +2,14 @@
 // 현재 날짜 / 다음 경기 / Continue + 사이드 메뉴.
 // Continue → GameLoop.ContinueUntilStop → 다음 정지 이벤트까지 진행.
 // DayAdvancedEvent 구독으로 날짜 실시간 갱신.
+// Issue #165: 저장 슬롯 리스트 + 메인 메뉴 복귀 버튼 추가
+// (Save→MainMenu→LoadGame V0.1 테스트 흐름 활성화).
 
 using System.Linq;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
+using FMLite.Persistence;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -22,6 +25,7 @@ namespace FMLite.UI
         private const string ScheduleScene = "ScheduleScene";
         private const string FacilityScene = "FacilityScene";
         private const string StandingsScene = "StandingsScene";
+        private const string MainMenuScene = "MainMenuScene";
 
         [Header("요약 정보")]
         [SerializeField]
@@ -36,6 +40,19 @@ namespace FMLite.UI
         [Header("Continue")]
         [SerializeField]
         private Button continueButton;
+
+        [Header("저장 패널")]
+        [SerializeField]
+        private GameObject savePanel;
+
+        [SerializeField]
+        private Transform saveSlotListParent;
+
+        [SerializeField]
+        private GameObject saveSlotItemPrefab;
+
+        [SerializeField]
+        private TMP_Text noSaveSlotsText;
 
         [Header("데이터")]
         [SerializeField]
@@ -55,6 +72,8 @@ namespace FMLite.UI
 
         private void Start()
         {
+            if (savePanel != null)
+                savePanel.SetActive(false);
             RefreshInfo();
         }
 
@@ -78,6 +97,76 @@ namespace FMLite.UI
         public void OnStandingsClicked() => SceneManager.LoadScene(StandingsScene);
 
         public void OnFacilityClicked() => SceneManager.LoadScene(FacilityScene);
+
+        public void OnMainMenuClicked() => SceneManager.LoadScene(MainMenuScene);
+
+        public void OnSaveClicked()
+        {
+            if (savePanel == null)
+                return;
+            savePanel.SetActive(true);
+            PopulateSaveSlotList();
+        }
+
+        public void OnCloseSavePanelClicked()
+        {
+            if (savePanel != null)
+                savePanel.SetActive(false);
+        }
+
+        public void OnNewSlotClicked()
+        {
+            SaveToSlot(GenerateAutoSlotName());
+        }
+
+        private void PopulateSaveSlotList()
+        {
+            if (saveSlotListParent == null || saveSlotItemPrefab == null)
+                return;
+
+            foreach (Transform child in saveSlotListParent)
+                Destroy(child.gameObject);
+
+            var slots = SaveSystem.ListSlots();
+
+            if (noSaveSlotsText != null)
+                noSaveSlotsText.gameObject.SetActive(slots.Count == 0);
+
+            foreach (var meta in slots)
+            {
+                var item = Instantiate(saveSlotItemPrefab, saveSlotListParent);
+                item.GetComponent<SaveSlotItem>().Setup(meta, SaveToSlot);
+            }
+        }
+
+        private void SaveToSlot(string slotName)
+        {
+            var state = GameManager.Instance?.State;
+            if (state == null)
+                return;
+
+            SaveSystem.Save(state, slotName);
+            GameLog.Log(LogCategory.System, $"슬롯 저장: {slotName}");
+
+            if (savePanel != null)
+                savePanel.SetActive(false);
+        }
+
+        private string GenerateAutoSlotName()
+        {
+            var state = GameManager.Instance?.State;
+            var clubName = state?.GetClub(state.userClubId)?.name ?? "user";
+            var safeClubName = SanitizeSlotName(clubName);
+            var timestamp = System.DateTime.Now.ToString("yyMMdd_HHmm");
+            return $"slot_{safeClubName}_{timestamp}";
+        }
+
+        private static string SanitizeSlotName(string name)
+        {
+            foreach (var c in System.IO.Path.GetInvalidFileNameChars())
+                name = name.Replace(c, '_');
+            return name.Replace(' ', '_');
+        }
 
         private void OnDayAdvanced(DayAdvancedEvent e)
         {
