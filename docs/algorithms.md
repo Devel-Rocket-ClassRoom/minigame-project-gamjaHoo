@@ -2121,3 +2121,1316 @@ public float tierWeakRatio     = 0.75f;
 | 2026-05-19 | #2 4단계 / Balancing / V1.0 Notes / T3 | **`strengthExponent` (k) 도입** (#113). 단순 선형 ratio 가 CA 1.89배 차이를 골 1.43배 차이로만 반영 → 강팀 원정 51% 라 디자인 의도 (압도적 강팀이 자주 이김) 부족. `pow(s, k)` 비선형화로 강팀 우월함 증폭 (k=1.5 기본 → 강팀 홈 72% / 원정 59%). V0.1 임시 변통 — V1.0+ 매치 엔진 재작성 시 finishing 등 개별 stats 가 결정력 직접 표현하므로 k=1 회귀 또는 폐기. T3 임계치 재조정 (홈 60→65, 원정 45→50). |
 | 2026-05-20 | Priority Order + #4 | Youth Pool Generation `## 4` 섹션 신규 작성 (Task 10 Sub-A, #123). PA 진실값 / CA derived 역방향 모델. 스타 픽 메커닉 (5% PA bonus). 시드 = `currentDate.Ticks` + `userActionHash` 결합 (외부 마이닝 + 직플 영상 공유 둘 다 방어). V0.1 시설 통합 등급 + V1.0+ 분리 명세. `design-decisions.md` #35/#36 와 연동. |
 | 2026-05-20 | Priority Order + #3 + #3.1 | Market Value + Transfer Flow `## 3` 섹션 신규 작성 (Stage 11 Sub-A, #130). Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury). 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도 "비교도 안 되게"). 이적 흐름 — 이적시장 (검색·오퍼·협상) 상시 / 이적시장 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31. Accepted 대기 → 활성화 기간 시 자동 체결. AI 응답 ±10% noise. V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. `design-decisions.md` #37 연동. V1.0+ Migration Notes 30+ 항목. |
+
+---
+
+# Part 2: V1.0 Updates
+
+> V0.1 마무리 후 V1.0 계획 (`docs/v1.0-plan.md` + `design-decisions.md` #39~#52) 결정사항 반영. Part 1 의 V1.0+ Migration Notes 를 본격 구체화.
+>
+> **구조 원칙:**
+> - 기존 V0.1 알고리즘 (Part 1 #1~#6) 은 보존 — V0.1 빌드 기록.
+> - Part 2 의 `## V1.0-N` 은 **V1.0 시점의 최신 명세** — V0.1 명세를 대체.
+> - V1.0 신규 알고리즘 (CpuTransferAi / MoraleSystem / TacticImpact / SaveMigration / SeasonAward) 은 별도 섹션.
+>
+> **선행:** `docs/v1.0-plan.md` §3 영역별 상세 명세 / `design-decisions.md` #39~#52.
+
+---
+
+## V1.0-1. Player Generation V1.0
+
+> 갱신: Part 1 #1 → V1.0 변경분. **변경 항목만** 기술 (나머지 V0.1 명세 그대로).
+
+### Inputs 변경
+
+추가:
+| Param | Type | Note |
+| --- | --- | --- |
+| `forceHiddenAttrs` | `HiddenAttributes?` | 디버그 / Save Migration 용 강제 주입. null = 자동 생성. |
+
+### Logic 변경
+
+#### 1단계: CA 결정 (1-100 stats 스케일 대응)
+- V0.1 식 그대로 (CA 1-200 유지) — 변경 없음.
+
+#### 3단계: 스탯 분배 (스케일 1-100 — `#39`)
+- `baseStatMean` 의 1-20 기준 외부화 → 1-100 기준 재산정:
+  - `balance.statMeanAtCAFloor` = 5 → **25** (CA 30 시)
+  - `balance.statMeanAtCACeil` = 17 → **85** (CA 200 시)
+  - `balance.statStdDev` = 2 → **10** (1-20 의 5배)
+  - `balance.statEmphasisBonus` = 2 → **10**
+  - `balance.statEmphasisPenalty` = 1 → **5**
+  - `balance.gkSecondaryStatPenalty` = 2 → **10**
+  - `balance.gkOutfieldStatPenalty` = 8 → **40**
+  - `ClampStat` 1-20 → **1-100**
+- 카테고리 **49 필드** (`#39` Stats 명세):
+  - Technical 14 / Mental 14 / Physical 8 / Goalkeeping 13.
+  - 신규 7 필드 (Marking / Technique / Long Throws / Bravery / Flair / First Touch GK / Passing GK / Punching Tendency) 분포: 일반 stat 와 동일 처리.
+
+#### 4단계: 트레잇 추첨 (Part 1 그대로)
+- 단 V1.0 카탈로그 ~20 trait (V0.1 6 → +14, `#41`).
+- `TraitSO.effects: List<TraitEffect>` 본격 활용 — generation 단계는 라벨만 부여 / 효과는 매치 / 성장 / 부상 시스템에서 분기.
+
+#### 5단계: 인적사항 — Hidden Attributes 추가 (신규)
+
+```
+foreach hiddenAttr in [loyalty, ambition, professionalism, pressureHandling,
+                       temperament, controversy, injuryProneness, consistency, versatility]:
+    base = balance.hiddenAttrMean (50)
+    noise = rng.NextNormal(0, balance.hiddenAttrStdDev (15))
+    player.hiddenAttrs[attr] = Clamp(round(base + noise), 1, 100)
+
+# 트레잇 가산점 — 일부 trait 가 hidden 영향
+if hasTrait(BigMatchPlayer):
+    player.hiddenAttrs.pressureHandling += 20
+if hasTrait(InjuryProne):
+    player.hiddenAttrs.injuryProneness += 30
+if hasTrait(MentalGiant):
+    player.hiddenAttrs.professionalism += 15
+# 등 (TraitEffect.targetKey="hidden:*" 분기로 데이터 처리)
+```
+
+### Balancing Parameters (신규)
+
+```
+[V1.0 신규 외부화]
+hiddenAttrMean = 50           # 정규분포 평균
+hiddenAttrStdDev = 15         # 표준편차
+```
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **Personality 도입** | Hidden 9 필드만 | FM 표준 ~30 personality (Driven / Model Professional 등) — Hidden 조합 derived |
+| **Stat 카테고리 위치별 가중치** | PositionSO.emphasizes* flag 만 | stat 별 가중치 표 (ST = finishing × 1.5, CB = tackling × 1.5 등) |
+| **트레잇 학습 / 손실** | 생성 시점만 | Mentoring 으로 변화 |
+| **노장 페널티** | 미적용 (V0.1 그대로) | caPeakAge 이후 페널티 곡선 |
+
+---
+
+## V1.0-2. Match Simulation V1.0 (분 단위 이벤트 시퀀스)
+
+> 갱신: Part 1 #2 → V1.0 전면 재작성. **인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지**. 내부 구조 교체.
+
+### Purpose 변경
+
+- V0.1 "결과 우선 모델" 폐기. V1.0 "분 단위 이벤트 시퀀스" (`design-decisions.md` #34 / #44).
+- 호출 시점 동일 (유저 매치 / `BackgroundSimulator`).
+
+### Outputs 변경
+
+`PlayerMatchStat` 확장:
+```csharp
+public class PlayerMatchStat {
+    // V0.1 기존 (goals / minutesPlayed)
+    public int   playerId;
+    public int   minutesPlayed;      // V1.0: 교체 / 퇴장 반영 (가변)
+    public int   goals;
+    public int   assists;            // V1.0: 본격 채움
+    public float rating;             // V1.0: 평점 시스템
+    public int   yellowCards;        // V1.0
+    public int   redCards;           // V1.0
+    
+    // V1.0 신규 필드
+    public int   shots;              // 총 슈팅
+    public int   shotsOnTarget;      // 유효 슈팅
+    public int   passes;
+    public int   passesCompleted;
+    public int   tackles;
+    public int   interceptions;
+    public int   keyPasses;
+    public int   foulsCommitted;
+    public int   foulsSuffered;
+}
+```
+
+`Match.events` 본격 채움 (유저 매치 한정 — `#44` Q5):
+```csharp
+public class MatchEvent {
+    public int minute;
+    public MatchEventType type;       // Shot / Goal / Card / Injury / Sub / KeyPass / Save / FullTime / HalfTime
+    public int actorPlayerId;
+    public int targetPlayerId;        // 어시스트 / 파울 대상 (0 = 없음)
+    public string textKey;            // String Table key (#52)
+    public Dictionary<string, string> textArgs;
+}
+```
+
+### Logic V1.0
+
+```
+1. 시드 고정 (V0.1 동일 — match.id ^ state.randomSeed)
+2. starting11 결정 — Tactic (#45) 산출물 사용 (Role + Duty + Mentality)
+   - Tactic.slots 의 assignedPlayerId 사용 / 0 이면 자동 라인업 (호환 포지션 + top CA + 폼/사기 가산)
+   - 부상자 / suspendedMatches > 0 제외
+3. 경기 상태 초기화 (minute=0, score=0:0, 11명 출전, fatigue 시작값)
+4. 분 단위 step (1~90):
+   a. 매 분 (또는 Poisson 시간 간격) 이벤트 종류 추첨
+   b. 이벤트 주체 선수 추첨 (Role 가중치 + Stat + form + morale)
+   c. 이벤트 결과 분기 (Shot → Goal/Save/Miss/Block)
+   d. 누적 상태 갱신 (score / cards / injuries / subs)
+   e. SubstitutionAI 판단 (fatigue 70+, injury, 스코어 상황)
+   f. 텍스트 이벤트 생성 (유저 매치 한정, 핵심 이벤트만 ~15-20)
+5. 최종 누적 = MatchResult
+```
+
+### 이벤트 종류 + 발생 공식
+
+| 이벤트 | 발생 트리거 | 결과 분기 |
+| --- | --- | --- |
+| **Shot** | 매 분 확률 = `attackStrength / 200 × mentalityModifier` (Attacking 1.5×) | Goal / Save / Miss / Block — `finishing × composure / 10000` |
+| **Save** | Shot 결과 분기 | GK `reflexes × handling / 10000` ≥ rng → Save |
+| **Foul** | 매 분 확률 = `defenderAggression / 500` | Yellow (50%) / Red (3%) / 그냥 (47%) |
+| **Injury** | 매 분 확률 = `0.0003 × player.injuryProneness / 50` | InjuryInfo 생성 + 즉시 교체 시도 |
+| **KeyPass** | 매 분 확률 = `attackerVision × passing / 50000` | 다음 Shot 의 어시스트 후보로 등록 |
+| **Cross** | 매 분 확률 = `LW/RW crossing × technique / 50000` | Shot 시도 (헤딩 가중) |
+| **Substitution** | SubstitutionAI 판단 | 벤치 → 출전 (Tactic Role 호환 선수) |
+| **Pass / Tackle / Interception** | 누적 통계용 (텍스트 X) | 카운트만 |
+
+**stat 직접 참조 (`#44`):**
+- Shot 결과 = `finishing × composure / 100` (양 stat 1-100 → 결과 0-100, 그대로 확률 %)
+- Save = `reflexes × handling / 100`
+- Foul = `aggression`
+- 골 결정자 가중 = `finishing × offTheBall`
+- Cross 정확도 = `crossing × technique / 100`
+
+### 외부 영향 (form / morale / fatigue)
+
+매치 strength 곱셈 보정:
+```
+effectiveCA = CA × (1 + (form - 50) / 200)
+                × (1 + (morale - 50) / 200)
+                × max(0.5, 1 - fatigue / 200)
+```
+- 폼 50, 사기 50, 피로 0 = 변동 없음.
+- 폼 100 + 사기 100 + 피로 0 = CA × 1.5 (이론치).
+
+### 부상 / 카드 / 출장 정지
+
+**부상:**
+- `InjuryTypeSO` 카탈로그 ~15 종 (Sprained Ankle / Muscle Strain / Hamstring / Knee Ligament 등).
+- 부상 발생 시 `InjuryInfo` 채우기 + `PlayerInjuredEvent` 발행.
+- 회복 일수 = `InjuryTypeSO.recoveryDays / (1 + medicalLevel × 0.05)` (시설 효과).
+
+**카드:**
+- 옐로 5장 → 1경기 정지 (EPL 룰). 10장 → 2경기. 15장 → 3경기.
+- 레드 → 1-3경기 정지 (사유별).
+- `Player.state.suspendedMatches: int` 신규.
+- 스타팅11 선정 시 `injury` / `suspendedMatches > 0` 제외.
+
+### 평점 시스템
+
+매 분 이벤트 가산:
+- 골 +1.0 / 어시스트 +0.5 / 키패스 +0.1 / 인터셉트 +0.1 / 옐로 -0.3 / 레드 -1.5 / 자책 -1.0
+- 기본 6.5 시작, 매치 종료 시 Round1.
+- 골키퍼: 세이브당 +0.2 / 무실점 +0.5 / 실점당 -0.3.
+- 팀 승리 +0.2 / 패배 -0.2 전 선수 가산.
+
+### 비활성 구단 — SimulateLite 경량 경로
+
+`BackgroundSimulator.SimulateDay` 가 비활성 구단 매치는 `SimulateLite` 사용:
+- 분 단위 step X. V0.1 단순 Poisson + 라인 가중 득점자 (Part 1 #2 V0.1 로직 재활용).
+- `Match.events` 비움.
+- `playerStats` = goals + minutesPlayed=90 만.
+- 옵션 `MatchPostProcessor.Process(..., publishEvent: false)` — UI 갱신 비용 ↓.
+
+### Balancing Parameters (V1.0 신규)
+
+```
+[매치 엔진 V1.0]
+mentalityModifiers = [0.6, 0.75, 0.9, 1.0, 1.15, 1.3, 1.5]   # 7단계 Mentality (Shot 빈도 곱셈)
+formCoefficient = 200                                          # effectiveCA = CA × (1 + (form-50)/200)
+moraleCoefficient = 200
+fatigueCoefficient = 200
+injuryBaseRate = 0.0003                                        # 분당 발생 확률 (× injuryProneness / 50)
+foulYellowRatio = 0.50                                         # Foul 시 옐로 비율
+foulRedRatio = 0.03
+yellowSuspensionThreshold = 5                                  # 누적 옐로 정지 임계
+redSuspensionMatchesMin = 1
+redSuspensionMatchesMax = 3
+ratingGoalBonus = 1.0
+ratingAssistBonus = 0.5
+ratingYellowPenalty = -0.3
+ratingRedPenalty = -1.5
+
+[V0.1 폐기]
+strengthExponent → 폐기 (#33 임시 변통, 매치 엔진 stat 직접 참조로 비선형 보정 불필요)
+```
+
+### Test Scenarios (V1.0)
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | 결정성 | 같은 시드 → 같은 시퀀스 + 같은 MatchResult |
+| T2 | 부상 발생 | injuryProneness=100 선수 100매치 → 평균 ~0.5 부상 (분당 0.06% × 90 = 5.4% / 매치) |
+| T3 | 카드 시스템 | 옐로 5장 누적 선수 → suspendedMatches=1 (다음 매치 출전 X) |
+| T4 | SimulateLite | 비활성 매치 → events 비움, playerStats 22명 minutes=90 |
+| T5 | 평점 시스템 | 골 2 + 어시스트 1 + 옐로 1 선수 → rating ≈ 6.5 + 2.0 + 0.5 - 0.3 = 8.7 |
+| T6 | Mentality 영향 | VeryDefensive vs VeryAttacking 같은 팀 → 골수 차이 (defensive 평균 ↓~30%) |
+| T7 | form / morale / fatigue 보정 | form 100 + morale 100 vs form 0 + morale 0 → effectiveCA 차이 ~×2 |
+| T8 | Role 가중치 | Poacher vs Target Forward 같은 stat → 슈팅 비율 차이 (Poacher ~2배) |
+| T9 | 텍스트 이벤트 분량 | 유저 매치 events 15-20 / 비활성 매치 events 0 |
+| T10 | 인터페이스 호환 | `Simulate(match, state, balance) → MatchResult` 시그니처 동일 (호출자 변경 X) |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **Team Instructions** | 미적용 (Mentality 만) | Tempo / Passing / Pressing / Line / Width 5 옵션 이벤트 가중 입력 |
+| **유저 코칭 인터럽트** | 미구현 | 전반 종료 / 중요 이벤트 시 외침 / 교체 옵션. UI 의존 |
+| **xG / heatmap** | 미적용 | 매치 통계 풍부화 |
+| **컵 연장전 / 승부차기** | Q2 미도입 (V2.0+) | match.type 분기 + extraTimeLambda |
+| **날씨 / 잔디** | 미적용 | strength 보정 추가 |
+
+---
+
+## V1.0-3. Market Value V1.0
+
+> 갱신: Part 1 #3 → V1.0 변경분. **6 요소 곱셈 공식 유지**, hidden / form / morale 보정 추가.
+
+### Logic 변경 (8 요소로 확장)
+
+```
+caFactor       = pow(CA / 100.0, balance.marketValueCaExponent)              # V0.1 동일 (k=4)
+paGapBonus     = max(0, PA - CA) * balance.marketValuePaCoeff                # V0.1 동일
+ageFactor      = AgeCurve(age, balance)                                       # V0.1 동일
+contractFactor = ContractCurve(remainingYears, balance)                       # V0.1 동일
+positionFactor = PositionFactor(line, balance)                                 # V0.1 동일
+injuryFactor   = (player.state.injury.injuryTypeId == -1) ? 1.0 : balance.marketValueInjuryFactor
+
+# V1.0 신규 보정
+formFactor     = 1.0 + (player.state.form - 50) / 100.0 * balance.marketValueFormCoeff      # ±50% (계수 1.0 시)
+moraleFactor   = 1.0 + (player.state.happiness - 50) / 100.0 * balance.marketValueMoraleCoeff   # ±30%
+hiddenFactor   = 1.0 + (player.hiddenAttrs.loyalty - 50) / 100.0 * balance.marketValueLoyaltyCoeff
+                # loyalty 높을수록 매도 어려움 → 시장가 ↑
+
+rawValue   = (balance.marketValueBase * caFactor + paGapBonus)
+             * ageFactor * contractFactor * positionFactor * injuryFactor
+             * formFactor * moraleFactor * hiddenFactor
+
+marketValue = Round100k(max(0, rawValue))
+```
+
+### Balancing Parameters (V1.0 신규)
+
+```
+marketValueFormCoeff = 0.5      # form 50 = 0 보정, form 100 = +50%, form 0 = -50%
+marketValueMoraleCoeff = 0.3    # happiness 영향 (V1.0 hidden + Promise 와 연동)
+marketValueLoyaltyCoeff = 0.2   # loyalty 영향 (높은 충성도 = 매도 가치 ↑)
+```
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **선수 reputation** | 미반영 | `player.reputation` 신규 필드 — 빅네임 프리미엄 |
+| **club reputation** | 미반영 | 현 소속 클럽 명성 곱셈 보정 |
+| **이번 시즌 통계** | 미반영 | career[last].goals / assists / rating 보정 |
+| **시장 수요** | 미반영 | PositionDemandSystem (V1.x) |
+| **에이전트 수수료** | 미반영 | 별도 외부화 (이적료 5-15%) |
+| **시즌 인플레이션** | 미반영 | 시즌 진행에 따라 시장 인플레 |
+
+---
+
+## V1.0-3.1. Transfer Flow V1.0 (협상 + 임대 + 재계약)
+
+> 갱신: Part 1 #3.1 → V1.0 협상 다중 라운드 + 선수 개인 협상 + 임대 + Release Clause + 상시 재계약.
+
+### Inputs / Outputs 변경
+
+신규 메서드:
+```csharp
+public static class TransferSystem {
+    // V0.1 메서드 그대로
+    
+    // V1.0 신규
+    public static void          RenewContract(int playerId, Contract newContract,
+                                              GameState state, GameBalanceSO balance);
+    public static TransferOffer SubmitLoanOffer(int playerId, int fromClubId, int toClubId,
+                                                LoanTerm loanTerm, GameState state, GameBalanceSO balance);
+    public static TransferOffer SubmitFreeAgentContract(int playerId, int toClubId,
+                                                        Contract proposed, GameState state, GameBalanceSO balance);
+    public static void          RespondToCounterOffer(int offerId, CounterResponse response,
+                                                      GameState state, GameBalanceSO balance);
+}
+```
+
+### Logic V1.0
+
+#### [3-a] AiRespondToOffer (V0.1 2분기 → V1.0 4분기)
+
+```
+rng = new Random(state.randomSeed ^ offer.id ^ state.currentDate.Ticks)
+marketValue = CalculateMarketValue(player, state, balance)
+noise = rng.NextNormal(1.0, balance.aiValueNoiseSigma)
+aiPerceivedValue = marketValue * max(0.5, noise)
+ratio = offer.amount / aiPerceivedValue
+
+if ratio >= 1.30:
+    offer.status = Accepted
+elif ratio >= 1.10:
+    offer.status = CounterOffer                # 신규 — 시장가 ×1.30 역제안 (offer.counterAmount 필드)
+    offer.counterAmount = round(aiPerceivedValue * 1.30)
+    offer.negotiationRound += 1
+elif ratio >= 0.85:
+    offer.status = Rejected
+else:
+    offer.status = Rejected
+    # 조롱 효과 (사기 -3 보너스 별도 처리)
+
+EventBus.Publish(new OfferRespondedEvent { offerId, newStatus })
+```
+
+#### [3-b] CounterOffer 라운드 (신규)
+
+```
+유저 응답 옵션:
+- Accept (counterAmount 수락 → status = Accepted → Negotiating 단계로)
+- Reject (status = Rejected → 종료)
+- ReCounter (새 amount → AiRespondToOffer 재호출, negotiationRound++)
+
+negotiationRound > balance.maxNegotiationRounds (3) → 강제 Rejected
+```
+
+#### [4] Negotiating (선수 개인 협상) — 신규
+
+```
+# AI 구단 Accepted 후 선수 측 평가
+player = state.GetPlayer(offer.playerId)
+estimatedFairWage = EstimateInitialWage(player, balance)
+wageRatio = offer.proposed.weeklyWage / estimatedFairWage
+
+baseAcceptChance = 0.5
+baseAcceptChance += (wageRatio - 1.0) * 0.5         # 주급 ↑ = 가능성 ↑
+baseAcceptChance -= (player.hiddenAttrs.loyalty - 50) / 100 * 0.3   # loyalty ↑ = 거절
+baseAcceptChance += (player.hiddenAttrs.ambition - 50) / 100 * 0.3  # ambition ↑ = 수락
+
+# 출전시간 약속 (PlaytimeAgreement Promise 자동 생성 옵션)
+if offer.includesPlaytimeAgreement:
+    baseAcceptChance += 0.2
+
+if rng.NextDouble() < baseAcceptChance:
+    offer.status = Accepted    # 체결 단계로
+else:
+    offer.status = Rejected    # 협상 결렬
+```
+
+#### [5] CompleteTransfer 변경 (임대 분기)
+
+```
+if offer.isLoan:
+    player.parentClubId = offer.fromClubId            # 원 소속 보존
+    player.currentClubId = offer.toClubId
+    fromClub.seniorSquadIds.Remove(offer.playerId)
+    toClub.seniorSquadIds.Add(offer.playerId)
+    # 임대료 / wage 분담
+    fromClub.finance.money += offer.loanFee
+    toClub.finance.money -= offer.loanFee
+    # loanEndDate 기록 (DailyProcessor 가 도래 시 자동 복귀)
+    player.loanEndDate = offer.loanEndDate
+else:
+    # V0.1 와 동일
+    player.currentClubId = toClub.id
+    player.parentClubId = -1
+```
+
+#### [DailyProcessor] 임대 복귀 처리 (신규)
+
+```
+foreach player in state.allPlayers where player.parentClubId != -1:
+    if state.currentDate >= player.loanEndDate:
+        # 원 구단 복귀
+        currentClub = state.GetClub(player.currentClubId)
+        parentClub = state.GetClub(player.parentClubId)
+        currentClub.seniorSquadIds.Remove(player.id)
+        parentClub.seniorSquadIds.Add(player.id)
+        player.currentClubId = player.parentClubId
+        player.parentClubId = -1
+        EventBus.Publish(new LoanReturnedEvent { playerId, fromClubId, parentClubId })
+```
+
+#### Release Clause 활성화
+
+```
+# SubmitOffer 단계에 분기 추가
+if offer.amount >= player.contract.releaseClause:
+    # 판매 구단 응답 강제 Accepted (단 선수 협상은 그대로 진행)
+    offer.status = Accepted
+    offer.releaseClauseActivated = true
+```
+
+#### RenewContract (상시 재계약)
+
+```
+public static void RenewContract(playerId, newContract, state, balance):
+    player = state.GetPlayer(playerId)
+    rng = new Random(state.randomSeed ^ playerId ^ state.currentDate.Ticks)
+    
+    estimatedFairWage = EstimateInitialWage(player, balance)
+    wageRatio = newContract.weeklyWage / estimatedFairWage
+    
+    baseAcceptChance = 0.4
+    baseAcceptChance += (wageRatio - 1.0) * 0.6
+    baseAcceptChance += (player.hiddenAttrs.loyalty - 50) / 100 * 0.3   # loyalty ↑ = 수락
+    
+    # 잔여 6개월 이내 가산점
+    daysRemaining = (player.contract.endDate - state.currentDate).Days
+    if daysRemaining <= 180:
+        baseAcceptChance += 0.15
+    
+    if rng.NextDouble() < baseAcceptChance:
+        player.contract = newContract
+        # 사기 회복
+        player.state.morale = min(100, player.state.morale + balance.contractRenewalMoraleBoost)
+        player.state.happiness = min(100, player.state.happiness + balance.contractRenewalHappinessBoost)
+        EventBus.Publish(new ContractRenewedEvent { playerId })
+    else:
+        EventBus.Publish(new ContractRenewalRejectedEvent { playerId })
+```
+
+### Balancing Parameters (V1.0 신규)
+
+```
+maxNegotiationRounds = 3
+loanFeeBaseFactor = 0.1            # 임대료 = marketValue × 0.1
+loanWageShareDefault = 0.5         # 임대 받는 측 wage 분담 비율
+contractRenewalMoraleBoost = 15
+contractRenewalHappinessBoost = 25
+```
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **에이전트 / 사이닝 보너스 / 충성 보너스** | 미적용 (Contract 필드 정의만) | 협상 단계에 본격 활용 |
+| **다중 오퍼 경쟁** | 같은 선수 여러 오퍼 가능하나 경쟁 메커닉 X | Interest System — 다중 오퍼 입찰 경쟁 |
+| **트랜스퍼 리스트 자동 거래** | transferListed 활성화 (시장가 ×0.7) | 자동 매각 흐름 정교화 |
+
+---
+
+## V1.0-4. Youth Pool Generation V1.0
+
+> 갱신: Part 1 #4 → V1.0 변경 (CA 캡 / 시설 분리 / 풀 전체 영입 / 라운드별 가중치 / AI 영입 / Mentoring).
+
+### Inputs 변경
+
+```csharp
+public static YouthIntake GenerateIntake(
+    Club club, GameState state, GameBalanceSO balance,
+    GameDatabase db, LeagueConfigSO leagueConfig);
+```
+- `club.facilities.youthCoachLevel` (신규 분리) → 평균 PA + 트레잇 가중치.
+- `club.facilities.youthRecruitmentLevel` (신규 분리) → 풀 사이즈 + 인스펙션 빈도.
+- `club.facilities.youthFacilityLevel` (신규 분리) → 유스 성장률 (generation 외 영향).
+
+### Logic 변경
+
+#### 1단계: 시드 (V0.1 동일)
+
+```
+rng = new Random(
+    state.randomSeed
+    ^ unchecked((int)state.currentDate.Ticks)
+    ^ userActionHash
+    ^ club.id ^ intake.id ^ intake.rerollsUsed
+)
+```
+
+#### 2단계: 풀 사이즈 (시설 분리)
+
+- V0.1: `FacilityLevelSO(Youth).youthPoolSize`
+- V1.0: `FacilityLevelSO(YouthRecruitment, club.facilities.youthRecruitmentLevel).youthPoolSize`
+
+#### 3단계: 후보 N명 생성 — CA 캡 + 시설 분리
+
+```
+foreach i in 1..poolSize:
+    # PA 추첨 (V0.1 동일 — 스타 픽 + PA 진실값)
+    isStarPick = rng.NextDouble() < balance.youthStarPickProbability (0.05)
+    if isStarPick:
+        meanPA = facilityYouthCoach.youthAvgPA + balance.youthStarPaBonus (50)
+    else:
+        meanPA = facilityYouthCoach.youthAvgPA
+    pa = Clamp(rng.NextNormal(meanPA, balance.youthPaStdDev), 60, balance.maxPA (180))
+    
+    # CA 추첨 — V1.0 캡 적용
+    rawCA = pa - max(0, rng.NextNormal(balance.youthCaGapMean (60), balance.youthPaGapStdDev (25)))
+    ca = Clamp(round(rawCA), balance.youthMinCa (30), balance.youthMaxCa (95))   # V1.0 캡 ~95
+    
+    # 나머지 PlayerGenerator 호출 (강제 ca / pa 주입)
+    candidate = PlayerGenerator.Generate(
+        rng, club.reputation, position, age, nationality, 
+        clubId=-1, youthClubId=club.id, origin=PlayerOrigin.YouthIntake,
+        currentDate=state.currentDate, balance=balance, db=db,
+        forceCa=ca, forcePa=pa)
+    
+    # V1.0 신규: youthCoachLevel 가산점 (고급 트레잇)
+    if facilityYouthCoach.level >= 7:
+        candidate.traitIds.AddRange(추가 트레잇 추첨)
+    
+    state.AddPlayer(candidate)
+    intake.candidatePlayerIds.Add(candidate.id)
+```
+
+#### 포지션 추첨 — 라운드별 가중치
+
+```
+# V0.1: 균등
+# V1.0: 라운드별 가중치 변동
+weights = SamplePositionWeights(rng, balance.youthPositionWeightVolatility (0.5))
+# 어떤 인스펙션은 GK 0명 / AT 다수 가능
+position = WeightedSample(positions, weights)
+```
+
+#### SignPlayers (풀 전체 영입 + 인원 제한)
+
+```
+public static void SignPlayers(intake, playerIds, club, state, balance):
+    maxSign = poolSize × facilityYouthRecruitment.signRatio    # Lv1=0.33, Lv10=1.0
+    if playerIds.Count > maxSign:
+        throw new ArgumentException("Sign count exceeds facility limit")
+    
+    foreach pid in playerIds:
+        player = state.GetPlayer(pid)
+        player.currentClubId = club.id
+        club.youthSquadIds.Add(pid)
+        intake.signedPlayerIds.Add(pid)
+    
+    # V0.1: 미영입 즉시 제거
+    # V1.0: 일부 AI 다른 구단 영입
+    rejectedIds = intake.candidatePlayerIds.Except(playerIds).ToList()
+    foreach rid in rejectedIds:
+        if rng.NextDouble() < balance.youthRejectedToOtherClubRatio (0.3):
+            # 다른 구단 영입
+            otherClub = SampleRandomClub(state, exclude=club.id)
+            player = state.GetPlayer(rid)
+            player.currentClubId = otherClub.id
+            otherClub.youthSquadIds.Add(rid)
+            intake.rejectedPlayerIds.Add(rid)   # 보존
+            EventBus.Publish(new YouthSignedByOtherEvent { playerId, otherClubId })
+        else:
+            # 기존 V0.1 처리 — 제거 + ID 보존
+            state.RemovePlayer(rid)
+            intake.rejectedPlayerIds.Add(rid)
+    
+    intake.candidatePlayerIds.Clear()
+    EventBus.Publish(new YouthSignedEvent { intakeId, signedPlayerIds })
+```
+
+#### 1군 콜업 자동 트리거 (신규)
+
+```
+# DailyProcessor 가 매주 호출
+public static void CheckPromotionCandidates(state, balance):
+    foreach club in state.allClubs:
+        foreach pid in club.youthSquadIds:
+            player = state.GetPlayer(pid)
+            age = GetAge(player, state.currentDate)
+            
+            if age >= balance.youthPromotionAge (18):
+                clubAvgCa = club.seniorSquadIds.Average(p => p.CA)
+                if player.currentAbility >= clubAvgCa * balance.youthPromotionCaRatio (0.70):
+                    if not pendingPromotions.Contains(pid):
+                        EventBus.Publish(new YouthPromotionSuggestedEvent { playerId, clubId })
+                        # 유저 인박스 알림 — 승인 / 거절 대기
+```
+
+### Mentoring System (신규)
+
+```
+# 월 1회 (DailyProcessor 가 매월 1일 호출)
+public static void RunMentoring(state, balance):
+    foreach club in state.allClubs:
+        foreach group in club.season.mentoringGroups:
+            mentor = state.GetPlayer(group.mentorPlayerId)
+            foreach menteeId in group.menteePlayerIds:
+                mentee = state.GetPlayer(menteeId)
+                
+                # Hidden Attributes 수렴 (느린 속도)
+                foreach attr in [professionalism, determination, ambition, loyalty]:
+                    diff = mentor.hiddenAttrs[attr] - mentee.hiddenAttrs[attr]
+                    delta = sign(diff) * min(abs(diff), balance.mentoringRateModifier (5))
+                    mentee.hiddenAttrs[attr] = Clamp(mentee.hiddenAttrs[attr] + delta, 1, 100)
+```
+
+### Balancing Parameters (V1.0 신규)
+
+```
+youthMinCa = 30                           # CA 캡 최소
+youthMaxCa = 95                           # CA 캡 최대 (사용자 피드백)
+youthCaGapMean = 60                       # PA - CA 평균 갭
+youthPositionWeightVolatility = 0.5       # 0=균등 / 1=극단
+youthRejectedToOtherClubRatio = 0.3       # 미영입 AI 영입 확률
+youthPromotionAge = 18
+youthPromotionCaRatio = 0.70
+mentoringRateModifier = 5                 # 월 변동폭 최대
+facilitySignRatio = [0.33, 0.4, 0.5, 0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 1.0]   # Lv1~10
+```
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **AI 클럽 인스펙션** | V0.1 그대로 — 유저만 | 모든 AI 클럽 인스펙션 + 영입 |
+| **추가 스카우트 비용 차감** | 미적용 | 시설 비용 + 정보 정확도 ↑ |
+| **계약 기간 차등** | 균등 2~4년 | 시설 / 나이 / PA 차등 |
+| **Mentoring Trait 전수** | Hidden 만 | 일부 trait 도 전수 (Plays One-Twos 같은 학습 가능 trait) |
+
+---
+
+## V1.0-5. CpuTransferAi (신규)
+
+### Purpose
+
+- AI 구단 능동 이적 의사결정. **필요 기반 트리거 5종** (`#47` Q3).
+- 호출 시점: `EventScheduler` 가 매주 (또는 `DailyProcessor` 매일 일부).
+- 단일 책임: 트리거 분석 + 후보 선수 추첨 + `TransferSystem.SubmitOffer` 호출. 협상 / 체결은 별도.
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `state` | `GameState` | 전 클럽 / 선수 / 명단 조회. activeOffers 추가. |
+| `balance` | `GameBalanceSO` | 모든 임계치 외부화. |
+
+### Outputs
+
+void (직접 state 변경 — `state.activeOffers` 에 신규 오퍼 추가).
+
+### Logic
+
+```
+public static void Run(state, balance):
+    rng = new Random(state.randomSeed ^ state.currentDate.Ticks)
+    
+    foreach club in state.allClubs where club.id != state.userClubId:
+        trigger = DetectTrigger(club, state, balance)
+        if trigger == TriggerType.None:
+            continue
+        
+        candidatePos = trigger.position
+        affordableMax = club.finance.money * balance.aiBudgetRatio (0.4)
+        
+        # 자기 명단 ∩ 약점 포지션 ∩ 자금
+        candidates = club.scoutingKnowledge.Values
+            .Where(r => state.GetPlayer(r.playerId).info.primaryPosition == candidatePos)
+            .Where(r => CalculateMarketValue(player, state, balance) <= affordableMax)
+            .Where(r => state.GetPlayer(r.playerId).currentClubId != club.id)
+            .Where(r => state.GetPlayer(r.playerId).currentAbility > club.LineAvgCa(line))
+            .ToList()
+        
+        if candidates.empty:
+            continue
+        
+        # 가장 약점 보강 강한 선수 추첨 (CA 가중)
+        target = WeightedSample(candidates, c => state.GetPlayer(c.playerId).currentAbility)
+        targetPlayer = state.GetPlayer(target.playerId)
+        marketValue = CalculateMarketValue(targetPlayer, state, balance)
+        
+        # 오퍼 amount = marketValue × random(1.20 ~ 1.40)
+        amount = marketValue * rng.NextRange(balance.aiOfferAmountRandomMin (1.20),
+                                              balance.aiOfferAmountRandomMax (1.40))
+        
+        proposedContract = ProposeContract(targetPlayer, club, state, balance)
+        
+        TransferSystem.SubmitOffer(
+            targetPlayer.id, targetPlayer.currentClubId, club.id,
+            round(amount), proposedContract, state, balance)
+
+
+public static TriggerType DetectTrigger(club, state, balance):
+    # 1. 약점 포지션 (최우선)
+    foreach line in [GK, DF, MF, AT]:
+        lineCa = club.LineAvgCa(line)
+        expectedMeanCa = balance.caRepBase + balance.caRepCoeff * club.reputation
+        if lineCa / expectedMeanCa < balance.aiWeaknessRatioThreshold (0.95):
+            return new Trigger { type = WeakLine, line = line, position = WeakestPos(line) }
+    
+    # 2. 부상자 발생
+    foreach pid in club.seniorSquadIds:
+        player = state.GetPlayer(pid)
+        if player.state.injury.injuryTypeId != -1 
+           && player.state.injury.expectedReturn - state.currentDate > balance.aiCoreInjuryWeeksThreshold * 7
+           && player.currentAbility >= ClubTopCaQuantile(club, 0.70):
+            return new Trigger { type = CoreInjury, position = player.info.primaryPosition }
+    
+    # 3. 계약 잔여 6개월
+    foreach pid in club.seniorSquadIds:
+        player = state.GetPlayer(pid)
+        daysRemaining = (player.contract.endDate - state.currentDate).Days
+        if daysRemaining <= 180 && player.currentAbility >= ClubTopCaQuantile(club, 0.70):
+            return new Trigger { type = FaImminent, position = player.info.primaryPosition }
+    
+    # 4. 약속 미이행 위험 (V1.0 Board Promise — TransferIn 종류)
+    foreach promise in club.season.boardPromises:
+        if promise.type == BoardPromiseType.TransferIn
+           && promise.deadline - state.currentDate <= 30
+           && promise.status == Active:
+            return new Trigger { type = PromiseRisk, position = promise.targetPosition }
+    
+    # 5. 자금 여유
+    if club.finance.money > club.reputation * balance.aiSavingsThreshold:
+        return new Trigger { type = SavingsHigh, position = WeakestPos(AllLines) }
+    
+    return new Trigger { type = None }
+```
+
+### Balancing Parameters
+
+```
+aiWeaknessRatioThreshold = 0.95
+aiCoreInjuryWeeksThreshold = 4
+aiSavingsThreshold = 1000          # 명성 1당 임계 (단위: 만원)
+aiOfferAmountRandomMin = 1.20
+aiOfferAmountRandomMax = 1.40
+aiBudgetRatio = 0.4                # 자금 중 영입에 쓸 수 있는 비율
+```
+
+### Edge Cases
+
+- 모든 라인이 명성 ratio ≥ 0.95 → 트리거 1만 통과 X, 나머지 트리거 평가.
+- 명단이 빈 클럽 → 후보 X, 시도 자체 X.
+- 자기 클럽 선수가 다른 클럽 명단에 있어도 자기 영입 시도 X (필터링).
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | 결정성 | 같은 시드 두 게임 100일 → 같은 AI 영입 시도 / 같은 오퍼 |
+| T2 | 약점 라인 트리거 | 강제 약점 (라인 CA × 0.5) → 그 라인 영입 시도 |
+| T3 | 부상 트리거 | 핵심 선수 강제 4주 부상 → 같은 포지션 영입 시도 |
+| T4 | FA 트리거 | 핵심 선수 계약 5개월 → 같은 포지션 영입 |
+| T5 | 자금 여유 | 명성 50 클럽 자금 100k → 트리거 X / 자금 100M → 트리거 O |
+| T6 | 명단 의존 | 명단 빈 클럽 → 시도 X |
+| T7 | 우선순위 | 약점 라인 + 부상 동시 발생 → 약점 라인 트리거 (우선순위 1) |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **AI 협상 응답 의지** | 매도 (Sub-Receive) 만 | 자체 매도 의향 결정 (잉여 선수 transferListed) |
+| **AI 임대 활용** | 미구현 | 자금 X 시 임대 대안 |
+| **AI 클럽별 성향** | 동일 알고리즘 | 명성 / 자금 / 보드 야망 따라 보수적 / 공격적 |
+| **다중 라운드 협상** | CounterOffer 발생 시 AI 측 ReCounter 미구현 (유저만) | AI 도 ReCounter |
+
+---
+
+## V1.0-6. Morale System (신규)
+
+### Purpose
+
+- 사기 / 행복도 변동 트리거 일괄 적용 + Promise 시스템 통합.
+- 호출 시점:
+  - **매일** — `DailyProcessor` 가 `MoraleSystem.Tick(state)` (회복 + Promise 체크)
+  - **매치 후** — `MatchPostProcessor` 가 `MoraleSystem.OnMatchFinished(state, result)` (매치 결과 반영)
+  - **이벤트 후** — `OnTransferCompleted / OnContractRenewed / OnPromiseFulfilled / OnPromiseBroken` 등
+
+### Inputs / Outputs
+
+```csharp
+public static class MoraleSystem {
+    public static void Tick(GameState state, GameBalanceSO balance);
+    public static void OnMatchFinished(GameState state, MatchResult result, GameBalanceSO balance);
+    public static void OnTransferCompleted(GameState state, TransferOffer offer, GameBalanceSO balance);
+    public static void OnContractRenewed(GameState state, int playerId, GameBalanceSO balance);
+    public static void OnPromiseFulfilled(GameState state, Promise promise, GameBalanceSO balance);
+    public static void OnPromiseBroken(GameState state, Promise promise, GameBalanceSO balance);
+    public static void OnInterview(GameState state, int playerId, InterviewType type, GameBalanceSO balance);
+}
+```
+
+### Logic
+
+#### Tick (매일)
+
+```
+public static void Tick(state, balance):
+    foreach player in state.allPlayers where player.currentClubId != -1:
+        # 매일 morale 회복 (50 으로 수렴)
+        target = 50
+        diff = target - player.state.morale
+        delta = sign(diff) * min(abs(diff), balance.moraleDailyRecoveryRate (1))
+        delta *= professionalismFactor(player)        # professionalism 높을수록 ×0.7 (안정)
+        player.state.morale = Clamp(player.state.morale + delta, 0, 100)
+    
+    # 약속 진행 체크 (매주)
+    if state.currentDate.DayOfWeek == DayOfWeek.Monday:
+        PromiseSystem.CheckProgress(state, balance)
+    
+    # 라커룸 분위기 갱신 (월 1회)
+    if state.currentDate.Day == 1:
+        foreach club in state.allClubs:
+            club.season.dressingRoomMood = ComputeMood(club, state)
+```
+
+#### OnMatchFinished (매치 후 사기 변동)
+
+```
+foreach pid in result.homeStarting11 + result.awayStarting11:
+    player = state.GetPlayer(pid)
+    isWinner = ((pid in result.homeStarting11) ? result.homeScore > result.awayScore
+                                                : result.awayScore > result.homeScore)
+    isDraw = result.homeScore == result.awayScore
+    
+    if isWinner:
+        deltaMorale = balance.moraleMatchWinBonus (8)
+    elif isDraw:
+        deltaMorale = 0
+    else:
+        deltaMorale = -balance.moraleMatchLossPenalty (8)
+    
+    # 자기 평점 보정
+    rating = result.playerStats.First(s => s.playerId == pid).rating
+    if rating >= 7.5:
+        deltaMorale += balance.moraleHighRatingBonus (5)
+    
+    # Hidden professionalism 보정
+    deltaMorale = ApplyProfessionalismFactor(deltaMorale, player)
+    
+    player.state.morale = Clamp(player.state.morale + deltaMorale, 0, 100)
+```
+
+#### Promise 시스템 체크 (PromiseSystem.CheckProgress)
+
+```
+foreach promise in state.activePromises where promise.status == Active:
+    switch promise.type:
+        case PlaytimeAgreement:
+            actualRatio = ComputePlaytimeRatio(player, state)  # 시즌 매치 출전 비율
+            targetRatio = promise.targets["minPlayRatio"]
+            if state.currentDate >= promise.deadline:
+                promise.status = actualRatio >= targetRatio ? Fulfilled : Broken
+                if promise.status == Broken:
+                    OnPromiseBroken(state, promise, balance)
+        
+        case TransferIn / Renewal / TransferOut:
+            # 비슷한 패턴 — 마감 도래 시 status 확정
+```
+
+#### OnPromiseBroken (약속 미이행)
+
+```
+player = state.GetPlayer(promise.playerId)
+deltaHappiness = -balance.promiseBreakHappinessPenalty (20)
+deltaHappiness = ApplyHiddenLoyaltyFactor(deltaHappiness, player)  # loyalty 높으면 완화
+player.state.happiness = Clamp(player.state.happiness + deltaHappiness, 0, 100)
+
+if player.state.happiness < balance.transferRequestThreshold (20):
+    EventBus.Publish(new TransferRequestEvent { playerId })   # Q9 자동 트리거 + 유저 승인
+```
+
+#### Hidden Attributes 적용 헬퍼
+
+```
+ApplyProfessionalismFactor(delta, player):
+    factor = 1.0 - (player.hiddenAttrs.professionalism - 50) / 100 * 0.3   # 80 = ×0.91, 20 = ×1.09
+    return delta * factor   # professionalism 높을수록 안정
+
+ApplyHiddenLoyaltyFactor(delta, player):
+    factor = 1.0 - (player.hiddenAttrs.loyalty - 50) / 100 * 0.5   # 80 = ×0.85, 20 = ×1.15
+    return delta * factor   # loyalty 높을수록 충격 완화
+```
+
+### Balancing Parameters
+
+```
+moraleDailyRecoveryRate = 1
+moraleMatchWinBonus = 8
+moraleMatchLossPenalty = 8
+moraleBigMatchMultiplier = 1.5
+moraleHighRatingBonus = 5
+moraleLowRatingPenalty = -3
+moralePromotionWinBonus = 30
+moraleRelegationPenalty = -50
+contractRenewalMoraleBoost = 15
+contractRenewalHappinessBoost = 25
+promiseBreakHappinessPenalty = 20
+promiseFulfilledHappinessBonus = 10
+transferRequestThreshold = 20         # Happiness 임계
+unhappyThreshold = 40                  # 불만 표시
+satisfiedThreshold = 80                # 만족
+```
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | 매치 승리 사기 변동 | 1매치 승리 → starting11 사기 +8 |
+| T2 | 평점 가산점 | 평점 7.5+ 선수 → 사기 +13 (승리 8 + 평점 5) |
+| T3 | Professionalism 보정 | 같은 매치 결과 / professionalism 80 vs 20 → 변동폭 차이 ~20% |
+| T4 | 약속 미이행 | PlaytimeAgreement 마감 도래 + 출전 미달 → Happiness -20 |
+| T5 | Loyalty 완화 | 약속 미이행 / loyalty 80 vs 20 → Happiness 변동 차이 ~30% |
+| T6 | TransferRequest 자동 발행 | Happiness < 20 → TransferRequestEvent 발행 1회 |
+| T7 | 일일 회복 | morale 30 → 50 까지 ~20일 |
+| T8 | 라커룸 분위기 < 30 | 시즌 폼 전체 -5 보정 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **인터뷰 사고** | 미구현 | Happiness 40-59 + controversy 높은 선수 → 미디어 부정 발언 자동 생성 |
+| **면담 멘트 ~20** | 4-6 멘트 | 세분화 + 효과 미리보기 |
+| **그룹 사기 (Cliques)** | 미적용 | 같은 국적 / 연령대 그룹 영향 |
+| **선수 transferListed 자동** | TransferRequest 발행만 | 거절 시 transferListed 자동 등록 |
+
+---
+
+## V1.0-7. Tactic Impact (신규)
+
+### Purpose
+
+- Tactic (Formation + Role + Duty + Mentality) 이 매치 시뮬에 미치는 영향 정량화.
+- 호출 시점: `MatchSimulator.Simulate` 내부 (이벤트 가중치 계산).
+- 단일 책임: Tactic + 선수 stats 입력 → 이벤트 가중치 산출.
+
+### Inputs
+
+| Param | Type | Note |
+| --- | --- | --- |
+| `tactic` | `Tactic` | 11 슬롯 + Mentality + Set Pieces |
+| `playerId` | `int` | 이벤트 주체 |
+| `state` | `GameState` | 선수 stats / Hidden 조회 |
+| `eventType` | `MatchEventType` | Shot / KeyPass / Tackle / 등 |
+| `balance` | `GameBalanceSO` | 외부화 |
+
+### Outputs
+
+`float weight` — 이벤트 발생 가중치 (0~∞, 평균 ~1.0).
+
+### Logic
+
+```
+public static float ComputeEventWeight(tactic, playerId, state, eventType, balance):
+    player = state.GetPlayer(playerId)
+    slot = tactic.slots.First(s => s.assignedPlayerId == playerId)
+    role = db.GetPlayerRole(slot.playerRoleSOId)
+    duty = slot.duty
+    
+    # Role 가중치 (PlayerRoleSO.eventModifiers 에서)
+    roleWeight = role.eventModifiers[eventType]   # 예: Poacher.Shot = 1.5
+    
+    # Duty 보정
+    dutyWeight = ComputeDutyWeight(duty, eventType)   # Attack = 슈팅 ↑, Defend = 슈팅 ↓
+    
+    # Mentality 보정 (팀 전체 곱셈)
+    mentalityWeight = balance.mentalityModifiers[tactic.mentality][eventType]
+    
+    # Stat 직접 참조 (#44)
+    statWeight = ComputeStatWeight(player, eventType)   
+        # Shot: finishing × composure / 10000
+        # KeyPass: vision × passing / 10000
+        # Tackle: tackling × positioning / 10000
+        # etc.
+    
+    # 외부 영향 (form / morale / fatigue)
+    externalFactor = ComputeExternalFactor(player)
+    
+    return roleWeight × dutyWeight × mentalityWeight × statWeight × externalFactor
+
+
+ComputeDutyWeight(duty, eventType):
+    switch eventType:
+        case Shot: return duty == Attack ? 1.5 : duty == Support ? 1.0 : 0.5
+        case Tackle: return duty == Defend ? 1.5 : duty == Support ? 1.0 : 0.5
+        case KeyPass: return duty == Support ? 1.3 : 1.0
+        # ...
+```
+
+### Set Pieces
+
+```
+public static int SelectSetPieceTaker(tactic, setPieceType, state):
+    if tactic.setPieceTakers.Contains(setPieceType):
+        return tactic.setPieceTakers[setPieceType]
+    
+    # 자동 선정
+    candidates = tactic.slots.Select(s => state.GetPlayer(s.assignedPlayerId))
+    switch setPieceType:
+        case Penalty: return candidates.OrderByDescending(p => p.stats.technical.penaltyTaking).First().id
+        case FreeKick: return candidates.OrderByDescending(p => p.stats.technical.freeKickTaking).First().id
+        case Corner: return candidates.OrderByDescending(p => p.stats.technical.corners).First().id
+```
+
+### Balancing Parameters
+
+```
+mentalityModifiers = {
+    VeryDefensive: { Shot: 0.6, Tackle: 1.5, KeyPass: 0.7 },
+    Defensive:     { Shot: 0.75, Tackle: 1.3, KeyPass: 0.85 },
+    Cautious:      { Shot: 0.9, Tackle: 1.15, KeyPass: 0.95 },
+    Balanced:      { Shot: 1.0, Tackle: 1.0, KeyPass: 1.0 },
+    Positive:      { Shot: 1.15, Tackle: 0.9, KeyPass: 1.1 },
+    Attacking:     { Shot: 1.3, Tackle: 0.8, KeyPass: 1.2 },
+    VeryAttacking: { Shot: 1.5, Tackle: 0.65, KeyPass: 1.4 }
+}
+```
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | Poacher vs Target Forward | 같은 stat 의 두 ST → 슈팅 비율 Poacher 가 ~2배 |
+| T2 | Mentality 영향 | 같은 팀 VeryDefensive vs VeryAttacking → 골수 차이 ~30% |
+| T3 | Set Pieces 자동 선정 | penaltyTaking 가장 높은 선수가 페널티 키커 |
+| T4 | Duty 영향 | 같은 Role / Attack vs Defend → 슈팅 빈도 차이 3배 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **Team Instructions** | 미적용 | Tempo / Passing / Pressing / Line / Width 추가 |
+| **다중 전술 슬롯** | 클럽당 1 전술 | 3 슬롯 (기본 / 강팀 / 약팀) + 매치 직전 자동 선택 |
+| **Role 카탈로그 확장** | ~40 | ~80 (FM 표준) |
+
+---
+
+## V1.0-8. Save Migration (신규)
+
+### Purpose
+
+- 세이브 파일 버전 마이그레이션 인프라.
+- V0.1 → V1.0 = Q8 결정으로 미지원 (V1.0 신규게임만). 단 V1.0 → V1.1 등 후속 대비 인프라 구축.
+
+### Inputs / Outputs
+
+```csharp
+public static class SaveMigration {
+    public static GameState Migrate(GameState state, int targetVersion);
+    
+    private static Dictionary<int, IMigrator> Migrators = new() {
+        { 2, new MigratorV1_0() },    // V0.1 (saveVersion=1) → V1.0 (saveVersion=2). 단 Q8 = 미지원 (예외 throw)
+        { 3, new MigratorV1_1() },    // V1.0 → V1.1 (미래)
+    };
+}
+
+public interface IMigrator {
+    GameState Apply(GameState state);
+}
+```
+
+### Logic
+
+```
+public static GameState Migrate(state, targetVersion):
+    if state.saveVersion >= targetVersion:
+        return state
+    
+    while state.saveVersion < targetVersion:
+        nextVersion = state.saveVersion + 1
+        if !Migrators.ContainsKey(nextVersion):
+            throw new InvalidOperationException($"No migrator for version {nextVersion}")
+        
+        state = Migrators[nextVersion].Apply(state)
+        state.saveVersion = nextVersion
+    
+    return state
+
+
+public class MigratorV1_0 : IMigrator {
+    public GameState Apply(state):
+        # Q8 = V0.1 무효
+        throw new NotSupportedException(
+            "V0.1 → V1.0 migration is not supported (Q8). Please start a new V1.0 game."
+        )
+}
+```
+
+### SaveSystem 통합
+
+```
+public static GameState Load(slotName):
+    # ... 기존 로드 로직
+    GameState state = JsonConvert.DeserializeObject<GameState>(json)
+    
+    int currentVersion = 2  # V1.0
+    if state.saveVersion < currentVersion:
+        state = SaveMigration.Migrate(state, currentVersion)
+    
+    state.BuildIndexes()
+    EventBus.Publish(new GameLoadedEvent())
+    return state
+```
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | V1.0 신규 게임 저장 / 로드 | saveVersion=2 → 마이그레이션 X / 정상 로드 |
+| T2 | V0.1 세이브 로드 시도 | saveVersion=1 → NotSupportedException 발생 + UI 에러 표시 |
+| T3 | 인프라 라운드트립 | 가상 MigratorTest (V2 → V3 등록) → 정상 마이그레이션 + saveVersion 갱신 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **V0.1 → V1.0 마이그레이션** | 미지원 (Q8) | 사용자 요청 시 재개 (V0.1 → V1.0 변환 로직 구현 가능) |
+| **Save 압축 (gzip)** | 미적용 | 옵션 추가 |
+| **세이브 일관성 체크섬** | 미적용 | hash 검증 도입 |
+
+---
+
+## V1.0-9. Season Award (신규)
+
+### Purpose
+
+- 시즌 종료 시 시상 / 월간 어워드 계산.
+- 호출 시점:
+  - **5/15 시즌 종료** — `SeasonEndProcessor` 가 `SeasonAwardSystem.ComputeSeasonAwards(state, balance)` 호출
+  - **매월 1일** — `DailyProcessor` 가 `SeasonAwardSystem.ComputeMonthlyAwards(state, balance)` 호출
+
+### Inputs / Outputs
+
+```csharp
+public static class SeasonAwardSystem {
+    public static List<SeasonAward> ComputeSeasonAwards(GameState state, GameBalanceSO balance);
+    public static List<SeasonAward> ComputeMonthlyAwards(GameState state, GameBalanceSO balance);
+}
+
+public class SeasonAward {
+    public int seasonYear;
+    public AwardType type;            // LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / ManagerOfSeason / MonthlyManagerOfMonth / MonthlyPlayerOfMonth
+    public List<int> playerIds;       // BestEleven 만 List, 나머지 1명
+    public int leagueId;
+    public DateTime awardedAt;
+}
+```
+
+### Logic
+
+#### 시즌 어워드 (5/15)
+
+```
+public static List<SeasonAward> ComputeSeasonAwards(state, balance):
+    awards = new List<SeasonAward>()
+    
+    foreach league in state.leagues:
+        # TopScorer
+        topScorer = league.clubIds
+            .SelectMany(cid => state.GetClub(cid).seniorSquadIds)
+            .Select(pid => state.GetPlayer(pid))
+            .OrderByDescending(p => CurrentSeasonStats(p).goals)
+            .First()
+        awards.Add(new SeasonAward { type = TopScorer, playerIds = [topScorer.id], leagueId = league.id })
+        
+        # TopAssist
+        topAssist = (위 와 유사, assists 기준)
+        awards.Add(new SeasonAward { type = TopAssist, ...})
+        
+        # LeagueMVP (평균 평점 + 우승팀 가산)
+        champion = league.standings.entries.OrderByDescending(e => e.points).First()
+        mvp = league.clubIds
+            .SelectMany(...)
+            .OrderByDescending(p => {
+                rating = CurrentSeasonStats(p).averageRating
+                if p.currentClubId == champion.clubId:
+                    rating += balance.mvpChampionBonus (0.3)
+                return rating
+            })
+            .First()
+        awards.Add(new SeasonAward { type = LeagueMVP, ...})
+        
+        # YoungPlayer (21세 이하)
+        youngPlayer = league.clubIds
+            .SelectMany(...)
+            .Where(p => GetAge(p, state.currentDate) <= 21)
+            .OrderByDescending(p => CurrentSeasonStats(p).averageRating)
+            .First()
+        awards.Add(new SeasonAward { type = YoungPlayer, ...})
+        
+        # BestEleven (포지션별 최고 평점)
+        bestEleven = SelectBestEleven(league, state)   # 4-4-2 가정 / 포지션별 1명 (CB 2 / etc.)
+        awards.Add(new SeasonAward { type = BestEleven, playerIds = bestEleven, ...})
+        
+        # GoldenGlove (GK 무실점 매치 수)
+        goldenGlove = league.clubIds
+            .SelectMany(cid => state.GetClub(cid).seniorSquadIds)
+            .Select(pid => state.GetPlayer(pid))
+            .Where(p => p.info.primaryPosition == Position.GK)
+            .OrderByDescending(p => CountCleanSheets(p, state))
+            .First()
+        awards.Add(new SeasonAward { type = GoldenGlove, ...})
+    
+    # ManagerOfSeason (우승 매니저)
+    awards.Add(new SeasonAward { type = ManagerOfSeason, ...})
+    
+    # 수상 선수 morale / happiness +
+    foreach award in awards:
+        foreach pid in award.playerIds:
+            player = state.GetPlayer(pid)
+            player.state.morale = min(100, player.state.morale + balance.awardMoraleBonus (10))
+            player.state.happiness = min(100, player.state.happiness + balance.awardHappinessBonus (10))
+            EventBus.Publish(new AwardWonEvent { awardType = award.type, playerId = pid })
+    
+    state.activeAwards.AddRange(awards)
+    league.history.Add(new SeasonHistory { seasonYear, standings = league.standings.Clone(), awards })
+    return awards
+```
+
+#### 월간 어워드 (매월 1일)
+
+```
+public static List<SeasonAward> ComputeMonthlyAwards(state, balance):
+    awards = new List<SeasonAward>()
+    
+    # 직전 월 통계 계산 (state.currentDate - 1 month ~ state.currentDate)
+    monthStart = state.currentDate.AddMonths(-1)
+    
+    foreach league in state.leagues:
+        # Manager of the Month — 직전 월 승률 최고 클럽
+        topManager = league.clubIds
+            .OrderByDescending(cid => MonthlyWinRate(cid, state, monthStart))
+            .First()
+        awards.Add(new SeasonAward { type = MonthlyManagerOfMonth, ...})
+        
+        # Player of the Month — 직전 월 평점 + 골/어시
+        topPlayer = league.clubIds
+            .SelectMany(...)
+            .OrderByDescending(p => MonthlyScore(p, state, monthStart))
+            .First()
+        awards.Add(new SeasonAward { type = MonthlyPlayerOfMonth, ...})
+        
+        # 효과
+        topPlayer.state.morale += balance.monthlyPlayerMoraleBonus (10)
+        topManagerClub.season.boardConfidence += balance.monthlyManagerConfidenceBonus (5)
+    
+    state.activeAwards.AddRange(awards)
+    return awards
+```
+
+### Balancing Parameters
+
+```
+mvpChampionBonus = 0.3                # MVP 계산 시 우승팀 가산점
+awardMoraleBonus = 10
+awardHappinessBonus = 10
+monthlyPlayerMoraleBonus = 10
+monthlyManagerConfidenceBonus = 5
+```
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | TopScorer | 시즌 골 1위 선수 = TopScorer |
+| T2 | LeagueMVP 우승팀 가산 | 같은 평점 / 우승팀 선수 vs 다른팀 선수 → 우승팀 우선 |
+| T3 | YoungPlayer 나이 필터 | 22세 선수 평점 8.0 vs 21세 선수 평점 7.8 → 21세 수상 |
+| T4 | BestEleven 포지션 균형 | 결과 11명 중 GK 1 / DF 4 / MF 4 / AT 2 (4-4-2) |
+| T5 | 월간 어워드 효과 | Player of the Month → morale +10, Manager of Month → boardConfidence +5 |
+| T6 | history 누적 | 3 시즌 후 league.history.Count == 3 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **Awards 라이센스** | 가상 (Premier League Awards 명명) | 라이센스 따라 명칭 변경 가능 |
+| **국제 어워드 (Ballon d'Or 등)** | 미적용 | V2.0+ (다중 리그 도입 시) |
+| **수상 회수 통계** | 누적 X | Player.careerAwards 신규 |
+
+---
+
+## Part 2 Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-22 | V1.0-1 ~ V1.0-9 | Part 2: V1.0 Updates 부록 신규 작성. 9 섹션 (PlayerGen V1.0 변경분 / MatchSim V1.0 분 단위 이벤트 시퀀스 / Market Value V1.0 hidden·form·morale 보정 / Transfer Flow V1.0 다중 라운드 + 임대 + 재계약 / Youth V1.0 CA 캡 + 시설 분리 + Mentoring / CpuTransferAi 필요 기반 트리거 5종 / Morale System 변동 매트릭스 + Promise 통합 / Tactic Impact Role × Duty × Mentality / Save Migration 인프라 / Season Award 시즌·월간 시상). `docs/v1.0-plan.md` §3 + `design-decisions.md` #39~#52 와 연동. 12 Open Questions 결정 결과 통합. |
