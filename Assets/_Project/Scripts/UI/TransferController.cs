@@ -204,7 +204,13 @@ namespace FMLite.UI
             }
 
             if (offerAmountInput != null)
-                offerAmountInput.text = mv.ToString();
+            {
+                // AI Accept 조건 ratio >= balance.aiAcceptRatio (1.20). 시장가 그대로면
+                // ratio ≈ 1/noise < 1.20 → 거의 항상 Reject. 시장가의 130% 를 권장 디폴트로
+                // 채워 사용자가 그대로 보내도 합리적으로 Accept 가능 (#170).
+                int suggested = (int)(mv * 1.30);
+                offerAmountInput.text = suggested.ToString();
+            }
             if (offerWageInput != null)
                 offerWageInput.text = "50000";
             if (offerYearsInput != null)
