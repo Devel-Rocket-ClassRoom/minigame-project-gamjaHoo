@@ -2,7 +2,6 @@
 name: Bug
 about: 버그 리포트
 title: "[영역] "
-labels: ["type:bug"]
 assignees: []
 ---
 

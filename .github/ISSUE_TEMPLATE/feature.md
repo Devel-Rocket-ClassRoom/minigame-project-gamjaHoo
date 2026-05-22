@@ -2,7 +2,6 @@
 name: Feature
 about: 새 기능 / 시스템 추가
 title: "[영역] "
-labels: ["type:feature"]
 assignees: []
 ---
 
