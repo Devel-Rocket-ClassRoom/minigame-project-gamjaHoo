@@ -159,7 +159,6 @@ namespace FMLite.UI
             var t = p.stats.technical;
             var sb = new StringBuilder(Localization.Get("section_tech") + "\n");
             sb.AppendLine(StatLine(Localization.Get("stat_passing"), t.passing, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_shooting"), t.shooting, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_tackling"), t.tackling, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_dribbling"), t.dribbling, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_heading"), t.heading, debug));
@@ -167,7 +166,7 @@ namespace FMLite.UI
             sb.AppendLine(StatLine(Localization.Get("stat_first_touch"), t.firstTouch, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_finishing"), t.finishing, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_long_shots"), t.longShots, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_free_kick"), t.freeKickAccuracy, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_free_kick"), t.freeKickTaking, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_penalty"), t.penaltyTaking, debug));
             sb.Append(StatLine(Localization.Get("stat_corners"), t.corners, debug));
             return sb.ToString();
@@ -209,7 +208,7 @@ namespace FMLite.UI
             );
             sb.AppendLine(StatLine(Localization.Get("stat_agility"), ph.agility, debug));
             sb.AppendLine(StatLine(Localization.Get("stat_balance"), ph.balance, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_jumping"), ph.jumping, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_jumping"), ph.jumpingReach, debug));
             sb.AppendLine(
                 StatLine(Localization.Get("stat_natural_fitness"), ph.naturalFitness, debug)
             );

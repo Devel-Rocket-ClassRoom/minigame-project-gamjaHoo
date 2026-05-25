@@ -1,5 +1,5 @@
 // Stats.cs
-// 선수 능력치. 4개 카테고리(Technical / Mental / Physical / Goalkeeping).
+// 선수 능력치. 4개 카테고리(Technical 14 / Mental 14 / Physical 8 / Goalkeeping 13) = 49.
 // 각 카테고리에 ApplyToAll(Func<int,int>) 헬퍼로 일괄 변환 가능.
 
 using System;
@@ -19,7 +19,6 @@ namespace FMLite.Domain
     public class TechnicalStats
     {
         public int passing;
-        public int shooting;
         public int tackling;
         public int dribbling;
         public int heading;
@@ -27,14 +26,16 @@ namespace FMLite.Domain
         public int firstTouch;
         public int finishing;
         public int longShots;
-        public int freeKickAccuracy;
+        public int freeKickTaking;
         public int penaltyTaking;
         public int corners;
+        public int marking;
+        public int technique;
+        public int longThrows;
 
         public void ApplyToAll(Func<int, int> modifier)
         {
             passing = modifier(passing);
-            shooting = modifier(shooting);
             tackling = modifier(tackling);
             dribbling = modifier(dribbling);
             heading = modifier(heading);
@@ -42,9 +43,12 @@ namespace FMLite.Domain
             firstTouch = modifier(firstTouch);
             finishing = modifier(finishing);
             longShots = modifier(longShots);
-            freeKickAccuracy = modifier(freeKickAccuracy);
+            freeKickTaking = modifier(freeKickTaking);
             penaltyTaking = modifier(penaltyTaking);
             corners = modifier(corners);
+            marking = modifier(marking);
+            technique = modifier(technique);
+            longThrows = modifier(longThrows);
         }
     }
 
@@ -63,6 +67,8 @@ namespace FMLite.Domain
         public int teamwork;
         public int workRate;
         public int aggression;
+        public int bravery;
+        public int flair;
 
         public void ApplyToAll(Func<int, int> modifier)
         {
@@ -78,6 +84,8 @@ namespace FMLite.Domain
             teamwork = modifier(teamwork);
             workRate = modifier(workRate);
             aggression = modifier(aggression);
+            bravery = modifier(bravery);
+            flair = modifier(flair);
         }
     }
 
@@ -87,7 +95,7 @@ namespace FMLite.Domain
         public int acceleration;
         public int agility;
         public int balance;
-        public int jumping;
+        public int jumpingReach;
         public int naturalFitness;
         public int pace;
         public int stamina;
@@ -98,7 +106,7 @@ namespace FMLite.Domain
             acceleration = modifier(acceleration);
             agility = modifier(agility);
             balance = modifier(balance);
-            jumping = modifier(jumping);
+            jumpingReach = modifier(jumpingReach);
             naturalFitness = modifier(naturalFitness);
             pace = modifier(pace);
             stamina = modifier(stamina);
@@ -119,6 +127,9 @@ namespace FMLite.Domain
         public int reflexes;
         public int rushingOut;
         public int throwing;
+        public int firstTouchGk;
+        public int passingGk;
+        public int punchingTendency;
 
         public void ApplyToAll(Func<int, int> modifier)
         {
@@ -132,6 +143,9 @@ namespace FMLite.Domain
             reflexes = modifier(reflexes);
             rushingOut = modifier(rushingOut);
             throwing = modifier(throwing);
+            firstTouchGk = modifier(firstTouchGk);
+            passingGk = modifier(passingGk);
+            punchingTendency = modifier(punchingTendency);
         }
     }
 }
