@@ -1,0 +1,303 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 651992aa7bb008847859721fcd8cb9de, type: 3}
+  m_Name: LocalizationData
+  m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.LocalizationSO
+  entries:
+  - key: reroll_token_fmt
+    korean: "\uB9AC\uB864 \uD1A0\uD070 {0}"
+    english: 'Reroll Tokens: {0}'
+  - key: no_next_match
+    korean: "\uB2E4\uC74C \uACBD\uAE30 \uC5C6\uC74C"
+    english: No upcoming match
+  - key: home
+    korean: "\uD648"
+    english: Home
+  - key: away
+    korean: "\uC6D0\uC815"
+    english: Away
+  - key: reroll_fmt
+    korean: "\uB9AC\uB864 {0}"
+    english: Reroll {0}
+  - key: no_current_inspection
+    korean: "\uD604\uC7AC \uC778\uC2A4\uD399\uC158 \uC5C6\uC74C"
+    english: No current inspection
+  - key: youth_inspection_title_fmt
+    korean: "\uC720\uC2A4 \uC778\uC2A4\uD399\uC158 {0}"
+    english: Youth Inspection {0}
+  - key: youth_facility_full_fmt
+    korean: "\uC720\uC2A4 \uC2DC\uC124 \uB808\uBCA8 {0} / \uC815\uC6D0 {1}"
+    english: Youth Facility Lv.{0} / Size {1}
+  - key: youth_facility_fmt
+    korean: "\uC720\uC2A4 \uC2DC\uC124 \uB808\uBCA8 {0}"
+    english: Youth Facility Lv.{0}
+  - key: filter_all
+    korean: "\uC804\uCCB4"
+    english: All
+  - key: market_value_fmt
+    korean: "\uC2DC\uC7A5\uAC00 \xA3{0}M"
+    english: "Market Value \xA3{0}M"
+  - key: transfer_window_open
+    korean: "\uC774\uC801 \uCC3D \uC5F4\uB9BC (\uCCB4\uACB0 \uAC00\uB2A5)"
+    english: Transfer Window Open
+  - key: transfer_window_closed
+    korean: "\uC774\uC801 \uCC3D \uB2EB\uD798 (\uC624\uD37C \uC81C\uCD9C\uB9CC \uAC00\uB2A5)"
+    english: Transfer Window Closed
+  - key: no_active_offers
+    korean: "\uD65C\uC131 \uC624\uD37C \uC5C6\uC74C"
+    english: No Active Offers
+  - key: active_offers_header
+    korean: "[\uD65C\uC131 \uC624\uD37C]"
+    english: '[Active Offers]'
+  - key: facility_money_fmt
+    korean: "\uC794\uACE0: \xA3{0}M"
+    english: "Balance: \xA3{0}M"
+  - key: facility_upgrade_progress_fmt
+    korean: "{0} \uC5C5\uADF8\uB808\uC774\uB4DC \uC911 (\uC644\uB8CC: {1})"
+    english: '{0} upgrading (done: {1})'
+  - key: no_pending_upgrade
+    korean: "\uC9C4\uD589 \uC911\uC778 \uC5C5\uADF8\uB808\uC774\uB4DC \uC5C6\uC74C"
+    english: No pending upgrade
+  - key: max_level
+    korean: "\uCD5C\uACE0 \uB4F1\uAE09"
+    english: Max Level
+  - key: facility_upgrade_cost_fmt
+    korean: "\uC5C5\uADF8\uB808\uC774\uB4DC \xA3{0}M ({1}\uC77C)"
+    english: "Upgrade \xA3{0}M ({1} days)"
+  - key: reputation_fmt
+    korean: "\uBA85\uC131 {0}"
+    english: Reputation {0}
+  - key: fixture_title_fmt
+    korean: "{0} {1} \uC77C\uC815"
+    english: '{0} {1} Fixtures'
+  - key: fixture_title_fallback_fmt
+    korean: "\uC77C\uC815 {0}"
+    english: Fixtures {0}
+  - key: standings_title_fmt
+    korean: "{0} {1} \uC21C\uC704\uD45C"
+    english: '{0} {1} Standings'
+  - key: standings_title_fallback_fmt
+    korean: "\uC21C\uC704\uD45C {0}"
+    english: Standings {0}
+  - key: club_not_selected
+    korean: "\uBBF8\uC120\uD0DD"
+    english: Not Selected
+  - key: player_not_found_fmt
+    korean: "\uC120\uC218 \uC5C6\uC74C (id={0})"
+    english: Player not found (id={0})
+  - key: player_position_age_fmt
+    korean: "{0} \xB7 {1}\uC138"
+    english: "{0} \xB7 Age {1}"
+  - key: no_stats_tech
+    korean: "\uAE30\uC220: -"
+    english: 'Technical: -'
+  - key: section_tech
+    korean: "[\uAE30\uC220]"
+    english: '[Technical]'
+  - key: stat_passing
+    korean: "\uD328\uC2A4"
+    english: Passing
+  - key: stat_shooting
+    korean: "\uC288\uD305"
+    english: Shooting
+  - key: stat_tackling
+    korean: "\uD0DC\uD074"
+    english: Tackling
+  - key: stat_dribbling
+    korean: "\uB4DC\uB9AC\uBE14"
+    english: Dribbling
+  - key: stat_heading
+    korean: "\uD5E4\uB529"
+    english: Heading
+  - key: stat_crossing
+    korean: "\uD06C\uB85C\uC2A4"
+    english: Crossing
+  - key: stat_first_touch
+    korean: "\uD37C\uC2A4\uD2B8\uD130\uCE58"
+    english: First Touch
+  - key: stat_finishing
+    korean: "\uB9C8\uBB34\uB9AC"
+    english: Finishing
+  - key: stat_long_shots
+    korean: "\uC911\uAC70\uB9AC"
+    english: Long Shots
+  - key: stat_free_kick
+    korean: "\uD504\uB9AC\uD0A5"
+    english: Free Kick
+  - key: stat_penalty
+    korean: "\uD328\uB110\uD2F0"
+    english: Penalty
+  - key: stat_corners
+    korean: "\uCF54\uB108"
+    english: Corners
+  - key: no_stats_mental
+    korean: "\uC815\uC2E0: -"
+    english: 'Mental: -'
+  - key: section_mental
+    korean: "[\uC815\uC2E0]"
+    english: '[Mental]'
+  - key: stat_vision
+    korean: "\uC2DC\uC57C"
+    english: Vision
+  - key: stat_anticipation
+    korean: "\uC608\uCE21"
+    english: Anticipation
+  - key: stat_composure
+    korean: "\uCE68\uCC29"
+    english: Composure
+  - key: stat_concentration
+    korean: "\uC9D1\uC911"
+    english: Concentration
+  - key: stat_decisions
+    korean: "\uD310\uB2E8"
+    english: Decisions
+  - key: stat_determination
+    korean: "\uD22C\uC9C0"
+    english: Determination
+  - key: stat_leadership
+    korean: "\uB9AC\uB354\uC2ED"
+    english: Leadership
+  - key: stat_off_the_ball
+    korean: "\uC624\uD504\uB354\uBCFC"
+    english: Off The Ball
+  - key: stat_positioning
+    korean: "\uD3EC\uC9C0\uC154\uB2DD"
+    english: Positioning
+  - key: stat_teamwork
+    korean: "\uD300\uC6CC\uD06C"
+    english: Teamwork
+  - key: stat_work_rate
+    korean: "\uD65C\uB3D9\uB7C9"
+    english: Work Rate
+  - key: stat_aggression
+    korean: "\uACF5\uACA9\uC131"
+    english: Aggression
+  - key: no_stats_physical
+    korean: "\uC2E0\uCCB4: -"
+    english: 'Physical: -'
+  - key: section_physical
+    korean: "[\uC2E0\uCCB4]"
+    english: '[Physical]'
+  - key: stat_acceleration
+    korean: "\uAC00\uC18D"
+    english: Acceleration
+  - key: stat_agility
+    korean: "\uBBFC\uCCA9"
+    english: Agility
+  - key: stat_balance
+    korean: "\uBC38\uB7F0\uC2A4"
+    english: Balance
+  - key: stat_jumping
+    korean: "\uC810\uD504"
+    english: Jumping
+  - key: stat_natural_fitness
+    korean: "\uD53C\uC9C0\uCEEC"
+    english: Natural Fitness
+  - key: stat_pace
+    korean: "\uC2A4\uD53C\uB4DC"
+    english: Pace
+  - key: stat_stamina
+    korean: "\uC2A4\uD0DC\uBBF8\uB098"
+    english: Stamina
+  - key: stat_strength
+    korean: "\uCCB4\uB825"
+    english: Strength
+  - key: section_gk
+    korean: "[\uACE8\uD0A4\uD37C]"
+    english: '[Goalkeeper]'
+  - key: stat_aerial_reach
+    korean: "\uACF5\uC911\uC7A5\uC545"
+    english: Aerial Reach
+  - key: stat_command_of_area
+    korean: "\uBC15\uC2A4\uC7A5\uC545"
+    english: Command of Area
+  - key: stat_communication
+    korean: "\uC9C0\uC2DC"
+    english: Communication
+  - key: stat_eccentricity
+    korean: "\uB3CC\uBC1C"
+    english: Eccentricity
+  - key: stat_handling
+    korean: "\uD578\uB4E4\uB9C1"
+    english: Handling
+  - key: stat_kicking
+    korean: "\uD0A5"
+    english: Kicking
+  - key: stat_one_on_ones
+    korean: "1\uB3001"
+    english: One on Ones
+  - key: stat_reflexes
+    korean: "\uBC18\uC751"
+    english: Reflexes
+  - key: stat_rushing_out
+    korean: "\uB3CC\uC9C4"
+    english: Rushing Out
+  - key: stat_throwing
+    korean: "\uC2A4\uB85C\uC778"
+    english: Throwing
+  - key: section_traits
+    korean: "[\uD2B8\uB808\uC787]"
+    english: '[Traits]'
+  - key: no_traits
+    korean: "\uC5C6\uC74C"
+    english: None
+  - key: section_contract
+    korean: "[\uACC4\uC57D]"
+    english: '[Contract]'
+  - key: no_info
+    korean: "\uC815\uBCF4 \uC5C6\uC74C"
+    english: No Info
+  - key: contract_wage_fmt
+    korean: "\uC8FC\uAE09: \xA3{0}"
+    english: "Weekly Wage: \xA3{0}"
+  - key: contract_end_fmt
+    korean: "\uACC4\uC57D \uB9CC\uB8CC: {0}"
+    english: 'Contract End: {0}'
+  - key: contract_release_debug_fmt
+    korean: "\uBC14\uC774\uC544\uC6C3: \xA3{0}"
+    english: "Release Clause: \xA3{0}"
+  - key: contract_release
+    korean: "\uBC14\uC774\uC544\uC6C3: \uC788\uC74C"
+    english: 'Release Clause: Yes'
+  - key: section_state
+    korean: "[\uC0C1\uD0DC]"
+    english: '[State]'
+  - key: state_fatigue_fmt
+    korean: "\uD53C\uB85C: {0}"
+    english: 'Fatigue: {0}'
+  - key: state_morale_fmt
+    korean: "\uC0AC\uAE30: {0}"
+    english: 'Morale: {0}'
+  - key: state_form_fmt
+    korean: "\uD3FC: {0}"
+    english: 'Form: {0}'
+  - key: state_appearances_fmt
+    korean: "\uCD9C\uC804: {0}\uACBD\uAE30"
+    english: 'Appearances: {0}'
+  - key: state_injury_return_fmt
+    korean: "\uBD80\uC0C1: \uBCF5\uADC0 \uC608\uC815 {0}"
+    english: 'Injury: Expected return {0}'
+  - key: state_no_injury
+    korean: "\uBD80\uC0C1: \uC5C6\uC74C"
+    english: No injury
+  - key: state_transfer_listed
+    korean: "\uC774\uC801 \uB9AC\uC2A4\uD2B8 \uB4F1\uC7AC"
+    english: Transfer Listed
+  - key: section_career
+    korean: "[\uCEE4\uB9AC\uC5B4]"
+    english: '[Career]'
+  - key: no_career
+    korean: "\uAE30\uB85D \uC5C6\uC74C"
+    english: No records
+  - key: career_entry_fmt
+    korean: "{0}-{1}  {2}  {3}\uACBD\uAE30 {4}\uACE8 {5}\uB3C4\uC6C0"
+    english: '{0}-{1}  {2}  {3} apps {4} goals {5} assists'
