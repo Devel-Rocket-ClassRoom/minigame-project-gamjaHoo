@@ -138,18 +138,21 @@ namespace FMLite.UI
                 tokenText.text = Localization.Get("reroll_token_fmt", _state.rerollTokens);
 
             var facility = GameDatabase.GetFacilityLevel(
-                FacilityType.Youth,
-                _userClub.facilities.youthLevel
+                FacilityType.YouthCoach,
+                _userClub.facilities.youthCoachLevel
             );
             if (facilityText != null)
                 facilityText.text =
                     facility != null
                         ? Localization.Get(
                             "youth_facility_full_fmt",
-                            _userClub.facilities.youthLevel,
+                            _userClub.facilities.youthCoachLevel,
                             facility.youthPoolSize
                         )
-                        : Localization.Get("youth_facility_fmt", _userClub.facilities.youthLevel);
+                        : Localization.Get(
+                            "youth_facility_fmt",
+                            _userClub.facilities.youthCoachLevel
+                        );
 
             PopulateCandidates();
 

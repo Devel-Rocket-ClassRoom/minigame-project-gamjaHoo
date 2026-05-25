@@ -534,7 +534,7 @@ namespace FMLite.Tests
             foreach (var (lv, pool, avgPa) in defs)
             {
                 var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
-                so.facilityType = FacilityType.Youth;
+                so.facilityType = FacilityType.YouthCoach;
                 so.level = lv;
                 so.youthPoolSize = pool;
                 so.youthAvgPA = avgPa;

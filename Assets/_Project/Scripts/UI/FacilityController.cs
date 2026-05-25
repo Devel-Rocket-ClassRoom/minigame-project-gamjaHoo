@@ -86,7 +86,7 @@ namespace FMLite.UI
 
         public void OnTrainingUpgradeClicked() => TryUpgrade(FacilityType.Training);
 
-        public void OnYouthUpgradeClicked() => TryUpgrade(FacilityType.Youth);
+        public void OnYouthUpgradeClicked() => TryUpgrade(FacilityType.YouthCoach);
 
         public void OnBackClicked() => SceneManager.LoadScene(DashboardScene);
 
@@ -135,8 +135,8 @@ namespace FMLite.UI
                 balance
             );
             RefreshRow(
-                FacilityType.Youth,
-                f.youthLevel,
+                FacilityType.YouthCoach,
+                f.youthCoachLevel,
                 youthLevelText,
                 youthCostText,
                 youthUpgradeButton,
@@ -145,12 +145,15 @@ namespace FMLite.UI
 
             if (pendingText != null)
             {
-                if (f.hasPendingUpgrade)
+                if (f.activeUpgrades.Count > 0)
+                {
+                    var u = f.activeUpgrades[0];
                     pendingText.text = Localization.Get(
                         "facility_upgrade_progress_fmt",
-                        f.pendingUpgradeType,
-                        f.upgradeCompletionDate.ToString("yyyy-MM-dd")
+                        u.type,
+                        u.completionDate.ToString("yyyy-MM-dd")
                     );
+                }
                 else
                     pendingText.text = Localization.Get("no_pending_upgrade");
             }
@@ -169,7 +172,7 @@ namespace FMLite.UI
                 levelText.text = $"Lv {currentLevel}";
 
             bool maxLevel = balance != null && currentLevel >= balance.maxFacilityLevel;
-            bool pending = _userClub.facilities.hasPendingUpgrade;
+            bool pending = _userClub.facilities.activeUpgrades.Exists(u => u.type == type);
 
             if (upgradeButton != null)
                 upgradeButton.interactable = !maxLevel && !pending;

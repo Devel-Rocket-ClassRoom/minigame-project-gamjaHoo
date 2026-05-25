@@ -183,11 +183,16 @@ namespace FMLite.Application
                 (int)Math.Round(moneyMu + rng.NextNormal(0, noiseSigma))
             );
 
-            // Facilities — rep/20 + 노이즈, clamp [1, 5]
+            // Facilities — rep/20 + 노이즈, clamp [1, maxFacilityLevel]
             double repLv = rep / 20.0;
             int scoutLv = SampleFacilityLevel(rng, repLv, b);
             int trainLv = SampleFacilityLevel(rng, repLv, b);
-            int youthLv = SampleFacilityLevel(rng, repLv, b);
+            int youthCoachLv = SampleFacilityLevel(rng, repLv, b);
+            int youthRecLv = SampleFacilityLevel(rng, repLv, b);
+            int youthFacLv = SampleFacilityLevel(rng, repLv, b);
+            int medLv = SampleFacilityLevel(rng, repLv, b);
+            int stadLv = SampleFacilityLevel(rng, repLv, b);
+            int gymLv = SampleFacilityLevel(rng, repLv, b);
 
             int foundYr = currentDate.Year - rng.Next(b.clubMinAgeYears, b.clubMaxAgeYears + 1);
             string name = (idx < cfg.clubNames.Count) ? cfg.clubNames[idx] : $"Club {idx + 1}";
@@ -210,7 +215,12 @@ namespace FMLite.Application
                 {
                     scoutLevel = scoutLv,
                     trainingLevel = trainLv,
-                    youthLevel = youthLv,
+                    youthCoachLevel = youthCoachLv,
+                    youthRecruitmentLevel = youthRecLv,
+                    youthFacilityLevel = youthFacLv,
+                    medicalLevel = medLv,
+                    stadiumLevel = stadLv,
+                    gymLevel = gymLv,
                 },
                 seniorSquadIds = new List<int>(),
                 youthSquadIds = new List<int>(),
