@@ -18,4 +18,5 @@ namespace FMLite.Domain
         public int loyaltyBonus; // 만기 잔류 보너스
         public int appearanceBonus; // 시즌당 출전 수 달성 보너스
         public int goalBonus; // 시즌당 득점 수 달성 보너스
+    }
 }

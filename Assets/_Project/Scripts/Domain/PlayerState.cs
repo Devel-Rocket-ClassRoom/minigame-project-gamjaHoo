@@ -16,4 +16,5 @@ namespace FMLite.Domain
         public bool transferListed;
         public int seasonAppearances;
         public int suspendedMatches; // 출전 정지 잔여 경기 수 (카드 누적)
+    }
 }
