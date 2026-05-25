@@ -17,12 +17,6 @@ namespace FMLite.UI
     {
         private const string SquadScene = "SquadScene";
 
-        // 개별 스탯 티어 컷오프 (스탯 스케일 1-20)
-        private const int StatElite = 17;
-        private const int StatStrong = 13;
-        private const int StatAverage = 9;
-        private const int StatWeak = 5;
-
         [Header("헤더")]
         [SerializeField]
         private TMP_Text nameText;
@@ -79,6 +73,7 @@ namespace FMLite.UI
             }
 
             bool debugMode = GameDatabase.GameBalance != null && GameDatabase.GameBalance.isDebugMode;
+            // stats는 항상 정확 수치 노출 (B.5); debugMode는 계약 재무 정보에만 사용
             int age =
                 player.info != null
                     ? (int)((state.currentDate - player.info.birthDate).TotalDays / 365.25)
@@ -104,16 +99,16 @@ namespace FMLite.UI
                 footText.text = player.info?.preferredFoot.ToString() ?? "-";
 
             if (technicalText != null)
-                technicalText.text = BuildTechnicalText(player, debugMode);
+                technicalText.text = BuildTechnicalText(player);
 
             if (mentalText != null)
-                mentalText.text = BuildMentalText(player, debugMode);
+                mentalText.text = BuildMentalText(player);
 
             if (physicalText != null)
-                physicalText.text = BuildPhysicalText(player, debugMode);
+                physicalText.text = BuildPhysicalText(player);
 
             if (gkText != null)
-                gkText.text = BuildGkText(player, debugMode);
+                gkText.text = BuildGkText(player);
 
             if (traitsText != null)
                 traitsText.text = BuildTraitsText(player);
@@ -136,110 +131,90 @@ namespace FMLite.UI
 
         // ── 능력치 ──────────────────────────────────────────────────────────
 
-        private static string StatTier(int value)
-        {
-            if (value >= StatElite)
-                return "Elite";
-            if (value >= StatStrong)
-                return "Strong";
-            if (value >= StatAverage)
-                return "Average";
-            if (value >= StatWeak)
-                return "Weak";
-            return "Poor";
-        }
+        private static string StatLine(string label, int value) => $"{label}: {value}";
 
-        private static string StatLine(string label, int value, bool debug) =>
-            debug ? $"{label}: {StatTier(value)} ({value})" : $"{label}: {StatTier(value)}";
-
-        private string BuildTechnicalText(Player p, bool debug)
+        private string BuildTechnicalText(Player p)
         {
             if (p.stats == null)
                 return Localization.Get("no_stats_tech");
             var t = p.stats.technical;
             var sb = new StringBuilder(Localization.Get("section_tech") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_passing"), t.passing, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_tackling"), t.tackling, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_dribbling"), t.dribbling, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_heading"), t.heading, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_crossing"), t.crossing, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_first_touch"), t.firstTouch, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_finishing"), t.finishing, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_long_shots"), t.longShots, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_free_kick"), t.freeKickTaking, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_penalty"), t.penaltyTaking, debug));
-            sb.Append(StatLine(Localization.Get("stat_corners"), t.corners, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_passing"), t.passing));
+            sb.AppendLine(StatLine(Localization.Get("stat_tackling"), t.tackling));
+            sb.AppendLine(StatLine(Localization.Get("stat_dribbling"), t.dribbling));
+            sb.AppendLine(StatLine(Localization.Get("stat_heading"), t.heading));
+            sb.AppendLine(StatLine(Localization.Get("stat_crossing"), t.crossing));
+            sb.AppendLine(StatLine(Localization.Get("stat_first_touch"), t.firstTouch));
+            sb.AppendLine(StatLine(Localization.Get("stat_finishing"), t.finishing));
+            sb.AppendLine(StatLine(Localization.Get("stat_long_shots"), t.longShots));
+            sb.AppendLine(StatLine(Localization.Get("stat_free_kick"), t.freeKickTaking));
+            sb.AppendLine(StatLine(Localization.Get("stat_penalty"), t.penaltyTaking));
+            sb.AppendLine(StatLine(Localization.Get("stat_corners"), t.corners));
+            sb.AppendLine(StatLine(Localization.Get("stat_marking"), t.marking));
+            sb.AppendLine(StatLine(Localization.Get("stat_technique"), t.technique));
+            sb.Append(StatLine(Localization.Get("stat_long_throws"), t.longThrows));
             return sb.ToString();
         }
 
-        private string BuildMentalText(Player p, bool debug)
+        private string BuildMentalText(Player p)
         {
             if (p.stats == null)
                 return Localization.Get("no_stats_mental");
             var m = p.stats.mental;
             var sb = new StringBuilder(Localization.Get("section_mental") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_vision"), m.vision, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_anticipation"), m.anticipation, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_composure"), m.composure, debug));
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_concentration"), m.concentration, debug)
-            );
-            sb.AppendLine(StatLine(Localization.Get("stat_decisions"), m.decisions, debug));
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_determination"), m.determination, debug)
-            );
-            sb.AppendLine(StatLine(Localization.Get("stat_leadership"), m.leadership, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_off_the_ball"), m.offTheBall, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_positioning"), m.positioning, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_teamwork"), m.teamwork, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_work_rate"), m.workRate, debug));
-            sb.Append(StatLine(Localization.Get("stat_aggression"), m.aggression, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_vision"), m.vision));
+            sb.AppendLine(StatLine(Localization.Get("stat_anticipation"), m.anticipation));
+            sb.AppendLine(StatLine(Localization.Get("stat_composure"), m.composure));
+            sb.AppendLine(StatLine(Localization.Get("stat_concentration"), m.concentration));
+            sb.AppendLine(StatLine(Localization.Get("stat_decisions"), m.decisions));
+            sb.AppendLine(StatLine(Localization.Get("stat_determination"), m.determination));
+            sb.AppendLine(StatLine(Localization.Get("stat_leadership"), m.leadership));
+            sb.AppendLine(StatLine(Localization.Get("stat_off_the_ball"), m.offTheBall));
+            sb.AppendLine(StatLine(Localization.Get("stat_positioning"), m.positioning));
+            sb.AppendLine(StatLine(Localization.Get("stat_teamwork"), m.teamwork));
+            sb.AppendLine(StatLine(Localization.Get("stat_work_rate"), m.workRate));
+            sb.AppendLine(StatLine(Localization.Get("stat_aggression"), m.aggression));
+            sb.AppendLine(StatLine(Localization.Get("stat_bravery"), m.bravery));
+            sb.Append(StatLine(Localization.Get("stat_flair"), m.flair));
             return sb.ToString();
         }
 
-        private string BuildPhysicalText(Player p, bool debug)
+        private string BuildPhysicalText(Player p)
         {
             if (p.stats == null)
                 return Localization.Get("no_stats_physical");
             var ph = p.stats.physical;
             var sb = new StringBuilder(Localization.Get("section_physical") + "\n");
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_acceleration"), ph.acceleration, debug)
-            );
-            sb.AppendLine(StatLine(Localization.Get("stat_agility"), ph.agility, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_balance"), ph.balance, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_jumping"), ph.jumpingReach, debug));
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_natural_fitness"), ph.naturalFitness, debug)
-            );
-            sb.AppendLine(StatLine(Localization.Get("stat_pace"), ph.pace, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_stamina"), ph.stamina, debug));
-            sb.Append(StatLine(Localization.Get("stat_strength"), ph.strength, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_acceleration"), ph.acceleration));
+            sb.AppendLine(StatLine(Localization.Get("stat_agility"), ph.agility));
+            sb.AppendLine(StatLine(Localization.Get("stat_balance"), ph.balance));
+            sb.AppendLine(StatLine(Localization.Get("stat_jumping"), ph.jumpingReach));
+            sb.AppendLine(StatLine(Localization.Get("stat_natural_fitness"), ph.naturalFitness));
+            sb.AppendLine(StatLine(Localization.Get("stat_pace"), ph.pace));
+            sb.AppendLine(StatLine(Localization.Get("stat_stamina"), ph.stamina));
+            sb.Append(StatLine(Localization.Get("stat_strength"), ph.strength));
             return sb.ToString();
         }
 
-        private string BuildGkText(Player p, bool debug)
+        private string BuildGkText(Player p)
         {
             if (p.stats == null || p.info?.primaryPosition != Position.GK)
                 return string.Empty;
             var g = p.stats.gk;
             var sb = new StringBuilder(Localization.Get("section_gk") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_aerial_reach"), g.aerialReach, debug));
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_command_of_area"), g.commandOfArea, debug)
-            );
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_communication"), g.communication, debug)
-            );
-            sb.AppendLine(
-                StatLine(Localization.Get("stat_eccentricity"), g.eccentricity, debug)
-            );
-            sb.AppendLine(StatLine(Localization.Get("stat_handling"), g.handling, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_kicking"), g.kicking, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_one_on_ones"), g.oneOnOnes, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_reflexes"), g.reflexes, debug));
-            sb.AppendLine(StatLine(Localization.Get("stat_rushing_out"), g.rushingOut, debug));
-            sb.Append(StatLine(Localization.Get("stat_throwing"), g.throwing, debug));
+            sb.AppendLine(StatLine(Localization.Get("stat_aerial_reach"), g.aerialReach));
+            sb.AppendLine(StatLine(Localization.Get("stat_command_of_area"), g.commandOfArea));
+            sb.AppendLine(StatLine(Localization.Get("stat_communication"), g.communication));
+            sb.AppendLine(StatLine(Localization.Get("stat_eccentricity"), g.eccentricity));
+            sb.AppendLine(StatLine(Localization.Get("stat_handling"), g.handling));
+            sb.AppendLine(StatLine(Localization.Get("stat_kicking"), g.kicking));
+            sb.AppendLine(StatLine(Localization.Get("stat_one_on_ones"), g.oneOnOnes));
+            sb.AppendLine(StatLine(Localization.Get("stat_reflexes"), g.reflexes));
+            sb.AppendLine(StatLine(Localization.Get("stat_rushing_out"), g.rushingOut));
+            sb.AppendLine(StatLine(Localization.Get("stat_throwing"), g.throwing));
+            sb.AppendLine(StatLine(Localization.Get("stat_first_touch_gk"), g.firstTouchGk));
+            sb.AppendLine(StatLine(Localization.Get("stat_passing_gk"), g.passingGk));
+            sb.Append(StatLine(Localization.Get("stat_punching_tendency"), g.punchingTendency));
             return sb.ToString();
         }
 
