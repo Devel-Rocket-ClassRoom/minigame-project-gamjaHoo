@@ -27,14 +27,14 @@ MonoBehaviour:
   paGapMaxMean: 50
   paGapZeroAge: 28
   paGapStdDev: 15
-  statMeanAtCAFloor: 4
-  statMeanAtCACeil: 17
-  statEmphasisBonus: 2
-  statEmphasisPenalty: 2
-  statStdDev: 2.5
-  gkSecondaryStatPenalty: 1
-  gkOutfieldStatPenalty: 8
-  outfieldGkStatBase: 3
+  statMeanAtCAFloor: 25
+  statMeanAtCACeil: 85
+  statEmphasisBonus: 10
+  statEmphasisPenalty: 5
+  statStdDev: 10
+  gkSecondaryStatPenalty: 10
+  gkOutfieldStatPenalty: 40
+  outfieldGkStatBase: 15
   traitProbabilityPerPlayer: 0.3
   additionalTraitProbability: 0.15
   secondaryPositionProbability: 0.4
@@ -160,3 +160,19 @@ MonoBehaviour:
   transferWindowWinterStartDay: 1
   transferWindowWinterEndMonth: 1
   transferWindowWinterEndDay: 31
+  mentalityShotMultiplier:
+  - 0.6
+  - 0.75
+  - 0.88
+  - 1
+  - 1.15
+  - 1.3
+  - 1.5
+  mentalityPressureMultiplier:
+  - 1.4
+  - 1.2
+  - 1.1
+  - 1
+  - 0.9
+  - 0.8
+  - 0.65
