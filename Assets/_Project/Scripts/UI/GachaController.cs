@@ -99,7 +99,7 @@ namespace FMLite.UI
             aceLineText.text = $"ACE  {eval.acePosition}";
 
             var tokens = GameManager.Instance.State.rerollTokens;
-            rerollTokenText.text = $"리롤  {tokens}";
+            rerollTokenText.text = Localization.Get("reroll_fmt", tokens);
             rerollButton.interactable = tokens > 0;
         }
 

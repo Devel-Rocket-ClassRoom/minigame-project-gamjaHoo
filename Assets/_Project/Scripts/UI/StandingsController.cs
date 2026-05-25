@@ -2,6 +2,7 @@
 // Standings.entries 승점 내림차순 표시. MatchFinishedEvent 구독으로 자동 갱신.
 
 using System.Linq;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
 using TMPro;
@@ -63,8 +64,12 @@ namespace FMLite.UI
                 var config = GameDatabase.GetLeagueConfig(league.configSOId);
                 titleText.text =
                     config != null
-                        ? $"{config.displayName} {league.seasonYear} 순위표"
-                        : $"순위표 {league.seasonYear}";
+                        ? Localization.Get(
+                            "standings_title_fmt",
+                            config.displayName,
+                            league.seasonYear
+                        )
+                        : Localization.Get("standings_title_fallback_fmt", league.seasonYear);
             }
 
             foreach (Transform child in listParent)

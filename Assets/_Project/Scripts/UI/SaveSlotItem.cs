@@ -2,6 +2,7 @@
 // Unity AI Assistant 가 프리팹 구성 + 인스펙터 연결.
 
 using System;
+using FMLite.Application;
 using FMLite.Persistence;
 using TMPro;
 using UnityEngine;
@@ -28,7 +29,9 @@ namespace FMLite.UI
         public void Setup(SaveSlotMeta meta, Action<string> loadCallback)
         {
             if (clubNameText != null)
-                clubNameText.text = string.IsNullOrEmpty(meta.userClubName) ? "미선택" : meta.userClubName;
+                clubNameText.text = string.IsNullOrEmpty(meta.userClubName)
+                    ? Localization.Get("club_not_selected")
+                    : meta.userClubName;
             if (gameDateText != null)
                 gameDateText.text = meta.currentDate.ToString("yyyy-MM-dd");
             if (savedAtText != null)

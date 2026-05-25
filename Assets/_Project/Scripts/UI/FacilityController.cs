@@ -113,7 +113,10 @@ namespace FMLite.UI
             var f = _userClub.facilities;
 
             if (moneyText != null)
-                moneyText.text = $"자금  £{_userClub.finance.money / 1000000.0:0.0}M";
+                moneyText.text = Localization.Get(
+                    "facility_money_fmt",
+                    (_userClub.finance.money / 1000000.0).ToString("0.0")
+                );
 
             RefreshRow(
                 FacilityType.Scout,
@@ -143,10 +146,13 @@ namespace FMLite.UI
             if (pendingText != null)
             {
                 if (f.hasPendingUpgrade)
-                    pendingText.text =
-                        $"업그레이드 진행 중: {f.pendingUpgradeType}  완료 {f.upgradeCompletionDate:yyyy-MM-dd}";
+                    pendingText.text = Localization.Get(
+                        "facility_upgrade_progress_fmt",
+                        f.pendingUpgradeType,
+                        f.upgradeCompletionDate.ToString("yyyy-MM-dd")
+                    );
                 else
-                    pendingText.text = "진행 중인 업그레이드 없음";
+                    pendingText.text = Localization.Get("no_pending_upgrade");
             }
         }
 
@@ -172,14 +178,18 @@ namespace FMLite.UI
             {
                 if (maxLevel)
                 {
-                    costText.text = "최고 등급";
+                    costText.text = Localization.Get("max_level");
                 }
                 else
                 {
                     var so = GameDatabase.GetFacilityLevel(type, currentLevel + 1);
                     costText.text =
                         so != null
-                            ? $"£{so.upgradeCost / 1000000.0:0.0}M / {so.upgradeDurationDays}일"
+                            ? Localization.Get(
+                                "facility_upgrade_cost_fmt",
+                                (so.upgradeCost / 1000000.0).ToString("0.0"),
+                                so.upgradeDurationDays
+                            )
                             : "-";
                 }
             }

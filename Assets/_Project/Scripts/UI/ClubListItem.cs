@@ -1,6 +1,7 @@
 // 구단 선택 화면 목록 아이템 프리팹 컨트롤러.
 
 using System;
+using FMLite.Application;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
@@ -24,7 +25,7 @@ namespace FMLite.UI
         public void Setup(Club club, Action<int> selectCallback)
         {
             clubNameText.text = club.name;
-            reputationText.text = $"명성 {club.reputation}";
+            reputationText.text = Localization.Get("reputation_fmt", club.reputation);
             onSelected = selectCallback;
             selectButton.onClick.RemoveAllListeners();
             selectButton.onClick.AddListener(() => onSelected(club.id));

@@ -32,6 +32,7 @@ namespace FMLite.Application
         {
             // GameDatabase는 항상 로드 — NamePool 등 런타임 조회에 필요
             GameDatabase.LoadAll();
+            LocalizationSystem.Initialize(GameDatabase.LocalizationData);
 
             // 이미 다른 씬에서 GameManager + State 가 초기화된 경우 스킵
             // (MainMenu → ClubSelect → Gacha → Dashboard 실제 플로우 보호)

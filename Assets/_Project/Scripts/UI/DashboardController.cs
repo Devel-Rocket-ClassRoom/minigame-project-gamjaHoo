@@ -186,7 +186,7 @@ namespace FMLite.UI
                 return;
 
             dateText.text = state.currentDate.ToString("yyyy-MM-dd");
-            tokenText.text = $"리롤 토큰  {state.rerollTokens}";
+            tokenText.text = Localization.Get("reroll_token_fmt", state.rerollTokens);
             nextMatchText.text = GetNextMatchText(state);
         }
 
@@ -203,12 +203,12 @@ namespace FMLite.UI
                 .FirstOrDefault();
 
             if (nextMatch == null)
-                return "다음 경기 없음";
+                return Localization.Get("no_next_match");
 
             bool isHome = nextMatch.homeClubId == state.userClubId;
             var opponentId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
             var opponent = state.GetClub(opponentId);
-            var homeAway = isHome ? "홈" : "원정";
+            var homeAway = Localization.Get(isHome ? "home" : "away");
             return $"{nextMatch.date:MM/dd}  {opponent?.name ?? "?"}  ({homeAway})";
         }
     }

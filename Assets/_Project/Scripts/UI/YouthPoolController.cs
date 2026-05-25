@@ -66,7 +66,7 @@ namespace FMLite.UI
             if (_currentIntake == null)
             {
                 if (titleText != null)
-                    titleText.text = "현재 인스펙션 없음";
+                    titleText.text = Localization.Get("no_current_inspection");
                 if (rerollButton != null)
                     rerollButton.interactable = false;
                 if (signButton != null)
@@ -129,10 +129,13 @@ namespace FMLite.UI
         private void Refresh()
         {
             if (titleText != null)
-                titleText.text = $"유스 인스펙션  {_currentIntake.intakeDate:yyyy-MM-dd}";
+                titleText.text = Localization.Get(
+                    "youth_inspection_title_fmt",
+                    _currentIntake.intakeDate.ToString("yyyy-MM-dd")
+                );
 
             if (tokenText != null)
-                tokenText.text = $"리롤 토큰  {_state.rerollTokens}";
+                tokenText.text = Localization.Get("reroll_token_fmt", _state.rerollTokens);
 
             var facility = GameDatabase.GetFacilityLevel(
                 FacilityType.Youth,
@@ -141,8 +144,12 @@ namespace FMLite.UI
             if (facilityText != null)
                 facilityText.text =
                     facility != null
-                        ? $"유스 시설 Lv{_userClub.facilities.youthLevel}  (후보 {facility.youthPoolSize}명)"
-                        : $"유스 시설 Lv{_userClub.facilities.youthLevel}";
+                        ? Localization.Get(
+                            "youth_facility_full_fmt",
+                            _userClub.facilities.youthLevel,
+                            facility.youthPoolSize
+                        )
+                        : Localization.Get("youth_facility_fmt", _userClub.facilities.youthLevel);
 
             PopulateCandidates();
 
