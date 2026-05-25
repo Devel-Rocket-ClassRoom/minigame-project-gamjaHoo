@@ -10,14 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_5_\uBE45\uB9E4\uCE58\uD615"
+  m_Name: "Trait_13_\uBA58\uD0C8\uC57D\uC790"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 5
-  displayName: "\uBE45\uB9E4\uCE58\uD615"
-  description: "\uAC15\uD300 \uC0C1\uB300 \uACBD\uAE30\uC5D0\uC11C \uD65C\uC57D"
-  weight: 0.8
+  id: 13
+  displayName: "\uBA58\uD0C8\uC57D\uC790"
+  description: "\uC555\uBC15 \uC0C1\uD669\uC5D0\uC11C \uC27D\uAC8C \uD754\uB4E4\uB9BC"
+  weight: 0.6
   exclusionGroupId: 3
   effects:
   - type: 2
-    value: 20
+    value: -20
     targetStat: hidden:pressureHandling
+  - type: 3
+    value: -0.2
+    targetStat: fragile

@@ -17,3 +17,7 @@ MonoBehaviour:
   description: "\uC131\uC7A5\uC774 \uB2A6\uC9C0\uB9CC PA \uAC00 \uB192\uC74C"
   weight: 1
   exclusionGroupId: 1
+  effects:
+  - type: 2
+    value: 1.3
+    targetStat: 

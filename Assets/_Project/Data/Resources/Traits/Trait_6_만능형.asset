@@ -17,3 +17,7 @@ MonoBehaviour:
   description: "\uC5EC\uB7EC \uD3EC\uC9C0\uC158\uC744 \uC18C\uD654 \uAC00\uB2A5"
   weight: 0.8
   exclusionGroupId: 0
+  effects:
+  - type: 2
+    value: 20
+    targetStat: hidden:versatility

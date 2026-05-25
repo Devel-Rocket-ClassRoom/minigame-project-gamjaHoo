@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_5_\uBE45\uB9E4\uCE58\uD615"
+  m_Name: "Trait_8_\uBB34\uB9AC\uD55C\uD328\uC2A4"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 5
-  displayName: "\uBE45\uB9E4\uCE58\uD615"
-  description: "\uAC15\uD300 \uC0C1\uB300 \uACBD\uAE30\uC5D0\uC11C \uD65C\uC57D"
-  weight: 0.8
-  exclusionGroupId: 3
+  id: 8
+  displayName: "\uBB34\uB9AC\uD55C\uD328\uC2A4"
+  description: "\uC704\uD5D8\uD55C \uD328\uC2A4\uB97C \uC790\uC8FC \uC2DC\uB3C4\uD568"
+  weight: 0.7
+  exclusionGroupId: 0
   effects:
-  - type: 2
-    value: 20
-    targetStat: hidden:pressureHandling
+  - type: 0
+    value: 1.2
+    targetStat: risky_pass

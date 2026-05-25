@@ -10,10 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_4_\uBA58\uD0C8\uAC15\uC790"
+  m_Name: "Trait_18_\uC815\uC2E0\uC801\uB9AC\uB354"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 4
-  displayName: "\uBA58\uD0C8 \uAC15\uC790"
-  description: "\uD070 \uACBD\uAE30\uC5D0 \uAC15\uD568"
-  weight: 1
+  id: 18
+  displayName: "\uC815\uC2E0\uC801\uB9AC\uB354"
+  description: "\uD300 \uC0AC\uAE30\uC5D0 \uAE0D\uC815\uC801 \uC601\uD5A5"
+  weight: 0.5
   exclusionGroupId: 0
+  effects:
+  - type: 2
+    value: 20
+    targetStat: hidden:loyalty
+  - type: 3
+    value: 0.15
+    targetStat: leader

@@ -10,10 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_3_\uBD80\uC0C1\uCDE8\uC57D"
+  m_Name: "Trait_15_\uBA40\uD2F0\uD3EC\uC9C0\uC158"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 3
-  displayName: "\uBD80\uC0C1 \uCDE8\uC57D"
-  description: "\uBD80\uC0C1 \uBC1C\uC0DD \uBE48\uB3C4\uAC00 \uB192\uC74C"
+  id: 15
+  displayName: "\uBA40\uD2F0\uD3EC\uC9C0\uC158"
+  description: "\uB2E4\uC218\uC758 \uD3EC\uC9C0\uC158\uC744 \uC790\uC5F0\uC2A4\uB7FD\uAC8C
+    \uC18C\uD654"
   weight: 0.7
   exclusionGroupId: 0
+  effects:
+  - type: 2
+    value: 20
+    targetStat: hidden:versatility

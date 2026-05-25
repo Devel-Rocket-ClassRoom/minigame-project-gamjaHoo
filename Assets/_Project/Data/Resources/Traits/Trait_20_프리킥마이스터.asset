@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_5_\uBE45\uB9E4\uCE58\uD615"
+  m_Name: "Trait_20_\uD504\uB9AC\uD0A5\uB9C8\uC774\uC2A4\uD130"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 5
-  displayName: "\uBE45\uB9E4\uCE58\uD615"
-  description: "\uAC15\uD300 \uC0C1\uB300 \uACBD\uAE30\uC5D0\uC11C \uD65C\uC57D"
-  weight: 0.8
-  exclusionGroupId: 3
+  id: 20
+  displayName: "\uD504\uB9AC\uD0A5\uB9C8\uC774\uC2A4\uD130"
+  description: "\uD504\uB9AC\uD0A5 \uC815\uD655\uB3C4\uAC00 \uD0C1\uC6D4"
+  weight: 0.5
+  exclusionGroupId: 0
   effects:
-  - type: 2
-    value: 20
-    targetStat: hidden:pressureHandling
+  - type: 0
+    value: 1.35
+    targetStat: free_kick

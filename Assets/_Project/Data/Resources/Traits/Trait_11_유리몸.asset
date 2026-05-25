@@ -10,14 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7c6c1b6b6824fa8439acb1a93e374166, type: 3}
-  m_Name: "Trait_5_\uBE45\uB9E4\uCE58\uD615"
+  m_Name: "Trait_11_\uC720\uB9AC\uBAB8"
   m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.TraitSO
-  id: 5
-  displayName: "\uBE45\uB9E4\uCE58\uD615"
-  description: "\uAC15\uD300 \uC0C1\uB300 \uACBD\uAE30\uC5D0\uC11C \uD65C\uC57D"
-  weight: 0.8
-  exclusionGroupId: 3
+  id: 11
+  displayName: "\uC720\uB9AC\uBAB8"
+  description: "\uBD80\uC0C1 \uBC1C\uC0DD\uB960\uC774 \uB9E4\uC6B0 \uB192\uC74C"
+  weight: 0.5
+  exclusionGroupId: 2
   effects:
+  - type: 1
+    value: 2.5
+    targetStat: 
   - type: 2
-    value: 20
-    targetStat: hidden:pressureHandling
+    value: 30
+    targetStat: hidden:injuryProneness
+  - type: 4
+    value: 0.8
+    targetStat: 
