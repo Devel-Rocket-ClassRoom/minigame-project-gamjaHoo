@@ -35,6 +35,9 @@ namespace FMLite.Persistence
             if (string.IsNullOrWhiteSpace(slotName))
                 throw new ArgumentException("slotName must be non-empty", nameof(slotName));
 
+            // 직렬화 직전 현재 버전 스탬프 (design-decisions.md #52).
+            state.saveVersion = SaveMigration.CurrentVersion;
+
             var slotPath = GetSlotPath(slotName);
             Directory.CreateDirectory(slotPath);
 
@@ -66,10 +69,18 @@ namespace FMLite.Persistence
 
             var json = File.ReadAllText(statePath);
             var state = JsonConvert.DeserializeObject<GameState>(json);
-            state?.BuildIndexes();
 
             if (state != null)
+            {
+                // saveVersion 이 현재 버전보다 낮으면 마이그레이션 시도.
+                // V0.1 세이브 → NotSupportedException (Q8).
+                if (state.saveVersion < SaveMigration.CurrentVersion)
+                    state = SaveMigration.Migrate(state, SaveMigration.CurrentVersion);
+
+                state.BuildIndexes();
                 EventBus.Publish(new GameLoadedEvent());
+            }
+
             return state;
         }
 
