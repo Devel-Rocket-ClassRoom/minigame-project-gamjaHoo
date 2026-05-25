@@ -248,6 +248,63 @@ namespace FMLite.Tests
             }
         }
 
+        // ── Hidden Attrs T6. 분포 (100명 batch) ──────────────────────
+
+        [Test]
+        public void T_HiddenAttrs_Distribution_MeanAndStdInRange()
+        {
+            var rng = new Random(42);
+            var pressures = new List<double>();
+            for (int i = 0; i < 100; i++)
+            {
+                var p = Generate(rng, 50, Position.CM, 24, "ENG");
+                pressures.Add(p.hiddenAttrs.pressureHandling);
+            }
+            double mean = pressures.Average();
+            double std = Math.Sqrt(pressures.Average(x => (x - mean) * (x - mean)));
+
+            Assert.That(mean, Is.InRange(40.0, 60.0), $"Hidden avg ~50 (actual={mean:F1})");
+            Assert.That(std, Is.InRange(8.0, 22.0), $"Hidden std ~15 (actual={std:F1})");
+        }
+
+        // ── Hidden Attrs T7. 트레잇 보너스 ───────────────────────────
+
+        [Test]
+        public void T_HiddenAttrs_TraitBonus_AppliedToField()
+        {
+            var trait = ScriptableObject.CreateInstance<TraitSO>();
+            trait.id = 999;
+            trait.displayName = "TestPressure";
+            trait.weight = 9999f;
+            trait.effects = new List<TraitEffect>
+            {
+                new TraitEffect
+                {
+                    type = TraitEffectType.GrowthRateModifier,
+                    targetStat = "hidden:pressureHandling",
+                    value = 30f,
+                },
+            };
+            GameDatabase.Register(trait);
+
+            var rng = new Random(42);
+            int boostedCount = 0;
+            for (int i = 0; i < 50; i++)
+            {
+                var p = Generate(rng, 50, Position.CM, 24, "ENG");
+                if (p.traitIds.Contains(999))
+                {
+                    Assert.That(
+                        p.hiddenAttrs.pressureHandling,
+                        Is.GreaterThan(30),
+                        "Trait bonus should push pressureHandling above 30"
+                    );
+                    boostedCount++;
+                }
+            }
+            Assert.That(boostedCount, Is.GreaterThan(0), "At least one player should have trait 999");
+        }
+
         // ── Generate 래퍼 (테스트 내 반복 줄이기) ────────────────────
 
         private Player Generate(Random rng, int rep, Position pos, int age, string nationality) =>

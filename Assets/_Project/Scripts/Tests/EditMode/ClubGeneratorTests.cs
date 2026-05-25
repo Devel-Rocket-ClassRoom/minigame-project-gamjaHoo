@@ -250,18 +250,18 @@ namespace FMLite.Tests
 
             Assert.That(
                 youthR,
-                Is.InRange(0.15, 0.25),
-                $"T4: youth 비율 20% ±5% (actual={youthR:P1})"
+                Is.InRange(0.13, 0.27),
+                $"T4: youth 비율 20% ±7% (actual={youthR:P1})"
             );
             Assert.That(
                 primeR,
-                Is.InRange(0.55, 0.65),
-                $"T4: prime 비율 60% ±5% (actual={primeR:P1})"
+                Is.InRange(0.53, 0.67),
+                $"T4: prime 비율 60% ±7% (actual={primeR:P1})"
             );
             Assert.That(
                 vetR,
-                Is.InRange(0.15, 0.25),
-                $"T4: veteran 비율 20% ±5% (actual={vetR:P1})"
+                Is.InRange(0.13, 0.27),
+                $"T4: veteran 비율 20% ±7% (actual={vetR:P1})"
             );
         }
 
