@@ -26,5 +26,14 @@ namespace FMLite.Domain
         public float rating;
         public int yellowCards;
         public int redCards;
+
+        // V1.0 확장 (design-decisions.md #44)
+        public int shots;
+        public int passes;
+        public int tackles;
+        public int interceptions;
+        public int keyPasses;
+        public int foulsCommitted;
+        public int foulsSuffered;
     }
 }

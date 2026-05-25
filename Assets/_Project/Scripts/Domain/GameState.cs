@@ -44,6 +44,13 @@ namespace FMLite.Domain
         public List<League> leagues = new List<League>();
         public List<TransferOffer> activeOffers = new List<TransferOffer>();
 
+        // V1.0 신규 (design-decisions.md #43, #51)
+        public List<Promise> activePromises = new List<Promise>();
+        public List<SeasonAward> activeAwards = new List<SeasonAward>();
+        public int managerReputation = 50; // 0-100
+        public int nextPromiseId = 1;
+        public int nextAwardId = 1;
+
         // 런타임 인덱스 (직렬화 제외, 로드 후 BuildIndexes 필요)
         [JsonIgnore]
         private Dictionary<int, Player> _playerById;

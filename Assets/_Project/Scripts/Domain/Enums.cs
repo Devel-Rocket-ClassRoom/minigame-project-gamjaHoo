@@ -38,7 +38,8 @@ namespace FMLite.Domain
     public enum OfferStatus
     {
         Pending,
-        Negotiating,
+        Negotiating, // 구단 승인 후 선수 개인 협상 단계 (design-decisions.md #48)
+        CounterOffer, // 판매 구단 역제안 단계
         Accepted,
         Rejected,
         Completed,
@@ -66,6 +67,12 @@ namespace FMLite.Domain
     {
         Scout,
         Training,
-        Youth,
+        Youth, // V0.1 호환 유지 — V1.0에서 YouthCoach/YouthRecruitment/YouthFacility 로 분리됨
+        YouthCoach, // 유스 평균 PA + 트레잇 가중치 (design-decisions.md #49)
+        YouthRecruitment, // 유스 풀 크기 + 인스펙션 빈도
+        YouthFacility, // 유스 성장률 + 콜업 적응
+        Medical, // 부상 회복 속도 + 발생률 ↓
+        Stadium, // 입장료 수입 + 명성 가산
+        Gym, // 피지컬 성장률 + 부상 회복
     }
 }
