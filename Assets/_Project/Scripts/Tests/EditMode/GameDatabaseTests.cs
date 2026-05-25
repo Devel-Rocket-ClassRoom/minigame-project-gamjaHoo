@@ -82,6 +82,45 @@ namespace FMLite.Tests
         }
 
         [Test]
+        public void Register_Formation_RetrievableById()
+        {
+            var f = ScriptableObject.CreateInstance<FormationSO>();
+            f.id = 1;
+            f.displayName = "4-4-2";
+
+            GameDatabase.Register(f);
+
+            Assert.AreSame(f, GameDatabase.GetFormation(1));
+        }
+
+        [Test]
+        public void Register_PlayerRole_RetrievableById()
+        {
+            var r = ScriptableObject.CreateInstance<PlayerRoleSO>();
+            r.id = 10;
+            r.displayName = "Striker";
+
+            GameDatabase.Register(r);
+
+            Assert.AreSame(r, GameDatabase.GetPlayerRole(10));
+        }
+
+        [Test]
+        public void Register_InjuryType_RetrievableById()
+        {
+            var i = ScriptableObject.CreateInstance<InjuryTypeSO>();
+            i.id = 5;
+            i.displayName = "햄스트링 부상";
+            i.minDays = 14;
+            i.maxDays = 42;
+
+            GameDatabase.Register(i);
+
+            Assert.AreSame(i, GameDatabase.GetInjuryType(5));
+            Assert.AreEqual(14, GameDatabase.GetInjuryType(5).minDays);
+        }
+
+        [Test]
         public void Get_NonexistentId_ReturnsNull()
         {
             Assert.IsNull(GameDatabase.GetTrait(999));
@@ -90,6 +129,9 @@ namespace FMLite.Tests
             Assert.IsNull(GameDatabase.GetNamePool(999));
             Assert.IsNull(GameDatabase.GetLeagueConfig(999));
             Assert.IsNull(GameDatabase.GetFacilityLevel(FacilityType.Youth, 99));
+            Assert.IsNull(GameDatabase.GetFormation(999));
+            Assert.IsNull(GameDatabase.GetPlayerRole(999));
+            Assert.IsNull(GameDatabase.GetInjuryType(999));
             Assert.IsNull(GameDatabase.GameBalance);
         }
 
