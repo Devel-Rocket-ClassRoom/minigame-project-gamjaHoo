@@ -64,14 +64,14 @@ namespace FMLite.Domain
         public float paGapStdDev = 15f;
 
         [Header("Player Generation — Stats Distribution")]
-        public float statMeanAtCAFloor = 4f;
-        public float statMeanAtCACeil = 17f;
-        public float statEmphasisBonus = 2f;
-        public float statEmphasisPenalty = 2f;
-        public float statStdDev = 2.5f;
-        public float gkSecondaryStatPenalty = 1f; // GK 의 멘탈/피지컬 평균 감점
-        public float gkOutfieldStatPenalty = 8f; // GK 의 테크니컬 평균 감점
-        public float outfieldGkStatBase = 3f; // 필드 플레이어의 GK 스탯 평균
+        public float statMeanAtCAFloor = 25f; // 1-100 스케일 (V0.1: 4)
+        public float statMeanAtCACeil = 85f; // 1-100 스케일 (V0.1: 17)
+        public float statEmphasisBonus = 10f; // 1-100 스케일 (V0.1: 2)
+        public float statEmphasisPenalty = 5f; // 1-100 스케일 (V0.1: 2)
+        public float statStdDev = 10f; // 1-100 스케일 (V0.1: 2.5)
+        public float gkSecondaryStatPenalty = 10f; // GK 의 멘탈/피지컬 평균 감점 (V0.1: 1)
+        public float gkOutfieldStatPenalty = 40f; // GK 의 테크니컬 평균 감점 (V0.1: 8)
+        public float outfieldGkStatBase = 15f; // 필드 플레이어의 GK 스탯 평균 (V0.1: 3)
 
         [Header("Player Generation — Traits")]
         public float traitProbabilityPerPlayer = 0.30f;

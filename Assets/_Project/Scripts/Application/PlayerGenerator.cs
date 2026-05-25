@@ -370,7 +370,7 @@ namespace FMLite.Application
             return pool;
         }
 
-        private static int ClampStat(double x) => Math.Clamp((int)Math.Round(x), 1, 20);
+        private static int ClampStat(double x) => Math.Clamp((int)Math.Round(x), 1, 100);
 
         private static double Lerp(double a, double b, double t) => a + (b - a) * t;
 
