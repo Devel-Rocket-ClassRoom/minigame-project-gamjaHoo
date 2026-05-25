@@ -182,21 +182,21 @@ namespace FMLite.Application
                 ^ intake.rerollsUsed;
             var rng = new Random(seed);
 
-            // 2단계: 풀 사이즈 = FacilityLevelSO(Youth).youthPoolSize
+            // 2단계: 풀 사이즈 = FacilityLevelSO(YouthCoach).youthPoolSize
             var facility = GameDatabase.GetFacilityLevel(
-                FacilityType.Youth,
-                club.facilities.youthLevel
+                FacilityType.YouthCoach,
+                club.facilities.youthCoachLevel
             );
             if (facility == null)
             {
                 Debug.LogWarning(
-                    $"[YouthSystem] FacilityLevelSO(Youth, lv={club.facilities.youthLevel}) not found — Lv1 폴백"
+                    $"[YouthSystem] FacilityLevelSO(YouthCoach, lv={club.facilities.youthCoachLevel}) not found — Lv1 폴백"
                 );
-                facility = GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
+                facility = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 1);
                 if (facility == null)
                 {
                     Debug.LogError(
-                        "[YouthSystem] FacilityLevelSO(Youth, lv=1) 도 없음 — intake 빈 풀 반환"
+                        "[YouthSystem] FacilityLevelSO(YouthCoach, lv=1) 도 없음 — intake 빈 풀 반환"
                     );
                     return;
                 }

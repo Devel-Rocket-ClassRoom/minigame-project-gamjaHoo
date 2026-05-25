@@ -43,8 +43,8 @@ namespace FMLite.Tests
         [Test]
         public void T1_Determinism_SameInputSameResult()
         {
-            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
-            var (s2, c2) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
+            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
+            var (s2, c2) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
 
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
             var i2 = YouthSystem.GenerateIntake(c2, s2, _balance, _leagueConfig);
@@ -73,8 +73,8 @@ namespace FMLite.Tests
         [Test]
         public void T2_UserActionHash_AffectsSeed()
         {
-            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
-            var (s2, c2) = BuildScenario(userMoney: 10_000_001, youthLevel: 3, seed: 42);
+            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
+            var (s2, c2) = BuildScenario(userMoney: 10_000_001, youthCoachLevel: 3, seed: 42);
 
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
             var i2 = YouthSystem.GenerateIntake(c2, s2, _balance, _leagueConfig);
@@ -95,18 +95,18 @@ namespace FMLite.Tests
         [Test]
         public void T3_PoolSize_MatchesFacilityYouthPoolSize()
         {
-            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthLevel: 1, seed: 42);
+            var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 1, seed: 42);
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
-            var facility1 = GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
+            var facility1 = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 1);
             Assert.AreEqual(
                 facility1.youthPoolSize,
                 i1.candidatePlayerIds.Count,
                 "T3: Lv1 풀 사이즈"
             );
 
-            var (s5, c5) = BuildScenario(userMoney: 10_000_000, youthLevel: 5, seed: 42);
+            var (s5, c5) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 5, seed: 42);
             var i5 = YouthSystem.GenerateIntake(c5, s5, _balance, _leagueConfig);
-            var facility5 = GameDatabase.GetFacilityLevel(FacilityType.Youth, 5);
+            var facility5 = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 5);
             Assert.AreEqual(
                 facility5.youthPoolSize,
                 i5.candidatePlayerIds.Count,
@@ -120,7 +120,7 @@ namespace FMLite.Tests
         public void T4_PaDistribution_StarPickAppears()
         {
             // Lv3 (avgPA 130) 으로 30 인스펙션 누적 → 약 600명 — 5% ≈ 30명 스타
-            var pas = CollectPAs(youthLevel: 3, intakeCount: 30, baseSeed: 100);
+            var pas = CollectPAs(youthCoachLevel: 3, intakeCount: 30, baseSeed: 100);
 
             int starCount = pas.Count(pa => pa >= 160); // avgPA 130 + bonus 50 - some σ → 160+ 가 스타 영역
             double starRate = (double)starCount / pas.Count;
@@ -136,7 +136,7 @@ namespace FMLite.Tests
         [Test]
         public void T5_CaPaCorrelation_BelowThreshold()
         {
-            var pairs = CollectCaPaPairs(youthLevel: 3, intakeCount: 30, baseSeed: 200);
+            var pairs = CollectCaPaPairs(youthCoachLevel: 3, intakeCount: 30, baseSeed: 200);
             double corr = PearsonCorrelation(
                 pairs.Select(p => (double)p.ca),
                 pairs.Select(p => (double)p.pa)
@@ -152,7 +152,7 @@ namespace FMLite.Tests
         [Test]
         public void T6_AgeWeightDistribution()
         {
-            var ages = CollectAges(youthLevel: 3, intakeCount: 30, baseSeed: 300);
+            var ages = CollectAges(youthCoachLevel: 3, intakeCount: 30, baseSeed: 300);
             int n = ages.Count;
             double r16 = (double)ages.Count(a => a == 16) / n;
             double r17 = (double)ages.Count(a => a == 17) / n;
@@ -180,7 +180,7 @@ namespace FMLite.Tests
         [Test]
         public void T7_NationalityDistribution()
         {
-            var nats = CollectNationalities(youthLevel: 3, intakeCount: 30, baseSeed: 400);
+            var nats = CollectNationalities(youthCoachLevel: 3, intakeCount: 30, baseSeed: 400);
             int n = nats.Count;
             double engRatio = (double)nats.Count(c => c == "ENG") / n;
             Assert.That(
@@ -195,8 +195,8 @@ namespace FMLite.Tests
         [Test]
         public void T8_FacilityLevel_AveragePaDifference()
         {
-            var pas1 = CollectPAs(youthLevel: 1, intakeCount: 30, baseSeed: 500);
-            var pas5 = CollectPAs(youthLevel: 5, intakeCount: 30, baseSeed: 600);
+            var pas1 = CollectPAs(youthCoachLevel: 1, intakeCount: 30, baseSeed: 500);
+            var pas5 = CollectPAs(youthCoachLevel: 5, intakeCount: 30, baseSeed: 600);
             double avg1 = pas1.Average();
             double avg5 = pas5.Average();
             Assert.IsTrue(avg5 > avg1, $"T8: Lv5 평균 PA ({avg5:F1}) > Lv1 평균 PA ({avg1:F1})");
@@ -210,7 +210,7 @@ namespace FMLite.Tests
         [Test]
         public void T9_Reroll_DecrementsTokenAndChangesPool()
         {
-            var (state, club) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
+            var (state, club) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
             state.rerollTokens = 3;
             var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
             var beforeIds = intake.candidatePlayerIds.ToList();
@@ -231,7 +231,7 @@ namespace FMLite.Tests
         [Test]
         public void T9b_Reroll_NoTokens_Throws()
         {
-            var (state, club) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
+            var (state, club) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
             state.rerollTokens = 0;
             var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
             Assert.Throws<InvalidOperationException>(() =>
@@ -244,7 +244,7 @@ namespace FMLite.Tests
         [Test]
         public void T10_SignPlayers_SignsAndRemovesRejected()
         {
-            var (state, club) = BuildScenario(userMoney: 10_000_000, youthLevel: 3, seed: 42);
+            var (state, club) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 3, seed: 42);
             var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
             var allIds = intake.candidatePlayerIds.ToList();
             int total = allIds.Count;
@@ -283,7 +283,7 @@ namespace FMLite.Tests
 
         // ── Helpers ───────────────────────────────────────────────────
 
-        private (GameState state, Club club) BuildScenario(int userMoney, int youthLevel, int seed)
+        private (GameState state, Club club) BuildScenario(int userMoney, int youthCoachLevel, int seed)
         {
             var state = new GameState
             {
@@ -305,7 +305,7 @@ namespace FMLite.Tests
                 {
                     scoutLevel = 3,
                     trainingLevel = 3,
-                    youthLevel = youthLevel,
+                    youthCoachLevel = youthCoachLevel,
                 },
                 finance = new Finance { money = userMoney },
                 seniorSquadIds = new List<int>(),
@@ -330,11 +330,11 @@ namespace FMLite.Tests
 
         // 누적 인스펙션 — 통계 테스트용. seed 마다 새 시나리오 → 한 시나리오에서 GenerateIntake 호출.
         // nextIntakeId / nextPlayerId 가 자동 증가하면서 매 호출마다 다른 시드 → 풀 다양화.
-        private IEnumerable<Player> CollectPlayers(int youthLevel, int intakeCount, int baseSeed)
+        private IEnumerable<Player> CollectPlayers(int youthCoachLevel, int intakeCount, int baseSeed)
         {
             var (state, club) = BuildScenario(
                 userMoney: 10_000_000,
-                youthLevel: youthLevel,
+                youthCoachLevel: youthCoachLevel,
                 seed: baseSeed
             );
             var players = new List<Player>();
@@ -347,27 +347,27 @@ namespace FMLite.Tests
             return players;
         }
 
-        private List<int> CollectPAs(int youthLevel, int intakeCount, int baseSeed) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed)
+        private List<int> CollectPAs(int youthCoachLevel, int intakeCount, int baseSeed) =>
+            CollectPlayers(youthCoachLevel, intakeCount, baseSeed)
                 .Select(p => p.potentialAbility)
                 .ToList();
 
         private List<(int ca, int pa)> CollectCaPaPairs(
-            int youthLevel,
+            int youthCoachLevel,
             int intakeCount,
             int baseSeed
         ) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed)
+            CollectPlayers(youthCoachLevel, intakeCount, baseSeed)
                 .Select(p => (p.currentAbility, p.potentialAbility))
                 .ToList();
 
-        private List<int> CollectAges(int youthLevel, int intakeCount, int baseSeed) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed)
+        private List<int> CollectAges(int youthCoachLevel, int intakeCount, int baseSeed) =>
+            CollectPlayers(youthCoachLevel, intakeCount, baseSeed)
                 .Select(p => (_today.Year - p.info.birthDate.Year))
                 .ToList();
 
-        private List<string> CollectNationalities(int youthLevel, int intakeCount, int baseSeed) =>
-            CollectPlayers(youthLevel, intakeCount, baseSeed)
+        private List<string> CollectNationalities(int youthCoachLevel, int intakeCount, int baseSeed) =>
+            CollectPlayers(youthCoachLevel, intakeCount, baseSeed)
                 .Select(p => p.info.nationalityCode)
                 .ToList();
 
@@ -423,7 +423,7 @@ namespace FMLite.Tests
             foreach (var (lv, pool, avgPa) in levels)
             {
                 var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
-                so.facilityType = FacilityType.Youth;
+                so.facilityType = FacilityType.YouthCoach;
                 so.level = lv;
                 so.youthPoolSize = pool;
                 so.youthAvgPA = avgPa;
