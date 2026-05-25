@@ -22,6 +22,7 @@ namespace FMLite.Editor
             GeneratePlayerRoles();
             GenerateInjuryTypes();
             GenerateFacilityLevelsV10();
+            GenerateTraitsV10();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("[SeedV10Data] V1.0 seed data generated.");
@@ -498,5 +499,249 @@ namespace FMLite.Editor
 
         private static void GenerateFacilityLevelsV10() =>
             GenerateeFacilityLevelsV10Impl();
+
+        // ── Traits V1.0 (C.2 + C.3) ──────────────────────────────────────
+        // exclusionGroupId: 0=없음 / 1=DevelopmentSpeed / 2=Durability / 3=PressureMentality
+
+        [MenuItem("FM-Lite/Seed/Generate V1.0 Traits")]
+        public static void GenerateTraitsV10()
+        {
+            EnsureFolder(Res, "Traits");
+
+            // (id, displayName, desc, weight, exclusionGroupId, effects[])
+            // effect tuple: (type, value, targetStat)
+            var defs = new (
+                int id,
+                string name,
+                string desc,
+                float weight,
+                int group,
+                (TraitEffectType type, float value, string target)[] fx
+            )[]
+            {
+                // ── 기존 6개 effects 채움 ─────────────────────────────────────
+                (
+                    1,
+                    "늦깎이형",
+                    "성장이 늦지만 PA 가 높음",
+                    1.0f,
+                    1,
+                    new[] { (TraitEffectType.GrowthRateModifier, 1.3f, "") }
+                ),
+                (
+                    2,
+                    "조숙형",
+                    "어린 나이에 빠르게 성장",
+                    1.0f,
+                    1,
+                    new[] { (TraitEffectType.GrowthRateModifier, 0.7f, "") }
+                ),
+                (
+                    3,
+                    "부상 취약",
+                    "부상 발생 빈도가 높음",
+                    0.7f,
+                    0,
+                    new[]
+                    {
+                        (TraitEffectType.InjuryRateModifier, 2.0f, ""),
+                        (TraitEffectType.GrowthRateModifier, 30f, "hidden:injuryProneness"),
+                    }
+                ),
+                (
+                    4,
+                    "멘탈 강자",
+                    "큰 경기에 강함",
+                    1.0f,
+                    0,
+                    new[] { (TraitEffectType.GrowthRateModifier, 15f, "hidden:professionalism") }
+                ),
+                (
+                    5,
+                    "빅매치형",
+                    "강팀 상대 경기에서 활약",
+                    0.8f,
+                    3, // PressureMentality 그룹 (C.3)
+                    new[] { (TraitEffectType.GrowthRateModifier, 20f, "hidden:pressureHandling") }
+                ),
+                (
+                    6,
+                    "만능형",
+                    "여러 포지션을 소화 가능",
+                    0.8f,
+                    0,
+                    new[] { (TraitEffectType.GrowthRateModifier, 20f, "hidden:versatility") }
+                ),
+                // ── 신규 14개 ─────────────────────────────────────────────────
+                (
+                    7,
+                    "클러치형",
+                    "결정적 순간에 강한 집중력",
+                    0.6f,
+                    0,
+                    new[]
+                    {
+                        (TraitEffectType.GrowthRateModifier, 25f, "hidden:pressureHandling"),
+                        (TraitEffectType.MatchModifier, 1.15f, "clutch_match"),
+                    }
+                ),
+                (
+                    8,
+                    "무리한패스",
+                    "위험한 패스를 자주 시도함",
+                    0.7f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.2f, "risky_pass") }
+                ),
+                (
+                    9,
+                    "와이드플레이어",
+                    "측면 공간을 적극 활용",
+                    0.8f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.2f, "wide_play") }
+                ),
+                (
+                    10,
+                    "자국인우대",
+                    "고향 구단 이적 선호",
+                    0.5f,
+                    0,
+                    new[] { (TraitEffectType.MoralePropensity, -0.1f, "homesick") }
+                ),
+                (
+                    11,
+                    "유리몸",
+                    "부상 발생률이 매우 높음",
+                    0.5f,
+                    2, // Durability 그룹 (C.3)
+                    new[]
+                    {
+                        (TraitEffectType.InjuryRateModifier, 2.5f, ""),
+                        (TraitEffectType.GrowthRateModifier, 30f, "hidden:injuryProneness"),
+                        (TraitEffectType.MarketValueModifier, 0.8f, ""),
+                    }
+                ),
+                (
+                    12,
+                    "철인",
+                    "부상 발생률이 매우 낮음",
+                    0.8f,
+                    2, // Durability 그룹 (C.3)
+                    new[]
+                    {
+                        (TraitEffectType.InjuryRateModifier, 0.4f, ""),
+                        (TraitEffectType.GrowthRateModifier, -20f, "hidden:injuryProneness"),
+                        (TraitEffectType.MarketValueModifier, 1.1f, ""),
+                    }
+                ),
+                (
+                    13,
+                    "멘탈약자",
+                    "압박 상황에서 쉽게 흔들림",
+                    0.6f,
+                    3, // PressureMentality 그룹 (C.3)
+                    new[]
+                    {
+                        (TraitEffectType.GrowthRateModifier, -20f, "hidden:pressureHandling"),
+                        (TraitEffectType.MoralePropensity, -0.2f, "fragile"),
+                    }
+                ),
+                (
+                    14,
+                    "슈퍼유망주",
+                    "잠재력이 매우 높음",
+                    0.3f,
+                    0,
+                    new[]
+                    {
+                        (TraitEffectType.GrowthRateModifier, 1.5f, ""),
+                        (TraitEffectType.MarketValueModifier, 1.2f, ""),
+                    }
+                ),
+                (
+                    15,
+                    "멀티포지션",
+                    "다수의 포지션을 자연스럽게 소화",
+                    0.7f,
+                    0,
+                    new[] { (TraitEffectType.GrowthRateModifier, 20f, "hidden:versatility") }
+                ),
+                (
+                    16,
+                    "골결정력",
+                    "득점 기회를 냉정하게 마무리",
+                    0.6f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.25f, "clinical_finish") }
+                ),
+                (
+                    17,
+                    "수비형윙백",
+                    "공격보다 수비에 치중하는 윙백",
+                    0.7f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.1f, "defensive_wing") }
+                ),
+                (
+                    18,
+                    "정신적리더",
+                    "팀 사기에 긍정적 영향",
+                    0.5f,
+                    0,
+                    new[]
+                    {
+                        (TraitEffectType.GrowthRateModifier, 20f, "hidden:loyalty"),
+                        (TraitEffectType.MoralePropensity, 0.15f, "leader"),
+                    }
+                ),
+                (
+                    19,
+                    "페널티스페셜리스트",
+                    "페널티킥 성공률이 높음",
+                    0.5f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.3f, "penalty") }
+                ),
+                (
+                    20,
+                    "프리킥마이스터",
+                    "프리킥 정확도가 탁월",
+                    0.5f,
+                    0,
+                    new[] { (TraitEffectType.MatchModifier, 1.35f, "free_kick") }
+                ),
+            };
+
+            foreach (var d in defs)
+            {
+                var path =
+                    Res + "/Traits/Trait_" + d.id + "_" + Sanitize(d.name) + ".asset";
+                var so = CreateOrLoad<TraitSO>(path);
+                so.id = d.id;
+                so.displayName = d.name;
+                so.description = d.desc;
+                so.weight = d.weight;
+                so.exclusionGroupId = d.group;
+                so.effects = new List<TraitEffect>();
+                foreach (var (type, value, target) in d.fx)
+                    so.effects.Add(
+                        new TraitEffect
+                        {
+                            type = type,
+                            value = value,
+                            targetStat = target,
+                        }
+                    );
+                EditorUtility.SetDirty(so);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[SeedV10Data] 20 traits generated/updated.");
+        }
+
+        private static string Sanitize(string s) =>
+            System.Text.RegularExpressions.Regex.Replace(s, @"[^a-zA-Z0-9가-힣]", "_");
     }
 }
