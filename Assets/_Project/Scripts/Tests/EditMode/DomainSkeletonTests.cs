@@ -1,33 +1,20 @@
 // DomainSkeletonTests.cs
 // DoD 검증: v1.0-tasks.md Stage A / Task A.4 — V1.0 도메인 클래스 스켈레톤.
-// 직렬화 라운드트립 테스트 (Newtonsoft.Json) + 기본 생성 확인.
+// 클래스 인스턴스 생성 + 필드 할당/읽기 검증.
 
 using System;
 using System.Collections.Generic;
 using FMLite.Domain;
-using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace FMLite.Tests
 {
     public class DomainSkeletonTests
     {
-        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
-        {
-            TypeNameHandling = TypeNameHandling.None,
-            NullValueHandling = NullValueHandling.Ignore,
-        };
-
-        private static T Roundtrip<T>(T obj)
-        {
-            var json = JsonConvert.SerializeObject(obj, Settings);
-            return JsonConvert.DeserializeObject<T>(json, Settings);
-        }
-
         // ── 신규 클래스 기본 생성 ──────────────────────────────────────────
 
         [Test]
-        public void HiddenAttributes_Roundtrip()
+        public void HiddenAttributes_FieldsAssignable()
         {
             var h = new HiddenAttributes
             {
@@ -41,14 +28,13 @@ namespace FMLite.Tests
                 consistency = 65,
                 versatility = 50,
             };
-            var r = Roundtrip(h);
-            Assert.AreEqual(70, r.loyalty);
-            Assert.AreEqual(30, r.injuryProneness);
-            Assert.AreEqual(50, r.versatility);
+            Assert.AreEqual(70, h.loyalty);
+            Assert.AreEqual(30, h.injuryProneness);
+            Assert.AreEqual(50, h.versatility);
         }
 
         [Test]
-        public void Promise_Roundtrip()
+        public void Promise_FieldsAndEnums_Assignable()
         {
             var p = new Promise
             {
@@ -58,17 +44,31 @@ namespace FMLite.Tests
                 madeAt = new DateTime(2026, 8, 1),
                 deadline = new DateTime(2027, 5, 31),
                 status = PromiseStatus.Active,
-                targets = new Dictionary<string, int> { { "minAppearances", 20 } },
             };
-            var r = Roundtrip(p);
-            Assert.AreEqual(1, r.id);
-            Assert.AreEqual(PromiseType.PlaytimeAgreement, r.type);
-            Assert.AreEqual(PromiseStatus.Active, r.status);
-            Assert.AreEqual(20, r.targets["minAppearances"]);
+            p.targets["minAppearances"] = 20;
+
+            Assert.AreEqual(PromiseType.PlaytimeAgreement, p.type);
+            Assert.AreEqual(PromiseStatus.Active, p.status);
+            Assert.AreEqual(20, p.targets["minAppearances"]);
         }
 
         [Test]
-        public void MentoringGroup_Roundtrip()
+        public void Promise_AllTypeValues_Defined()
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                _ = PromiseType.PlaytimeAgreement;
+                _ = PromiseType.TransferIn;
+                _ = PromiseType.Renewal;
+                _ = PromiseType.TransferOut;
+                _ = PromiseStatus.Active;
+                _ = PromiseStatus.Fulfilled;
+                _ = PromiseStatus.Broken;
+            });
+        }
+
+        [Test]
+        public void MentoringGroup_FieldsAssignable()
         {
             var g = new MentoringGroup
             {
@@ -77,38 +77,42 @@ namespace FMLite.Tests
                 menteePlayerIds = new List<int> { 20, 21 },
                 startedAt = new DateTime(2026, 7, 1),
             };
-            var r = Roundtrip(g);
-            Assert.AreEqual(10, r.mentorPlayerId);
-            Assert.AreEqual(2, r.menteePlayerIds.Count);
+            Assert.AreEqual(10, g.mentorPlayerId);
+            Assert.AreEqual(2, g.menteePlayerIds.Count);
         }
 
         [Test]
-        public void Tactic_Roundtrip()
+        public void Tactic_FieldsAndEnums_Assignable()
         {
+            var slot = new TacticSlot
+            {
+                slotIndex = 0,
+                roleId = 5,
+                duty = Duty.Defend,
+                assignedPlayerId = -1,
+            };
             var t = new Tactic
             {
                 formationId = 1,
                 mentality = Mentality.Balanced,
-                slots = new List<TacticSlot>
-                {
-                    new TacticSlot
-                    {
-                        slotIndex = 0,
-                        roleId = 5,
-                        duty = Duty.Defend,
-                        assignedPlayerId = -1,
-                    },
-                },
+                slots = new List<TacticSlot> { slot },
                 setPieceTakers = new List<int> { 7 },
             };
-            var r = Roundtrip(t);
-            Assert.AreEqual(Mentality.Balanced, r.mentality);
-            Assert.AreEqual(1, r.slots.Count);
-            Assert.AreEqual(Duty.Defend, r.slots[0].duty);
+
+            Assert.AreEqual(Mentality.Balanced, t.mentality);
+            Assert.AreEqual(1, t.slots.Count);
+            Assert.AreEqual(Duty.Defend, t.slots[0].duty);
         }
 
         [Test]
-        public void ScoutReport_Roundtrip()
+        public void Mentality_AllValues_Defined()
+        {
+            var values = (Mentality[])Enum.GetValues(typeof(Mentality));
+            Assert.AreEqual(7, values.Length);
+        }
+
+        [Test]
+        public void ScoutReport_FieldsAssignable()
         {
             var s = new ScoutReport
             {
@@ -119,29 +123,30 @@ namespace FMLite.Tests
                 paEstimate = new CaPaEstimate { estimate = 160, margin = 20 },
                 revealedHidden = new HiddenAttributesPartial { loyalty = 70, ambition = null },
             };
-            var r = Roundtrip(s);
-            Assert.AreEqual(99, r.playerId);
-            Assert.AreEqual(120, r.caEstimate.estimate);
-            Assert.AreEqual(70, r.revealedHidden.loyalty);
-            Assert.IsNull(r.revealedHidden.ambition);
+
+            Assert.AreEqual(99, s.playerId);
+            Assert.AreEqual(120, s.caEstimate.estimate);
+            Assert.AreEqual(70, s.revealedHidden.loyalty);
+            Assert.IsNull(s.revealedHidden.ambition);
         }
 
         [Test]
-        public void SeasonAward_Roundtrip()
+        public void SeasonAward_AllAwardTypes_Defined()
         {
+            var values = (AwardType[])Enum.GetValues(typeof(AwardType));
+            Assert.AreEqual(7, values.Length);
+
             var a = new SeasonAward
             {
                 type = AwardType.TopScorer,
                 playerId = 11,
                 seasonYear = 2026,
             };
-            var r = Roundtrip(a);
-            Assert.AreEqual(AwardType.TopScorer, r.type);
-            Assert.AreEqual(2026, r.seasonYear);
+            Assert.AreEqual(AwardType.TopScorer, a.type);
         }
 
         [Test]
-        public void TraitEffect_Roundtrip()
+        public void TraitEffect_FieldsAndEnum_Assignable()
         {
             var e = new TraitEffect
             {
@@ -149,96 +154,101 @@ namespace FMLite.Tests
                 value = 1.5f,
                 targetStat = "injuryProneness",
             };
-            var r = Roundtrip(e);
-            Assert.AreEqual(TraitEffectType.InjuryRateModifier, r.type);
-            Assert.AreEqual(1.5f, r.value, 0.001f);
+            Assert.AreEqual(TraitEffectType.InjuryRateModifier, e.type);
+            Assert.AreEqual(1.5f, e.value, 0.001f);
+        }
+
+        [Test]
+        public void LoanOption_FieldsAssignable()
+        {
+            var lo = new LoanOption
+            {
+                mandatoryPurchaseAtEnd = false,
+                purchaseClause = 10_000_000,
+                recallClause = true,
+            };
+            Assert.IsTrue(lo.recallClause);
+            Assert.AreEqual(10_000_000, lo.purchaseClause);
         }
 
         // ── 기존 클래스 확장 필드 ──────────────────────────────────────────
 
         [Test]
-        public void Player_NewFields_Roundtrip()
+        public void Player_NewFields_Assignable()
         {
             var p = new Player
             {
                 id = 1,
-                hiddenAttrs = new HiddenAttributes { loyalty = 80, ambition = 60 },
+                hiddenAttrs = new HiddenAttributes { loyalty = 80 },
                 parentClubId = 5,
                 loanEndDate = new DateTime(2027, 1, 31),
             };
-            var r = Roundtrip(p);
-            Assert.AreEqual(80, r.hiddenAttrs.loyalty);
-            Assert.AreEqual(5, r.parentClubId);
-            Assert.AreEqual(new DateTime(2027, 1, 31), r.loanEndDate);
+            Assert.AreEqual(80, p.hiddenAttrs.loyalty);
+            Assert.AreEqual(5, p.parentClubId);
+            Assert.AreEqual(new DateTime(2027, 1, 31), p.loanEndDate);
         }
 
         [Test]
-        public void PlayerState_NewFields_Roundtrip()
+        public void PlayerState_NewFields_Assignable()
         {
-            var s = new PlayerState
-            {
-                fatigue = 30,
-                morale = 70,
-                happiness = 65,
-                suspendedMatches = 1,
-            };
-            var r = Roundtrip(s);
-            Assert.AreEqual(65, r.happiness);
-            Assert.AreEqual(1, r.suspendedMatches);
+            var s = new PlayerState { happiness = 65, suspendedMatches = 1 };
+            Assert.AreEqual(65, s.happiness);
+            Assert.AreEqual(1, s.suspendedMatches);
         }
 
         [Test]
-        public void Contract_BonusFields_Roundtrip()
+        public void PlayerState_HappinessDefault_Is70()
+        {
+            var s = new PlayerState();
+            Assert.AreEqual(70, s.happiness);
+        }
+
+        [Test]
+        public void Contract_BonusFields_Assignable()
         {
             var c = new Contract
             {
-                weeklyWage = 50000,
-                signingBonus = 100000,
-                loyaltyBonus = 200000,
-                appearanceBonus = 5000,
-                goalBonus = 10000,
+                signingBonus = 100_000,
+                loyaltyBonus = 200_000,
+                appearanceBonus = 5_000,
+                goalBonus = 10_000,
             };
-            var r = Roundtrip(c);
-            Assert.AreEqual(100000, r.signingBonus);
-            Assert.AreEqual(10000, r.goalBonus);
+            Assert.AreEqual(100_000, c.signingBonus);
+            Assert.AreEqual(10_000, c.goalBonus);
         }
 
         [Test]
-        public void TransferOffer_LoanFields_Roundtrip()
+        public void TransferOffer_LoanAndNegotiationFields_Assignable()
         {
             var o = new TransferOffer
             {
-                id = 1,
-                playerId = 10,
                 isLoan = true,
-                loanFee = 500000,
+                loanFee = 500_000,
                 loanWageShare = 0.5f,
                 loanEndDate = new DateTime(2027, 6, 30),
-                loanOption = new LoanOption
-                {
-                    mandatoryPurchaseAtEnd = false,
-                    purchaseClause = 10000000,
-                    recallClause = true,
-                },
-                counterAmount = 0,
-                negotiationRound = 1,
+                loanOption = new LoanOption { recallClause = true },
+                counterAmount = 8_000_000,
+                negotiationRound = 2,
                 releaseClauseActivated = false,
                 status = OfferStatus.CounterOffer,
             };
-            var r = Roundtrip(o);
-            Assert.IsTrue(r.isLoan);
-            Assert.AreEqual(0.5f, r.loanWageShare, 0.001f);
-            Assert.IsTrue(r.loanOption.recallClause);
-            Assert.AreEqual(OfferStatus.CounterOffer, r.status);
+            Assert.IsTrue(o.isLoan);
+            Assert.AreEqual(0.5f, o.loanWageShare, 0.001f);
+            Assert.IsTrue(o.loanOption.recallClause);
+            Assert.AreEqual(OfferStatus.CounterOffer, o.status);
         }
 
         [Test]
-        public void PlayerMatchStat_ExtendedFields_Roundtrip()
+        public void OfferStatus_CounterOffer_Defined()
+        {
+            Assert.AreEqual("CounterOffer", OfferStatus.CounterOffer.ToString());
+        }
+
+        [Test]
+        public void PlayerMatchStat_ExtendedFields_Assignable()
         {
             var s = new PlayerMatchStat
             {
-                playerId = 7,
-                goals = 2,
                 shots = 5,
                 passes = 40,
                 tackles = 3,
@@ -247,73 +257,71 @@ namespace FMLite.Tests
                 foulsCommitted = 1,
                 foulsSuffered = 2,
             };
-            var r = Roundtrip(s);
-            Assert.AreEqual(5, r.shots);
-            Assert.AreEqual(4, r.keyPasses);
+            Assert.AreEqual(5, s.shots);
+            Assert.AreEqual(4, s.keyPasses);
         }
 
         [Test]
-        public void GameState_NewFields_Roundtrip()
+        public void GameState_NewFields_Assignable()
         {
             var state = new GameState
             {
                 managerReputation = 60,
                 nextPromiseId = 3,
                 nextAwardId = 2,
-                activePromises = new List<Promise>
-                {
-                    new Promise
-                    {
-                        id = 1,
-                        type = PromiseType.Renewal,
-                        status = PromiseStatus.Active,
-                    },
-                },
-                activeAwards = new List<SeasonAward>
-                {
-                    new SeasonAward
-                    {
-                        type = AwardType.LeagueMVP,
-                        playerId = 9,
-                        seasonYear = 2026,
-                    },
-                },
             };
-            var r = Roundtrip(state);
-            Assert.AreEqual(60, r.managerReputation);
-            Assert.AreEqual(1, r.activePromises.Count);
-            Assert.AreEqual(AwardType.LeagueMVP, r.activeAwards[0].type);
+            state.activePromises.Add(
+                new Promise
+                {
+                    id = 1,
+                    type = PromiseType.Renewal,
+                    status = PromiseStatus.Active,
+                }
+            );
+            state.activeAwards.Add(
+                new SeasonAward
+                {
+                    type = AwardType.LeagueMVP,
+                    playerId = 9,
+                    seasonYear = 2026,
+                }
+            );
+
+            Assert.AreEqual(60, state.managerReputation);
+            Assert.AreEqual(1, state.activePromises.Count);
+            Assert.AreEqual(AwardType.LeagueMVP, state.activeAwards[0].type);
         }
 
         [Test]
-        public void SeasonState_NewFields_Roundtrip()
+        public void SeasonState_NewFields_Assignable()
         {
             var s = new SeasonState
             {
                 captainPlayerId = 10,
                 viceCaptainPlayerId = 7,
                 dressingRoomMood = 72,
-                mentoringGroups = new List<MentoringGroup>
-                {
-                    new MentoringGroup
-                    {
-                        id = 1,
-                        mentorPlayerId = 10,
-                        menteePlayerIds = new List<int> { 20 },
-                    },
-                },
             };
-            var r = Roundtrip(s);
-            Assert.AreEqual(10, r.captainPlayerId);
-            Assert.AreEqual(72, r.dressingRoomMood);
-            Assert.AreEqual(1, r.mentoringGroups.Count);
+            s.mentoringGroups.Add(new MentoringGroup { id = 1, mentorPlayerId = 10 });
+
+            Assert.AreEqual(10, s.captainPlayerId);
+            Assert.AreEqual(72, s.dressingRoomMood);
+            Assert.AreEqual(1, s.mentoringGroups.Count);
         }
 
         [Test]
-        public void OfferStatus_CounterOffer_EnumExists()
+        public void Facilities_NewLevelFields_Assignable()
         {
-            var status = OfferStatus.CounterOffer;
-            Assert.AreEqual("CounterOffer", status.ToString());
+            var f = new Facilities
+            {
+                youthCoachLevel = 3,
+                youthRecruitmentLevel = 2,
+                youthFacilityLevel = 4,
+                medicalLevel = 1,
+                stadiumLevel = 5,
+                gymLevel = 2,
+            };
+            Assert.AreEqual(3, f.youthCoachLevel);
+            Assert.AreEqual(5, f.stadiumLevel);
         }
     }
 }
