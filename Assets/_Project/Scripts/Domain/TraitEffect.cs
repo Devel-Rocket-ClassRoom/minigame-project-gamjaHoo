@@ -9,7 +9,9 @@ namespace FMLite.Domain
     {
         MatchModifier, // 매치 시뮬 이벤트 가중치 보정
         InjuryRateModifier, // 부상 발생률 곱셈
-        GrowthRateModifier, // 성장률 곱셈
+        GrowthRateModifier, // 성장률 곱셈 (targetStat="hidden:*" 이면 hidden attr 가산)
+        MoralePropensity, // 사기 성향 보정 (targetStat = 시나리오 식별자)
+        MarketValueModifier, // 이적가치 배율
     }
 
     [Serializable]
