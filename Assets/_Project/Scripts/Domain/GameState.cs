@@ -11,6 +11,11 @@ namespace FMLite.Domain
     [Serializable]
     public class GameState
     {
+        // 세이브 버전 (design-decisions.md #52 / algorithms.md V1.0-8).
+        // 0 = V0.1 구형 세이브 (필드 없음 → JSON 역직렬화 시 0으로 수신).
+        // 2 = V1.0. SaveSystem.Save 가 직렬화 직전 CurrentVersion 으로 스탬프.
+        public int saveVersion;
+
         // 메타 필드
         public DateTime currentDate;
         public int userClubId = -1; // -1 = "선택 안 됨" sentinel. UI 구단 선택 후 설정.
