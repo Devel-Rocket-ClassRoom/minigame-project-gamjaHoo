@@ -11,8 +11,10 @@ namespace FMLite.Domain
         public int fatigue;
         public int morale;
         public int form;
+        public int happiness = 70; // 장기 만족도 0-100 (design-decisions.md #42)
         public InjuryInfo injury;
         public bool transferListed;
         public int seasonAppearances;
+        public int suspendedMatches; // 출전 정지 잔여 경기 수 (카드 누적)
     }
 }

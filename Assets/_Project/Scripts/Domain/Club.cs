@@ -24,5 +24,9 @@ namespace FMLite.Domain
 
         public SeasonState season;
         public bool isActiveSimulation;
+
+        // V1.0 신규 (design-decisions.md #45, #46)
+        public Tactic tactic;
+        public Dictionary<int, ScoutReport> scoutingKnowledge = new Dictionary<int, ScoutReport>();
     }
 }
