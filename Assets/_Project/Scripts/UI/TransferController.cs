@@ -162,7 +162,10 @@ namespace FMLite.UI
             if (positionDropdown == null)
                 return;
             positionDropdown.ClearOptions();
-            var options = new System.Collections.Generic.List<string> { "전체" };
+            var options = new System.Collections.Generic.List<string>
+            {
+                Localization.Get("filter_all"),
+            };
             foreach (Position pos in Enum.GetValues(typeof(Position)))
                 options.Add(pos.ToString());
             positionDropdown.AddOptions(options);
@@ -200,7 +203,7 @@ namespace FMLite.UI
                 offerTargetText.text =
                     $"{player.info?.firstName} {player.info?.lastName}  "
                     + $"({player.info?.primaryPosition})  {club?.name ?? "-"}  "
-                    + $"시장가 £{mv / 1000000.0:0.0}M";
+                    + Localization.Get("market_value_fmt", (mv / 1000000.0).ToString("0.0"));
             }
 
             if (offerAmountInput != null)
@@ -244,8 +247,8 @@ namespace FMLite.UI
 
             bool open = TransferSystem.IsTransferWindowOpen(_state.currentDate, balance);
             windowStatusText.text = open
-                ? "이적 창 열림 (체결 가능)"
-                : "이적 창 닫힘 (오퍼 제출만 가능)";
+                ? Localization.Get("transfer_window_open")
+                : Localization.Get("transfer_window_closed");
         }
 
         private void RefreshActiveOffers()
@@ -254,11 +257,11 @@ namespace FMLite.UI
                 return;
             if (_state.activeOffers == null || _state.activeOffers.Count == 0)
             {
-                activeOffersText.text = "활성 오퍼 없음";
+                activeOffersText.text = Localization.Get("no_active_offers");
                 return;
             }
 
-            var sb = new System.Text.StringBuilder("[활성 오퍼]\n");
+            var sb = new System.Text.StringBuilder(Localization.Get("active_offers_header") + "\n");
             foreach (var offer in _state.activeOffers)
             {
                 var player = _state.GetPlayer(offer.playerId);

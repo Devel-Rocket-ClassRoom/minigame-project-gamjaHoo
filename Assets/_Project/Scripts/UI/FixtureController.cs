@@ -54,8 +54,12 @@ namespace FMLite.UI
                 var leagueConfig = GameDatabase.GetLeagueConfig(league.configSOId);
                 titleText.text =
                     leagueConfig != null
-                        ? $"{leagueConfig.displayName} {league.seasonYear} 일정"
-                        : $"일정 {league.seasonYear}";
+                        ? Localization.Get(
+                            "fixture_title_fmt",
+                            leagueConfig.displayName,
+                            league.seasonYear
+                        )
+                        : Localization.Get("fixture_title_fallback_fmt", league.seasonYear);
             }
 
             foreach (Transform child in listParent)

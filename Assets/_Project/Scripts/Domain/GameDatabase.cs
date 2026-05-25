@@ -23,8 +23,10 @@ namespace FMLite.Domain
         private static readonly Dictionary<int, LeagueConfigSO> _leagueConfigs = new();
         private static readonly List<FacilityLevelSO> _facilityLevels = new(); // keyed by (type, level)
         private static GameBalanceSO _gameBalance;
+        private static LocalizationSO _localizationData;
 
         public static GameBalanceSO GameBalance => _gameBalance;
+        public static LocalizationSO LocalizationData => _localizationData;
 
         public static void LoadAll()
         {
@@ -42,6 +44,7 @@ namespace FMLite.Domain
             foreach (var f in Resources.LoadAll<FacilityLevelSO>(string.Empty))
                 _facilityLevels.Add(f);
             _gameBalance = Resources.LoadAll<GameBalanceSO>(string.Empty).FirstOrDefault();
+            _localizationData = Resources.LoadAll<LocalizationSO>(string.Empty).FirstOrDefault();
         }
 
         public static void Clear()
@@ -53,6 +56,7 @@ namespace FMLite.Domain
             _leagueConfigs.Clear();
             _facilityLevels.Clear();
             _gameBalance = null;
+            _localizationData = null;
         }
 
         // Register* : 테스트 / 디버그용 in-memory 등록.

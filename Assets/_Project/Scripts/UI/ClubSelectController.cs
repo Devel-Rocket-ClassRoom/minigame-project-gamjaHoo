@@ -2,6 +2,7 @@
 // GameState의 리그 구단 목록 표시 → 선택 시 userClubId 설정 → GachaScene 전환.
 
 using System.Linq;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
 using TMPro;
@@ -69,7 +70,7 @@ namespace FMLite.UI
                 return;
 
             selectedClubNameText.text = club.name;
-            selectedClubReputationText.text = $"명성 {club.reputation}";
+            selectedClubReputationText.text = Localization.Get("reputation_fmt", club.reputation);
             confirmPanel.SetActive(true);
         }
 
