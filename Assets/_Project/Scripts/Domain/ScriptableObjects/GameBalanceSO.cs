@@ -63,6 +63,10 @@ namespace FMLite.Domain
         public int paGapZeroAge = 28;
         public float paGapStdDev = 15f;
 
+        [Header("Player Generation — Hidden Attributes")]
+        public float hiddenAttrMean = 50f;
+        public float hiddenAttrStdDev = 15f;
+
         [Header("Player Generation — Stats Distribution")]
         public float statMeanAtCAFloor = 25f; // 1-100 스케일 (V0.1: 4)
         public float statMeanAtCACeil = 85f; // 1-100 스케일 (V0.1: 17)

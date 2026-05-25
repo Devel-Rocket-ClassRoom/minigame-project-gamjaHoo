@@ -51,6 +51,8 @@ namespace FMLite.Application
             var contract = BuildContract(rng, ca, currentDate, balance);
             var state = BuildState();
 
+            var hiddenAttrs = GenerateHiddenAttributes(rng, traitIds, balance);
+
             return new Player
             {
                 info = info,
@@ -58,6 +60,7 @@ namespace FMLite.Application
                 currentAbility = ca,
                 potentialAbility = pa,
                 traitIds = traitIds,
+                hiddenAttrs = hiddenAttrs,
                 currentClubId = clubId,
                 youthClubId = youthClubId,
                 origin = origin,
@@ -203,7 +206,85 @@ namespace FMLite.Application
             return true;
         }
 
-        // ── 5단계: 인적사항 ───────────────────────────────────────────
+        // ── 5단계: Hidden Attributes ──────────────────────────────────
+
+        private static HiddenAttributes GenerateHiddenAttributes(
+            Random rng,
+            List<int> traitIds,
+            GameBalanceSO b
+        )
+        {
+            var h = new HiddenAttributes
+            {
+                loyalty = HiddenStat(rng, b),
+                ambition = HiddenStat(rng, b),
+                professionalism = HiddenStat(rng, b),
+                pressureHandling = HiddenStat(rng, b),
+                temperament = HiddenStat(rng, b),
+                controversy = HiddenStat(rng, b),
+                injuryProneness = HiddenStat(rng, b),
+                consistency = HiddenStat(rng, b),
+                versatility = HiddenStat(rng, b),
+            };
+
+            foreach (var id in traitIds)
+            {
+                var trait = GameDatabase.GetTrait(id);
+                if (trait == null)
+                    continue;
+                foreach (var effect in trait.effects)
+                {
+                    if (
+                        effect.type != TraitEffectType.GrowthRateModifier
+                        || !effect.targetStat.StartsWith("hidden:")
+                    )
+                        continue;
+                    string field = effect.targetStat.Substring(7);
+                    int bonus = (int)effect.value;
+                    switch (field)
+                    {
+                        case "loyalty":
+                            h.loyalty = Math.Clamp(h.loyalty + bonus, 1, 100);
+                            break;
+                        case "ambition":
+                            h.ambition = Math.Clamp(h.ambition + bonus, 1, 100);
+                            break;
+                        case "professionalism":
+                            h.professionalism = Math.Clamp(h.professionalism + bonus, 1, 100);
+                            break;
+                        case "pressureHandling":
+                            h.pressureHandling = Math.Clamp(h.pressureHandling + bonus, 1, 100);
+                            break;
+                        case "temperament":
+                            h.temperament = Math.Clamp(h.temperament + bonus, 1, 100);
+                            break;
+                        case "controversy":
+                            h.controversy = Math.Clamp(h.controversy + bonus, 1, 100);
+                            break;
+                        case "injuryProneness":
+                            h.injuryProneness = Math.Clamp(h.injuryProneness + bonus, 1, 100);
+                            break;
+                        case "consistency":
+                            h.consistency = Math.Clamp(h.consistency + bonus, 1, 100);
+                            break;
+                        case "versatility":
+                            h.versatility = Math.Clamp(h.versatility + bonus, 1, 100);
+                            break;
+                    }
+                }
+            }
+
+            return h;
+        }
+
+        private static int HiddenStat(Random rng, GameBalanceSO b) =>
+            Math.Clamp(
+                (int)Math.Round(b.hiddenAttrMean + rng.NextNormal(0, b.hiddenAttrStdDev)),
+                1,
+                100
+            );
+
+        // ── 6단계: 인적사항 ───────────────────────────────────────────
 
         private static PersonalInfo BuildPersonalInfo(
             Random rng,
