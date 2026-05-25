@@ -45,9 +45,9 @@ namespace FMLite.Tests
                 Is.InRange(0, 10),
                 "T1: PA-CA gap in [0, 10]"
             );
-            Assert.That(TechMean(player), Is.GreaterThanOrEqualTo(14.0), "T1: Technical avg >= 14");
-            Assert.That(PhysMean(player), Is.GreaterThanOrEqualTo(14.0), "T1: Physical avg >= 14");
-            Assert.That(GkMean(player), Is.InRange(1.0, 4.0), "T1: GK stat avg in [1, 4]");
+            Assert.That(TechMean(player), Is.GreaterThanOrEqualTo(70.0), "T1: Technical avg >= 70");
+            Assert.That(PhysMean(player), Is.GreaterThanOrEqualTo(70.0), "T1: Physical avg >= 70");
+            Assert.That(GkMean(player), Is.InRange(5.0, 20.0), "T1: GK stat avg in [5, 20]");
         }
 
         // ── T2. 작은 구단 신예 CM ─────────────────────────────────────
@@ -80,11 +80,11 @@ namespace FMLite.Tests
 
             Assert.That(
                 GkMean(player),
-                Is.InRange(8.0, 14.0),
-                "T3: GoalkeepingStats avg in [8, 14]"
+                Is.InRange(40.0, 70.0),
+                "T3: GoalkeepingStats avg in [40, 70]"
             );
-            Assert.That(TechMean(player), Is.InRange(1.0, 5.0), "T3: TechnicalStats avg in [1, 5]");
-            Assert.That(MentMean(player), Is.InRange(7.0, 12.0), "T3: MentalStats avg in [7, 12]");
+            Assert.That(TechMean(player), Is.InRange(5.0, 25.0), "T3: TechnicalStats avg in [5, 25]");
+            Assert.That(MentMean(player), Is.InRange(35.0, 60.0), "T3: MentalStats avg in [35, 60]");
             Assert.That(
                 player.info.secondaryPositions.Count,
                 Is.EqualTo(0),
