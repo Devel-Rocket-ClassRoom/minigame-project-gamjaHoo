@@ -497,7 +497,6 @@ namespace FMLite.Tests
             return new[]
             {
                 t.passing,
-                t.shooting,
                 t.tackling,
                 t.dribbling,
                 t.heading,
@@ -505,9 +504,12 @@ namespace FMLite.Tests
                 t.firstTouch,
                 t.finishing,
                 t.longShots,
-                t.freeKickAccuracy,
+                t.freeKickTaking,
                 t.penaltyTaking,
                 t.corners,
+                t.marking,
+                t.technique,
+                t.longThrows,
             }.Average(x => (double)x);
         }
 
@@ -528,6 +530,8 @@ namespace FMLite.Tests
                 m.teamwork,
                 m.workRate,
                 m.aggression,
+                m.bravery,
+                m.flair,
             }.Average(x => (double)x);
         }
 
@@ -539,7 +543,7 @@ namespace FMLite.Tests
                 ph.acceleration,
                 ph.agility,
                 ph.balance,
-                ph.jumping,
+                ph.jumpingReach,
                 ph.naturalFitness,
                 ph.pace,
                 ph.stamina,
@@ -562,6 +566,9 @@ namespace FMLite.Tests
                 g.reflexes,
                 g.rushingOut,
                 g.throwing,
+                g.firstTouchGk,
+                g.passingGk,
+                g.punchingTendency,
             }.Average(x => (double)x);
         }
 
@@ -572,7 +579,6 @@ namespace FMLite.Tests
             var ph = p.stats.physical;
             var g = p.stats.gk;
             return t.passing
-                + t.shooting
                 + t.tackling
                 + t.dribbling
                 + t.heading
@@ -580,9 +586,12 @@ namespace FMLite.Tests
                 + t.firstTouch
                 + t.finishing
                 + t.longShots
-                + t.freeKickAccuracy
+                + t.freeKickTaking
                 + t.penaltyTaking
                 + t.corners
+                + t.marking
+                + t.technique
+                + t.longThrows
                 + m.vision
                 + m.anticipation
                 + m.composure
@@ -595,10 +604,12 @@ namespace FMLite.Tests
                 + m.teamwork
                 + m.workRate
                 + m.aggression
+                + m.bravery
+                + m.flair
                 + ph.acceleration
                 + ph.agility
                 + ph.balance
-                + ph.jumping
+                + ph.jumpingReach
                 + ph.naturalFitness
                 + ph.pace
                 + ph.stamina
@@ -612,7 +623,10 @@ namespace FMLite.Tests
                 + g.oneOnOnes
                 + g.reflexes
                 + g.rushingOut
-                + g.throwing;
+                + g.throwing
+                + g.firstTouchGk
+                + g.passingGk
+                + g.punchingTendency;
         }
 
         private static double PearsonCorrelation(double[] x, double[] y)
