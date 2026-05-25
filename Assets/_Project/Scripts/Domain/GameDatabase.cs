@@ -22,6 +22,9 @@ namespace FMLite.Domain
         private static readonly Dictionary<int, NamePoolSO> _namePools = new(); // keyed by countryId
         private static readonly Dictionary<int, LeagueConfigSO> _leagueConfigs = new();
         private static readonly List<FacilityLevelSO> _facilityLevels = new(); // keyed by (type, level)
+        private static readonly Dictionary<int, FormationSO> _formations = new();
+        private static readonly Dictionary<int, PlayerRoleSO> _playerRoles = new();
+        private static readonly Dictionary<int, InjuryTypeSO> _injuryTypes = new();
         private static GameBalanceSO _gameBalance;
         private static LocalizationSO _localizationData;
 
@@ -43,6 +46,12 @@ namespace FMLite.Domain
                 _leagueConfigs[l.id] = l;
             foreach (var f in Resources.LoadAll<FacilityLevelSO>(string.Empty))
                 _facilityLevels.Add(f);
+            foreach (var f in Resources.LoadAll<FormationSO>(string.Empty))
+                _formations[f.id] = f;
+            foreach (var r in Resources.LoadAll<PlayerRoleSO>(string.Empty))
+                _playerRoles[r.id] = r;
+            foreach (var i in Resources.LoadAll<InjuryTypeSO>(string.Empty))
+                _injuryTypes[i.id] = i;
             _gameBalance = Resources.LoadAll<GameBalanceSO>(string.Empty).FirstOrDefault();
             _localizationData = Resources.LoadAll<LocalizationSO>(string.Empty).FirstOrDefault();
         }
@@ -55,6 +64,9 @@ namespace FMLite.Domain
             _namePools.Clear();
             _leagueConfigs.Clear();
             _facilityLevels.Clear();
+            _formations.Clear();
+            _playerRoles.Clear();
+            _injuryTypes.Clear();
             _gameBalance = null;
             _localizationData = null;
         }
@@ -74,6 +86,13 @@ namespace FMLite.Domain
 
         public static void Register(FacilityLevelSO facilityLevel) =>
             _facilityLevels.Add(facilityLevel);
+
+        public static void Register(FormationSO formation) => _formations[formation.id] = formation;
+
+        public static void Register(PlayerRoleSO role) => _playerRoles[role.id] = role;
+
+        public static void Register(InjuryTypeSO injuryType) =>
+            _injuryTypes[injuryType.id] = injuryType;
 
         public static void Register(GameBalanceSO gameBalance) => _gameBalance = gameBalance;
 
@@ -102,9 +121,21 @@ namespace FMLite.Domain
             return null;
         }
 
+        public static FormationSO GetFormation(int id) =>
+            _formations.TryGetValue(id, out var v) ? v : null;
+
+        public static PlayerRoleSO GetPlayerRole(int id) =>
+            _playerRoles.TryGetValue(id, out var v) ? v : null;
+
+        public static InjuryTypeSO GetInjuryType(int id) =>
+            _injuryTypes.TryGetValue(id, out var v) ? v : null;
+
         // 전체 컬렉션 — 일부 시스템(가챠 등)에서 트레잇 풀 순회 시 사용.
         public static IEnumerable<TraitSO> AllTraits => _traits.Values;
         public static IEnumerable<PositionSO> AllPositions => _positions.Values;
         public static IEnumerable<CountrySO> AllCountries => _countries.Values;
+        public static IEnumerable<FormationSO> AllFormations => _formations.Values;
+        public static IEnumerable<PlayerRoleSO> AllPlayerRoles => _playerRoles.Values;
+        public static IEnumerable<InjuryTypeSO> AllInjuryTypes => _injuryTypes.Values;
     }
 }

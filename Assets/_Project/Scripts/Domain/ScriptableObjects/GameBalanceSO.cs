@@ -264,5 +264,34 @@ namespace FMLite.Domain
         public int transferWindowWinterStartDay = 1;
         public int transferWindowWinterEndMonth = 1;
         public int transferWindowWinterEndDay = 31;
+
+        // ============================================================
+        // Mentality Modifiers (design-decisions.md #45)
+        // 배열 인덱스 = Mentality enum 순서 (VeryDefensive=0 ~ VeryAttacking=6)
+        // ============================================================
+
+        [Header("Mentality — Shot Frequency Multiplier (VeryDef→VeryAtk)")]
+        public float[] mentalityShotMultiplier =
+        {
+            0.60f,
+            0.75f,
+            0.88f,
+            1.00f,
+            1.15f,
+            1.30f,
+            1.50f,
+        };
+
+        [Header("Mentality — Defensive Pressure Multiplier")]
+        public float[] mentalityPressureMultiplier =
+        {
+            1.40f,
+            1.20f,
+            1.10f,
+            1.00f,
+            0.90f,
+            0.80f,
+            0.65f,
+        };
     }
 }
