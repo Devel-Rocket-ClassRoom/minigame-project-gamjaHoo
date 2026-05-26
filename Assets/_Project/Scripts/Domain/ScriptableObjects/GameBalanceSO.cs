@@ -297,5 +297,26 @@ namespace FMLite.Domain
             0.80f,
             0.65f,
         };
+
+        // ── V1.0 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V1.0-10 + V1.0-11) ──
+
+        [Header("Player Growth System (V1.0-10)")]
+        public float growthBaseChance = 0.01f;
+        public float growthAbsoluteFactor = 0.10f;
+        public float growthTrainingCoeff = 0.10f;
+        public float growthGymCoeff = 0.05f;
+        public float growthPaGapNormalizer = 50f;
+        public float growthYouthFactor = 1.5f;
+        public int growthYouthPeakAge = 22;
+        public int growthPrimePeakAge = 26;
+        public int growthDeclineStartAge = 30;
+        public float[] growthSizeWeights = { 75f, 20f, 5f };
+        public float[] growthSizePeakWeights = { 60f, 30f, 10f };
+        public float growthBigJumpAgeThreshold = 1.3f;
+
+        [Header("Injury System (V1.0-11)")]
+        public float injuryMedicalRecoveryCoeff = 0.05f;
+        public float injuryGymRecoveryCoeff = 0.02f;
+        public float injuryMedicalRateCoeff = 0.05f;
     }
 }

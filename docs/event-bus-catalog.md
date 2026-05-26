@@ -124,6 +124,33 @@ public class PlayerInjuredEvent {
 }
 ```
 
+#### PlayerInjuryRecoveredEvent (V1.0 D.4)
+- **Publisher:** `InjurySystem.ProcessRecovery` (DailyProcessor 호출)
+- **Subscribers:** UI (인박스 알림), SquadView (출전 가능 상태 갱신)
+- **Payload:** 선수 ID
+- **Trigger:** `expectedReturn` 도래 → 부상 sentinel 리셋
+
+```csharp
+public class PlayerInjuryRecoveredEvent {
+    public int playerId;
+}
+```
+
+#### PlayerStatChangedEvent (V1.0 D.4)
+- **Publisher:** `GrowthSystem.Tick` (매월 1일)
+- **Subscribers:** UI (선수 프로필 알림 — V1.x 인박스 / 토스트)
+- **Payload:** 선수 ID, stat 이름, 이전 값, 새 값
+- **Trigger:** Growth/Decline 발생 중 **size ≥ 2** (큰 점프만 발행 — `+1` 노이즈 회피)
+
+```csharp
+public class PlayerStatChangedEvent {
+    public int playerId;
+    public string statName;
+    public int oldValue;
+    public int newValue;
+}
+```
+
 ---
 
 ### Transfer Events
