@@ -69,6 +69,10 @@ namespace FMLite.UI
         [SerializeField]
         private int inboxMaxItems = 10;
 
+        [Header("이적 요청 다이얼로그 (V1.0 G.4)")]
+        [SerializeField]
+        private TransferRequestDialogController transferRequestDialog;
+
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
@@ -223,6 +227,16 @@ namespace FMLite.UI
                     ? $"{player.info.firstName} {player.info.lastName}"
                     : $"id={e.playerId}";
             PushInbox(Localization.Get("inbox_transfer_request_fmt", playerName));
+
+            // V1.0 G.4 — Q9 자동 트리거 + 유저 승인 패턴. 자기 구단 선수만 dialog 표시.
+            if (
+                transferRequestDialog != null
+                && player != null
+                && player.currentClubId == state?.userClubId
+            )
+            {
+                transferRequestDialog.Show(e.playerId);
+            }
         }
 
         private string FormatPromise(string key, int promiseId)

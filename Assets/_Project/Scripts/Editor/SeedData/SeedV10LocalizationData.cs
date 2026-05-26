@@ -292,6 +292,21 @@ namespace FMLite.Editor
                     "[이적 요청] {0} 가 이적 요청",
                     "[Transfer Request] {0} requested transfer"
                 ),
+                // ── V1.0 G.4 이적 요청 다이얼로그 ─────────────────────────
+                E("transfer_request_dialog_title", "이적 요청", "Transfer Request"),
+                E(
+                    "transfer_request_dialog_message_fmt",
+                    "{0} 선수가 이적을 요청했습니다.",
+                    "{0} has requested a transfer."
+                ),
+                E(
+                    "transfer_request_accept",
+                    "수락 (이적 리스트 등재)",
+                    "Accept (Add to Transfer List)"
+                ),
+                E("transfer_request_reject", "거절", "Reject"),
+                E("transfer_request_interview", "면담", "Interview"),
+                E("transfer_request_close", "나중에", "Later"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

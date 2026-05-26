@@ -41,13 +41,53 @@ namespace FMLite.Application
                 RecoverMoraleDaily(player, balance);
             }
 
-            // 매주 월요일 — Promise 진행 체크는 G.2 PromiseSystem 도입 시 활성화
-            // if (state.currentDate.DayOfWeek == DayOfWeek.Monday)
-            //     PromiseSystem.CheckProgress(state, balance);
+            // 매주 월요일 Promise 체크는 G.2 PromiseSystem.CheckProgress (DailyProcessor 직접 호출) 로 이관.
 
-            // 매월 1일 — 라커룸 분위기 갱신은 G.3 ComputeMood 도입 시 활성화
-            // if (state.currentDate.Day == 1)
-            //     foreach (var club in state.allClubs) club.season.dressingRoomMood = ComputeMood(...);
+            // 매월 1일 — 라커룸 분위기 갱신 (V1.0 G.3)
+            if (state.currentDate.Day == 1)
+            {
+                foreach (var club in state.allClubs)
+                    UpdateDressingRoomMood(club, state, balance);
+            }
+        }
+
+        // ── DressingRoomMood (V1.0 G.3) ──────────────────────────────
+
+        // 1군 선수 happiness 평균 + 캡틴 leadership 가산. NewSeasonProcessor / 월 1회 호출.
+        public static void UpdateDressingRoomMood(
+            Club club,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (club?.season == null || club.seniorSquadIds == null)
+                return;
+
+            int sum = 0;
+            int count = 0;
+            foreach (var pid in club.seniorSquadIds)
+            {
+                var p = state.GetPlayer(pid);
+                if (p?.state == null)
+                    continue;
+                sum += p.state.happiness;
+                count++;
+            }
+            int avgHappiness = count == 0 ? 50 : sum / count;
+
+            int captainBonus = 0;
+            if (club.season.captainPlayerId != -1)
+            {
+                var captain = state.GetPlayer(club.season.captainPlayerId);
+                if (captain?.stats?.mental != null)
+                    captainBonus = (int)
+                        Math.Round(
+                            captain.stats.mental.leadership
+                                * balance.dressingRoomCaptainLeadershipBonus
+                        );
+            }
+
+            club.season.dressingRoomMood = Clamp(avgHappiness + captainBonus, 0, 100);
         }
 
         private static void RecoverMoraleDaily(Player player, GameBalanceSO balance)

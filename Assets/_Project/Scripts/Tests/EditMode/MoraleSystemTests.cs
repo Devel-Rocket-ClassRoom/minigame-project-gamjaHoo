@@ -262,8 +262,9 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void OnInterview_PromiseStubs_DoNotChangeMorale()
+        public void OnInterview_PromisePaths_DoNotChangeMorale()
         {
+            // G.2 Sub-A 이후: PromisePlaytime/Renewal 은 Promise 를 생성 (morale 무관).
             var state = NewState();
             var p = NewPlayer(1, clubId: 1, morale: 50, professionalism: 50);
             state.AddPlayer(p);
@@ -271,7 +272,94 @@ namespace FMLite.Tests
             MoraleSystem.OnInterview(state, 1, InterviewType.PromisePlaytime, _balance);
             MoraleSystem.OnInterview(state, 1, InterviewType.PromiseRenewal, _balance);
 
-            Assert.AreEqual(50, p.state.morale, "G.2 stub — morale 변동 X");
+            Assert.AreEqual(50, p.state.morale, "Promise 생성 경로 — morale 직접 변동 X");
+            Assert.AreEqual(2, state.activePromises.Count, "Promise 2개 생성");
+        }
+
+        // ── G.3. UpdateDressingRoomMood ──────────────────────────────
+
+        [Test]
+        public void DressingRoomMood_AverageHappiness_NoCaptain()
+        {
+            var state = NewState();
+            var club = new Club { id = 1, season = new SeasonState() };
+            // 4 선수 happiness: 40 / 60 / 80 / 100 → 평균 70
+            for (int i = 1; i <= 4; i++)
+            {
+                var p = NewPlayer(i, clubId: 1, happiness: 20 + i * 20);
+                state.AddPlayer(p);
+                club.seniorSquadIds.Add(i);
+            }
+            state.AddClub(club);
+
+            MoraleSystem.UpdateDressingRoomMood(club, state, _balance);
+
+            Assert.AreEqual(70, club.season.dressingRoomMood, "캡틴 X → 평균 70");
+        }
+
+        [Test]
+        public void DressingRoomMood_CaptainLeadership_AddsBonus()
+        {
+            var state = NewState();
+            var club = new Club { id = 1, season = new SeasonState() };
+            for (int i = 1; i <= 4; i++)
+            {
+                var p = NewPlayer(i, clubId: 1, happiness: 50);
+                state.AddPlayer(p);
+                club.seniorSquadIds.Add(i);
+            }
+            // 캡틴 leadership = 80 → bonus = 80 × 0.2 = 16
+            var captain = state.GetPlayer(1);
+            captain.stats.mental = new MentalStats { leadership = 80 };
+            club.season.captainPlayerId = 1;
+            state.AddClub(club);
+
+            MoraleSystem.UpdateDressingRoomMood(club, state, _balance);
+
+            Assert.AreEqual(66, club.season.dressingRoomMood, "평균 50 + leadership 80*0.2=16 → 66");
+        }
+
+        [Test]
+        public void DressingRoomMood_EmptySquad_DefaultsTo50()
+        {
+            var state = NewState();
+            var club = new Club { id = 1, season = new SeasonState() };
+            state.AddClub(club);
+
+            MoraleSystem.UpdateDressingRoomMood(club, state, _balance);
+
+            Assert.AreEqual(50, club.season.dressingRoomMood, "선수 0명 → 디폴트 50");
+        }
+
+        [Test]
+        public void DressingRoomMood_NullSeason_Skipped()
+        {
+            var state = NewState();
+            var club = new Club { id = 1, season = null };
+            // season=null 상태에서 호출해도 throw X
+            Assert.DoesNotThrow(() => MoraleSystem.UpdateDressingRoomMood(club, state, _balance));
+        }
+
+        [Test]
+        public void DressingRoomMood_Clamped_0to100()
+        {
+            var state = NewState();
+            var club = new Club { id = 1, season = new SeasonState() };
+            // 모든 선수 happiness=100, 캡틴 leadership=100 → 100 + 20 = 120 → clamp 100
+            for (int i = 1; i <= 4; i++)
+            {
+                var p = NewPlayer(i, clubId: 1, happiness: 100);
+                state.AddPlayer(p);
+                club.seniorSquadIds.Add(i);
+            }
+            var captain = state.GetPlayer(1);
+            captain.stats.mental = new MentalStats { leadership = 100 };
+            club.season.captainPlayerId = 1;
+            state.AddClub(club);
+
+            MoraleSystem.UpdateDressingRoomMood(club, state, _balance);
+
+            Assert.AreEqual(100, club.season.dressingRoomMood, "오버플로우 → 100 클램프");
         }
 
         // ── 헬퍼 ─────────────────────────────────────────────────────
