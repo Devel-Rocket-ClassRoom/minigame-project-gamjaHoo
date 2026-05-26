@@ -8,7 +8,8 @@
         "FMLite.Domain",
         "FMLite.Application",
         "FMLite.Persistence",
-        "FMLite.Utils"
+        "FMLite.Utils",
+        "FMLite.UI"
     ],
     "includePlatforms": [
         "Editor"

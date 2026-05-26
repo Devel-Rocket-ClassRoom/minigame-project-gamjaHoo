@@ -88,6 +88,55 @@ namespace FMLite.Editor
                     "업그레이드 £{0}M ({1}일)",
                     "Upgrade £{0}M ({1} days)"
                 ),
+                // ── Facility (V1.0 D.5 — 8 시설 이름 + 효과 fmt) ────────────
+                E("facility_name_scout", "스카우트", "Scouting"),
+                E("facility_name_training", "훈련 시설", "Training"),
+                E("facility_name_youth_coach", "유스 코치", "Youth Coaching"),
+                E("facility_name_youth_recruitment", "유스 모집", "Youth Recruitment"),
+                E("facility_name_youth_facility", "유스 시설", "Youth Facilities"),
+                E("facility_name_medical", "의료", "Medical"),
+                E("facility_name_stadium", "스타디움", "Stadium"),
+                E("facility_name_gym", "체육관", "Gym"),
+                E(
+                    "facility_effect_scout_fmt",
+                    "명단 {0}명 · ±{1} CA",
+                    "List {0} · ±{1} CA"
+                ),
+                E(
+                    "facility_effect_training_fmt",
+                    "훈련 효율 ×{0}",
+                    "Training ×{0}"
+                ),
+                E(
+                    "facility_effect_youth_coach_fmt",
+                    "유스 +{0} PA · 트레잇 {1}%",
+                    "Youth +{0} PA · Trait {1}%"
+                ),
+                E(
+                    "facility_effect_youth_recruitment_fmt",
+                    "풀 {0}명",
+                    "Pool {0}"
+                ),
+                E(
+                    "facility_effect_youth_facility_fmt",
+                    "유스 성장 ×{0}",
+                    "Youth Growth ×{0}"
+                ),
+                E(
+                    "facility_effect_medical_fmt",
+                    "부상률 ×{0} · 회복 ×{1}",
+                    "Injury ×{0} · Recovery ×{1}"
+                ),
+                E(
+                    "facility_effect_stadium_fmt",
+                    "입장료 £{0} · 명성 +{1}",
+                    "Ticket £{0} · Rep +{1}"
+                ),
+                E(
+                    "facility_effect_gym_fmt",
+                    "피지컬 성장 ×{0}",
+                    "Physical ×{0}"
+                ),
                 // ── Club select ────────────────────────────────────────────
                 E("reputation_fmt", "명성 {0}", "Reputation {0}"),
                 // ── Fixture ────────────────────────────────────────────────
