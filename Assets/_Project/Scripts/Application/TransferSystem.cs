@@ -117,6 +117,18 @@ namespace FMLite.Application
                 proposed = proposed,
                 status = OfferStatus.Pending,
             };
+
+            // Release clause 발동: amount ≥ clause → 판매 구단 응답 강제 Accepted
+            if (
+                player.contract != null
+                && player.contract.releaseClause > 0
+                && amount >= player.contract.releaseClause
+            )
+            {
+                offer.status = OfferStatus.Accepted;
+                offer.releaseClauseActivated = true;
+            }
+
             state.activeOffers.Add(offer);
 
             EventBus.Publish(new OfferSubmittedEvent { offerId = offer.id });
