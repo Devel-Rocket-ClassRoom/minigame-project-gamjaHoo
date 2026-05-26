@@ -8,7 +8,7 @@
 
 1. **이 CLAUDE.md** — 끝까지 (특히 ⚠️ Common Pitfalls 섹션)
 2. **`docs/design-decisions.md`** — 전체. 결정 사항을 무시한 코드는 거의 확실히 사용자 정정 받음.
-3. **`docs/v0.1-tasks.md`** Change Log 마지막 ~15줄 — 현재 진행 상태 파악
+3. **`docs/v1.0-tasks.md`** — 현재 진행 상태 파악
 4. **작업 종류별 추가 docs**:
    - 도메인 클래스 → `docs/class-diagram.md`
    - 알고리즘 / 생성기 / 시뮬레이션 → `docs/algorithms.md` 해당 섹션 **전부**
