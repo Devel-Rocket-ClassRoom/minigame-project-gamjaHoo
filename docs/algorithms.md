@@ -3429,8 +3429,275 @@ monthlyManagerConfidenceBonus = 5
 
 ---
 
+## V1.0-10. Player Growth System (신규 — Stage D.4 Training + Gym)
+
+### Purpose
+
+- 1군 선수의 stat 이 시간에 따라 변동 (성장 / 정점 / 하락). V0.1 = 미구현 (선수 stat 시즌 내내 고정).
+- 호출 시점: **매월 1일** `DailyProcessor.ProcessMonth` 가 `GrowthSystem.Tick(state, balance)` 호출.
+- 단일 책임: 모든 1군 선수의 Relative stats 만 변동. Hidden Attributes 는 Mentoring (Stage L.4) / Morale 시스템 (Stage G.1) 이 담당 — 본 시스템 책임 X.
+
+### Inputs / Outputs
+
+```csharp
+public static class GrowthSystem {
+    public static void Tick(GameState state, GameBalanceSO balance);
+}
+```
+
+- 입력: `state` (모든 클럽 / 선수 / 시설 등급 / 현재 날짜) + `balance` (외부화 수치).
+- 출력: void. `Player.stats` 갱신 + `PlayerStatChangedEvent` 발행 (큰 변화 시 — V1.x UI 알림 용도).
+- 결정성: `state.randomSeed ^ player.id ^ state.currentDate.Year * 12 + state.currentDate.Month` (월별 결정성).
+
+### Logic
+
+```
+public static void Tick(state, balance):
+    foreach club in state.allClubs:
+        trainingLevel = club.facilities.trainingLevel
+        gymLevel = club.facilities.gymLevel
+        
+        foreach pid in club.seniorSquadIds:
+            player = state.GetPlayer(pid)
+            
+            # 임대 중인 선수도 현재 소속 (currentClubId) 클럽 시설 영향
+            
+            age = ComputeAge(player.info.birthDate, state.currentDate)
+            ageFactor = ComputeAgeFactor(age, balance)   # 16-22세 = +, 23-26세 = 0, 27+ = -
+            
+            paGap = player.potentialAbility - player.currentAbility
+            
+            foreach (cat, stat, value) in IterateAllStats(player.stats):
+                # Absolute stats — 거의 변화 X (인성 기반)
+                if StatMetadata.IsAbsolute(stat):
+                    absoluteFactor = balance.growthAbsoluteFactor (0.10)
+                else:
+                    absoluteFactor = 1.0
+                
+                # 시설 보정
+                trainingBonus = 1.0 + trainingLevel * balance.growthTrainingCoeff (0.10)
+                gymBonus = StatMetadata.IsPhysical(stat) 
+                           ? 1.0 + gymLevel * balance.growthGymCoeff (0.05)
+                           : 1.0
+                
+                # CA-PA gap 효과 — PA 에 가까울수록 성장 느림
+                paFactor = (paGap > 0) 
+                           ? clamp(paGap / balance.growthPaGapNormalizer (50), 0, 1)
+                           : 0   # CA >= PA 이면 성장 X (decline 만 가능)
+                
+                # 최종 변동 확률 / 단위
+                growthChance = balance.growthBaseChance (0.05)   # 기본 5% / 월
+                              * ageFactor                          # 나이 곡선
+                              * absoluteFactor                     # Absolute 페널티
+                              * trainingBonus                      # Training 시설
+                              * gymBonus                           # Gym 시설 (피지컬만)
+                              * paFactor                           # PA gap 보정
+                
+                # 노장 페널티 — ageFactor 가 음수면 declineChance 로 분기
+                if ageFactor < 0:
+                    declineChance = abs(ageFactor) * balance.growthBaseChance
+                                    * absoluteFactor   # Absolute 도 천천히 하락
+                    if rng.NextDouble() < declineChance:
+                        player.stats[cat][stat] = max(1, value - 1)   # -1
+                else:
+                    if rng.NextDouble() < growthChance:
+                        # +1 / 월 단위. Round trip CA 자동 재계산 X (CA = static, PA 가 cap).
+                        player.stats[cat][stat] = min(100, value + 1)
+            
+            # CA 재계산 (V0.1 #24 CA-Stats 분리 정신 — CA 는 변경 X. PA 만 cap)
+            # NOTE: V0.1 CA = stat 분포 기반. V1.0 = stat 변화 후 CA 재계산 X (별도 필드).
+            # 즉 CA 는 generation 시점 고정, 매월 stats 변동.
+            # — 또는 V1.x: CA = derived(stats), 매월 재계산.
+
+
+public static float ComputeAgeFactor(age, balance):
+    # 나이 곡선 (V0.1 #1 PlayerGen 의 caPeakAge / caGrowthExponent 와 별개)
+    # 16-22세 = +1.5 ~ +1.0 (선형 감소)
+    # 23-26세 = +1.0 ~ +0.5 (peak)
+    # 27-30세 = +0.0 (정체)
+    # 31세+   = -0.2 ~ -1.0 (하락)
+    if age <= balance.growthYouthPeakAge (22):
+        return balance.growthYouthFactor (1.5) - (age - 16) * 0.1
+    elif age <= balance.growthPrimePeakAge (26):
+        return 1.0 - (age - 22) * 0.1
+    elif age <= balance.growthDeclineStartAge (30):
+        return 0.0
+    else:
+        return -min((age - 30) * 0.2, 1.0)
+```
+
+### 핵심 결정사항 (`design-decisions.md` #53 와 연동)
+
+1. **성장 빈도 = 매월 1일** — V0.1 ProcessSchedule 패턴 (월 단위) 일관. 매주는 변동 빈도 ↑하나 일별 처리 부담 ↑.
+2. **성장 단위 = stat 별 ±1 확률 모델** — float 누적 모델 회피. UI 변경 시점 명확 ("9월 Passing 60 → 61"). 외부화 `growthBaseChance = 0.05` (월 5% = 1년 60% 확률, stat 평균 ~6 단위 성장).
+3. **Absolute / Relative 차등** — Absolute stat (10개) 는 `growthAbsoluteFactor = 0.10` (성장 1/10 — 거의 안 자람, 하락도 천천히).
+4. **나이 곡선** — `growthYouthPeakAge / growthPrimePeakAge / growthDeclineStartAge` 3 임계점 + `growthYouthFactor (1.5)` 등 외부화.
+5. **CA-PA gap = 캡** — CA = PA 도달 시 성장 정지 (V0.1 #35 PA 진실값 모델 정신). 단 ageFactor < 0 → decline 진입 후에도 PA 무관 하락 가능.
+6. **Training 시설 보정** — Lv N 마다 `growthTrainingCoeff = 0.10` 가산. Lv1 = ×1.1, Lv10 = ×2.0.
+7. **Gym 시설 보정 (피지컬만)** — Lv N 마다 `growthGymCoeff = 0.05` 가산. 피지컬 8 stat 만 적용 (Acceleration / Agility / Balance / Jumping Reach / Natural Fitness / Pace / Stamina / Strength).
+8. **결정성** — 시드 = `state.randomSeed ^ player.id ^ (Year×12 + Month)` (월별 결정성). 같은 시드 = 같은 성장 시퀀스.
+9. **임대 선수 (Loan, Stage K.3)** — 현재 소속 (`currentClubId`) 클럽의 Training/Gym 시설 영향. 원 소속 (`parentClubId`) X.
+10. **CA 재계산 안 함** — CA = generation 시점 고정. V0.1 #24 CA-Stats 분리 정신 — CA 는 별도 필드. V1.x 검토 (`design-decisions.md` #24 의 V1.0+ 보완 포인트 일관).
+
+### Balancing Parameters (V1.0 신규)
+
+```
+[Player Growth System]
+growthBaseChance = 0.05            # 기본 월 성장 확률 (Relative stat / 보통 나이 / 시설 0)
+growthAbsoluteFactor = 0.10        # Absolute stat = 1/10 성장
+growthTrainingCoeff = 0.10         # Training Lv N = +N×10% 성장
+growthGymCoeff = 0.05              # Gym Lv N = 피지컬 +N×5% 성장
+growthPaGapNormalizer = 50         # paGap=50 일 때 paFactor=1.0
+growthYouthFactor = 1.5            # 16세 ageFactor (peak 성장)
+growthYouthPeakAge = 22            # 청소년 → 프라임 전환
+growthPrimePeakAge = 26            # 프라임 → 정체 전환
+growthDeclineStartAge = 30         # 정체 → 하락 전환
+```
+
+### Edge Cases
+
+- 선수 부상 중 (Stage I.3 도입 후) — 성장 영향? V1.0 = 영향 X (성장 시스템 매월 호출, 부상 회복은 별도 시스템). V1.x = 부상 중 성장률 ×0.5 검토.
+- Club 명성과 무관 — 시설 등급만 영향.
+- 시즌 종료 (5/15) 와 매월 1일 충돌 — 시즌 종료 후 (6/1) 부터 다음 월 성장. SeasonEndProcessor 가 별도 단계로 처리하지 않음.
+- 신규 영입 선수 — 영입 직후 다음 1일에 새 클럽 시설 영향. parentClubId 관계 없음 (영구 이적이면 parentClubId = -1).
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | 결정성 | 같은 시드 두 GameState 1년 진행 → 같은 선수 stats |
+| T2 | Training 시설 영향 | Lv1 클럽 vs Lv10 클럽 같은 PA 18세 선수 1년 → Lv10 평균 성장 ~2배 |
+| T3 | Absolute 차등 | 같은 선수 1년 → Determination 변화 평균 < Passing 변화 평균 / 10 |
+| T4 | Gym 피지컬 한정 | Lv10 Gym vs Lv1 → Pace/Stamina 차이 / Passing 차이 없음 |
+| T5 | PA 캡 | CA == PA 선수 (예: 카림 벤제마 모델, PA 180 CA 178) 1년 → 거의 성장 X. PA 50 차이 선수 → 활발 성장 |
+| T6 | 나이 곡선 | 18세 / 25세 / 32세 같은 PA 1년 → 18세 평균 +6 / 25세 +2 / 32세 -3 정도 |
+| T7 | 임대 선수 | A 클럽 (Lv5) 선수 → B 클럽 (Lv1) 임대 6개월 → 영입 효율 Lv1 적용 검증 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **Mentoring 영향** | Hidden Attributes 만 변동 (Stage L.4) — stat 직접 영향 X | Mentor 가 Mentee 의 stat 도 일부 가르침 (예: Plays One-Twos trait 학습) |
+| **부상 중 성장** | 영향 X | 부상 중 ×0.5 |
+| **시즌 외 훈련 캠프** | 미적용 | 시즌 종료 후 (6/1~8/15 프리시즌) 추가 성장 |
+| **개인 훈련 (Individual Training)** | 미적용 | 유저가 특정 선수 / 특정 stat 집중 훈련 → 가중치 ↑ |
+| **코치 인사** | 시설 등급 추상화 | Staff 도입 시 코치 quality 추가 입력 |
+| **CA 재계산** | static (generation 시점 고정) | derived(stats) — 매월 재계산. UI 의 CA 표시 자동 동기화 |
+
+---
+
+## V1.0-11. Injury Recovery + Rate (신규 — Stage D.4 Medical + Gym)
+
+### Purpose
+
+- 부상 회복 / 발생률에 Medical + Gym 시설 등급 보정 적용.
+- 호출 시점:
+  - **매치 시뮬 중** (Stage I.3) — 부상 발생 시 `InjuryTypeSO.recoveryDays` × 보정 = `Player.state.injury.expectedReturn` 계산. 또한 발생률 보정.
+  - **매일** (`DailyProcessor`) — `Player.state.injury.expectedReturn <= currentDate` 면 부상 해제.
+- 단일 책임: 시설 보정 공식 + balancing param 외부화. 실제 부상 발생 / 해제 로직은 매치 엔진 (Stage I.3) / DailyProcessor 에서 호출.
+
+### Inputs / Outputs
+
+```csharp
+public static class InjurySystem {
+    // 매치 엔진 (Stage I.3) 호출
+    public static int    ComputeRecoveryDays(InjuryTypeSO injuryType, int medicalLevel, int gymLevel, GameBalanceSO balance);
+    public static float  ComputeInjuryRate(int medicalLevel, GameBalanceSO balance);
+    // DailyProcessor 호출
+    public static void   ProcessRecovery(GameState state, GameBalanceSO balance);
+}
+```
+
+### Logic
+
+#### ComputeRecoveryDays (Stage I.3 매치 엔진 호출)
+
+```
+public static int ComputeRecoveryDays(injuryType, medicalLevel, gymLevel, balance):
+    baseDays = injuryType.recoveryDays   # InjuryTypeSO 의 base (Sprained Ankle ~14, ACL ~180 등)
+    medicalReduction = 1.0 + medicalLevel * balance.injuryMedicalRecoveryCoeff (0.05)   # Lv10 = ×1.5 회복
+    gymReduction = 1.0 + gymLevel * balance.injuryGymRecoveryCoeff (0.02)               # Lv10 = ×1.2 회복
+    
+    actualDays = baseDays / (medicalReduction * gymReduction)
+    return max(1, round(actualDays))
+```
+
+#### ComputeInjuryRate (Stage I.3 매치 엔진 호출)
+
+```
+public static float ComputeInjuryRate(medicalLevel, balance):
+    # 매 분당 부상 발생 기본 확률
+    baseRate = balance.injuryBaseRate (0.0003)   # algorithms.md V1.0-2 에서 정의
+    
+    # Medical Lv N → 감소
+    medicalFactor = max(0.5, 1.0 - medicalLevel * balance.injuryMedicalRateCoeff (0.05))
+    # Lv1 = ×0.95, Lv10 = ×0.5 (50% 감소가 최대)
+    
+    return baseRate * medicalFactor
+```
+
+> 매 분 부상 발생: `baseRate × medicalFactor × player.hiddenAttrs.injuryProneness / 50` (V1.0-2 분 단위 이벤트 시퀀스에서 호출).
+
+#### ProcessRecovery (DailyProcessor 매일 호출)
+
+```
+public static void ProcessRecovery(state, balance):
+    foreach player in state.allPlayers where player.state.injury.injuryTypeId != -1:
+        if state.currentDate >= player.state.injury.expectedReturn:
+            player.state.injury = InjuryInfo.Empty   # 부상 해제
+            EventBus.Publish(new PlayerInjuryRecoveredEvent { playerId = player.id })
+```
+
+### 핵심 결정사항 (`design-decisions.md` #53 와 연동)
+
+1. **Medical 효과 = 회복 + 발생률 동시** — V1.0-plan §3.10.5 의 "회복 일수 / (1 + N × 0.05)" 직역 + 발생률 ×(1 - N × 0.05).
+2. **Gym = 회복 일부만** — 피지컬 회복 보조 (×(1 + N × 0.02)). 발생률 보정 X (Medical 만).
+3. **발생률 floor 0.5** — Medical Lv10 도 부상 완전 차단 불가 (최소 50% 발생). 게임플레이 유지.
+4. **부상 회복 일수 외부화** — `InjuryTypeSO.recoveryDays` (Sub-A 의 Catalog 갱신은 Stage I.3 에서 — 본 D.4 = balancing param 만).
+5. **임대 선수 (Loan)** — 부상 시 현재 소속 (`currentClubId`) 의 Medical/Gym 영향. 회복 후 그대로 임대 잔류.
+6. **부상 회복 결정성** — `expectedReturn` 은 부상 발생 시점에 한 번 계산 (시드 derived). DailyProcessor 의 ProcessRecovery 는 단순 비교만.
+
+### Balancing Parameters (V1.0 신규)
+
+```
+[Injury System]
+injuryMedicalRecoveryCoeff = 0.05    # Medical Lv N → 회복 ×(1 + N×0.05)
+injuryGymRecoveryCoeff = 0.02        # Gym Lv N → 회복 ×(1 + N×0.02)
+injuryMedicalRateCoeff = 0.05        # Medical Lv N → 발생률 ×(1 - N×0.05), min 0.5
+# injuryBaseRate = 0.0003 (V1.0-2 에서 이미 정의)
+```
+
+### Edge Cases
+
+- 부상 회복 일수 0 → min 1일 보정.
+- 시설 등급 0 (이론적) → 모든 보정 = 1 (변동 없음). 실제로는 Lv1 부터 시작.
+- 부상 회복 도중 임대 이동 → 새 클럽 시설 영향. **단** `expectedReturn` 은 부상 발생 시점 고정 (시설 변화 무시). V1.x 검토 — 임대 이동 시 재계산.
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | Medical 회복 보정 | InjuryType base 30일 + Medical Lv10 → 회복 20일 (30 / 1.5) |
+| T2 | Gym 회복 보정 | InjuryType base 30일 + Gym Lv10 → 회복 25일 (30 / 1.2) |
+| T3 | Medical + Gym | base 30 + Medical Lv10 + Gym Lv10 → 17일 (30 / 1.8) |
+| T4 | 발생률 보정 | injuryProneness 50 선수 + Medical Lv10 vs Lv1 → 매치 100경기 부상 빈도 Lv10 = Lv1 의 ~52% |
+| T5 | 발생률 floor | Medical Lv20 (가상) → injuryFactor 여전히 0.5 (clamp) |
+| T6 | DailyProcessor 회복 | expectedReturn 도래 → 다음날 부상 해제 + PlayerInjuryRecoveredEvent 발행 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **부상 종류별 시설 효과** | 일률 — Medical 보정은 모든 InjuryType 동일 | Long-term injury (ACL 등) 는 Medical 의존도 ↑ |
+| **재활 단계** | Single phase (전체 부상 → 회복) | Multi-phase (회복 / 재활 / 컨디션 회복) |
+| **부상 위치별 boundary** | 미적용 | 발목 / 햄스트링 / 무릎 등 stat 영역별 영향 (Pace 영구 ↓ 등) |
+| **임대 이동 시 재계산** | 미적용 (`expectedReturn` 고정) | 새 클럽 시설로 재계산 |
+
+---
+
 ## Part 2 Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-22 | V1.0-1 ~ V1.0-9 | Part 2: V1.0 Updates 부록 신규 작성. 9 섹션 (PlayerGen V1.0 변경분 / MatchSim V1.0 분 단위 이벤트 시퀀스 / Market Value V1.0 hidden·form·morale 보정 / Transfer Flow V1.0 다중 라운드 + 임대 + 재계약 / Youth V1.0 CA 캡 + 시설 분리 + Mentoring / CpuTransferAi 필요 기반 트리거 5종 / Morale System 변동 매트릭스 + Promise 통합 / Tactic Impact Role × Duty × Mentality / Save Migration 인프라 / Season Award 시즌·월간 시상). `docs/v1.0-plan.md` §3 + `design-decisions.md` #39~#52 와 연동. 12 Open Questions 결정 결과 통합. |
+| 2026-05-26 | V1.0-10 / V1.0-11 | Stage D.4 Sub-A 명세 — Player Growth System (Training + Gym) + Injury Recovery (Medical + Gym). `design-decisions.md` #53 와 연동. 성장 = 매월 1일 / stat ±1 확률 모델 / Absolute 1/10 / 나이 곡선 / Training Lv N → ×(1+N×0.1) / Gym 피지컬 ×(1+N×0.05) / PA 캡. 부상 회복 = Medical Lv N → 회복 ×(1+N×0.05) + 발생률 ×(1-N×0.05) floor 0.5 / Gym 회복 +×(1+N×0.02). 매치 엔진 (Stage I.3) 호출 인터페이스 정의. |

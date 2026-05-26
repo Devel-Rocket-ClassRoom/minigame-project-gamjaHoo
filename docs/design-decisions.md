@@ -1625,6 +1625,72 @@ public class ScoutReport {
 
 ---
 
+## 53. 시설 효과 본격 적용 — Training + Medical + Gym (V1.0 D.4)
+
+**결정:** V1.0 D.4 에서 3 시설 효과 본격 도입 (`algorithms.md` V1.0-10 + V1.0-11). Stadium / Scout / Youth* 은 후속 Stage (M.6 / E.2 / L.1-3) 의존.
+
+**Training — Player Growth System (V1.0-10):**
+- 매월 1일 `GrowthSystem.Tick(state, balance)` 호출 (V0.1 ProcessSchedule 패턴 일관).
+- 1군 선수 대상 — Relative stats 만 변동 (Absolute = ×0.10 페널티).
+- 성장 공식 = `growthBaseChance (0.05) × ageFactor × absoluteFactor × trainingBonus × gymBonus(피지컬) × paFactor`.
+- Training Lv N → `1 + N × 0.10` (Lv1 ×1.1, Lv10 ×2.0).
+- 결정성 — 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`.
+
+**Medical — Injury Recovery + Rate (V1.0-11):**
+- 회복 일수 = `InjuryTypeSO.recoveryDays / (1 + medicalLevel × 0.05 + gymLevel × 0.02)`.
+- 부상 발생률 = `injuryBaseRate × max(0.5, 1 - medicalLevel × 0.05)` — floor 0.5 (게임플레이 유지).
+- `DailyProcessor.ProcessRecovery` 매일 호출 — `expectedReturn` 도래 시 부상 해제.
+- 매치 엔진 (Stage I.3) 호출 인터페이스만 D.4 도입. 실제 부상 발생 / 매치 분 단위 이벤트는 Stage I 에서.
+
+**Gym — 보조 시설:**
+- 피지컬 stat 8개 한정 성장 보정 (Acceleration / Agility / Balance / Jumping Reach / Natural Fitness / Pace / Stamina / Strength).
+- 부상 회복 일부 보정 (×(1 + N × 0.02)).
+- 발생률 보정 X (Medical 만).
+
+**나이 곡선 (`GrowthSystem.ComputeAgeFactor`):**
+- 16-22세: +1.5 ~ +0.9 (peak growth)
+- 23-26세: +1.0 ~ +0.5 (prime)
+- 27-30세: +0.0 (정체)
+- 31세+: -0.2 ~ -1.0 (decline)
+
+**CA-PA 캡:**
+- V0.1 #35 PA 진실값 모델 정신 — PA = 캡. CA = PA 도달 시 성장 정지 (단 decline 은 가능, ageFactor < 0 일 때).
+- CA = static field (generation 시점 고정). V1.x = derived from stats 검토 (`#24` V1.0+ 보완 포인트).
+
+**임대 선수 (Stage K.3 Loan):**
+- 현재 소속 (`currentClubId`) 클럽의 시설 영향. 원 소속 (`parentClubId`) X.
+- 부상 회복 도중 임대 이동 — `expectedReturn` 고정 (V1.0). V1.x 재계산.
+
+**Stadium / Scout / Youth* — D.4 책임 X:**
+- **Stadium** → Stage M.6 (SeasonEndProcessor 재정 결산 시 `baseStadiumIncome × stadiumLevel × clubReputation × homeMatches`)
+- **Scout** → Stage E.2 (ScoutingSystem 명단 크기 / 정확도 — `FacilityLevelSO(Scout).scoutPoolSize / scoutAccuracyRange` 활용)
+- **YouthCoach / YouthRecruitment / YouthFacility** → Stage L.1-3 (유스 PA / 풀 크기 / 성장률)
+
+**이유:**
+- **D.4 스코프 한정 — 직접 효과 3 시설**: Stadium / Scout / Youth* 은 시즌 / 검색 / 유스 시스템의 일부라 해당 Stage 가 책임. D.4 에서 다 처리하면 후속 Stage 와 중복 + PR 사이즈 폭증.
+- **성장 시스템 = 신규 시스템**: V0.1 = 선수 stat 시즌 내내 고정. V1.0 = 매월 변동 도입 (V1.0 의 핵심 시뮬레이션 깊이 추가).
+- **결정성 보존**: V0.1 #17 시드 모델 일관 — 같은 시드 = 같은 성장 시퀀스.
+
+**영향 범위:**
+- `Application/GrowthSystem.cs` 신규 (Stateless)
+- `Application/InjurySystem.cs` 신규 (Stateless — `ComputeRecoveryDays / ComputeInjuryRate / ProcessRecovery`)
+- `DailyProcessor` 통합 — 매월 1일 `GrowthSystem.Tick` + 매일 `InjurySystem.ProcessRecovery`
+- `GameBalanceSO` 신규 ~10 필드 (`growthBaseChance / growthAbsoluteFactor / growthTrainingCoeff / growthGymCoeff / growthPaGapNormalizer / growthYouthFactor / growthYouthPeakAge / growthPrimePeakAge / growthDeclineStartAge / injuryMedicalRecoveryCoeff / injuryGymRecoveryCoeff / injuryMedicalRateCoeff`)
+- `Utils/StatMetadata.cs` — `IsPhysical(stat)` 메서드 추가 (피지컬 8 stat 판별, B.4 와 짝)
+- `event-bus-catalog.md` — `PlayerStatChangedEvent` (V1.x UI 알림 용도, V1.0 = 도메인 이벤트만) / `PlayerInjuryRecoveredEvent` 신규 등록
+
+### V1.0+ 보완 포인트 (V1.x)
+
+- **개인 훈련 (Individual Training)** — 유저가 특정 선수 / stat 집중 훈련 (FM 표준).
+- **시즌 외 프리시즌 캠프** — 6/1~8/15 추가 성장 (현 V1.0 = 매월 동일).
+- **부상 중 성장** — 영향 X → ×0.5 검토.
+- **Mentoring stat 영향** — Stage L.4 = Hidden 만. V1.x = stat 도 일부.
+- **부상 multi-phase** — 회복 / 재활 / 컨디션 회복 단계.
+- **CA derived from stats** — V0.1 #24 V1.0+ 보완 포인트 일관.
+- **시설 → Staff 도입** (`#49` V1.x) 시 코치 quality 추가 입력.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -1643,3 +1709,4 @@ public class ScoutReport {
 | 2026-05-20 | #38 추가 | Stage 12 시즌 사이클 명세 작성 (Sub-A, #135). 5/15 종료 / 6/1 회계연도 / 8/15 매치 개막 3 시점 변수명 분리 (혼동 회피). V0.1 도입 — FA 전환 + 33+ 확률적 은퇴 + NewSeasonProcessor (토큰/일정/리셋). V0.1 미구현 — 시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 (모두 V1.0+ 별도 시스템과 짝). 캘린더/요일 dynamic 계산은 V1.0+ ("5월 마지막 토요일" 같은 — 매년 가변 일정). V1.0+ 보완 포인트 10 항목. |
 | 2026-05-20 | #38 보강 | Stage 15 통합 테스트 (#59) 작성 시 GameInitializer 가 첫 매치를 seasonStart 당일에 배치 → GameLoop.AdvanceDay 가 시간 진행 후 처리하므로 영원히 미처리 발견. **프리시즌 컨셉 도입**: `seasonStart` = 프리시즌 시작일 (state.currentDate 초기값). 첫 매치 = `newSeasonOpening` (8/15) 부터. GameInitializer.NewGame 이 `firstMatchDate = seasonStart 이후 가장 가까운 newSeasonOpening` 계산 후 ScheduleGenerator 호출. 사용자 합의: "원래 FM 도 프리시즌부터 시작해서 팀 뽑고 전술 / 스탭 만지고 첫 경기 시작할 시간을 줘야 한다". NewSeasonProcessor 는 이미 동일 패턴 (`ComputeNewSeasonOpeningDate` 사용) — 일관성 확보. |
 | 2026-05-22 | #39~#52 추가 | V0.1 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 작성). 사용자 플레이테스트 피드백 11 카테고리 + 기존 V1.0+ 보완 포인트 + FM 표준 통합. 12 Open Questions 모두 결정 후 본 결정사항 #39~#52 추가. **§ 매핑**: #39 Stats 1-100 + FM 49 (Q1, Q12) / #40 Hidden Attributes (Q4) / #41 Trait 효과 본격화 / #42 Morale + Happiness 분리 (Q7) / #43 Promise + 면담 (Q7) / #44 매치 엔진 V1.0 분 단위 (#34 실현, Q5) / #45 Tactic 중간 스코프 (Q10) / #46 스카우트 이분법 (Q4) / #47 CpuTransferAi 필요 기반 (Q3) / #48 협상 V1.0 + 임대 / #49 시설 8종 × 10단계 + 병렬 / #50 유스 V1.0 (CA 캡 + 시설 분리 + Mentoring) / #51 시즌 V1.0 (시상 + 보드 + 재정) / #52 인프라 (String Table + Localization + Save Migration, Q8). 일정 정책 (Q11) = 마감 없음. |
+| 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V1.0-10 + V1.0-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / ±1 확률 모델 / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.x derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
