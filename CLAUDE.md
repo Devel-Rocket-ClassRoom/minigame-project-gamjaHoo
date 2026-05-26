@@ -19,12 +19,6 @@
 
 > **읽지 않고 추측으로 진행했을 때 일어난 일들**: `GameManager` 를 Application 으로 옮기자고 잘못 추천 → 사용자 정정. `type:*` 라벨 자동 사용 → 폐지된 방식. `main` 직접 푸시 시도 → 워크플로우 위반. 같은 실수 반복 = 사용자 신뢰 ↓.
 
-## 🗂️ 현재 진행 상태 (세션 간 이어받기)
-
-- **V0.1 완료** (2026-05-21) — Stage 13 UI 전체 + Stage 14 디버그 도구 + Stage 15 통합 테스트 모두 머지됨.
-- **다음 작업: V1.0 이슈 생성 및 작업 시작** — `docs/design-decisions.md` V1.0+ 보완 포인트 + `docs/v0.1-tasks.md` V1.0+ 항목 참고. GitHub Milestone `V1.0` 으로 이슈 생성.
-
----
 
 ## ⚠️ Common Pitfalls — 자주 빠지는 함정
 
