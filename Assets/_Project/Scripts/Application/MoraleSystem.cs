@@ -275,8 +275,15 @@ namespace FMLite.Application
                     break;
                 }
                 case InterviewType.PromisePlaytime:
+                    PromiseSystem.CreatePlaytimeAgreement(
+                        state,
+                        playerId,
+                        balance.promisePlaytimeDefaultRatio,
+                        balance
+                    );
+                    break;
                 case InterviewType.PromiseRenewal:
-                    // G.2 PromiseSystem 도입 시 본격 활용 (Promise 생성).
+                    PromiseSystem.CreateRenewal(state, playerId, balance);
                     break;
             }
         }

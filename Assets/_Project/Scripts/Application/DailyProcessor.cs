@@ -6,6 +6,7 @@
 // V1.0 E.2: 매주 월요일 ScoutingSystem.UpdateKnowledge.
 // V1.0 F.1+F.2: 매주 월요일 CpuTransferAi.Run (ScoutingSystem 다음 — 명단 활용).
 // V1.0 G.1: 매일 MoraleSystem.Tick (사기 50 수렴 + Hidden professionalism 보정).
+// V1.0 G.2: 매주 월요일 PromiseSystem.CheckProgress (deadline 도래 시 status 확정 + 사기 변동).
 // V1.0 추가 예정: 계약 만료 ContractExpiringEvent.
 
 using System;
@@ -49,11 +50,13 @@ namespace FMLite.Application
                 GrowthSystem.Tick(state, balance);
             }
 
-            // 매주 월요일 — 스카우트 명단 갱신 + AI 영입 (F.1 + F.2 / design-decisions.md #47)
+            // 매주 월요일 — 스카우트 명단 갱신 + AI 영입 + Promise 진행 체크
+            // (F.1 + F.2 / design-decisions.md #47 + G.2 / design-decisions.md #43)
             if (state.currentDate.DayOfWeek == DayOfWeek.Monday)
             {
                 ScoutingSystem.UpdateKnowledge(state, balance);
                 CpuTransferAi.Run(state, balance);
+                PromiseSystem.CheckProgress(state, balance);
             }
         }
 

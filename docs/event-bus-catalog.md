@@ -210,6 +210,46 @@ public class TransferRequestEvent {
 
 ---
 
+### Promise Events (V1.0 G.2)
+
+#### PromiseCreatedEvent
+- **Publisher:** `PromiseSystem.Create*` 헬퍼 (CreatePlaytimeAgreement / CreateRenewal / CreateTransferIn / CreateTransferOut)
+- **Subscribers:** Dashboard 인박스 (Sub-B UI — `PromiseInboxScene` 또는 Dashboard 통합)
+- **Payload:** Promise ID
+- **Trigger:** 면담 / 협상 결과로 신규 Promise 등록 직후
+
+```csharp
+public class PromiseCreatedEvent {
+    public int promiseId;
+}
+```
+
+#### PromiseFulfilledEvent
+- **Publisher:** `PromiseSystem.CheckProgress` (deadline 도래 + 조건 충족)
+- **Subscribers:** Dashboard 인박스 / 사기 UI (변동 가시화)
+- **Payload:** Promise ID
+- **Trigger:** 매주 월요일 `CheckProgress` 가 deadline 경과 약속 평가 → Fulfilled 확정. `MoraleSystem.OnPromiseFulfilled` 별도 직접 호출 (happiness +10).
+
+```csharp
+public class PromiseFulfilledEvent {
+    public int promiseId;
+}
+```
+
+#### PromiseBrokenEvent
+- **Publisher:** `PromiseSystem.CheckProgress` (deadline 도래 + 조건 미충족)
+- **Subscribers:** Dashboard 인박스 / 사기 UI
+- **Payload:** Promise ID
+- **Trigger:** 매주 월요일 `CheckProgress` 가 약속 미이행 확정. `MoraleSystem.OnPromiseBroken` 직접 호출 (happiness -20, 임계점 < 20 시 `TransferRequestEvent` 연쇄 발행).
+
+```csharp
+public class PromiseBrokenEvent {
+    public int promiseId;
+}
+```
+
+---
+
 ### Youth Events
 
 #### YouthIntakeAvailableEvent
@@ -346,7 +386,7 @@ public class FacilityUpgradeCompletedEvent {
 V1.0 작업 시 추가될 이벤트들:
 
 - ~~`TransferRequestEvent`~~ — V1.0 G.1 등록 완료 (Transfer Events 섹션)
-- `PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent` (V1.0 G.2)
+- ~~`PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent`~~ — V1.0 G.2 등록 완료 (Promise Events 섹션)
 - `ContractRenewedEvent` (V1.0 H.1)
 - `PlayerMoraleChangedEvent` (사기 시스템 — 큰 변동 시점만 발행 검토, V1.x)
 - `BoardConfidenceChangedEvent` (보드 신뢰도, V1.0 M.4)
@@ -450,3 +490,4 @@ public class PlayerUpdatedEvent {
 | --- | --- |
 | 2025-05-15 | V0.1 카탈로그 초안 작성 |
 | 2026-05-26 | V1.0 G.1 — TransferRequestEvent 등록 (MoraleSystem.OnPromiseBroken 발행, Happiness < 20). V1.0+ Future 섹션 갱신 (G.2 Promise* / H.1 ContractRenewed / M.4 Board* / I.5 MatchEvent / V1.x Press 분류). |
+| 2026-05-26 | V1.0 G.2 — Promise Events 3종 (PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent) 신규 섹션. PromiseSystem.CheckProgress 매주 월요일 deadline 도래 약속 평가 → 사기 변동 + 이벤트 발행. UI 인박스 구독은 Sub-B (면담 UI / Dashboard 인박스). |

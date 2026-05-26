@@ -354,5 +354,18 @@ namespace FMLite.Domain
         public int interviewCriticizeMoralePenalty = 3; // 부호 호출부
         public float ratingHighThreshold = 7.5f;
         public float ratingLowThreshold = 6.0f;
+
+        // ── V1.0 G.2 Promise System (algorithms.md V1.0-6 / design-decisions.md #43) ──
+
+        [Header("Promise System (V1.0 G.2)")]
+        public int promisePlaytimeDefaultRatio = 50; // OnInterview PromisePlaytime 의 기본 출전 비율 (%)
+        public int promisePlaytimeDeadlineMonth = 5; // 시즌 종료월 (5/15)
+        public int promisePlaytimeDeadlineDay = 15;
+        public int promiseRenewalDeadlineMonth = 8; // 다음 시즌 개막 (8/15)
+        public int promiseRenewalDeadlineDay = 15;
+        public int promiseTransferDeadlineDaysSummerEnd = 31; // 8/31 활성화 기간 종료
+        public int promiseTransferDeadlineMonthSummerEnd = 8;
+        public int promiseTransferDeadlineDaysWinterEnd = 31; // 1/31
+        public int promiseTransferDeadlineMonthWinterEnd = 1;
     }
 }
