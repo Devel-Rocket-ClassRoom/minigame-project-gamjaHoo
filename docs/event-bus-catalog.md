@@ -248,6 +248,19 @@ public class PromiseBrokenEvent {
 }
 ```
 
+#### PromiseDeadlineApproachingEvent (V1.0 G.2 Sub-B)
+- **Publisher:** `PromiseSystem.CheckProgress` (Active 약속 중 `(deadline - currentDate).Days ≤ promiseDeadlineApproachingDays` (30) 진입 시점)
+- **Subscribers:** Dashboard 인박스 ("마감 N일 남음" 알림)
+- **Payload:** Promise ID + 잔여 일수
+- **Trigger:** 매주 월요일 `CheckProgress`. **`Promise.deadlineNotified` 플래그**로 중복 발행 차단 — 같은 Promise 마다 1회만.
+
+```csharp
+public class PromiseDeadlineApproachingEvent {
+    public int promiseId;
+    public int daysRemaining;
+}
+```
+
 ---
 
 ### Youth Events
@@ -491,3 +504,4 @@ public class PlayerUpdatedEvent {
 | 2025-05-15 | V0.1 카탈로그 초안 작성 |
 | 2026-05-26 | V1.0 G.1 — TransferRequestEvent 등록 (MoraleSystem.OnPromiseBroken 발행, Happiness < 20). V1.0+ Future 섹션 갱신 (G.2 Promise* / H.1 ContractRenewed / M.4 Board* / I.5 MatchEvent / V1.x Press 분류). |
 | 2026-05-26 | V1.0 G.2 — Promise Events 3종 (PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent) 신규 섹션. PromiseSystem.CheckProgress 매주 월요일 deadline 도래 약속 평가 → 사기 변동 + 이벤트 발행. UI 인박스 구독은 Sub-B (면담 UI / Dashboard 인박스). |
+| 2026-05-26 | V1.0 G.2 Sub-B — PromiseDeadlineApproachingEvent 신규 (30일 임박, Promise.deadlineNotified 플래그로 중복 차단). DashboardController 가 5 이벤트 구독 (PromiseCreated / Fulfilled / Broken / DeadlineApproaching / TransferRequest) → in-memory 인박스 (씬 재진입 시 비워짐, V1.0 단순). |

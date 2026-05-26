@@ -245,6 +245,53 @@ namespace FMLite.Editor
                     "{0}-{1}  {2}  {3}경기 {4}골 {5}도움",
                     "{0}-{1}  {2}  {3} apps {4} goals {5} assists"
                 ),
+                // ── V1.0 G.2 Sub-B 면담 + 인박스 ──────────────────────────
+                E("interview_button", "면담", "Interview"),
+                E("interview_dialog_title", "선수 면담", "Player Interview"),
+                E("interview_close", "닫기", "Close"),
+                E("interview_praise", "현재 성과 칭찬", "Praise recent form"),
+                E("interview_criticize", "더 노력해야 한다", "Demand more effort"),
+                E(
+                    "interview_promise_playtime",
+                    "출전시간 보장하겠다",
+                    "Promise more playing time"
+                ),
+                E(
+                    "interview_promise_renewal",
+                    "다음 시즌 새 계약 협상하자",
+                    "Promise contract renewal next season"
+                ),
+                // Promise 타입 라벨
+                E("promise_type_playtime", "출전시간 약속", "Playtime Agreement"),
+                E("promise_type_renewal", "재계약 약속", "Renewal Promise"),
+                E("promise_type_transfer_in", "영입 약속", "Transfer-In Promise"),
+                E("promise_type_transfer_out", "이적 허용 약속", "Transfer-Out Promise"),
+                // 인박스 포맷
+                E(
+                    "inbox_promise_created_fmt",
+                    "[약속] {0} — {1} 등록",
+                    "[Promise] {0} — {1} created"
+                ),
+                E(
+                    "inbox_promise_fulfilled_fmt",
+                    "[약속] {0} — {1} 이행",
+                    "[Promise] {0} — {1} fulfilled"
+                ),
+                E(
+                    "inbox_promise_broken_fmt",
+                    "[약속] {0} — {1} 미이행",
+                    "[Promise] {0} — {1} broken"
+                ),
+                E(
+                    "inbox_promise_approaching_fmt",
+                    "[약속] {0} — {1} 마감 {2}일 남음",
+                    "[Promise] {0} — {1} due in {2} days"
+                ),
+                E(
+                    "inbox_transfer_request_fmt",
+                    "[이적 요청] {0} 가 이적 요청",
+                    "[Transfer Request] {0} requested transfer"
+                ),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

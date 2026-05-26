@@ -47,6 +47,26 @@ namespace FMLite.Application
                     continue;
                 if (promise.status != PromiseStatus.Active)
                     continue;
+
+                // (V1.0 G.2 Sub-B) 마감 임박 알림 — deadline 전 N일 이내 진입 시 1회 발행.
+                if (
+                    !promise.deadlineNotified
+                    && state.currentDate < promise.deadline
+                    && (promise.deadline - state.currentDate).Days
+                        <= balance.promiseDeadlineApproachingDays
+                )
+                {
+                    int daysRemaining = (promise.deadline - state.currentDate).Days;
+                    EventBus.Publish(
+                        new PromiseDeadlineApproachingEvent
+                        {
+                            promiseId = promise.id,
+                            daysRemaining = daysRemaining,
+                        }
+                    );
+                    promise.deadlineNotified = true;
+                }
+
                 if (state.currentDate < promise.deadline)
                     continue;
 

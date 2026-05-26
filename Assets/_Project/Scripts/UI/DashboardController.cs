@@ -4,6 +4,7 @@
 // DayAdvancedEvent 구독으로 날짜 실시간 갱신.
 // Issue #165: 저장 슬롯 리스트 + 메인 메뉴 복귀 버튼 추가
 // (Save→MainMenu→LoadGame V0.1 테스트 흐름 활성화).
+// V1.0 G.2 Sub-B (#300): 인박스 패널 — Promise* / TransferRequest 5 이벤트 구독, in-memory 메시지 리스트.
 
 using System.Linq;
 using FMLite.Application;
@@ -58,16 +59,36 @@ namespace FMLite.UI
         [SerializeField]
         private GameBalanceSO balance;
 
+        [Header("인박스 (V1.0 G.2 Sub-B)")]
+        [SerializeField]
+        private Transform inboxListParent;
+
+        [SerializeField]
+        private GameObject inboxItemPrefab;
+
+        [SerializeField]
+        private int inboxMaxItems = 10;
+
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
             EventBus.Subscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
+            EventBus.Subscribe<PromiseCreatedEvent>(OnPromiseCreated);
+            EventBus.Subscribe<PromiseFulfilledEvent>(OnPromiseFulfilled);
+            EventBus.Subscribe<PromiseBrokenEvent>(OnPromiseBroken);
+            EventBus.Subscribe<PromiseDeadlineApproachingEvent>(OnPromiseDeadlineApproaching);
+            EventBus.Subscribe<TransferRequestEvent>(OnTransferRequest);
         }
 
         private void OnDisable()
         {
             EventBus.Unsubscribe<DayAdvancedEvent>(OnDayAdvanced);
             EventBus.Unsubscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
+            EventBus.Unsubscribe<PromiseCreatedEvent>(OnPromiseCreated);
+            EventBus.Unsubscribe<PromiseFulfilledEvent>(OnPromiseFulfilled);
+            EventBus.Unsubscribe<PromiseBrokenEvent>(OnPromiseBroken);
+            EventBus.Unsubscribe<PromiseDeadlineApproachingEvent>(OnPromiseDeadlineApproaching);
+            EventBus.Unsubscribe<TransferRequestEvent>(OnTransferRequest);
         }
 
         private void Start()
@@ -177,6 +198,101 @@ namespace FMLite.UI
         {
             if (e.clubId == GameManager.Instance?.State?.userClubId)
                 SceneManager.LoadScene(YouthScene);
+        }
+
+        // ── 인박스 (V1.0 G.2 Sub-B) ──────────────────────────────────
+
+        private void OnPromiseCreated(PromiseCreatedEvent e) =>
+            PushInbox(FormatPromise("inbox_promise_created_fmt", e.promiseId));
+
+        private void OnPromiseFulfilled(PromiseFulfilledEvent e) =>
+            PushInbox(FormatPromise("inbox_promise_fulfilled_fmt", e.promiseId));
+
+        private void OnPromiseBroken(PromiseBrokenEvent e) =>
+            PushInbox(FormatPromise("inbox_promise_broken_fmt", e.promiseId));
+
+        private void OnPromiseDeadlineApproaching(PromiseDeadlineApproachingEvent e) =>
+            PushInbox(FormatPromiseApproaching(e.promiseId, e.daysRemaining));
+
+        private void OnTransferRequest(TransferRequestEvent e)
+        {
+            var state = GameManager.Instance?.State;
+            var player = state?.GetPlayer(e.playerId);
+            string playerName =
+                player?.info != null
+                    ? $"{player.info.firstName} {player.info.lastName}"
+                    : $"id={e.playerId}";
+            PushInbox(Localization.Get("inbox_transfer_request_fmt", playerName));
+        }
+
+        private string FormatPromise(string key, int promiseId)
+        {
+            var state = GameManager.Instance?.State;
+            var promise = state?.activePromises?.Find(p => p.id == promiseId);
+            string playerName = "?";
+            string typeLabel = "?";
+            if (promise != null)
+            {
+                var player = state.GetPlayer(promise.playerId);
+                playerName =
+                    player?.info != null
+                        ? $"{player.info.firstName} {player.info.lastName}"
+                        : $"id={promise.playerId}";
+                typeLabel = Localization.Get(PromiseTypeKey(promise.type));
+            }
+            return Localization.Get(key, playerName, typeLabel);
+        }
+
+        private string FormatPromiseApproaching(int promiseId, int daysRemaining)
+        {
+            var state = GameManager.Instance?.State;
+            var promise = state?.activePromises?.Find(p => p.id == promiseId);
+            string playerName = "?";
+            string typeLabel = "?";
+            if (promise != null)
+            {
+                var player = state.GetPlayer(promise.playerId);
+                playerName =
+                    player?.info != null
+                        ? $"{player.info.firstName} {player.info.lastName}"
+                        : $"id={promise.playerId}";
+                typeLabel = Localization.Get(PromiseTypeKey(promise.type));
+            }
+            return Localization.Get(
+                "inbox_promise_approaching_fmt",
+                playerName,
+                typeLabel,
+                daysRemaining
+            );
+        }
+
+        private static string PromiseTypeKey(PromiseType type) =>
+            type switch
+            {
+                PromiseType.PlaytimeAgreement => "promise_type_playtime",
+                PromiseType.TransferIn => "promise_type_transfer_in",
+                PromiseType.Renewal => "promise_type_renewal",
+                PromiseType.TransferOut => "promise_type_transfer_out",
+                _ => "promise_type_playtime",
+            };
+
+        private void PushInbox(string message)
+        {
+            if (inboxListParent == null || inboxItemPrefab == null)
+                return;
+
+            var item = Instantiate(inboxItemPrefab, inboxListParent);
+            item.transform.SetSiblingIndex(0); // 최신 메시지를 맨 위로
+            var inboxItem = item.GetComponent<InboxItem>();
+            if (inboxItem != null)
+                inboxItem.Setup(message);
+
+            // 초과 시 가장 오래된 메시지 제거 (in-memory 단순 정책)
+            while (inboxListParent.childCount > inboxMaxItems)
+            {
+                var last = inboxListParent.GetChild(inboxListParent.childCount - 1);
+                Destroy(last.gameObject);
+            }
         }
 
         private void RefreshInfo()

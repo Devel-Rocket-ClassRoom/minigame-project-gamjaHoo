@@ -21,4 +21,11 @@ namespace FMLite.Core
     {
         public int promiseId;
     }
+
+    // V1.0 G.2 Sub-B — 마감 30일 이내 진입 시 1회 발행. Promise.deadlineNotified 플래그로 중복 차단.
+    public class PromiseDeadlineApproachingEvent
+    {
+        public int promiseId;
+        public int daysRemaining;
+    }
 }

@@ -314,6 +314,86 @@ namespace FMLite.Tests
             Assert.AreEqual(PromiseType.Renewal, state.activePromises[0].type, "T13: 타입 일치");
         }
 
+        // ── T14. PromiseDeadlineApproachingEvent — 30일 이내 진입 시 1회 발행 ──
+
+        [Test]
+        public void T14_DeadlineApproaching_FiresOnceWithinThreshold()
+        {
+            // deadline = madeAt + 60일. currentDate = deadline - 20일 (임계 30일 이내)
+            var deadline = _madeAt.AddDays(60);
+            var state = NewState(currentDate: deadline.AddDays(-20));
+            var p = NewPlayer(1, clubId: 1);
+            state.AddPlayer(p);
+
+            var promise = new Promise
+            {
+                id = 1,
+                playerId = 1,
+                type = PromiseType.PlaytimeAgreement,
+                madeAt = _madeAt,
+                deadline = deadline,
+                status = PromiseStatus.Active,
+                targets = new Dictionary<string, int> { ["minPlayRatio"] = 50 },
+            };
+            state.activePromises.Add(promise);
+
+            int approachingCount = 0;
+            int receivedDays = -1;
+            Action<PromiseDeadlineApproachingEvent> handler = e =>
+            {
+                approachingCount++;
+                receivedDays = e.daysRemaining;
+            };
+            EventBus.Subscribe(handler);
+
+            // 첫 호출 → 발행 + 플래그 설정
+            PromiseSystem.CheckProgress(state, _balance);
+            // 두 번째 호출 (같은 주) → 중복 발행 X
+            PromiseSystem.CheckProgress(state, _balance);
+
+            EventBus.Unsubscribe(handler);
+
+            Assert.AreEqual(1, approachingCount, "T14: 30일 이내 진입 시 1회만 발행");
+            Assert.AreEqual(20, receivedDays, "T14: daysRemaining 페이로드");
+            Assert.IsTrue(promise.deadlineNotified, "T14: deadlineNotified 플래그 설정");
+            Assert.AreEqual(PromiseStatus.Active, promise.status, "T14: 아직 deadline 전 → 그대로 Active");
+        }
+
+        // ── T15. DeadlineApproaching — 임계 밖이면 발행 X ────────────
+
+        [Test]
+        public void T15_DeadlineApproaching_NotFiredOutsideThreshold()
+        {
+            // deadline = madeAt + 60일. currentDate = madeAt + 20일 (deadline - 40일, 임계 30일 밖)
+            var deadline = _madeAt.AddDays(60);
+            var state = NewState(currentDate: _madeAt.AddDays(20));
+            var p = NewPlayer(1, clubId: 1);
+            state.AddPlayer(p);
+
+            var promise = new Promise
+            {
+                id = 1,
+                playerId = 1,
+                type = PromiseType.PlaytimeAgreement,
+                madeAt = _madeAt,
+                deadline = deadline,
+                status = PromiseStatus.Active,
+                targets = new Dictionary<string, int> { ["minPlayRatio"] = 50 },
+            };
+            state.activePromises.Add(promise);
+
+            int approachingCount = 0;
+            Action<PromiseDeadlineApproachingEvent> handler = _ => approachingCount++;
+            EventBus.Subscribe(handler);
+
+            PromiseSystem.CheckProgress(state, _balance);
+
+            EventBus.Unsubscribe(handler);
+
+            Assert.AreEqual(0, approachingCount, "T15: 임계 밖 → 발행 X");
+            Assert.IsFalse(promise.deadlineNotified, "T15: 플래그 그대로");
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────────────────
 
         private GameState NewState(DateTime currentDate) =>
