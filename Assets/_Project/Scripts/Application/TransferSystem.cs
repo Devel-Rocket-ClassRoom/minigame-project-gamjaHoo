@@ -154,6 +154,9 @@ namespace FMLite.Application
                 {
                     case OfferStatus.Pending:
                         AiRespondToOffer(offer, state, balance);
+                        // AI 구단 수락(Negotiating) → 즉시 선수 협상 진행 (자동, 유저 대기 불필요)
+                        if (offer.status == OfferStatus.Negotiating)
+                            PlayerNegotiate(offer, state, balance);
                         break;
 
                     case OfferStatus.Accepted:
@@ -162,8 +165,8 @@ namespace FMLite.Application
                         // 활성화 기간 외 — Accepted 대기 유지
                         break;
 
-                    // CounterOffer / Negotiating — 유저 응답 대기 (RespondToCounterOffer 호출 시까지 대기)
-                    // Rejected / Completed: skip
+                    // CounterOffer — 유저 RespondToCounterOffer 호출 대기
+                    // Negotiating / Rejected / Completed: skip
                 }
             }
         }
@@ -197,10 +200,11 @@ namespace FMLite.Application
             double aiPerceivedValue = marketValue * noise;
             double ratio = aiPerceivedValue > 0 ? offer.amount / aiPerceivedValue : 0;
 
-            // V1.0 K.1 4분기 응답 (algorithms.md V1.0-3.1 [3-a])
+            // V1.0 K.1/K.2 4분기 응답 (algorithms.md V1.0-3.1 [3-a])
+            // AI 구단 수락 → Negotiating (선수 협상 단계로, V0.1 자동 통과 → V1.0 K.2)
             if (ratio >= balance.aiAcceptThreshold)
             {
-                offer.status = OfferStatus.Accepted;
+                offer.status = OfferStatus.Negotiating;
             }
             else if (ratio >= balance.aiCounterOfferThreshold)
             {
@@ -224,6 +228,58 @@ namespace FMLite.Application
                         100
                     );
             }
+
+            EventBus.Publish(
+                new OfferRespondedEvent { offerId = offer.id, newStatus = offer.status }
+            );
+        }
+
+        // ── PlayerNegotiate (algorithms.md V1.0-3.1 [4] / design-decisions.md #48) ──
+
+        // AI 구단 수락(Negotiating) 후 선수 측 평가.
+        // loyalty ↑ → 거절 / ambition ↑ → 수락 / includesPlaytimeAgreement → +playtimeAgreementBonus.
+        // 결과: Accepted 또는 Rejected (+ OfferRespondedEvent 발행).
+        private static void PlayerNegotiate(
+            TransferOffer offer,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            var player = state.GetPlayer(offer.playerId);
+            if (player == null)
+            {
+                offer.status = OfferStatus.Rejected;
+                EventBus.Publish(
+                    new OfferRespondedEvent { offerId = offer.id, newStatus = OfferStatus.Rejected }
+                );
+                return;
+            }
+
+            int seed =
+                state.randomSeed
+                ^ (offer.playerId * 397)
+                ^ offer.id
+                ^ unchecked((int)state.currentDate.Ticks);
+            var rng = new Random(seed);
+
+            int fairWage = EstimateInitialWage(player.currentAbility, balance);
+            double wageRatio =
+                fairWage > 0 ? (double)(offer.proposed?.weeklyWage ?? 0) / fairWage : 1.0;
+
+            double acceptChance = 0.5;
+            acceptChance += (wageRatio - 1.0) * 0.5;
+
+            int loyalty = player.hiddenAttrs != null ? player.hiddenAttrs.loyalty : 50;
+            int ambition = player.hiddenAttrs != null ? player.hiddenAttrs.ambition : 50;
+
+            acceptChance -= (loyalty - 50) / 100.0 * 0.3; // loyalty ↑ = 거절
+            acceptChance += (ambition - 50) / 100.0 * 0.3; // ambition ↑ = 수락
+
+            if (offer.includesPlaytimeAgreement)
+                acceptChance += balance.playtimeAgreementBonus;
+
+            offer.status =
+                rng.NextDouble() < acceptChance ? OfferStatus.Accepted : OfferStatus.Rejected;
 
             EventBus.Publish(
                 new OfferRespondedEvent { offerId = offer.id, newStatus = offer.status }
@@ -263,14 +319,8 @@ namespace FMLite.Application
             {
                 case CounterResponse.Accept:
                     offer.amount = offer.counterAmount;
-                    offer.status = OfferStatus.Accepted;
-                    EventBus.Publish(
-                        new OfferRespondedEvent
-                        {
-                            offerId = offer.id,
-                            newStatus = OfferStatus.Accepted,
-                        }
-                    );
+                    // 구단 합의 후 즉시 선수 협상 (K.2)
+                    PlayerNegotiate(offer, state, balance);
                     break;
 
                 case CounterResponse.Reject:
@@ -301,6 +351,8 @@ namespace FMLite.Application
                         offer.amount = newAmount;
                         offer.status = OfferStatus.Pending;
                         AiRespondToOffer(offer, state, balance);
+                        if (offer.status == OfferStatus.Negotiating)
+                            PlayerNegotiate(offer, state, balance);
                     }
                     break;
             }

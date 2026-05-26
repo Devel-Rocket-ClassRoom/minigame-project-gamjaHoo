@@ -263,6 +263,7 @@ namespace FMLite.Domain
         public float aiCounterOfferFactor = 1.30f; // counterAmount = aiPerceivedValue × factor
         public int maxNegotiationRounds = 3; // 최대 협상 라운드
         public int aiMockingMoralePenalty = 3; // 모욕적 오퍼 시 사기 감소량
+        public float playtimeAgreementBonus = 0.2f; // 출전시간 약속 포함 시 선수 수락 확률 +N
 
         [Header("Transfer Market — 이적시장 활성화 기간 (Transfer Window)")]
         // 여름: 6/1 ~ 8/31 (시즌 종료 직후)

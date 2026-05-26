@@ -382,10 +382,11 @@ namespace FMLite.Tests
             };
         }
 
+        // K.2: 선수 협상 단계에서 수락 보장 — 고임금(wageRatio 8.0 → acceptChance > 1.0)
         private Contract NewContract(GameState state) =>
             new Contract
             {
-                weeklyWage = 40_000,
+                weeklyWage = 200_000,
                 startDate = state.currentDate,
                 endDate = state.currentDate.AddYears(3),
             };
