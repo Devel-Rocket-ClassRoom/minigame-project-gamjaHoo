@@ -121,6 +121,21 @@ MonoBehaviour:
   - key: facility_effect_gym_fmt
     korean: "\uD53C\uC9C0\uCEEC \uC131\uC7A5 \xD7{0}"
     english: "Physical \xD7{0}"
+  - key: scout_tier_very_high
+    korean: "\uB9E4\uC6B0 \uB192\uC74C"
+    english: Very High
+  - key: scout_tier_high
+    korean: "\uB192\uC74C"
+    english: High
+  - key: scout_tier_average
+    korean: "\uC911\uAC04"
+    english: Average
+  - key: scout_tier_low
+    korean: "\uB0AE\uC74C"
+    english: Low
+  - key: scout_tier_very_low
+    korean: "\uB9E4\uC6B0 \uB0AE\uC74C"
+    english: Very Low
   - key: reputation_fmt
     korean: "\uBA85\uC131 {0}"
     english: Reputation {0}

@@ -87,6 +87,7 @@ namespace FMLite.UI
 
             var filter = BuildFilter();
             var results = TransferSystem.SearchPlayers(filter, _state);
+            var userClub = _state.GetClub(_state.userClubId);
 
             foreach (Transform child in resultListParent)
                 Destroy(child.gameObject);
@@ -94,7 +95,8 @@ namespace FMLite.UI
             foreach (var player in results)
             {
                 var item = Instantiate(playerItemPrefab, resultListParent);
-                item.GetComponent<TransferPlayerItem>().Setup(player, _state, ShowOfferPanel);
+                item.GetComponent<TransferPlayerItem>()
+                    .Setup(player, _state, userClub, ShowOfferPanel);
             }
         }
 
