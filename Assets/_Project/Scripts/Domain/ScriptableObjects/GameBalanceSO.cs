@@ -254,7 +254,15 @@ namespace FMLite.Domain
         public float aiValueNoiseSigma = 0.10f; // AI 평가 ±10% noise
 
         [Header("Transfer Market — Acceptance")]
-        public float aiAcceptRatio = 1.20f; // offer/marketValue 비율 >= 시 Accept
+        public float aiAcceptRatio = 1.20f; // offer/marketValue 비율 >= 시 Accept (V0.1 legacy)
+
+        [Header("Transfer Market — V1.0 K.1 협상 4분기")]
+        public float aiAcceptThreshold = 1.30f; // ratio >= → Accepted
+        public float aiCounterOfferThreshold = 1.10f; // ratio >= → CounterOffer (역제안)
+        public float aiMockingThreshold = 0.85f; // ratio < → Mocking (모욕적 오퍼, 사기 감소)
+        public float aiCounterOfferFactor = 1.30f; // counterAmount = aiPerceivedValue × factor
+        public int maxNegotiationRounds = 3; // 최대 협상 라운드
+        public int aiMockingMoralePenalty = 3; // 모욕적 오퍼 시 사기 감소량
 
         [Header("Transfer Market — 이적시장 활성화 기간 (Transfer Window)")]
         // 여름: 6/1 ~ 8/31 (시즌 종료 직후)

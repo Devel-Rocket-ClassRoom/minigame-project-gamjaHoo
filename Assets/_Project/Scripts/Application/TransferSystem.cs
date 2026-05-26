@@ -162,7 +162,8 @@ namespace FMLite.Application
                         // 활성화 기간 외 — Accepted 대기 유지
                         break;
 
-                    // Negotiating (V0.1 미사용) / Rejected / Completed: skip
+                    // CounterOffer / Negotiating — 유저 응답 대기 (RespondToCounterOffer 호출 시까지 대기)
+                    // Rejected / Completed: skip
                 }
             }
         }
@@ -196,11 +197,113 @@ namespace FMLite.Application
             double aiPerceivedValue = marketValue * noise;
             double ratio = aiPerceivedValue > 0 ? offer.amount / aiPerceivedValue : 0;
 
-            offer.status =
-                (ratio >= balance.aiAcceptRatio) ? OfferStatus.Accepted : OfferStatus.Rejected;
+            // V1.0 K.1 4분기 응답 (algorithms.md V1.0-3.1 [3-a])
+            if (ratio >= balance.aiAcceptThreshold)
+            {
+                offer.status = OfferStatus.Accepted;
+            }
+            else if (ratio >= balance.aiCounterOfferThreshold)
+            {
+                offer.status = OfferStatus.CounterOffer;
+                offer.counterAmount = (int)
+                    Math.Round(aiPerceivedValue * balance.aiCounterOfferFactor);
+                offer.negotiationRound++;
+            }
+            else if (ratio >= balance.aiMockingThreshold)
+            {
+                offer.status = OfferStatus.Rejected;
+            }
+            else
+            {
+                // 모욕적 오퍼 — Rejected + 사기 감소
+                offer.status = OfferStatus.Rejected;
+                if (player.state != null)
+                    player.state.morale = Math.Clamp(
+                        player.state.morale - balance.aiMockingMoralePenalty,
+                        0,
+                        100
+                    );
+            }
+
             EventBus.Publish(
                 new OfferRespondedEvent { offerId = offer.id, newStatus = offer.status }
             );
+        }
+
+        // ── RespondToCounterOffer (algorithms.md V1.0-3.1 [3-b]) ─────
+
+        // 유저가 CounterOffer 에 응답.
+        // Accept → offer.amount = counterAmount → Accepted
+        // Reject → Rejected
+        // ReCounter → offer.amount = newAmount → AiRespondToOffer 재호출 (negotiationRound++)
+        //   단 negotiationRound > maxNegotiationRounds 시 강제 Rejected.
+        public static void RespondToCounterOffer(
+            int offerId,
+            CounterResponse response,
+            int newAmount,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+
+            var offer =
+                state.activeOffers.Find(o => o != null && o.id == offerId)
+                ?? throw new ArgumentException($"offer id={offerId} not found");
+
+            if (offer.status != OfferStatus.CounterOffer)
+                throw new InvalidOperationException(
+                    $"offer id={offerId} status={offer.status} — CounterOffer 상태가 아님"
+                );
+
+            switch (response)
+            {
+                case CounterResponse.Accept:
+                    offer.amount = offer.counterAmount;
+                    offer.status = OfferStatus.Accepted;
+                    EventBus.Publish(
+                        new OfferRespondedEvent
+                        {
+                            offerId = offer.id,
+                            newStatus = OfferStatus.Accepted,
+                        }
+                    );
+                    break;
+
+                case CounterResponse.Reject:
+                    offer.status = OfferStatus.Rejected;
+                    EventBus.Publish(
+                        new OfferRespondedEvent
+                        {
+                            offerId = offer.id,
+                            newStatus = OfferStatus.Rejected,
+                        }
+                    );
+                    break;
+
+                case CounterResponse.ReCounter:
+                    if (offer.negotiationRound >= balance.maxNegotiationRounds)
+                    {
+                        offer.status = OfferStatus.Rejected;
+                        EventBus.Publish(
+                            new OfferRespondedEvent
+                            {
+                                offerId = offer.id,
+                                newStatus = OfferStatus.Rejected,
+                            }
+                        );
+                    }
+                    else
+                    {
+                        offer.amount = newAmount;
+                        offer.status = OfferStatus.Pending;
+                        AiRespondToOffer(offer, state, balance);
+                    }
+                    break;
+            }
         }
 
         private static void CompleteTransfer(TransferOffer offer, GameState state)
