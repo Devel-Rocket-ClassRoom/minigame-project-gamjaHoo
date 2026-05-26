@@ -5,7 +5,8 @@
 // V1.0 D.4: 매일 InjurySystem.ProcessRecovery (부상 회복 + 이벤트) + 매월 1일 GrowthSystem.Tick.
 // V1.0 E.2: 매주 월요일 ScoutingSystem.UpdateKnowledge.
 // V1.0 F.1+F.2: 매주 월요일 CpuTransferAi.Run (ScoutingSystem 다음 — 명단 활용).
-// V1.0 추가 예정: 사기/모랄 일일 변동, 계약 만료 ContractExpiringEvent.
+// V1.0 G.1: 매일 MoraleSystem.Tick (사기 50 수렴 + Hidden professionalism 보정).
+// V1.0 추가 예정: 계약 만료 ContractExpiringEvent.
 
 using System;
 using FMLite.Domain;
@@ -31,6 +32,10 @@ namespace FMLite.Application
             // 부상 회복 (V1.0 D.4 — V0.1 CheckInjuryRecovery 교체 + 이벤트 발행)
             // algorithms.md V1.0-11 ProcessRecovery
             InjurySystem.ProcessRecovery(state, balance);
+
+            // 사기 일일 회복 — 50 으로 수렴 (Hidden professionalism 보정).
+            // algorithms.md V1.0-6 Tick / design-decisions.md #42.
+            MoraleSystem.Tick(state, balance);
 
             // 이적 오퍼 처리 — Pending → AI 응답 / Accepted → 활성화 기간 시 자동 체결
             // (algorithms.md #3.1 ProcessOffers)

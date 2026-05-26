@@ -330,5 +330,29 @@ namespace FMLite.Domain
         public float aiOfferAmountRandomMax = 1.40f;
         public float aiBudgetRatio = 0.4f;
         public float aiContractFaThresholdDays = 180f; // 잔여 6개월
+
+        // ── V1.0 G.1 Morale System (algorithms.md V1.0-6 / design-decisions.md #42) ──
+
+        [Header("Morale System (V1.0 G.1)")]
+        public int moraleDailyRecoveryRate = 1; // 매일 50 으로 수렴 속도
+        public int moraleMatchWinBonus = 8;
+        public int moraleMatchLossPenalty = 8;
+        public float moraleBigMatchMultiplier = 1.5f;
+        public int moraleHighRatingBonus = 5;
+        public int moraleLowRatingPenalty = 3; // 부호는 호출부에서
+        public int moralePromotionWinBonus = 30; // 시즌 우승 / 승격 — V1.0 M.4 시점 사용
+        public int moraleRelegationPenalty = 50; // 강등 — V1.0 M.4 시점 사용 (부호 호출부)
+        public int contractRenewalMoraleBoost = 15;
+        public int contractRenewalHappinessBoost = 25;
+        public int promiseBreakHappinessPenalty = 20; // 부호 호출부
+        public int promiseFulfilledHappinessBonus = 10;
+        public int transferRequestThreshold = 20; // Happiness < N → TransferRequestEvent
+        public int unhappyThreshold = 40;
+        public int satisfiedThreshold = 80;
+        public int transferCompletedIncomingMoraleBonus = 20; // 영입된 선수 환영 (spec 침묵 → 합리적 디폴트)
+        public int interviewPraiseMoraleBonus = 5;
+        public int interviewCriticizeMoralePenalty = 3; // 부호 호출부
+        public float ratingHighThreshold = 7.5f;
+        public float ratingLowThreshold = 6.0f;
     }
 }
