@@ -137,6 +137,12 @@ namespace FMLite.Editor
                     "피지컬 성장 ×{0}",
                     "Physical ×{0}"
                 ),
+                // ── Scouting Tier (V1.0 E.3 — 정성적 라벨 5단계) ─────────────
+                E("scout_tier_very_high", "매우 높음", "Very High"),
+                E("scout_tier_high", "높음", "High"),
+                E("scout_tier_average", "중간", "Average"),
+                E("scout_tier_low", "낮음", "Low"),
+                E("scout_tier_very_low", "매우 낮음", "Very Low"),
                 // ── Club select ────────────────────────────────────────────
                 E("reputation_fmt", "명성 {0}", "Reputation {0}"),
                 // ── Fixture ────────────────────────────────────────────────
