@@ -45,6 +45,14 @@ namespace FMLite.Domain
         Completed,
     }
 
+    // V1.0 K.1 — RespondToCounterOffer 유저 응답 옵션.
+    public enum CounterResponse
+    {
+        Accept, // counterAmount 수락 → Accepted
+        Reject, // 협상 결렬 → Rejected
+        ReCounter, // 새 금액 역제안 → AiRespondToOffer 재호출
+    }
+
     public enum PlayerOrigin
     {
         InitialRoster,
