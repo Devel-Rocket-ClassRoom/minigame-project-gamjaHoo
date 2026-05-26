@@ -320,9 +320,10 @@ namespace FMLite.Tests
             int marketValue = TransferSystem.CalculateMarketValue(p, state, _balance);
 
             // High offer (ratio ~1.5) → Accepted (대부분, noise 영향 적음)
+            // K.2: 선수도 수락해야 체결 — 고임금으로 선수 수락 보장
             var contract = new Contract
             {
-                weeklyWage = 30_000,
+                weeklyWage = 200_000,
                 startDate = state.currentDate,
                 endDate = state.currentDate.AddYears(4),
             };
@@ -388,9 +389,10 @@ namespace FMLite.Tests
             state.AddPlayer(p);
             c1.seniorSquadIds.Add(p.id);
 
+            // K.2: 선수도 수락해야 체결 — 고임금으로 선수 수락 보장
             var contract = new Contract
             {
-                weeklyWage = 50_000,
+                weeklyWage = 200_000,
                 startDate = state.currentDate,
                 endDate = state.currentDate.AddYears(4),
             };

@@ -27,5 +27,6 @@ namespace FMLite.Domain
         public int counterAmount; // 판매 구단 역제안 금액
         public int negotiationRound; // 협상 라운드 횟수
         public bool releaseClauseActivated; // release clause 발동 여부
+        public bool includesPlaytimeAgreement; // 출전시간 약속 포함 여부 (K.2 선수 협상 +0.2)
     }
 }
