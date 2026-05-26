@@ -45,4 +45,13 @@ namespace FMLite.Core
     {
         public int playerId;
     }
+
+    // V1.0 K.3 — DailyProcessor 가 loanEndDate 도래 시 자동 복귀 처리 후 발행.
+    // algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리.
+    public class LoanReturnedEvent
+    {
+        public int playerId;
+        public int fromClubId; // 임차 구단 (떠나는 곳)
+        public int parentClubId; // 원 소속 구단 (복귀하는 곳)
+    }
 }
