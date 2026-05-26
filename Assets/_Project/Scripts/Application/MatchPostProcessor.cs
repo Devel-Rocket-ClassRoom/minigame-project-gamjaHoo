@@ -2,6 +2,7 @@
 // MatchSimulator 산출 결과를 GameState 에 적용. data-flows.md #3 [4] 시퀀스.
 // V0.1: match.result + 피로 갱신 + 리그 순위 갱신 + MatchFinishedEvent 발행.
 // V1.0 G.1: 사기 갱신 (MoraleSystem.OnMatchFinished — 결과 / 평점 / Hidden professionalism 보정).
+// V1.0 G.2: seasonAppearances 증가 (PlaytimeAgreement Promise 평가용).
 // V1.0+: 폼 갱신 (#30) / 부상자 / 카드 / 텍스트 이벤트.
 
 using System;
@@ -39,9 +40,9 @@ namespace FMLite.Application
             // a. match.result = result
             match.result = result;
 
-            // b. 피로 갱신 (starting11 22명)
-            ApplyFatigue(result.homeStarting11, state, balance.fatigueGainPerMatch);
-            ApplyFatigue(result.awayStarting11, state, balance.fatigueGainPerMatch);
+            // b. 피로 갱신 + seasonAppearances (starting11 22명)
+            ApplyFatigueAndAppearance(result.homeStarting11, state, balance.fatigueGainPerMatch);
+            ApplyFatigueAndAppearance(result.awayStarting11, state, balance.fatigueGainPerMatch);
 
             // c. 사기 갱신 (V1.0 G.1 — algorithms.md V1.0-6 OnMatchFinished).
             //    승/무/패 ±8 + 평점 ≥ 7.5 +5 / 평점 < 6 -3 + Hidden professionalism 보정.
@@ -66,9 +67,9 @@ namespace FMLite.Application
             EventBus.Publish(new MatchFinishedEvent { matchId = match.id, result = result });
         }
 
-        // ── 피로 ──────────────────────────────────────────────────────
+        // ── 피로 + 출전 횟수 ──────────────────────────────────────────
 
-        private static void ApplyFatigue(
+        private static void ApplyFatigueAndAppearance(
             System.Collections.Generic.List<int> playerIds,
             GameState state,
             int gain
@@ -77,7 +78,7 @@ namespace FMLite.Application
             for (int i = 0; i < playerIds.Count; i++)
             {
                 var p = state.GetPlayer(playerIds[i]);
-                if (p == null)
+                if (p?.state == null)
                     continue;
                 int newFatigue = p.state.fatigue + gain;
                 if (newFatigue > 100)
@@ -85,6 +86,7 @@ namespace FMLite.Application
                 if (newFatigue < 0)
                     newFatigue = 0;
                 p.state.fatigue = newFatigue;
+                p.state.seasonAppearances += 1; // V1.0 G.2 — PlaytimeAgreement 평가
             }
         }
 
