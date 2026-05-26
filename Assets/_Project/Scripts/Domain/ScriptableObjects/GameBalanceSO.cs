@@ -321,5 +321,14 @@ namespace FMLite.Domain
 
         [Header("Scouting System (V1.0 E.2)")]
         public int scoutWeeklyLevelGain = 5;
+
+        [Header("Cpu Transfer AI (V1.0 F.1)")]
+        public float aiWeaknessRatioThreshold = 0.95f;
+        public int aiCoreInjuryWeeksThreshold = 4;
+        public int aiSavingsThreshold = 10000; // 만원 단위. 명성당 임계.
+        public float aiOfferAmountRandomMin = 1.20f;
+        public float aiOfferAmountRandomMax = 1.40f;
+        public float aiBudgetRatio = 0.4f;
+        public float aiContractFaThresholdDays = 180f; // 잔여 6개월
     }
 }
