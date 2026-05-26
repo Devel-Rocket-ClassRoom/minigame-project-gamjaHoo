@@ -436,3 +436,21 @@ MonoBehaviour:
   - key: inbox_transfer_request_fmt
     korean: "[\uC774\uC801 \uC694\uCCAD] {0} \uAC00 \uC774\uC801 \uC694\uCCAD"
     english: '[Transfer Request] {0} requested transfer'
+  - key: transfer_request_dialog_title
+    korean: "\uC774\uC801 \uC694\uCCAD"
+    english: Transfer Request
+  - key: transfer_request_dialog_message_fmt
+    korean: "{0} \uC120\uC218\uAC00 \uC774\uC801\uC744 \uC694\uCCAD\uD588\uC2B5\uB2C8\uB2E4."
+    english: '{0} has requested a transfer.'
+  - key: transfer_request_accept
+    korean: "\uC218\uB77D (\uC774\uC801 \uB9AC\uC2A4\uD2B8 \uB4F1\uC7AC)"
+    english: Accept (Add to Transfer List)
+  - key: transfer_request_reject
+    korean: "\uAC70\uC808"
+    english: Reject
+  - key: transfer_request_interview
+    korean: "\uBA74\uB2F4"
+    english: Interview
+  - key: transfer_request_close
+    korean: "\uB098\uC911\uC5D0"
+    english: Later

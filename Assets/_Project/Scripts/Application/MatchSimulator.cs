@@ -50,8 +50,9 @@ namespace FMLite.Application
             var awayStarting11 = SelectStartingEleven(away, state);
 
             // 3단계: 전력 계산 (단순 CA 합, design-decisions.md #24)
-            int homeStrength = SumCA(homeStarting11, state);
-            int awayStrength = SumCA(awayStarting11, state);
+            // V1.0 G.3: 라커룸 분위기 < 임계 시 strength 곱셈 (≈ 폼 -5 효과).
+            int homeStrength = (int)(SumCA(homeStarting11, state) * MoodFactor(home, balance));
+            int awayStrength = (int)(SumCA(awayStarting11, state) * MoodFactor(away, balance));
 
             // 4단계: λ 계산 + Poisson 골수 결정
             // strengthExponent (k) 로 비선형화 — CA 차이를 골수 차이로 증폭.
@@ -163,6 +164,18 @@ namespace FMLite.Application
                 result[scorerId] = result.TryGetValue(scorerId, out var c) ? c + 1 : 1;
             }
             return result;
+        }
+
+        // ── 라커룸 분위기 영향 (V1.0 G.3) ─────────────────────────────
+
+        // mood < lowThreshold 시 strength 곱셈 (≈ 폼 -5 효과). 그 외 1.0.
+        private static float MoodFactor(Club club, GameBalanceSO balance)
+        {
+            if (club?.season == null)
+                return 1.0f;
+            return club.season.dressingRoomMood < balance.dressingRoomMoodLowThreshold
+                ? balance.dressingRoomLowMoodStrengthFactor
+                : 1.0f;
         }
 
         // ── 6단계: PlayerMatchStat 빌드 ────────────────────────────────
