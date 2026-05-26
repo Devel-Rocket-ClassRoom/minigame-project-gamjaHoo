@@ -388,3 +388,51 @@ MonoBehaviour:
   - key: career_entry_fmt
     korean: "{0}-{1}  {2}  {3}\uACBD\uAE30 {4}\uACE8 {5}\uB3C4\uC6C0"
     english: '{0}-{1}  {2}  {3} apps {4} goals {5} assists'
+  - key: interview_button
+    korean: "\uBA74\uB2F4"
+    english: Interview
+  - key: interview_dialog_title
+    korean: "\uC120\uC218 \uBA74\uB2F4"
+    english: Player Interview
+  - key: interview_close
+    korean: "\uB2EB\uAE30"
+    english: Close
+  - key: interview_praise
+    korean: "\uD604\uC7AC \uC131\uACFC \uCE6D\uCC2C"
+    english: Praise recent form
+  - key: interview_criticize
+    korean: "\uB354 \uB178\uB825\uD574\uC57C \uD55C\uB2E4"
+    english: Demand more effort
+  - key: interview_promise_playtime
+    korean: "\uCD9C\uC804\uC2DC\uAC04 \uBCF4\uC7A5\uD558\uACA0\uB2E4"
+    english: Promise more playing time
+  - key: interview_promise_renewal
+    korean: "\uB2E4\uC74C \uC2DC\uC98C \uC0C8 \uACC4\uC57D \uD611\uC0C1\uD558\uC790"
+    english: Promise contract renewal next season
+  - key: promise_type_playtime
+    korean: "\uCD9C\uC804\uC2DC\uAC04 \uC57D\uC18D"
+    english: Playtime Agreement
+  - key: promise_type_renewal
+    korean: "\uC7AC\uACC4\uC57D \uC57D\uC18D"
+    english: Renewal Promise
+  - key: promise_type_transfer_in
+    korean: "\uC601\uC785 \uC57D\uC18D"
+    english: Transfer-In Promise
+  - key: promise_type_transfer_out
+    korean: "\uC774\uC801 \uD5C8\uC6A9 \uC57D\uC18D"
+    english: Transfer-Out Promise
+  - key: inbox_promise_created_fmt
+    korean: "[\uC57D\uC18D] {0} \u2014 {1} \uB4F1\uB85D"
+    english: "[Promise] {0} \u2014 {1} created"
+  - key: inbox_promise_fulfilled_fmt
+    korean: "[\uC57D\uC18D] {0} \u2014 {1} \uC774\uD589"
+    english: "[Promise] {0} \u2014 {1} fulfilled"
+  - key: inbox_promise_broken_fmt
+    korean: "[\uC57D\uC18D] {0} \u2014 {1} \uBBF8\uC774\uD589"
+    english: "[Promise] {0} \u2014 {1} broken"
+  - key: inbox_promise_approaching_fmt
+    korean: "[\uC57D\uC18D] {0} \u2014 {1} \uB9C8\uAC10 {2}\uC77C \uB0A8\uC74C"
+    english: "[Promise] {0} \u2014 {1} due in {2} days"
+  - key: inbox_transfer_request_fmt
+    korean: "[\uC774\uC801 \uC694\uCCAD] {0} \uAC00 \uC774\uC801 \uC694\uCCAD"
+    english: '[Transfer Request] {0} requested transfer'
