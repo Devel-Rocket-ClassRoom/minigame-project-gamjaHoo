@@ -3719,9 +3719,73 @@ injuryMedicalRateCoeff = 0.05        # Medical Lv N → 발생률 ×(1 - N×0.05
 
 ---
 
+## V1.0-12. ScoutingSystem (E.2)
+
+### Purpose
+
+- 스카우트 명단 관리 — 자기 구단 자동 + 시설 등급 기반 외부 명단 + 매주 누적.
+- 호출 시점: 매주 월요일 `DailyProcessor` 가 `ScoutingSystem.UpdateKnowledge` 호출.
+- 단일 책임: `Club.scoutingKnowledge` (Dictionary<int, ScoutReport>) 갱신.
+
+### Logic
+
+```
+public static void UpdateKnowledge(state, balance):
+    rng = derived(state.randomSeed, currentDate)
+    foreach club in state.allClubs:
+        # 1. 자기 구단 senior + youth 자동 등록 — scoutLevel=100, 정확 estimate
+        RegisterOwnSquad(club, state)
+        # 2. Scout 시설 등급 기반 명단 확장
+        ExpandScoutingPool(club, state, balance, rng)
+        # 3. 기존 외부 명단 누적 (scoutLevel ↑, margin ↓)
+        AccumulateKnowledge(club, state, balance)
+```
+
+### 핵심 결정사항 (`design-decisions.md` #46 와 연동)
+
+1. **자기 구단 자동** — senior + youth 모두 `scoutLevel=100, margin=0`. 매주 호출 시 항상 갱신 (선수 stat 변동 반영).
+2. **외부 명단 확장 — 무작위** — 후보 = 자기 외 클럽 senior 선수 중 명단 ∉. Shuffle 후 `targetPoolSize - currentExternalCount` 만큼 추가.
+3. **시작 scoutLevel = `scoutLevel × 10`** (Lv1=10, Lv10=100). 시설 등급이 낮으면 적은 정확도부터 시작.
+4. **매주 누적** — `scoutWeeklyLevelGain (5)` 만큼 +. estimate 도 실제 값에 한 단계 가까워짐 (`ShiftToward`).
+5. **margin 곡선** — `(100 - scoutLevel) × 30 / 100`. scoutLevel 100 = margin 0 (정확).
+6. **단일 리그 단순화** — V1.0 단일 리그라 "자기 리그 vs 타 리그" 분기 X. 자기 클럽 외 모든 클럽 = 후보. V2.0+ 다중 리그 도입 시 분기 추가.
+7. **결정성** — 시드 = `state.randomSeed ^ currentDate.Ticks ^ (Day × 1000)` (매주 다른 시드).
+
+### Balancing Parameters
+
+```
+scoutWeeklyLevelGain = 5    # 매주 외부 명단 scoutLevel +5 (max 100)
+# FacilityLevelSO(Scout).scoutingListSize / caAccuracyMargin 활용 (D.1 에 정의됨)
+```
+
+### Test Scenarios
+
+| ID | 시나리오 | 검증 |
+| --- | --- | --- |
+| T1 | 자기 구단 자동 등록 | scoutLevel=100, margin=0 |
+| T2 | 유스도 자동 | youthSquadIds 도 등록 |
+| T3 | 매주 누적 | scoutLevel +gain, margin ↓ |
+| T4 | scoutLevel 100 → 누적 X | max 도달 시 변동 없음 |
+| T5 | lastUpdated 갱신 | currentDate 로 갱신 |
+| T6 | 결정성 | 같은 시드 두 state → 같은 명단 크기 |
+| T7 | 빈 state | 예외 없음 |
+
+### V1.0 → V1.x Migration Notes
+
+| 항목 | V1.0 | V1.x+ |
+| --- | --- | --- |
+| **다중 리그 분기** | 단일 리그라 무관 | 자기 리그 우선 → 타 리그 fallback |
+| **개별 스카우트 인사** | 시설 등급 추상화 | Staff 도메인 도입 시 코치 quality 추가 입력 |
+| **유저 수동 스카우트 추가** | 자동만 | 검색 화면에서 [스카우트 추가] 버튼 |
+| **임무 (Assignment)** | 미적용 | 특정 국가 / 리그 / 포지션 스카우트 발주 |
+| **명단 만료** | 미적용 | 일정 시간 stat 변화 추적 X 시 명단 제외 |
+
+---
+
 ## Part 2 Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-22 | V1.0-1 ~ V1.0-9 | Part 2: V1.0 Updates 부록 신규 작성. 9 섹션 (PlayerGen V1.0 변경분 / MatchSim V1.0 분 단위 이벤트 시퀀스 / Market Value V1.0 hidden·form·morale 보정 / Transfer Flow V1.0 다중 라운드 + 임대 + 재계약 / Youth V1.0 CA 캡 + 시설 분리 + Mentoring / CpuTransferAi 필요 기반 트리거 5종 / Morale System 변동 매트릭스 + Promise 통합 / Tactic Impact Role × Duty × Mentality / Save Migration 인프라 / Season Award 시즌·월간 시상). `docs/v1.0-plan.md` §3 + `design-decisions.md` #39~#52 와 연동. 12 Open Questions 결정 결과 통합. |
 | 2026-05-26 | V1.0-10 / V1.0-11 | Stage D.4 Sub-A 명세 — Player Growth System (Training + Gym) + Injury Recovery (Medical + Gym). `design-decisions.md` #53 와 연동. 성장 = 매월 1일 / stat ±1 확률 모델 / Absolute 1/10 / 나이 곡선 / Training Lv N → ×(1+N×0.1) / Gym 피지컬 ×(1+N×0.05) / PA 캡. 부상 회복 = Medical Lv N → 회복 ×(1+N×0.05) + 발생률 ×(1-N×0.05) floor 0.5 / Gym 회복 +×(1+N×0.02). 매치 엔진 (Stage I.3) 호출 인터페이스 정의. |
+| 2026-05-26 | V1.0-12 | Stage E.2 — ScoutingSystem 신규. 매주 월요일 호출 / 자기 구단 자동 (scoutLevel=100) / 외부 명단 시설 등급 (×10 시작) 무작위 확장 / 매주 +scoutWeeklyLevelGain (5) 누적 / margin 곡선 = (100-level) × 30 / 100. 단일 리그 단순화 (V2.0+ 다중 리그 분기). `design-decisions.md` #46 와 연동. |

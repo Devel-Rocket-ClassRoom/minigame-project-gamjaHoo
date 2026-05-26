@@ -318,5 +318,8 @@ namespace FMLite.Domain
         public float injuryMedicalRecoveryCoeff = 0.05f;
         public float injuryGymRecoveryCoeff = 0.02f;
         public float injuryMedicalRateCoeff = 0.05f;
+
+        [Header("Scouting System (V1.0 E.2)")]
+        public int scoutWeeklyLevelGain = 5;
     }
 }

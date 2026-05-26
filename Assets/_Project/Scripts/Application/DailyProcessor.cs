@@ -3,6 +3,7 @@
 // Stateless 시스템 (design-decisions.md #3) — state 입력받아 변경.
 // V0.1 책임: fatigue 회복 + 부상 회복 카운트다운 + TransferSystem.ProcessOffers (Stage 11).
 // V1.0 D.4: 매일 InjurySystem.ProcessRecovery (부상 회복 + 이벤트) + 매월 1일 GrowthSystem.Tick.
+// V1.0 E.2: 매주 월요일 ScoutingSystem.UpdateKnowledge.
 // V1.0 추가 예정: 사기/모랄 일일 변동, 계약 만료 ContractExpiringEvent.
 
 using System;
@@ -40,6 +41,12 @@ namespace FMLite.Application
             if (state.currentDate.Day == 1)
             {
                 GrowthSystem.Tick(state, balance);
+            }
+
+            // 매주 월요일 — 스카우트 명단 갱신 (E.2 / design-decisions.md #46)
+            if (state.currentDate.DayOfWeek == DayOfWeek.Monday)
+            {
+                ScoutingSystem.UpdateKnowledge(state, balance);
             }
         }
 
