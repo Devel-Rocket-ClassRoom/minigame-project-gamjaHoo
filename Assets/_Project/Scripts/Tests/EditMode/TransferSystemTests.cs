@@ -493,6 +493,77 @@ namespace FMLite.Tests
             Assert.AreEqual(1, result[0].id);
         }
 
+        // ── T11~T13. Release Clause (H.2 DoD) ────────────────────────
+
+        // T11. amount ≥ releaseClause → 즉시 Accepted + releaseClauseActivated
+        [Test]
+        public void T11_ReleaseClause_Exact_ImmediatelyAccepted()
+        {
+            var (state, c1, c2) = BuildState();
+            var p = NewPlayer(1, ca: 100, pa: 100, age: 25, position: Position.CM, contractYears: 3);
+            p.contract.releaseClause = 5_000_000;
+            p.currentClubId = c1.id;
+            state.AddPlayer(p);
+            c1.seniorSquadIds.Add(p.id);
+
+            var contract = new Contract
+            {
+                weeklyWage = 30_000,
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(4),
+            };
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 5_000_000, contract, state, _balance);
+
+            Assert.AreEqual(OfferStatus.Accepted, offer.status, "T11: release clause 발동 → Accepted");
+            Assert.IsTrue(offer.releaseClauseActivated, "T11: releaseClauseActivated=true");
+        }
+
+        // T12. amount < releaseClause → Pending (발동 안 됨)
+        [Test]
+        public void T12_ReleaseClause_BelowThreshold_StaysPending()
+        {
+            var (state, c1, c2) = BuildState();
+            var p = NewPlayer(1, ca: 100, pa: 100, age: 25, position: Position.CM, contractYears: 3);
+            p.contract.releaseClause = 5_000_000;
+            p.currentClubId = c1.id;
+            state.AddPlayer(p);
+            c1.seniorSquadIds.Add(p.id);
+
+            var contract = new Contract
+            {
+                weeklyWage = 30_000,
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(4),
+            };
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 4_999_999, contract, state, _balance);
+
+            Assert.AreEqual(OfferStatus.Pending, offer.status, "T12: 미달 → Pending");
+            Assert.IsFalse(offer.releaseClauseActivated, "T12: releaseClauseActivated=false");
+        }
+
+        // T13. releaseClause=0 (없음) → 어떤 금액이어도 Pending
+        [Test]
+        public void T13_ReleaseClause_Zero_NeverActivated()
+        {
+            var (state, c1, c2) = BuildState();
+            var p = NewPlayer(1, ca: 100, pa: 100, age: 25, position: Position.CM, contractYears: 3);
+            p.contract.releaseClause = 0;
+            p.currentClubId = c1.id;
+            state.AddPlayer(p);
+            c1.seniorSquadIds.Add(p.id);
+
+            var contract = new Contract
+            {
+                weeklyWage = 30_000,
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(4),
+            };
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 999_999_999, contract, state, _balance);
+
+            Assert.AreEqual(OfferStatus.Pending, offer.status, "T13: clause=0 → Pending");
+            Assert.IsFalse(offer.releaseClauseActivated, "T13: releaseClauseActivated=false");
+        }
+
         // ── Helpers ──────────────────────────────────────────────────
 
         private (GameState state, Club c1, Club c2) BuildState()
