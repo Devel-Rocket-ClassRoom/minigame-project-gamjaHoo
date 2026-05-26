@@ -1,7 +1,8 @@
 // MatchPostProcessor.cs
 // MatchSimulator 산출 결과를 GameState 에 적용. data-flows.md #3 [4] 시퀀스.
 // V0.1: match.result + 피로 갱신 + 리그 순위 갱신 + MatchFinishedEvent 발행.
-// V1.0+: 폼/사기 갱신 (design-decisions.md #30) / 부상자 / 카드 / 텍스트 이벤트.
+// V1.0 G.1: 사기 갱신 (MoraleSystem.OnMatchFinished — 결과 / 평점 / Hidden professionalism 보정).
+// V1.0+: 폼 갱신 (#30) / 부상자 / 카드 / 텍스트 이벤트.
 
 using System;
 using System.Linq;
@@ -42,8 +43,10 @@ namespace FMLite.Application
             ApplyFatigue(result.homeStarting11, state, balance.fatigueGainPerMatch);
             ApplyFatigue(result.awayStarting11, state, balance.fatigueGainPerMatch);
 
-            // c. 폼/사기 갱신 — V0.1 미구현 (design-decisions.md #30 V1.0+).
-            //    평점 시스템 부재 + 사기 시스템 자체가 V1.0+. 폼/사기 묶음으로 V1.0 도입.
+            // c. 사기 갱신 (V1.0 G.1 — algorithms.md V1.0-6 OnMatchFinished).
+            //    승/무/패 ±8 + 평점 ≥ 7.5 +5 / 평점 < 6 -3 + Hidden professionalism 보정.
+            //    폼 갱신은 #30 V1.0+ 이연 (form 시스템 별도 도입 시).
+            MoraleSystem.OnMatchFinished(state, result, balance);
 
             // d. 순위 갱신 — League 만 (V0.1 호출 경로상 League 뿐, 컵은 V1.0+)
             if (match.type == CompetitionType.League)

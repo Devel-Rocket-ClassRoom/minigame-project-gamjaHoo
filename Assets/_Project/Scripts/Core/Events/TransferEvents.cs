@@ -25,4 +25,11 @@ namespace FMLite.Core
         public int toClubId;
         public int amount;
     }
+
+    // V1.0 G.1 — MoraleSystem.OnPromiseBroken 이 happiness < transferRequestThreshold 시 발행.
+    // algorithms.md V1.0-6 / design-decisions.md #42 (Q9 자동 트리거 + 유저 승인 패턴).
+    public class TransferRequestEvent
+    {
+        public int playerId;
+    }
 }

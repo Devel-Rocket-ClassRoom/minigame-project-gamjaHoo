@@ -196,6 +196,18 @@ public class TransferCompletedEvent {
 }
 ```
 
+#### TransferRequestEvent (V1.0 G.1)
+- **Publisher:** `MoraleSystem.OnPromiseBroken` (Happiness 가 `transferRequestThreshold` 미만으로 떨어진 시점)
+- **Subscribers:** Dashboard 인박스 / TransferController (Q9 유저 승인 패턴 — V1.0 G.4 / K.4 UI 와 짝)
+- **Payload:** 선수 ID
+- **Trigger:** 약속 미이행 / 출전시간 미달 등으로 Happiness < 20
+
+```csharp
+public class TransferRequestEvent {
+    public int playerId;
+}
+```
+
 ---
 
 ### Youth Events
@@ -333,11 +345,13 @@ public class FacilityUpgradeCompletedEvent {
 
 V1.0 작업 시 추가될 이벤트들:
 
-- `PlayerMoraleChangedEvent` (사기 시스템)
-- `BoardConfidenceChangedEvent` (보드 신뢰도)
-- `ManagerSackedEvent` (경질)
-- `MatchEventOccurredEvent` (경기 중 텍스트 이벤트)
-- `PlayerMeetingRequestedEvent` (선수 면담)
+- ~~`TransferRequestEvent`~~ — V1.0 G.1 등록 완료 (Transfer Events 섹션)
+- `PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent` (V1.0 G.2)
+- `ContractRenewedEvent` (V1.0 H.1)
+- `PlayerMoraleChangedEvent` (사기 시스템 — 큰 변동 시점만 발행 검토, V1.x)
+- `BoardConfidenceChangedEvent` (보드 신뢰도, V1.0 M.4)
+- `ManagerSackedEvent` (경질, V1.0 M.4)
+- `MatchEventOccurredEvent` (경기 중 텍스트 이벤트, V1.0 I.5)
 - `PressConferenceEvent` (기자회견, V1.x)
 
 ---
@@ -435,3 +449,4 @@ public class PlayerUpdatedEvent {
 | Date | Change |
 | --- | --- |
 | 2025-05-15 | V0.1 카탈로그 초안 작성 |
+| 2026-05-26 | V1.0 G.1 — TransferRequestEvent 등록 (MoraleSystem.OnPromiseBroken 발행, Happiness < 20). V1.0+ Future 섹션 갱신 (G.2 Promise* / H.1 ContractRenewed / M.4 Board* / I.5 MatchEvent / V1.x Press 분류). |
