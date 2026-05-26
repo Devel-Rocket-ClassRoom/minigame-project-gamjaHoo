@@ -141,29 +141,33 @@ namespace FMLite.Application
 
             int lineAvg = LineAverageCa(club, state, trigger.line);
 
-            // 자기 명단 ∩ 약점 포지션 ∩ 자금 안 ∩ 자기 라인 평균보다 강한 선수
-            var candidates = new List<Player>();
-            if (club.scoutingKnowledge != null)
+            // 후보: 스카우트 명단 + transferListed 선수 (공개 정보 — K.4 우선순위 ↑)
+            var seenIds = new HashSet<int>(club.scoutingKnowledge?.Keys ?? Enumerable.Empty<int>());
+            foreach (var p in state.allPlayers)
             {
-                foreach (var pid in club.scoutingKnowledge.Keys)
-                {
-                    var player = state.GetPlayer(pid);
-                    if (player == null)
-                        continue;
-                    if (player.currentClubId == club.id)
-                        continue;
-                    if (player.info == null)
-                        continue;
-                    if (StartingSquadGacha.LineOf(player.info.primaryPosition) != trigger.line)
-                        continue;
-                    if (player.currentAbility <= lineAvg)
-                        continue;
+                if (p?.state?.transferListed == true)
+                    seenIds.Add(p.id);
+            }
 
-                    int mv = TransferSystem.CalculateMarketValue(player, state, balance);
-                    if (mv > budget)
-                        continue;
-                    candidates.Add(player);
-                }
+            var candidates = new List<Player>();
+            foreach (var pid in seenIds)
+            {
+                var player = state.GetPlayer(pid);
+                if (player == null)
+                    continue;
+                if (player.currentClubId == club.id)
+                    continue;
+                if (player.info == null)
+                    continue;
+                if (StartingSquadGacha.LineOf(player.info.primaryPosition) != trigger.line)
+                    continue;
+                if (player.currentAbility <= lineAvg)
+                    continue;
+
+                int mv = TransferSystem.CalculateMarketValue(player, state, balance);
+                if (mv > budget)
+                    continue;
+                candidates.Add(player);
             }
             if (candidates.Count == 0)
                 return;

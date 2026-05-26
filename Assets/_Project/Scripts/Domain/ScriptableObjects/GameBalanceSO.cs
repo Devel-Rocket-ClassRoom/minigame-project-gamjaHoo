@@ -356,6 +356,7 @@ namespace FMLite.Domain
         public int promiseBreakHappinessPenalty = 20; // 부호 호출부
         public int promiseFulfilledHappinessBonus = 10;
         public int transferRequestThreshold = 20; // Happiness < N → TransferRequestEvent
+        public float transferListedDiscount = 0.7f; // transferListed 선수 시장가 ×0.7
         public int unhappyThreshold = 40;
         public int satisfiedThreshold = 80;
         public int transferCompletedIncomingMoraleBonus = 20; // 영입된 선수 환영 (spec 침묵 → 합리적 디폴트)
