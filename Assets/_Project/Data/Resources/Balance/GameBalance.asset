@@ -27,6 +27,8 @@ MonoBehaviour:
   paGapMaxMean: 50
   paGapZeroAge: 28
   paGapStdDev: 15
+  hiddenAttrMean: 50
+  hiddenAttrStdDev: 15
   statMeanAtCAFloor: 25
   statMeanAtCACeil: 85
   statEmphasisBonus: 10
@@ -176,3 +178,25 @@ MonoBehaviour:
   - 0.9
   - 0.8
   - 0.65
+  growthBaseChance: 0.01
+  growthAbsoluteFactor: 0.1
+  growthTrainingCoeff: 0.1
+  growthGymCoeff: 0.05
+  growthPaGapNormalizer: 50
+  growthYouthFactor: 1.5
+  growthYouthPeakAge: 22
+  growthPrimePeakAge: 26
+  growthDeclineStartAge: 30
+  growthSizeWeights:
+  - 75
+  - 20
+  - 5
+  growthSizePeakWeights:
+  - 60
+  - 30
+  - 10
+  growthBigJumpAgeThreshold: 1.3
+  injuryMedicalRecoveryCoeff: 0.05
+  injuryGymRecoveryCoeff: 0.02
+  injuryMedicalRateCoeff: 0.05
+  scoutWeeklyLevelGain: 5

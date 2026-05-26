@@ -171,6 +171,9 @@ namespace FMLite.Editor
                 E("stat_free_kick", "프리킥", "Free Kick"),
                 E("stat_penalty", "패널티", "Penalty"),
                 E("stat_corners", "코너", "Corners"),
+                E("stat_marking", "마킹", "Marking"),
+                E("stat_technique", "테크닉", "Technique"),
+                E("stat_long_throws", "롱스로우", "Long Throws"),
                 // ── Player profile — mental ────────────────────────────────
                 E("no_stats_mental", "정신: -", "Mental: -"),
                 E("section_mental", "[정신]", "[Mental]"),
@@ -186,6 +189,8 @@ namespace FMLite.Editor
                 E("stat_teamwork", "팀워크", "Teamwork"),
                 E("stat_work_rate", "활동량", "Work Rate"),
                 E("stat_aggression", "공격성", "Aggression"),
+                E("stat_bravery", "용기", "Bravery"),
+                E("stat_flair", "재간", "Flair"),
                 // ── Player profile — physical ──────────────────────────────
                 E("no_stats_physical", "신체: -", "Physical: -"),
                 E("section_physical", "[신체]", "[Physical]"),
@@ -209,6 +214,9 @@ namespace FMLite.Editor
                 E("stat_reflexes", "반응", "Reflexes"),
                 E("stat_rushing_out", "돌진", "Rushing Out"),
                 E("stat_throwing", "스로인", "Throwing"),
+                E("stat_first_touch_gk", "퍼스트터치(GK)", "First Touch (GK)"),
+                E("stat_passing_gk", "패스(GK)", "Passing (GK)"),
+                E("stat_punching_tendency", "펀칭경향", "Punching Tendency"),
                 // ── Player profile — traits / contract / state / career ────
                 E("section_traits", "[트레잇]", "[Traits]"),
                 E("no_traits", "없음", "None"),
