@@ -341,6 +341,63 @@ namespace FMLite.Application
             }
         }
 
+        // ── SubmitFreeAgentContract (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+
+        // 보스만 룰: 잔여 6개월 이내 선수 → 이적료 없이 직접 계약 제안.
+        // 판매 구단 응답 불필요 (amount=0) → 즉시 Accepted. ProcessOffers 가 창 열리면 CompleteTransfer.
+        public static TransferOffer SubmitFreeAgentContract(
+            int playerId,
+            int toClubId,
+            Contract proposed,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (proposed == null)
+                throw new ArgumentNullException(nameof(proposed));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+
+            var player =
+                state.GetPlayer(playerId)
+                ?? throw new ArgumentException($"player id={playerId} not found");
+
+            if (player.currentClubId == toClubId)
+                throw new ArgumentException(
+                    $"player id={playerId} is already in club id={toClubId}"
+                );
+
+            _ =
+                state.GetClub(toClubId)
+                ?? throw new ArgumentException($"toClub id={toClubId} not found");
+
+            int daysRemaining =
+                player.contract != null
+                    ? (int)(player.contract.endDate - state.currentDate).TotalDays
+                    : 0;
+            if (daysRemaining > 180)
+                throw new ArgumentException(
+                    $"player id={playerId} has {daysRemaining} days remaining — FA contract requires ≤180 days"
+                );
+
+            var offer = new TransferOffer
+            {
+                id = state.nextOfferId++,
+                playerId = playerId,
+                fromClubId = player.currentClubId,
+                toClubId = toClubId,
+                amount = 0,
+                proposed = proposed,
+                status = OfferStatus.Accepted, // 판매 구단 응답 불필요
+            };
+
+            state.activeOffers.Add(offer);
+            EventBus.Publish(new OfferSubmittedEvent { offerId = offer.id });
+            return offer;
+        }
+
         // ── SearchPlayers (Task 11.2) ────────────────────────────────
 
         public static List<Player> SearchPlayers(TransferSearchFilter filter, GameState state)
