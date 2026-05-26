@@ -359,6 +359,7 @@ namespace FMLite.Domain
 
         [Header("Promise System (V1.0 G.2)")]
         public int promisePlaytimeDefaultRatio = 50; // OnInterview PromisePlaytime 의 기본 출전 비율 (%)
+        public int promiseDeadlineApproachingDays = 30; // (deadline - currentDate).Days ≤ N → 임박 알림 1회
         public int promisePlaytimeDeadlineMonth = 5; // 시즌 종료월 (5/15)
         public int promisePlaytimeDeadlineDay = 15;
         public int promiseRenewalDeadlineMonth = 8; // 다음 시즌 개막 (8/15)

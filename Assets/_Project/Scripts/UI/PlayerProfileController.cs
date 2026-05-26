@@ -2,6 +2,7 @@
 // PlayerPrefs("SelectedPlayerId")로 선수 ID 수신.
 // 능력치는 5단계 티어로 표시 (design-decisions #14).
 // GameBalanceSO.isDebugMode 활성 시 정확한 수치 추가 노출 (Task 14.2 연동).
+// V1.0 G.2 Sub-B (#300): [면담] 버튼 + InterviewDialogController 연동 (own-club 선수만 활성화).
 
 using System.Text;
 using FMLite.Application;
@@ -10,6 +11,7 @@ using FMLite.Domain;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace FMLite.UI
 {
@@ -57,6 +59,15 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text careerText;
 
+        [Header("면담 (V1.0 G.2 Sub-B)")]
+        [SerializeField]
+        private Button interviewButton;
+
+        [SerializeField]
+        private InterviewDialogController interviewDialog;
+
+        private int _currentPlayerId = -1;
+
         private void Start()
         {
             var state = GameManager.Instance?.State;
@@ -71,6 +82,8 @@ namespace FMLite.UI
                     nameText.text = Localization.Get("player_not_found_fmt", playerId);
                 return;
             }
+            _currentPlayerId = playerId;
+            ConfigureInterviewButton(player, state);
 
             bool debugMode = GameDatabase.GameBalance != null && GameDatabase.GameBalance.isDebugMode;
             // stats는 항상 정확 수치 노출 (B.5); debugMode는 계약 재무 정보에만 사용
@@ -127,6 +140,26 @@ namespace FMLite.UI
         {
             Debug.Log("[PlayerProfileController] Back button clicked. Loading SquadScene...");
             SceneManager.LoadScene(SquadScene);
+        }
+
+        // ── 면담 (V1.0 G.2 Sub-B) ──────────────────────────────────────
+
+        public void OnInterviewClicked()
+        {
+            if (interviewDialog == null || _currentPlayerId == -1)
+                return;
+            interviewDialog.Show(_currentPlayerId);
+        }
+
+        private void ConfigureInterviewButton(Player player, GameState state)
+        {
+            if (interviewButton == null)
+                return;
+            // 자기 구단 선수에게만 면담 허용 (타 구단 / 무소속 X).
+            bool isOwnClub = player.currentClubId == state.userClubId;
+            interviewButton.gameObject.SetActive(isOwnClub);
+            interviewButton.onClick.RemoveAllListeners();
+            interviewButton.onClick.AddListener(OnInterviewClicked);
         }
 
         // ── 능력치 ──────────────────────────────────────────────────────────
