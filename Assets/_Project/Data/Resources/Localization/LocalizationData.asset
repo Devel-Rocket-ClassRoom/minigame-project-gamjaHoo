@@ -73,6 +73,54 @@ MonoBehaviour:
   - key: facility_upgrade_cost_fmt
     korean: "\uC5C5\uADF8\uB808\uC774\uB4DC \xA3{0}M ({1}\uC77C)"
     english: "Upgrade \xA3{0}M ({1} days)"
+  - key: facility_name_scout
+    korean: "\uC2A4\uCE74\uC6B0\uD2B8"
+    english: Scouting
+  - key: facility_name_training
+    korean: "\uD6C8\uB828 \uC2DC\uC124"
+    english: Training
+  - key: facility_name_youth_coach
+    korean: "\uC720\uC2A4 \uCF54\uCE58"
+    english: Youth Coaching
+  - key: facility_name_youth_recruitment
+    korean: "\uC720\uC2A4 \uBAA8\uC9D1"
+    english: Youth Recruitment
+  - key: facility_name_youth_facility
+    korean: "\uC720\uC2A4 \uC2DC\uC124"
+    english: Youth Facilities
+  - key: facility_name_medical
+    korean: "\uC758\uB8CC"
+    english: Medical
+  - key: facility_name_stadium
+    korean: "\uC2A4\uD0C0\uB514\uC6C0"
+    english: Stadium
+  - key: facility_name_gym
+    korean: "\uCCB4\uC721\uAD00"
+    english: Gym
+  - key: facility_effect_scout_fmt
+    korean: "\uBA85\uB2E8 {0}\uBA85 \xB7 \xB1{1} CA"
+    english: "List {0} \xB7 \xB1{1} CA"
+  - key: facility_effect_training_fmt
+    korean: "\uD6C8\uB828 \uD6A8\uC728 \xD7{0}"
+    english: "Training \xD7{0}"
+  - key: facility_effect_youth_coach_fmt
+    korean: "\uC720\uC2A4 +{0} PA \xB7 \uD2B8\uB808\uC787 {1}%"
+    english: "Youth +{0} PA \xB7 Trait {1}%"
+  - key: facility_effect_youth_recruitment_fmt
+    korean: "\uD480 {0}\uBA85"
+    english: Pool {0}
+  - key: facility_effect_youth_facility_fmt
+    korean: "\uC720\uC2A4 \uC131\uC7A5 \xD7{0}"
+    english: "Youth Growth \xD7{0}"
+  - key: facility_effect_medical_fmt
+    korean: "\uBD80\uC0C1\uB960 \xD7{0} \xB7 \uD68C\uBCF5 \xD7{1}"
+    english: "Injury \xD7{0} \xB7 Recovery \xD7{1}"
+  - key: facility_effect_stadium_fmt
+    korean: "\uC785\uC7A5\uB8CC \xA3{0} \xB7 \uBA85\uC131 +{1}"
+    english: "Ticket \xA3{0} \xB7 Rep +{1}"
+  - key: facility_effect_gym_fmt
+    korean: "\uD53C\uC9C0\uCEEC \uC131\uC7A5 \xD7{0}"
+    english: "Physical \xD7{0}"
   - key: reputation_fmt
     korean: "\uBA85\uC131 {0}"
     english: Reputation {0}
@@ -139,15 +187,6 @@ MonoBehaviour:
   - key: stat_corners
     korean: "\uCF54\uB108"
     english: Corners
-  - key: stat_marking
-    korean: "\uB9C8\uD0B9"
-    english: Marking
-  - key: stat_technique
-    korean: "\uD14C\uD06C\uB2C8\uD06C"
-    english: Technique
-  - key: stat_long_throws
-    korean: "\uC7A5\uAC70\uB9AC \uC2A4\uB85C\uC778"
-    english: Long Throws
   - key: no_stats_mental
     korean: "\uC815\uC2E0: -"
     english: 'Mental: -'
@@ -190,12 +229,6 @@ MonoBehaviour:
   - key: stat_aggression
     korean: "\uACF5\uACA9\uC131"
     english: Aggression
-  - key: stat_bravery
-    korean: "\uC6A9\uAC10\uC131"
-    english: Bravery
-  - key: stat_flair
-    korean: "\uCC3D\uC758\uC131"
-    english: Flair
   - key: no_stats_physical
     korean: "\uC2E0\uCCB4: -"
     english: 'Physical: -'
@@ -259,15 +292,6 @@ MonoBehaviour:
   - key: stat_throwing
     korean: "\uC2A4\uB85C\uC778"
     english: Throwing
-  - key: stat_first_touch_gk
-    korean: "\uCCAB \uD130\uCE58(GK)"
-    english: First Touch (GK)
-  - key: stat_passing_gk
-    korean: "\uD328\uC2A4(GK)"
-    english: Passing (GK)
-  - key: stat_punching_tendency
-    korean: "\uD380\uCE6D"
-    english: Punching Tendency
   - key: section_traits
     korean: "[\uD2B8\uB808\uC787]"
     english: '[Traits]'
