@@ -210,6 +210,34 @@ public class TransferRequestEvent {
 
 ---
 
+### Contract Events (V1.0 H.1)
+
+#### ContractRenewedEvent
+- **Publisher:** `TransferSystem.RenewContract` (선수 수락 시)
+- **Subscribers:** Dashboard 인박스 (V1.x — 현재 없음) / MoraleSystem (OnContractRenewed 직접 호출 후 발행)
+- **Payload:** 선수 ID
+- **Trigger:** 재계약 제안에 선수가 수락 → `player.contract` 갱신 + morale/happiness 회복 후 발행
+
+```csharp
+public class ContractRenewedEvent {
+    public int playerId;
+}
+```
+
+#### ContractRenewalRejectedEvent
+- **Publisher:** `TransferSystem.RenewContract` (선수 거절 시)
+- **Subscribers:** Dashboard 인박스 (V1.x — 현재 없음)
+- **Payload:** 선수 ID
+- **Trigger:** 재계약 제안에 선수가 거절
+
+```csharp
+public class ContractRenewalRejectedEvent {
+    public int playerId;
+}
+```
+
+---
+
 ### Promise Events (V1.0 G.2)
 
 #### PromiseCreatedEvent
@@ -400,7 +428,7 @@ V1.0 작업 시 추가될 이벤트들:
 
 - ~~`TransferRequestEvent`~~ — V1.0 G.1 등록 완료 (Transfer Events 섹션)
 - ~~`PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent`~~ — V1.0 G.2 등록 완료 (Promise Events 섹션)
-- `ContractRenewedEvent` (V1.0 H.1)
+- ~~`ContractRenewedEvent / ContractRenewalRejectedEvent`~~ — V1.0 H.1 등록 완료 (Contract Events 섹션)
 - `PlayerMoraleChangedEvent` (사기 시스템 — 큰 변동 시점만 발행 검토, V1.x)
 - `BoardConfidenceChangedEvent` (보드 신뢰도, V1.0 M.4)
 - `ManagerSackedEvent` (경질, V1.0 M.4)
@@ -505,3 +533,4 @@ public class PlayerUpdatedEvent {
 | 2026-05-26 | V1.0 G.1 — TransferRequestEvent 등록 (MoraleSystem.OnPromiseBroken 발행, Happiness < 20). V1.0+ Future 섹션 갱신 (G.2 Promise* / H.1 ContractRenewed / M.4 Board* / I.5 MatchEvent / V1.x Press 분류). |
 | 2026-05-26 | V1.0 G.2 — Promise Events 3종 (PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent) 신규 섹션. PromiseSystem.CheckProgress 매주 월요일 deadline 도래 약속 평가 → 사기 변동 + 이벤트 발행. UI 인박스 구독은 Sub-B (면담 UI / Dashboard 인박스). |
 | 2026-05-26 | V1.0 G.2 Sub-B — PromiseDeadlineApproachingEvent 신규 (30일 임박, Promise.deadlineNotified 플래그로 중복 차단). DashboardController 가 5 이벤트 구독 (PromiseCreated / Fulfilled / Broken / DeadlineApproaching / TransferRequest) → in-memory 인박스 (씬 재진입 시 비워짐, V1.0 단순). |
+| 2026-05-26 | V1.0 H.1 — ContractRenewedEvent / ContractRenewalRejectedEvent 신규 섹션. TransferSystem.RenewContract 가 수락/거절 시 발행. 수락 시 MoraleSystem.OnContractRenewed 직접 호출 후 발행. Future 섹션 ContractRenewed 완료 처리. |

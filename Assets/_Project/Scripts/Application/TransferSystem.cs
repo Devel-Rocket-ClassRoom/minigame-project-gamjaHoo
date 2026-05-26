@@ -6,6 +6,9 @@
 //   - 이적시장 (검색·오퍼·협상) 상시 — 시점 제약 X
 //   - 이적시장 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31 — 체결만 시기 제약
 //   - 단일 라운드 AI 응답 (Accept/Reject) / 선수 자동 통과 / AI 영입 미구현 (사용자 클럽만)
+//
+// V1.0 H.1 (design-decisions.md #48):
+//   - RenewContract — 상시 재계약. 시점 제약 X. algorithms.md V1.0-3.1.
 
 using System;
 using System.Collections.Generic;
@@ -272,6 +275,60 @@ namespace FMLite.Application
                 || (d >= winterStart.Date && d <= winterEnd.Date);
         }
 
+        // ── RenewContract (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+
+        // 상시 재계약. 시점 제약 X. 잔여 6개월 이내 가산점.
+        // 수락 → contract 갱신 + MoraleSystem.OnContractRenewed + ContractRenewedEvent
+        // 거절 → ContractRenewalRejectedEvent
+        public static void RenewContract(
+            int playerId,
+            Contract newContract,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (newContract == null)
+                throw new ArgumentNullException(nameof(newContract));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+
+            var player =
+                state.GetPlayer(playerId)
+                ?? throw new ArgumentException($"player id={playerId} not found");
+
+            int seed = state.randomSeed ^ playerId ^ unchecked((int)state.currentDate.Ticks);
+            var rng = new Random(seed);
+
+            int fairWage = EstimateInitialWage(player.currentAbility, balance);
+            double wageRatio = fairWage > 0 ? (double)newContract.weeklyWage / fairWage : 1.0;
+
+            double acceptChance = 0.4;
+            acceptChance += (wageRatio - 1.0) * 0.6;
+
+            int loyalty = player.hiddenAttrs != null ? player.hiddenAttrs.loyalty : 50;
+            acceptChance += (loyalty - 50) / 100.0 * 0.3;
+
+            int daysRemaining =
+                player.contract != null
+                    ? (int)(player.contract.endDate - state.currentDate).TotalDays
+                    : 0;
+            if (daysRemaining <= 180)
+                acceptChance += 0.15;
+
+            if (rng.NextDouble() < acceptChance)
+            {
+                player.contract = newContract;
+                MoraleSystem.OnContractRenewed(state, playerId, balance);
+                EventBus.Publish(new ContractRenewedEvent { playerId = playerId });
+            }
+            else
+            {
+                EventBus.Publish(new ContractRenewalRejectedEvent { playerId = playerId });
+            }
+        }
+
         // ── SearchPlayers (Task 11.2) ────────────────────────────────
 
         public static List<Player> SearchPlayers(TransferSearchFilter filter, GameState state)
@@ -349,6 +406,15 @@ namespace FMLite.Application
         private static int Round100k(int value)
         {
             return ((int)Math.Round(value / 100000.0)) * 100000;
+        }
+
+        // algorithms.md #1 6단계 EstimateInitialWage — PlayerGenerator 와 동일 공식.
+        // RenewContract 에서 선수 측 공정 주급 추정에 사용.
+        private static int EstimateInitialWage(int ca, GameBalanceSO b)
+        {
+            float raw = b.wageBaseAtMinCA + (ca - b.minCA) * b.wagePerCAPoint;
+            int rounded = (int)(Math.Round(raw / 100.0) * 100);
+            return Math.Max(b.wageFloor, rounded);
         }
     }
 
