@@ -4,6 +4,7 @@
 // V0.1 책임: fatigue 회복 + 부상 회복 카운트다운 + TransferSystem.ProcessOffers (Stage 11).
 // V1.0 D.4: 매일 InjurySystem.ProcessRecovery (부상 회복 + 이벤트) + 매월 1일 GrowthSystem.Tick.
 // V1.0 E.2: 매주 월요일 ScoutingSystem.UpdateKnowledge.
+// V1.0 F.1+F.2: 매주 월요일 CpuTransferAi.Run (ScoutingSystem 다음 — 명단 활용).
 // V1.0 추가 예정: 사기/모랄 일일 변동, 계약 만료 ContractExpiringEvent.
 
 using System;
@@ -43,10 +44,11 @@ namespace FMLite.Application
                 GrowthSystem.Tick(state, balance);
             }
 
-            // 매주 월요일 — 스카우트 명단 갱신 (E.2 / design-decisions.md #46)
+            // 매주 월요일 — 스카우트 명단 갱신 + AI 영입 (F.1 + F.2 / design-decisions.md #47)
             if (state.currentDate.DayOfWeek == DayOfWeek.Monday)
             {
                 ScoutingSystem.UpdateKnowledge(state, balance);
+                CpuTransferAi.Run(state, balance);
             }
         }
 
