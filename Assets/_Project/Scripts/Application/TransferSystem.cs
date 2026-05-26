@@ -67,6 +67,10 @@ namespace FMLite.Application
             if (rawValue < 0)
                 rawValue = 0;
 
+            // transferListed → 시장가 할인 (algorithms.md K.4)
+            if (player.state != null && player.state.transferListed)
+                rawValue *= balance.transferListedDiscount;
+
             return Round100k((int)Math.Round(rawValue));
         }
 
