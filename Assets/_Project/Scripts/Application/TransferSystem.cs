@@ -382,18 +382,33 @@ namespace FMLite.Application
                 return;
             }
 
-            // 선수 이적
-            player.currentClubId = toClub.id;
             fromClub.seniorSquadIds.Remove(offer.playerId);
             if (!toClub.seniorSquadIds.Contains(offer.playerId))
                 toClub.seniorSquadIds.Add(offer.playerId);
 
-            // 새 계약 적용
             player.contract = offer.proposed;
+            player.currentClubId = toClub.id;
 
-            // 자금 이동 (V0.1: 자금 부족도 허용 — 적자 가능. V1.0+ 사전 검증)
-            fromClub.finance.money += offer.amount;
-            toClub.finance.money -= offer.amount;
+            int transferredAmount;
+            if (offer.isLoan)
+            {
+                // 임대: parentClubId / loanEndDate 설정, loanFee 이동
+                player.parentClubId = offer.fromClubId;
+                player.loanEndDate = offer.loanEndDate;
+                fromClub.finance.money += offer.loanFee;
+                toClub.finance.money -= offer.loanFee;
+                transferredAmount = offer.loanFee;
+            }
+            else
+            {
+                // 영구 이적: parentClubId 초기화 (임대 해지 후 영구 이적 케이스 포함)
+                player.parentClubId = -1;
+                player.loanEndDate = null;
+                // 자금 이동 (V0.1: 자금 부족도 허용 — 적자 가능. V1.0+ 사전 검증)
+                fromClub.finance.money += offer.amount;
+                toClub.finance.money -= offer.amount;
+                transferredAmount = offer.amount;
+            }
 
             offer.status = OfferStatus.Completed;
             EventBus.Publish(
@@ -403,9 +418,56 @@ namespace FMLite.Application
                     playerId = offer.playerId,
                     fromClubId = offer.fromClubId,
                     toClubId = offer.toClubId,
-                    amount = offer.amount,
+                    amount = transferredAmount,
                 }
             );
+        }
+
+        // ── ProcessLoanReturns (algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리) ──
+
+        // DailyProcessor 가 매일 호출 — loanEndDate 도래 선수 자동 원 구단 복귀 + LoanReturnedEvent.
+        public static void ProcessLoanReturns(GameState state)
+        {
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+
+            foreach (var player in state.allPlayers)
+            {
+                if (player.parentClubId == -1 || !player.loanEndDate.HasValue)
+                    continue;
+                if (state.currentDate.Date < player.loanEndDate.Value.Date)
+                    continue;
+
+                int fromClubId = player.currentClubId;
+                int parentClubId = player.parentClubId;
+                var fromClub = state.GetClub(fromClubId);
+                var parentClub = state.GetClub(parentClubId);
+
+                if (fromClub == null || parentClub == null)
+                {
+                    Debug.LogWarning(
+                        $"[TransferSystem] 임대 복귀 실패 player.id={player.id} — club 없음"
+                    );
+                    continue;
+                }
+
+                fromClub.seniorSquadIds.Remove(player.id);
+                if (!parentClub.seniorSquadIds.Contains(player.id))
+                    parentClub.seniorSquadIds.Add(player.id);
+
+                player.currentClubId = parentClubId;
+                player.parentClubId = -1;
+                player.loanEndDate = null;
+
+                EventBus.Publish(
+                    new LoanReturnedEvent
+                    {
+                        playerId = player.id,
+                        fromClubId = fromClubId,
+                        parentClubId = parentClubId,
+                    }
+                );
+            }
         }
 
         // ── IsTransferWindowOpen ─────────────────────────────────────
@@ -546,6 +608,66 @@ namespace FMLite.Application
                 amount = 0,
                 proposed = proposed,
                 status = OfferStatus.Accepted, // 판매 구단 응답 불필요
+            };
+
+            state.activeOffers.Add(offer);
+            EventBus.Publish(new OfferSubmittedEvent { offerId = offer.id });
+            return offer;
+        }
+
+        // ── SubmitLoanOffer (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+
+        // 임대 오퍼. V1.0: AI 협상 생략 — 즉시 Accepted. ProcessOffers 가 창 열리면 CompleteTransfer.
+        // loanFee ≥ 0 허용 (무료 임대 포함).
+        public static TransferOffer SubmitLoanOffer(
+            int playerId,
+            int fromClubId,
+            int toClubId,
+            LoanTerm term,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (term == null)
+                throw new ArgumentNullException(nameof(term));
+            if (term.proposed == null)
+                throw new ArgumentException("term.proposed must be set", nameof(term));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+            if (fromClubId == toClubId)
+                throw new ArgumentException("from / to club must differ", nameof(toClubId));
+
+            var player =
+                state.GetPlayer(playerId)
+                ?? throw new ArgumentException($"player id={playerId} not found");
+            _ =
+                state.GetClub(fromClubId)
+                ?? throw new ArgumentException($"fromClub id={fromClubId} not found");
+            _ =
+                state.GetClub(toClubId)
+                ?? throw new ArgumentException($"toClub id={toClubId} not found");
+
+            if (player.currentClubId != fromClubId)
+                throw new ArgumentException(
+                    $"player id={playerId} not in fromClub id={fromClubId}"
+                );
+
+            var offer = new TransferOffer
+            {
+                id = state.nextOfferId++,
+                playerId = playerId,
+                fromClubId = fromClubId,
+                toClubId = toClubId,
+                amount = term.loanFee,
+                proposed = term.proposed,
+                status = OfferStatus.Accepted, // V1.0: 임대는 즉시 합의
+                isLoan = true,
+                loanFee = term.loanFee,
+                loanWageShare = term.loanWageShare,
+                loanEndDate = term.loanEndDate,
+                loanOption = term.option,
             };
 
             state.activeOffers.Add(offer);

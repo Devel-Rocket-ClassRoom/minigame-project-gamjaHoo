@@ -42,6 +42,9 @@ namespace FMLite.Application
             // (algorithms.md #3.1 ProcessOffers)
             TransferSystem.ProcessOffers(state, balance);
 
+            // 임대 종료 자동 복귀 (algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리)
+            TransferSystem.ProcessLoanReturns(state);
+
             FacilitySystem.ProcessUpgrades(state);
 
             // 매월 1일 — 1군 선수 stat 성장 (algorithms.md V1.0-10)
