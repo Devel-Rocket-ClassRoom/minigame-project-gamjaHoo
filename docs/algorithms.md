@@ -3485,8 +3485,8 @@ public static void Tick(state, balance):
                            ? clamp(paGap / balance.growthPaGapNormalizer (50), 0, 1)
                            : 0   # CA >= PA 이면 성장 X (decline 만 가능)
                 
-                # 최종 변동 확률 / 단위
-                growthChance = balance.growthBaseChance (0.05)   # 기본 5% / 월
+                # 최종 변동 확률 (발생 빈도)
+                growthChance = balance.growthBaseChance (0.01)   # 기본 1% / 월 / stat
                               * ageFactor                          # 나이 곡선
                               * absoluteFactor                     # Absolute 페널티
                               * trainingBonus                      # Training 시설
@@ -3498,12 +3498,26 @@ public static void Tick(state, balance):
                     declineChance = abs(ageFactor) * balance.growthBaseChance
                                     * absoluteFactor   # Absolute 도 천천히 하락
                     if rng.NextDouble() < declineChance:
-                        player.stats[cat][stat] = max(1, value - 1)   # -1
+                        size = SampleGrowthSize(rng, ageFactor=abs(ageFactor), balance)
+                        player.stats[cat][stat] = max(1, value - size)
                 else:
                     if rng.NextDouble() < growthChance:
-                        # +1 / 월 단위. Round trip CA 자동 재계산 X (CA = static, PA 가 cap).
-                        player.stats[cat][stat] = min(100, value + 1)
+                        # 발생 시 ±1 / ±2 / ±3 size 추첨 — peak youth = 큰 점프 ↑
+                        size = SampleGrowthSize(rng, ageFactor, balance)
+                        player.stats[cat][stat] = min(100, value + size)
             
+
+public static int SampleGrowthSize(rng, ageFactor, balance):
+    # 기본 분포 [+1, +2, +3] = [75, 20, 5] (확률 %)
+    # peak youth (ageFactor ≥ 1.3) = 큰 점프 ↑ → [60, 30, 10]
+    # decline (ageFactor < 0) = 분포 동일 (대칭)
+    if ageFactor >= balance.growthBigJumpAgeThreshold (1.3):
+        weights = balance.growthSizePeakWeights ([60, 30, 10])
+    else:
+        weights = balance.growthSizeWeights ([75, 20, 5])
+    
+    return WeightedSample([1, 2, 3], weights)
+
             # CA 재계산 (V0.1 #24 CA-Stats 분리 정신 — CA 는 변경 X. PA 만 cap)
             # NOTE: V0.1 CA = stat 분포 기반. V1.0 = stat 변화 후 CA 재계산 X (별도 필드).
             # 즉 CA 는 generation 시점 고정, 매월 stats 변동.
@@ -3529,7 +3543,11 @@ public static float ComputeAgeFactor(age, balance):
 ### 핵심 결정사항 (`design-decisions.md` #53 와 연동)
 
 1. **성장 빈도 = 매월 1일** — V0.1 ProcessSchedule 패턴 (월 단위) 일관. 매주는 변동 빈도 ↑하나 일별 처리 부담 ↑.
-2. **성장 단위 = stat 별 ±1 확률 모델** — float 누적 모델 회피. UI 변경 시점 명확 ("9월 Passing 60 → 61"). 외부화 `growthBaseChance = 0.05` (월 5% = 1년 60% 확률, stat 평균 ~6 단위 성장).
+2. **성장 단위 = stat 별 발생 확률 + size 추첨 모델** — float 누적 모델 회피. UI 변경 시점 명확.
+   - 발생 빈도: `growthBaseChance = 0.01` (월 1%, stat 별 독립). 49 stat × 1% = 평균 0.5 stat 변동 / 월 / 평범 선수.
+   - **size 분포**: +1 75% / +2 20% / +3 5% (외부화 `growthSizeWeights = [75, 20, 5]`). 가끔 큰 점프 가능.
+   - **peak youth size 보정**: ageFactor ≥ 1.3 (16-18세 정도) → 분포 [60, 30, 10] 으로 큰 점프 ↑.
+   - decline 시 대칭 (-1 / -2 / -3) 같은 분포 적용.
 3. **Absolute / Relative 차등** — Absolute stat (10개) 는 `growthAbsoluteFactor = 0.10` (성장 1/10 — 거의 안 자람, 하락도 천천히).
 4. **나이 곡선** — `growthYouthPeakAge / growthPrimePeakAge / growthDeclineStartAge` 3 임계점 + `growthYouthFactor (1.5)` 등 외부화.
 5. **CA-PA gap = 캡** — CA = PA 도달 시 성장 정지 (V0.1 #35 PA 진실값 모델 정신). 단 ageFactor < 0 → decline 진입 후에도 PA 무관 하락 가능.
@@ -3543,7 +3561,7 @@ public static float ComputeAgeFactor(age, balance):
 
 ```
 [Player Growth System]
-growthBaseChance = 0.05            # 기본 월 성장 확률 (Relative stat / 보통 나이 / 시설 0)
+growthBaseChance = 0.01            # 기본 월 stat 변동 확률 (Relative stat / 보통 나이 / 시설 0)
 growthAbsoluteFactor = 0.10        # Absolute stat = 1/10 성장
 growthTrainingCoeff = 0.10         # Training Lv N = +N×10% 성장
 growthGymCoeff = 0.05              # Gym Lv N = 피지컬 +N×5% 성장
@@ -3552,6 +3570,9 @@ growthYouthFactor = 1.5            # 16세 ageFactor (peak 성장)
 growthYouthPeakAge = 22            # 청소년 → 프라임 전환
 growthPrimePeakAge = 26            # 프라임 → 정체 전환
 growthDeclineStartAge = 30         # 정체 → 하락 전환
+growthSizeWeights = [75, 20, 5]    # +1/+2/+3 분포 (기본)
+growthSizePeakWeights = [60, 30, 10]   # peak youth 분포 (ageFactor ≥ 1.3)
+growthBigJumpAgeThreshold = 1.3    # ageFactor 가 이 이상이면 peak 분포 적용
 ```
 
 ### Edge Cases
@@ -3570,8 +3591,11 @@ growthDeclineStartAge = 30         # 정체 → 하락 전환
 | T3 | Absolute 차등 | 같은 선수 1년 → Determination 변화 평균 < Passing 변화 평균 / 10 |
 | T4 | Gym 피지컬 한정 | Lv10 Gym vs Lv1 → Pace/Stamina 차이 / Passing 차이 없음 |
 | T5 | PA 캡 | CA == PA 선수 (예: 카림 벤제마 모델, PA 180 CA 178) 1년 → 거의 성장 X. PA 50 차이 선수 → 활발 성장 |
-| T6 | 나이 곡선 | 18세 / 25세 / 32세 같은 PA 1년 → 18세 평균 +6 / 25세 +2 / 32세 -3 정도 |
+| T6 | 나이 곡선 | 18세 / 25세 / 32세 같은 PA 1년 → 18세 stat 합산 +12 / 25세 +5 / 32세 -3 정도 |
 | T7 | 임대 선수 | A 클럽 (Lv5) 선수 → B 클럽 (Lv1) 임대 6개월 → 영입 효율 Lv1 적용 검증 |
+| T8 | size 분포 — 평범 선수 | 25세 PA gap 30 Training Lv3 선수 100명 1년 시뮬 → 변동 stat 의 size 분포 ~ [75:20:5] |
+| T9 | size 분포 — peak youth | 17세 PA gap 60 Training Lv5 선수 100명 1년 → +2/+3 비율 ↑ ([60:30:10] 근사) |
+| T10 | decline size | 33세 ageFactor -0.6 선수 1년 → -2 / -3 발생 가능 (대칭 분포) |
 
 ### V1.0 → V1.x Migration Notes
 
