@@ -454,3 +454,30 @@ MonoBehaviour:
   - key: transfer_request_close
     korean: "\uB098\uC911\uC5D0"
     english: Later
+  - key: negotiation_counter_title_fmt
+    korean: "{0} \uC5ED\uC81C\uC548 \uB3C4\uCC29"
+    english: '{0} Counter Offer'
+  - key: negotiation_counter_detail_fmt
+    korean: "\uC81C\uC548: {0}  \u2192  \uC5ED\uC81C\uC548: {1}  (\uB77C\uC6B4\uB4DC {2})"
+    english: 'Offered: {0}  ->  Counter: {1}  (Round {2})'
+  - key: negotiation_status_counter
+    korean: "\uC5ED\uC81C\uC548"
+    english: Counter
+  - key: negotiation_status_pending
+    korean: "\uB300\uAE30 \uC911"
+    english: Pending
+  - key: negotiation_status_negotiating
+    korean: "\uC120\uC218 \uD611\uC0C1 \uC911"
+    english: Negotiating
+  - key: negotiation_status_accepted
+    korean: "\uC218\uB77D\uB428"
+    english: Accepted
+  - key: negotiation_accept_counter
+    korean: "\uC5ED\uC81C\uC548 \uC218\uB77D"
+    english: Accept Counter
+  - key: negotiation_reject
+    korean: "\uAC70\uC808"
+    english: Reject
+  - key: negotiation_re_counter
+    korean: "\uC7AC\uC5ED\uC81C\uC548"
+    english: Re-Counter
