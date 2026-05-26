@@ -202,6 +202,15 @@ MonoBehaviour:
   - key: stat_corners
     korean: "\uCF54\uB108"
     english: Corners
+  - key: stat_marking
+    korean: "\uB9C8\uD0B9"
+    english: Marking
+  - key: stat_technique
+    korean: "\uD14C\uD06C\uB2C9"
+    english: Technique
+  - key: stat_long_throws
+    korean: "\uB871\uC2A4\uB85C\uC6B0"
+    english: Long Throws
   - key: no_stats_mental
     korean: "\uC815\uC2E0: -"
     english: 'Mental: -'
@@ -244,6 +253,12 @@ MonoBehaviour:
   - key: stat_aggression
     korean: "\uACF5\uACA9\uC131"
     english: Aggression
+  - key: stat_bravery
+    korean: "\uC6A9\uAE30"
+    english: Bravery
+  - key: stat_flair
+    korean: "\uC7AC\uAC04"
+    english: Flair
   - key: no_stats_physical
     korean: "\uC2E0\uCCB4: -"
     english: 'Physical: -'
@@ -307,6 +322,15 @@ MonoBehaviour:
   - key: stat_throwing
     korean: "\uC2A4\uB85C\uC778"
     english: Throwing
+  - key: stat_first_touch_gk
+    korean: "\uD37C\uC2A4\uD2B8\uD130\uCE58(GK)"
+    english: First Touch (GK)
+  - key: stat_passing_gk
+    korean: "\uD328\uC2A4(GK)"
+    english: Passing (GK)
+  - key: stat_punching_tendency
+    korean: "\uD380\uCE6D\uACBD\uD5A5"
+    english: Punching Tendency
   - key: section_traits
     korean: "[\uD2B8\uB808\uC787]"
     english: '[Traits]'
