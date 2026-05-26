@@ -32,4 +32,17 @@ namespace FMLite.Core
     {
         public int playerId;
     }
+
+    // V1.0 H.1 — TransferSystem.RenewContract 가 선수 수락 시 발행.
+    // algorithms.md V1.0-3.1 RenewContract / design-decisions.md #48.
+    public class ContractRenewedEvent
+    {
+        public int playerId;
+    }
+
+    // V1.0 H.1 — TransferSystem.RenewContract 가 선수 거절 시 발행.
+    public class ContractRenewalRejectedEvent
+    {
+        public int playerId;
+    }
 }
