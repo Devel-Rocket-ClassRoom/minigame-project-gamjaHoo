@@ -251,6 +251,15 @@ namespace FMLite.Domain
         [Header("Match 5-Zone — Stoppage")]
         public int stoppageTimeMax = 4; // 하프당 추가시간 최대 (rng 0~N)
 
+        [Header("Match 5-Zone — External Effects (I.8)")]
+        public int fatiguePerfThreshold = 50; // fatigue ≤ N → 경기력 보정 없음
+        public float fatiguePerfFloor = 0.6f; // fatigue 100 → perf 최저 (0.6)
+        public float fatiguePerfPenaltyPerPoint = 0.01f; // fatigue 1pt 초과 당 -1%
+        public int fatigueInjuryThreshold = 40; // fatigue > N → 부상률 ×multiplier
+        public float fatigueInjuryMultiplier = 1.5f;
+        public float formCoeff = 200f; // formMoraleMod = (1+(form-50)/formCoeff)×…
+        public float moraleCoeff = 200f;
+
         [Header("Match 5-Zone — Foul / Card / Injury (I.3)")]
         public float foulProbability = 0.12f; // Tackle 시 파울 base (× aggression 보정)
         public float penaltyProbability = 0.08f; // box 안 파울 → 페널티 확률
