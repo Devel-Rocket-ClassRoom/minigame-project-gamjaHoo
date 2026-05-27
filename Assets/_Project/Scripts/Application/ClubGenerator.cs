@@ -232,8 +232,97 @@ namespace FMLite.Application
                     boardConfidence = b.initialBoardConfidence,
                 },
                 isActiveSimulation = false, // GameInitializer 가 userClub 결정 후 갱신
+                tactic = BuildDefaultTactic(),
             };
         }
+
+        // J.2 — 4-4-2 Balanced 디폴트. assignedPlayerId=-1 → 자동 배정 (J.5 LineupScene 이후 수동).
+        private static Tactic BuildDefaultTactic() =>
+            new Tactic
+            {
+                formationId = 1, // 4-4-2
+                mentality = Mentality.Balanced,
+                slots = new List<TacticSlot>
+                {
+                    new TacticSlot
+                    {
+                        slotIndex = 0,
+                        roleId = 1,
+                        duty = Duty.Defend,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 1,
+                        roleId = 4,
+                        duty = Duty.Defend,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 2,
+                        roleId = 4,
+                        duty = Duty.Defend,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 3,
+                        roleId = 8,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 4,
+                        roleId = 11,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 5,
+                        roleId = 20,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 6,
+                        roleId = 20,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 7,
+                        roleId = 26,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 8,
+                        roleId = 29,
+                        duty = Duty.Support,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 9,
+                        roleId = 36,
+                        duty = Duty.Attack,
+                        assignedPlayerId = -1,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 10,
+                        roleId = 36,
+                        duty = Duty.Attack,
+                        assignedPlayerId = -1,
+                    },
+                },
+            };
 
         private static int SampleFacilityLevel(Random rng, double mu, GameBalanceSO b) =>
             Math.Clamp(

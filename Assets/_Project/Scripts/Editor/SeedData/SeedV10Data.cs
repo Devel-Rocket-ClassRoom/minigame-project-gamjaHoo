@@ -253,6 +253,25 @@ namespace FMLite.Editor
                 (40, "False Nine", Duty.Support, new[] { Position.CF, Position.AM }),
             };
 
+            // J.2 — algorithms.md V1.0-7 TacticImpact 에서 사용할 이벤트 가중치 (1.0 기준 편차만 기재).
+            var modifiers = new Dictionary<int, (string et, float mult)[]>
+            {
+                [5] = new[] { ("keyPass", 1.2f) }, // Ball-Playing Defender
+                [16] = new[] { ("tackle", 1.4f) }, // Defensive Midfielder
+                [17] = new[] { ("keyPass", 1.3f) }, // Deep Lying Playmaker
+                [18] = new[] { ("tackle", 1.5f) }, // Ball-Winning Midfielder
+                [23] = new[] { ("keyPass", 1.4f) }, // Advanced Playmaker
+                [27] = new[] { ("cross", 1.3f) }, // Winger L
+                [30] = new[] { ("cross", 1.3f) }, // Winger R
+                [32] = new[] { ("cross", 1.3f) }, // Winger LW
+                [34] = new[] { ("cross", 1.3f) }, // Winger RW
+                [36] = new[] { ("shot", 1.2f) }, // Advanced Forward
+                [37] = new[] { ("shot", 1.5f) }, // Poacher — T1: ~2× vs Target Man
+                [38] = new[] { ("shot", 0.75f) }, // Target Man — T1: ~2× vs Poacher
+                [39] = new[] { ("tackle", 1.2f) }, // Pressing Forward
+                [40] = new[] { ("keyPass", 1.3f) }, // False Nine
+            };
+
             foreach (var (id, name, duty, pos) in defs)
             {
                 var safeName = name.Replace(" ", "_").Replace("-", "");
@@ -262,6 +281,10 @@ namespace FMLite.Editor
                 so.displayName = name;
                 so.defaultDuty = duty;
                 so.compatiblePositions = new List<Position>(pos);
+                so.eventModifiers = new List<MatchEventModifier>();
+                if (modifiers.TryGetValue(id, out var mods))
+                    foreach (var (et, mult) in mods)
+                        so.eventModifiers.Add(new MatchEventModifier { eventType = et, multiplier = mult });
                 EditorUtility.SetDirty(so);
             }
         }

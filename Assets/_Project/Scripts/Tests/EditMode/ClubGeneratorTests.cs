@@ -344,6 +344,31 @@ namespace FMLite.Tests
             }
         }
 
+        // ── T8. 디폴트 Tactic 라운드트립 (J.2) ───────────────────────
+
+        [Test]
+        public void T8_DefaultTactic_4_4_2_Balanced()
+        {
+            var result = Generate(new Random(42));
+            foreach (var club in result.Clubs)
+            {
+                Assert.IsNotNull(club.tactic, $"T8: club {club.id} tactic 은 null 이면 안 됨");
+                Assert.AreEqual(1, club.tactic.formationId, $"T8: club {club.id} formationId=1 (4-4-2)");
+                Assert.AreEqual(
+                    Mentality.Balanced,
+                    club.tactic.mentality,
+                    $"T8: club {club.id} mentality=Balanced"
+                );
+                Assert.AreEqual(11, club.tactic.slots.Count, $"T8: club {club.id} 슬롯 11개");
+                foreach (var slot in club.tactic.slots)
+                    Assert.AreEqual(
+                        -1,
+                        slot.assignedPlayerId,
+                        $"T8: slot {slot.slotIndex} assignedPlayerId=-1 (자동 배정 대기)"
+                    );
+            }
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
 
         private ClubGenerationResult Generate(Random rng, LeagueConfigSO cfg = null) =>
