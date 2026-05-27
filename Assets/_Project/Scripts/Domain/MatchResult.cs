@@ -18,6 +18,9 @@ namespace FMLite.Domain
         // V1.0 5-zone (I.2') — 점유율 % (possessionTicks 기반). 활성/비활성 매치 모두 채움 (#55).
         public float homePossessionPct;
         public float awayPossessionPct;
+
+        // V1.0 I.5 — collectEvents=true 시 채워짐. 배경 매치는 빈 리스트.
+        public List<MatchEvent> events = new List<MatchEvent>();
     }
 
     [Serializable]

@@ -386,6 +386,57 @@ namespace FMLite.Tests
             );
         }
 
+        // ── T9. 텍스트 이벤트 (I.5) ─────────────────────────────────
+
+        [Test]
+        public void T9_CollectEvents_TrueFillsEvents_FalseEmpty()
+        {
+            var (stateOn, matchOn) = BuildState(seed: 999, matchId: 10);
+            var (stateOff, matchOff) = BuildState(seed: 999, matchId: 10);
+
+            var resultOn = MatchSimulator.Simulate(matchOn, stateOn, _balance, collectEvents: true);
+            var resultOff = MatchSimulator.Simulate(
+                matchOff,
+                stateOff,
+                _balance,
+                collectEvents: false
+            );
+
+            // collectEvents=true → events 채워짐 (킥오프/전반종료/종료 최소 3개)
+            Assert.Greater(resultOn.events.Count, 0, "T9: collectEvents=true — events 채워짐");
+            Assert.GreaterOrEqual(
+                resultOn.events.Count,
+                3,
+                "T9: KickOff+HalfTime+FullTime 최소 3개"
+            );
+
+            // collectEvents=false → events 비어있음
+            Assert.AreEqual(0, resultOff.events.Count, "T9: collectEvents=false — events 비어있음");
+
+            // 통계는 양쪽 동일 (같은 시드 — #55 설계 의도)
+            Assert.AreEqual(
+                resultOn.homeScore,
+                resultOff.homeScore,
+                "T9: homeScore 동일 (collectEvents 는 통계 미영향)"
+            );
+            Assert.AreEqual(
+                resultOn.awayScore,
+                resultOff.awayScore,
+                "T9: awayScore 동일"
+            );
+            int shotsOn = resultOn.playerStats.Sum(ps => ps.shots);
+            int shotsOff = resultOff.playerStats.Sum(ps => ps.shots);
+            Assert.AreEqual(shotsOn, shotsOff, "T9: 슛 통계 동일");
+
+            // textKey + minute 유효성 — Goal/Card 이벤트는 textKey 있음
+            foreach (var e in resultOn.events)
+            {
+                Assert.IsNotNull(e.textKey, $"T9: textKey null (type={e.type})");
+                Assert.IsNotEmpty(e.textKey, $"T9: textKey 빈 문자열 (type={e.type})");
+                Assert.GreaterOrEqual(e.minute, 0, $"T9: minute >= 0 (type={e.type})");
+            }
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
 
         private (GameState, Match) BuildState(

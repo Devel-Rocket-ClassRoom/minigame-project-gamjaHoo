@@ -307,6 +307,149 @@ namespace FMLite.Editor
                 E("transfer_request_reject", "거절", "Reject"),
                 E("transfer_request_interview", "면담", "Interview"),
                 E("transfer_request_close", "나중에", "Later"),
+                // ── V1.0 I.5 매치 텍스트 이벤트 ──────────────────────────
+                // 시스템 이벤트
+                E("match_kickoff", "킥오프", "Kick-off"),
+                E("match_halftime", "전반전 종료", "Half time"),
+                E("match_fulltime", "경기 종료", "Full time"),
+                // 슈팅 / 골
+                E(
+                    "match_goal_fmt",
+                    "{playerName} 골! ({minute}')",
+                    "{playerName} scores! ({minute}')"
+                ),
+                E(
+                    "match_goal_assist_fmt",
+                    "{playerName} 골 (어시스트: {assistName}) ({minute}')",
+                    "{playerName} scores (assist: {assistName}) ({minute}')"
+                ),
+                E(
+                    "match_shot_on_target_fmt",
+                    "{playerName} 유효슛 ({minute}')",
+                    "{playerName} shot on target ({minute}')"
+                ),
+                E(
+                    "match_shot_saved_fmt",
+                    "{gkName} 선방! ({minute}')",
+                    "{gkName} saves! ({minute}')"
+                ),
+                E(
+                    "match_shot_off_target_fmt",
+                    "{playerName} 빗나가는 슛 ({minute}')",
+                    "{playerName} shot off target ({minute}')"
+                ),
+                // 페널티
+                E(
+                    "match_penalty_awarded_fmt",
+                    "페널티킥! ({minute}')",
+                    "Penalty! ({minute}')"
+                ),
+                E(
+                    "match_penalty_goal_fmt",
+                    "{playerName} 페널티 성공! ({minute}')",
+                    "{playerName} converts the penalty! ({minute}')"
+                ),
+                E(
+                    "match_penalty_miss_fmt",
+                    "{playerName} 페널티 실패 ({minute}')",
+                    "{playerName} misses the penalty ({minute}')"
+                ),
+                // 카드
+                E(
+                    "match_yellow_card_fmt",
+                    "{playerName} 경고 ({minute}')",
+                    "{playerName} yellow card ({minute}')"
+                ),
+                E(
+                    "match_red_card_fmt",
+                    "{playerName} 퇴장! ({minute}')",
+                    "{playerName} sent off! ({minute}')"
+                ),
+                E(
+                    "match_second_yellow_fmt",
+                    "{playerName} 두 번째 경고 퇴장! ({minute}')",
+                    "{playerName} second yellow, sent off! ({minute}')"
+                ),
+                // 파울 / 세트피스
+                E(
+                    "match_foul_fmt",
+                    "{foulerName}이(가) {fouledName}에게 파울 ({minute}')",
+                    "{foulerName} fouls {fouledName} ({minute}')"
+                ),
+                E("match_free_kick_fmt", "프리킥 ({minute}')", "Free kick ({minute}')"),
+                // 드리블 / 태클
+                E(
+                    "match_dribble_fmt",
+                    "{playerName} 드리블 돌파 ({minute}')",
+                    "{playerName} dribbles past ({minute}')"
+                ),
+                // 부상
+                E(
+                    "match_injury_fmt",
+                    "{playerName} 부상! ({minute}')",
+                    "{playerName} injured! ({minute}')"
+                ),
+                // MatchReport 헤드라인 — OFM headline.{outcome}.{variant} 패턴 (3 변형)
+                E(
+                    "match_report_win_headline_0",
+                    "승리! {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Victory! {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_win_headline_1",
+                    "{homeTeam}, {homeScore}:{awayScore} 완승",
+                    "{homeTeam} win {homeScore}:{awayScore}"
+                ),
+                E(
+                    "match_report_win_headline_2",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 값진 승점 3",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — crucial three points"
+                ),
+                E(
+                    "match_report_loss_headline_0",
+                    "패배... {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Defeat... {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_loss_headline_1",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam}에 완패",
+                    "{homeTeam} lose {homeScore}:{awayScore} to {awayTeam}"
+                ),
+                E(
+                    "match_report_loss_headline_2",
+                    "실망스러운 패배, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Disappointing loss, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_draw_headline_0",
+                    "무승부, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Draw, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_draw_headline_1",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 승점 1 획득",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — a point each"
+                ),
+                E(
+                    "match_report_draw_headline_2",
+                    "팽팽한 접전 끝 무승부, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Hard-fought draw, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_possession_fmt",
+                    "점유율: 홈 {homePct}% 원정 {awayPct}%",
+                    "Possession: Home {homePct}% Away {awayPct}%"
+                ),
+                E(
+                    "match_report_shots_fmt",
+                    "슈팅: 홈 {homeShots} 원정 {awayShots}",
+                    "Shots: Home {homeShots} Away {awayShots}"
+                ),
+                E(
+                    "match_report_shots_on_target_fmt",
+                    "유효슛: 홈 {homeOnTarget} 원정 {awayOnTarget}",
+                    "Shots on Target: Home {homeOnTarget} Away {awayOnTarget}"
+                ),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

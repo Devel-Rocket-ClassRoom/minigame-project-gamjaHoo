@@ -37,8 +37,10 @@ namespace FMLite.Application
                     $"Match {match.id} 이미 처리됨 (result != null). 재처리는 호출자가 의도 명시 후 result=null 로 리셋 필요."
                 );
 
-            // a. match.result = result
+            // a. match.result = result + events (I.5 — collectEvents=true 시 채워진 이벤트 로그)
             match.result = result;
+            if (result.events != null && result.events.Count > 0)
+                match.events = result.events;
 
             // b. 피로 갱신 + seasonAppearances (starting11 22명)
             ApplyFatigueAndAppearance(result.homeStarting11, state, balance.fatigueGainPerMatch);
