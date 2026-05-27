@@ -1,13 +1,24 @@
 // MatchReport.cs
 // 매치 결과 요약 (신문기사 스타일). OFM news/match_report 차용.
+// OFM 패턴: headline {outcome}.{variant} 3종 / scorersData [{player,minute,side}] / i18n_params.
 // MatchResult + Match.events 로부터 빌드. UI 레이어(MatchTextScene — I.5 UI) 에서 사용.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FMLite.Domain;
 
 namespace FMLite.Application
 {
+    // OFM scorersData 상당 — 골 득점 정보 (UI 표시용).
+    public class ScorerEntry
+    {
+        public string playerName;
+        public int minute;
+        public bool isHome;
+        public bool isPenalty;
+    }
+
     public class MatchReport
     {
         public string homeTeamName;
@@ -21,13 +32,20 @@ namespace FMLite.Application
         public int homeShotsOnTarget;
         public int awayShotsOnTarget;
 
+        // OFM headline variant (0~2) — 같은 결과도 다양한 헤드라인 표현.
+        // 텍스트키: match_report_{win|loss|draw}_headline_{0|1|2}
+        public int headlineVariant;
+
+        // OFM scorersData — 시간순 골 득점자 목록.
+        public List<ScorerEntry> scorers = new List<ScorerEntry>();
+
         // 헤드라인 이벤트 — Goal + Card + Injury (시간순).
         public List<MatchEvent> highlights = new List<MatchEvent>();
 
-        // "homeTeam N-M awayTeam" 결과 텍스트키 (match_report_win/loss/draw_fmt).
+        // "homeTeam N-M awayTeam" 결과 텍스트키.
         public string resultTextKey;
 
-        public static MatchReport Build(Match match, GameState state)
+        public static MatchReport Build(Match match, GameState state, Random rng = null)
         {
             var result = match.result;
             if (result == null)
@@ -37,6 +55,7 @@ namespace FMLite.Application
             var awayClub = state.GetClub(match.awayClubId);
 
             var homeSet = new HashSet<int>(result.homeStarting11);
+
             int homeShots = result
                 .playerStats.Where(ps => homeSet.Contains(ps.playerId))
                 .Sum(ps => ps.shots);
@@ -50,13 +69,37 @@ namespace FMLite.Application
                 .playerStats.Where(ps => !homeSet.Contains(ps.playerId))
                 .Sum(ps => ps.shotsOnTarget);
 
-            string resultKey;
+            string outcome;
             if (result.homeScore > result.awayScore)
-                resultKey = "match_report_win_fmt";
+                outcome = "win";
             else if (result.homeScore < result.awayScore)
-                resultKey = "match_report_loss_fmt";
+                outcome = "loss";
             else
-                resultKey = "match_report_draw_fmt";
+                outcome = "draw";
+
+            int variant = rng != null ? rng.Next(3) : 0;
+
+            // 골 득점자 목록 (OFM scorersData)
+            var scorers = match
+                .events.Where(e =>
+                    e.type == MatchEventType.Goal || e.type == MatchEventType.PenaltyGoal
+                )
+                .OrderBy(e => e.minute)
+                .Select(e =>
+                {
+                    string name =
+                        e.textArgs != null && e.textArgs.TryGetValue("playerName", out var n)
+                            ? n
+                            : e.actorPlayerId.ToString();
+                    return new ScorerEntry
+                    {
+                        playerName = name,
+                        minute = e.minute,
+                        isHome = e.side == 0,
+                        isPenalty = e.type == MatchEventType.PenaltyGoal,
+                    };
+                })
+                .ToList();
 
             var highlights = match
                 .events.Where(e =>
@@ -82,8 +125,10 @@ namespace FMLite.Application
                 awayShots = awayShots,
                 homeShotsOnTarget = homeShotsOnTarget,
                 awayShotsOnTarget = awayShotsOnTarget,
+                headlineVariant = variant,
+                scorers = scorers,
                 highlights = highlights,
-                resultTextKey = resultKey,
+                resultTextKey = $"match_report_{outcome}_headline_{variant}",
             };
         }
     }

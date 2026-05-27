@@ -777,22 +777,31 @@ namespace FMLite.Application
             if (actorId > 0)
             {
                 var p = sim.gameState.GetPlayer(actorId);
-                args["playerName"] = p?.info.name ?? actorId.ToString();
+                args["playerName"] = PlayerDisplayName(p, actorId);
             }
             if (targetId > 0)
             {
                 var p = sim.gameState.GetPlayer(targetId);
-                args["targetName"] = p?.info.name ?? targetId.ToString();
-                // GK 선방 이벤트용 alias
-                args["gkName"] = p?.info.name ?? targetId.ToString();
-                // assist
-                args["assistName"] = p?.info.name ?? targetId.ToString();
-                // fouler (파울 이벤트) — actorId = fouler
-                args["foulerName"] =
-                    sim.gameState.GetPlayer(actorId)?.info.name ?? actorId.ToString();
-                args["fouledName"] = p?.info.name ?? targetId.ToString();
+                string targetName = PlayerDisplayName(p, targetId);
+                args["targetName"] = targetName;
+                args["gkName"] = targetName;
+                args["assistName"] = targetName;
+                args["foulerName"] = PlayerDisplayName(sim.gameState.GetPlayer(actorId), actorId);
+                args["fouledName"] = targetName;
             }
             return args;
+        }
+
+        private static string PlayerDisplayName(Player p, int fallbackId)
+        {
+            if (p == null)
+                return fallbackId.ToString();
+            var info = p.info;
+            if (!string.IsNullOrEmpty(info.lastName))
+                return string.IsNullOrEmpty(info.firstName)
+                    ? info.lastName
+                    : $"{info.firstName[0]}. {info.lastName}";
+            return fallbackId.ToString();
         }
 
         // ── 헬퍼: 상태 전이 ───────────────────────────────────────────

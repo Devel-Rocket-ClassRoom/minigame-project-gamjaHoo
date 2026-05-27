@@ -389,21 +389,51 @@ namespace FMLite.Editor
                     "{playerName} 부상! ({minute}')",
                     "{playerName} injured! ({minute}')"
                 ),
-                // MatchReport 요약
+                // MatchReport 헤드라인 — OFM headline.{outcome}.{variant} 패턴 (3 변형)
                 E(
-                    "match_report_win_fmt",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 승리",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — Win"
+                    "match_report_win_headline_0",
+                    "승리! {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Victory! {homeTeam} {homeScore}:{awayScore} {awayTeam}"
                 ),
                 E(
-                    "match_report_loss_fmt",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 패배",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — Loss"
+                    "match_report_win_headline_1",
+                    "{homeTeam}, {homeScore}:{awayScore} 완승",
+                    "{homeTeam} win {homeScore}:{awayScore}"
                 ),
                 E(
-                    "match_report_draw_fmt",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 무승부",
-                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — Draw"
+                    "match_report_win_headline_2",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 값진 승점 3",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — crucial three points"
+                ),
+                E(
+                    "match_report_loss_headline_0",
+                    "패배... {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Defeat... {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_loss_headline_1",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam}에 완패",
+                    "{homeTeam} lose {homeScore}:{awayScore} to {awayTeam}"
+                ),
+                E(
+                    "match_report_loss_headline_2",
+                    "실망스러운 패배, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Disappointing loss, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_draw_headline_0",
+                    "무승부, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Draw, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
+                ),
+                E(
+                    "match_report_draw_headline_1",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — 승점 1 획득",
+                    "{homeTeam} {homeScore}:{awayScore} {awayTeam} — a point each"
+                ),
+                E(
+                    "match_report_draw_headline_2",
+                    "팽팽한 접전 끝 무승부, {homeTeam} {homeScore}:{awayScore} {awayTeam}",
+                    "Hard-fought draw, {homeTeam} {homeScore}:{awayScore} {awayTeam}"
                 ),
                 E(
                     "match_report_possession_fmt",
