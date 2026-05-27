@@ -21,6 +21,11 @@ namespace FMLite.Domain
 
         // V1.0 I.5 — collectEvents=true 시 채워짐. 배경 매치는 빈 리스트.
         public List<MatchEvent> events = new List<MatchEvent>();
+
+        // V1.0 I.11 — 승부차기 결착 시 채워짐. 아니면 둘 다 0.
+        public int penaltyHomeScore;
+        public int penaltyAwayScore;
+        public bool decidedByPenalties;
     }
 
     [Serializable]

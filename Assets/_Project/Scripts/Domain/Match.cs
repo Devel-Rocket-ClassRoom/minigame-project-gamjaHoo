@@ -14,6 +14,7 @@ namespace FMLite.Domain
         public CompetitionType type;
         public int homeClubId;
         public int awayClubId;
+        public bool allowsExtraTime; // 컵 매치 동점 → 연장/승부차기 (I.11)
         public MatchResult result;
         public List<MatchEvent> events = new List<MatchEvent>();
     }
@@ -23,6 +24,10 @@ namespace FMLite.Domain
         KickOff,
         HalfTime,
         FullTime,
+        ExtraTimeKickOff,
+        ExtraTimeHalfTime,
+        ExtraTimeEnd,
+        PenaltyShootoutKick,
         PassCompleted,
         Dribble,
         Cross,
