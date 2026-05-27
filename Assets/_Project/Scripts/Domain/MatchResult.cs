@@ -41,5 +41,6 @@ namespace FMLite.Domain
         public int keyPasses;
         public int foulsCommitted;
         public int foulsSuffered;
+        public int saves; // GK 선방 (I.4 평점)
     }
 }

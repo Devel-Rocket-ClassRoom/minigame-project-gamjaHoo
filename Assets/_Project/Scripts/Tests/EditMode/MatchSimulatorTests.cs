@@ -333,7 +333,7 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void PlayerMatchStat_MinutesPlayedIs90AndRatingZero()
+        public void PlayerMatchStat_MinutesPlayedIs90AndRatingFilled()
         {
             var (state, match) = BuildState(seed: 5, matchId: 1);
             var r = MatchSimulator.Simulate(match, state, _balance);
@@ -344,10 +344,46 @@ namespace FMLite.Tests
             );
             foreach (var ps in r.playerStats)
             {
-                // minutesPlayed 가변 = I.6, rating = I.4 (아직 미구현). foulsCommitted 는 I.3 에서 발생 가능.
+                // minutesPlayed 가변 = I.6 (아직 90 고정). rating = I.4 채워짐 (1.0~10.0).
                 Assert.AreEqual(90, ps.minutesPlayed, $"minutesPlayed=90 (id={ps.playerId})");
-                Assert.AreEqual(0f, ps.rating, $"rating=0 (I.4) (id={ps.playerId})");
+                Assert.That(
+                    ps.rating,
+                    Is.InRange(1.0f, 10.0f),
+                    $"rating 1~10 (id={ps.playerId} rating={ps.rating})"
+                );
             }
+        }
+
+        // ── T5. 평점 (I.4) ───────────────────────────────────────────
+
+        [Test]
+        public void T5_Ratings_FilledAndReflectEvents()
+        {
+            var seedGen = new System.Random(50);
+            bool anyAboveBase = false;
+            int checkedCount = 0;
+            const int N = 50;
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                foreach (var ps in r.playerStats)
+                {
+                    Assert.That(
+                        ps.rating,
+                        Is.InRange(1.0f, 10.0f),
+                        $"평점 1~10 (id={ps.playerId} rating={ps.rating})"
+                    );
+                    if (ps.rating > _balance.ratingBase)
+                        anyAboveBase = true;
+                    checkedCount++;
+                }
+            }
+            Assert.Greater(checkedCount, 0);
+            Assert.IsTrue(
+                anyAboveBase,
+                "T5: 일부 선수 평점 > base 6.5 (골/어시/승리/선방 가산 반영)"
+            );
         }
 
         // ── Helpers ───────────────────────────────────────────────────
