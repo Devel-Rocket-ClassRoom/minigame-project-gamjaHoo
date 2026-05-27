@@ -43,6 +43,7 @@ namespace FMLite.Domain
         SecondYellow,
         Corner,
         FreeKick,
+        LongThrow,
         Injury,
         Substitution,
     }

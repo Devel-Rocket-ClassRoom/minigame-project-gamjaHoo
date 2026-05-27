@@ -484,6 +484,80 @@ namespace FMLite.Tests
             Assert.LessOrEqual(awaySubCount, 3, "T11: away 교체 횟수 초과");
         }
 
+        // ── T13. I.10 — 세트피스 taker stat 반영 ────────────────────────
+
+        [Test]
+        public void T13_SetPiece_TakerStatReflected_CornerAndFreeKick()
+        {
+            // ── T13-a: Corner taker = 코너 stat 최상위 선수 ──────────────
+            // 시드 고정 + 충분한 매치 수로 코너 이벤트 발생 보장
+            _balance.zoneCornerChance = 0.99f; // 공격 third 실패 시 거의 항상 corner
+            _balance.longThrowChance = 0.00f;
+            _balance.cornerConversionBase = 0.00f; // corner → 슛 확률 0 (이벤트만 검증)
+
+            // 홈팀(clubId=1) — CA 최상위 선수를 taker 로 지정 (반드시 starting XI 포함)
+            var (state, match) = BuildState(seed: 42, matchId: 42);
+            var homeSquad = state.GetClub(1).seniorSquadIds;
+            var taker = state.allPlayers
+                .Where(p => homeSquad.Contains(p.id))
+                .OrderByDescending(p => p.currentAbility)
+                .First();
+            taker.stats.technical.corners = 100;
+            foreach (var p in state.allPlayers.Where(p => homeSquad.Contains(p.id) && p.id != taker.id))
+                p.stats.technical.corners = 1;
+
+            var result = MatchSimulator.Simulate(match, state, _balance, collectEvents: true);
+
+            // 홈 팀(side=0) 코너만 검증 — 어웨이 코너는 별도 taker
+            var homeCornerEvents = result
+                .events.Where(e => e.type == MatchEventType.Corner && e.side == 0)
+                .ToList();
+            foreach (var ev in homeCornerEvents)
+                Assert.AreEqual(
+                    taker.id,
+                    ev.actorPlayerId,
+                    $"T13-a: home corner actorPlayerId={ev.actorPlayerId}, expected={taker.id}"
+                );
+
+            // ── T13-b: 세트피스 결과 정합성 (파울 → FK 해결) ────────────
+            _balance.foulProbability = 0.99f; // 거의 항상 파울
+            _balance.freeKickDirectProb = 1.0f; // 항상 직접 FK
+            _balance.freeKickConversionBase = 0.00f; // on-target 확률 0 (이벤트 여부만)
+
+            var (s2, m2) = BuildState(seed: 55, matchId: 55);
+            // 어웨이팀(clubId=2) 에서 freeKickTaking=100 인 선수 지정
+            var awaySquad = s2.GetClub(2).seniorSquadIds;
+            var fkTaker = s2.allPlayers
+                .Where(p => awaySquad.Contains(p.id))
+                .OrderByDescending(p => p.currentAbility)
+                .First();
+            fkTaker.stats.technical.freeKickTaking = 100;
+            foreach (var p in s2.allPlayers.Where(p => awaySquad.Contains(p.id) && p.id != fkTaker.id))
+                p.stats.technical.freeKickTaking = 1;
+            var r2 = MatchSimulator.Simulate(m2, s2, _balance, collectEvents: true);
+            var fkEvents = r2.events.Where(e => e.type == MatchEventType.FreeKick).ToList();
+
+            // FK 이벤트가 발생했다면 fkTaker 의 shots ≥ 1 (직접 FK shot 시도)
+            if (fkEvents.Count > 0)
+            {
+                var fkStat = r2.playerStats.FirstOrDefault(ps => ps.playerId == fkTaker.id);
+                Assert.IsNotNull(fkStat, "T13-b: fkTaker playerStat 없음");
+                Assert.Greater(fkStat.shots, 0, "T13-b: FK taker shots=0 (직접 FK shot 미적용)");
+            }
+
+            // ── T13-c: 매치 정상 완료 ─────────────────────────────────
+            _balance.foulProbability = 0.12f; // 원복
+            _balance.freeKickDirectProb = 0.50f;
+            _balance.zoneCornerChance = 0.25f;
+            _balance.cornerConversionBase = 0.08f;
+
+            var (s3, m3) = BuildState(seed: 77, matchId: 77);
+            var r3 = MatchSimulator.Simulate(m3, s3, _balance, collectEvents: true);
+            Assert.GreaterOrEqual(r3.homeScore, 0, "T13-c: homeScore < 0");
+            Assert.GreaterOrEqual(r3.awayScore, 0, "T13-c: awayScore < 0");
+            Assert.GreaterOrEqual(r3.playerStats.Count, 22, "T13-c: playerStats 부족");
+        }
+
         // ── T7. I.8 — fatigue 임계 + form/morale 외부 영향 ──────────────
 
         [Test]

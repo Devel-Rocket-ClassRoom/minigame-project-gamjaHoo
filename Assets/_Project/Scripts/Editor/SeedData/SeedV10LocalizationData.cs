@@ -377,6 +377,8 @@ namespace FMLite.Editor
                     "{foulerName} fouls {fouledName} ({minute}')"
                 ),
                 E("match_free_kick_fmt", "프리킥 ({minute}')", "Free kick ({minute}')"),
+                E("match_corner_fmt", "코너킥 ({minute}')", "Corner ({minute}')"),
+                E("match_long_throw_fmt", "롱스로인 ({minute}')", "Long throw ({minute}')"),
                 // 드리블 / 태클
                 E(
                     "match_dribble_fmt",

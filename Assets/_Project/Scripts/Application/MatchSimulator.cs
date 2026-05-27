@@ -277,17 +277,21 @@ namespace FMLite.Application
             }
             else
             {
+                bool foulOccurred = false;
                 if (defender != null)
                 {
                     if (sim.rng.NextDouble() < sim.balance.midfieldTackleRatio)
                     {
                         sim.stats[defender.id].tackles++;
-                        MaybeFoul(sim, attacker, defender); // I.3 — 일반 파울 (FreeKick, penalty X)
+                        foulOccurred = MaybeFoul(sim, attacker, defender);
                     }
                     else
                         sim.stats[defender.id].interceptions++;
                 }
-                TurnOver(sim, att, Zone.Midfield);
+                if (foulOccurred)
+                    ResolveFreeKick(sim, att); // I.10 — FK 스탯 해결 (att 팀이 FK 수혜)
+                else
+                    TurnOver(sim, att, Zone.Midfield);
             }
         }
 
@@ -326,22 +330,31 @@ namespace FMLite.Application
             }
             else
             {
+                bool foulOccurred = false;
                 if (defender != null)
                 {
                     if (sim.rng.NextDouble() < sim.balance.attackingThirdTackleRatio)
                     {
                         sim.stats[defender.id].tackles++;
-                        MaybeFoul(sim, attacker, defender); // I.3 — 위험지역 파울
+                        foulOccurred = MaybeFoul(sim, attacker, defender);
                     }
                     // else Clearance (통계 X)
                 }
-                // Corner 기회 (25%) → box 재진입 (30%)
-                if (
-                    sim.rng.NextDouble() < sim.balance.zoneCornerChance
-                    && sim.rng.NextDouble() < sim.balance.zoneCornerToBoxChance
-                )
+                if (foulOccurred)
                 {
-                    sim.ballZone = AttackingBox(att);
+                    ResolveFreeKick(sim, att); // I.10 — 위험지역 FK
+                    return;
+                }
+                // I.10 — Corner (25%) / LongThrow (10%) / TurnOver
+                double cornerRoll = sim.rng.NextDouble();
+                if (cornerRoll < sim.balance.zoneCornerChance)
+                {
+                    ResolveCorner(sim, att);
+                    return;
+                }
+                if (cornerRoll < sim.balance.zoneCornerChance + sim.balance.longThrowChance)
+                {
+                    ResolveLongThrow(sim, att);
                     return;
                 }
                 TurnOver(sim, att, DefensiveThird(att));
@@ -490,15 +503,15 @@ namespace FMLite.Application
 
         // ── I.3: Foul / Card / Penalty / Injury ──────────────────────
 
-        // Tackle 시 파울 판정 (일반 파울 — FreeKick). foulsCommitted/Suffered + 카드 + 부상.
-        private static void MaybeFoul(SimState sim, Player fouled, Player fouler)
+        // Tackle 시 파울 판정 (일반 파울 — FreeKick). foulsCommitted/Suffered + 카드 + 부상. 파울 발생 시 true 반환.
+        private static bool MaybeFoul(SimState sim, Player fouled, Player fouler)
         {
             if (fouler == null)
-                return;
+                return false;
             double foulChance =
                 sim.balance.foulProbability * (0.6 + fouler.stats.mental.aggression / 100.0 * 0.8);
             if (sim.rng.NextDouble() >= foulChance)
-                return;
+                return false;
 
             sim.stats[fouler.id].foulsCommitted++;
             if (fouled != null && sim.stats.ContainsKey(fouled.id))
@@ -529,6 +542,7 @@ namespace FMLite.Application
 
             MaybeCard(sim, fouler.id);
             MaybeInjury(sim, fouled);
+            return true;
         }
 
         // 카드 — yellow / direct red / 2옐로 퇴장. sentOff 갱신.
@@ -1027,6 +1041,275 @@ namespace FMLite.Application
 
         private static double Clamp(double v, double lo, double hi) =>
             v < lo ? lo : (v > hi ? hi : v);
+
+        // ── I.10: 세트피스 해결 ───────────────────────────────────────
+
+        // setPieceTakers 우선, 미지정 시 stat 최상위 폴백.
+        private static Player FindSetPieceTaker(
+            SimState sim,
+            Side att,
+            System.Func<Player, int> statSelector
+        )
+        {
+            var club = att == Side.Home ? sim.homeClub : sim.awayClub;
+            var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
+            if (club?.tactic?.setPieceTakers != null)
+            {
+                foreach (var pid in club.tactic.setPieceTakers)
+                {
+                    if (!xi.Contains(pid))
+                        continue;
+                    var p = sim.gameState.GetPlayer(pid);
+                    if (p != null)
+                        return p;
+                }
+            }
+            return xi.Select(id => sim.gameState.GetPlayer(id))
+                .Where(p => p != null)
+                .OrderByDescending(statSelector)
+                .FirstOrDefault();
+        }
+
+        // Corner: taker.corners + target.heading×jumpingReach → 헤더 슛.
+        private static void ResolveCorner(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.corners);
+            var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
+            var target = xi.Select(id => sim.gameState.GetPlayer(id))
+                .Where(p => p != null)
+                .OrderByDescending(p =>
+                    p.stats.technical.heading * p.stats.physical.jumpingReach
+                )
+                .FirstOrDefault();
+            var gk = FindGoalkeeper(sim, def);
+
+            if (taker == null || target == null)
+            {
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            if (sim.collectEvents)
+                EmitEvent(
+                    sim,
+                    MatchEventType.Corner,
+                    att,
+                    taker.id,
+                    0,
+                    "match_corner_fmt",
+                    MakeArgs(sim, taker.id, 0)
+                );
+
+            double headingScore =
+                target.stats.technical.heading * target.stats.physical.jumpingReach / 100.0;
+            double accuracy = Clamp(
+                sim.balance.cornerConversionBase
+                    + (taker.stats.technical.corners + headingScore)
+                        / sim.balance.cornerHeadingDivisor,
+                0.05,
+                0.40
+            );
+
+            if (sim.rng.NextDouble() > accuracy)
+            {
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            sim.stats[target.id].shots++;
+            sim.stats[target.id].shotsOnTarget++;
+            double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
+            double conversion = Clamp(
+                sim.balance.goalConversionBase
+                    + (headingScore - gkRating) / sim.balance.goalConversionDivisor,
+                0.10,
+                0.60
+            );
+
+            if (sim.rng.NextDouble() < conversion)
+            {
+                if (att == Side.Home)
+                    sim.homeScore++;
+                else
+                    sim.awayScore++;
+                sim.stats[target.id].goals++;
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.Goal,
+                        att,
+                        target.id,
+                        taker.id,
+                        "match_goal_fmt",
+                        MakeArgs(sim, target.id, taker.id)
+                    );
+                TurnOver(sim, att, Zone.Midfield); // kickoff
+            }
+            else
+            {
+                if (gk != null && sim.stats.ContainsKey(gk.id))
+                    sim.stats[gk.id].saves++;
+                TurnOver(sim, att, Zone.Midfield);
+            }
+        }
+
+        // FreeKick: freeKickTaking vs GK (직접 50%) / cross→헤더 (간접 50%).
+        private static void ResolveFreeKick(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.freeKickTaking);
+            var gk = FindGoalkeeper(sim, def);
+
+            if (taker == null)
+            {
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            if (sim.rng.NextDouble() < sim.balance.freeKickDirectProb)
+            {
+                // 직접 슛
+                sim.stats[taker.id].shots++;
+                double takerRating = Eff(taker.stats.technical.freeKickTaking, att, sim, taker);
+                double accuracy = Clamp(
+                    sim.balance.freeKickConversionBase + takerRating / sim.balance.freeKickDirectDivisor,
+                    0.05,
+                    0.35
+                );
+                if (sim.rng.NextDouble() > accuracy)
+                {
+                    TurnOver(sim, att, Zone.Midfield);
+                    return;
+                }
+                sim.stats[taker.id].shotsOnTarget++;
+                double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
+                double conversion = Clamp(
+                    sim.balance.goalConversionBase
+                        + (takerRating - gkRating) / sim.balance.goalConversionDivisor,
+                    0.10,
+                    0.60
+                );
+                if (sim.rng.NextDouble() < conversion)
+                {
+                    if (att == Side.Home)
+                        sim.homeScore++;
+                    else
+                        sim.awayScore++;
+                    sim.stats[taker.id].goals++;
+                    if (sim.collectEvents)
+                        EmitEvent(
+                            sim,
+                            MatchEventType.Goal,
+                            att,
+                            taker.id,
+                            0,
+                            "match_goal_fmt",
+                            MakeArgs(sim, taker.id, 0)
+                        );
+                    TurnOver(sim, att, Zone.Midfield);
+                }
+                else
+                {
+                    if (gk != null && sim.stats.ContainsKey(gk.id))
+                        sim.stats[gk.id].saves++;
+                    TurnOver(sim, att, Zone.Midfield);
+                }
+            }
+            else
+            {
+                // 간접 — 크로스 → 헤더 (corner 로직 재활용, taker stat = freeKickTaking)
+                var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
+                var target = xi.Select(id => sim.gameState.GetPlayer(id))
+                    .Where(p => p != null)
+                    .OrderByDescending(p =>
+                        p.stats.technical.heading * p.stats.physical.jumpingReach
+                    )
+                    .FirstOrDefault();
+                if (target == null)
+                {
+                    TurnOver(sim, att, Zone.Midfield);
+                    return;
+                }
+                double headingScore =
+                    target.stats.technical.heading * target.stats.physical.jumpingReach / 100.0;
+                double accuracy = Clamp(
+                    sim.balance.cornerConversionBase
+                        + (taker.stats.technical.freeKickTaking + headingScore)
+                            / sim.balance.cornerHeadingDivisor,
+                    0.05,
+                    0.35
+                );
+                if (sim.rng.NextDouble() > accuracy)
+                {
+                    TurnOver(sim, att, Zone.Midfield);
+                    return;
+                }
+                sim.stats[target.id].shots++;
+                sim.stats[target.id].shotsOnTarget++;
+                double gkRating2 = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
+                double conversion2 = Clamp(
+                    sim.balance.goalConversionBase
+                        + (headingScore - gkRating2) / sim.balance.goalConversionDivisor,
+                    0.10,
+                    0.60
+                );
+                if (sim.rng.NextDouble() < conversion2)
+                {
+                    if (att == Side.Home)
+                        sim.homeScore++;
+                    else
+                        sim.awayScore++;
+                    sim.stats[target.id].goals++;
+                    if (sim.collectEvents)
+                        EmitEvent(
+                            sim,
+                            MatchEventType.Goal,
+                            att,
+                            target.id,
+                            taker.id,
+                            "match_goal_fmt",
+                            MakeArgs(sim, target.id, taker.id)
+                        );
+                    TurnOver(sim, att, Zone.Midfield);
+                }
+                else
+                {
+                    if (gk != null && sim.stats.ContainsKey(gk.id))
+                        sim.stats[gk.id].saves++;
+                    TurnOver(sim, att, Zone.Midfield);
+                }
+            }
+        }
+
+        // LongThrow: longThrows + target.heading → box 진입.
+        private static void ResolveLongThrow(SimState sim, Side att)
+        {
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.longThrows);
+
+            if (sim.collectEvents && taker != null)
+                EmitEvent(
+                    sim,
+                    MatchEventType.LongThrow,
+                    att,
+                    taker.id,
+                    0,
+                    "match_long_throw_fmt",
+                    MakeArgs(sim, taker.id, 0)
+                );
+
+            double boxChance = Clamp(
+                sim.balance.longThrowBoxChance
+                    + (taker != null ? (taker.stats.technical.longThrows - 50) / 200.0 : 0),
+                0.20,
+                0.80
+            );
+
+            if (sim.rng.NextDouble() < boxChance)
+                sim.ballZone = AttackingBox(att);
+            else
+                TurnOver(sim, att, DefensiveThird(att));
+        }
 
         // ── 헬퍼: starting11 / stats ──────────────────────────────────
 
