@@ -669,6 +669,44 @@ namespace FMLite.Tests
             Assert.IsFalse(rL.decidedByPenalties, "T11-c: 리그 매치 → decidedByPenalties=false");
         }
 
+        // ── T12. Mentality → 슛수 차이 (J.3) ────────────────────────
+
+        [Test]
+        public void T12_MentalityAffectsShotFrequency()
+        {
+            // 5-zone Markov 에서 VeryAttacking 은 공격적이지만 수비도 약해 possession 이 교환됨.
+            // 순 효과: VeryAttacking 슛수 > VeryDefensive 슛수 (비율 ~1.4). 50 trials 로 통계 안정화.
+            const int trials = 50;
+            int veryAtkShots = 0;
+            int veryDefShots = 0;
+
+            for (int i = 0; i < trials; i++)
+            {
+                var (sAtk, mAtk) = BuildState(seed: i, matchId: i * 2 + 100);
+                sAtk.GetClub(1).tactic = new Tactic { mentality = Mentality.VeryAttacking };
+                var rAtk = MatchSimulator.Simulate(mAtk, sAtk, _balance);
+                var homeAtk = new HashSet<int>(rAtk.homeStarting11);
+                veryAtkShots += rAtk
+                    .playerStats.Where(ps => homeAtk.Contains(ps.playerId))
+                    .Sum(ps => ps.shots);
+
+                var (sDef, mDef) = BuildState(seed: i, matchId: i * 2 + 101);
+                sDef.GetClub(1).tactic = new Tactic { mentality = Mentality.VeryDefensive };
+                var rDef = MatchSimulator.Simulate(mDef, sDef, _balance);
+                var homeDef = new HashSet<int>(rDef.homeStarting11);
+                veryDefShots += rDef
+                    .playerStats.Where(ps => homeDef.Contains(ps.playerId))
+                    .Sum(ps => ps.shots);
+            }
+
+            double ratio = veryDefShots > 0 ? (double)veryAtkShots / veryDefShots : 9.9;
+            Assert.That(
+                ratio,
+                Is.GreaterThan(1.25),
+                $"T12: VeryAttacking 홈팀 슛 > VeryDefensive 홈팀 슛 (ratio={ratio:F2}, atk={veryAtkShots}, def={veryDefShots})"
+            );
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
 
         private (GameState, Match) BuildState(
