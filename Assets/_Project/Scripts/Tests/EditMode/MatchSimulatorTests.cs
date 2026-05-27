@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using FMLite.Application;
+using FMLite.Core;
 using FMLite.Domain;
 using NUnit.Framework;
 using UnityEngine;
@@ -18,7 +19,24 @@ namespace FMLite.Tests
         [SetUp]
         public void Setup()
         {
+            GameDatabase.Clear();
+            EventBus.Clear();
             _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
+            // T10 부상 — InjuryTypeSO 카탈로그 1개 등록 (PickInjuryType 동작용)
+            var injType = ScriptableObject.CreateInstance<InjuryTypeSO>();
+            injType.id = 1;
+            injType.displayName = "Test Injury";
+            injType.minDays = 7;
+            injType.maxDays = 14;
+            injType.weight = 1f;
+            GameDatabase.Register(injType);
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            GameDatabase.Clear();
+            EventBus.Clear();
         }
 
         // ── T1. 결정성 ────────────────────────────────────────────────
@@ -247,6 +265,47 @@ namespace FMLite.Tests
             );
         }
 
+        // ── T8. 카드 / 퇴장 (I.3) ────────────────────────────────────
+
+        [Test]
+        public void T8_Cards_AccumulateOverMatches()
+        {
+            _balance.foulProbability = 0.9f; // 파울 자주 (검증 위해 강제 — 카드 발생 보장)
+            var seedGen = new System.Random(800);
+            int yellow = 0,
+                red = 0;
+            const int N = 50;
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                yellow += r.playerStats.Sum(ps => ps.yellowCards);
+                red += r.playerStats.Sum(ps => ps.redCards);
+            }
+            Assert.Greater(yellow, 0, "T8: 옐로 카드 발생 (카드 시스템 동작)");
+            // red 는 확률적 — 50매치면 보통 발생하나 0 도 허용 (drop). yellow 발생으로 시스템 검증.
+        }
+
+        // ── T10. 부상 발생 + PlayerInjuredEvent (I.3) ────────────────
+
+        [Test]
+        public void T10_Injury_OccursWithEvent()
+        {
+            _balance.foulProbability = 0.9f; // 파울 자주
+            _balance.matchInjuryProbability = 0.8f; // 부상률 강제 ↑ (검증용)
+            int events = 0;
+            System.Action<PlayerInjuredEvent> h = _ => events++;
+            EventBus.Subscribe(h);
+            var seedGen = new System.Random(1000);
+            for (int i = 0; i < 30; i++)
+            {
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
+                MatchSimulator.Simulate(match, state, _balance);
+            }
+            EventBus.Unsubscribe(h);
+            Assert.Greater(events, 0, "T10: 부상 발생 + PlayerInjuredEvent 발행");
+        }
+
         // ── 누적 통계 채워짐 ──────────────────────────────────────────
 
         [Test]
@@ -285,9 +344,9 @@ namespace FMLite.Tests
             );
             foreach (var ps in r.playerStats)
             {
+                // minutesPlayed 가변 = I.6, rating = I.4 (아직 미구현). foulsCommitted 는 I.3 에서 발생 가능.
                 Assert.AreEqual(90, ps.minutesPlayed, $"minutesPlayed=90 (id={ps.playerId})");
                 Assert.AreEqual(0f, ps.rating, $"rating=0 (I.4) (id={ps.playerId})");
-                Assert.AreEqual(0, ps.foulsCommitted, $"foulsCommitted=0 (I.3) (id={ps.playerId})");
             }
         }
 

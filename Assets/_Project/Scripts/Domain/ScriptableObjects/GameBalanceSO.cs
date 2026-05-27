@@ -251,6 +251,16 @@ namespace FMLite.Domain
         [Header("Match 5-Zone — Stoppage")]
         public int stoppageTimeMax = 4; // 하프당 추가시간 최대 (rng 0~N)
 
+        [Header("Match 5-Zone — Foul / Card / Injury (I.3)")]
+        public float foulProbability = 0.12f; // Tackle 시 파울 base (× aggression 보정)
+        public float penaltyProbability = 0.08f; // box 안 파울 → 페널티 확률
+        public float yellowCardProbability = 0.30f; // 파울 → 카드 확률
+        public float redCardProbability = 0.04f; // 카드 중 다이렉트 레드 비율
+        public float matchInjuryProbability = 0.03f; // 파울당 부상 확률
+        public float penaltyConversion = 0.75f; // 인-매치 페널티 기본 전환율 (penaltyTaking vs GK 보정)
+        public int yellowSuspensionThreshold = 5; // 시즌 누적 옐로 5/10/15 → 정지 1/2/3
+        public int redSuspensionMatches = 2; // 레드 / 2옐로 → 정지 경기 수
+
         // ============================================================
         // Youth Intake (algorithms.md #4)
         // ============================================================

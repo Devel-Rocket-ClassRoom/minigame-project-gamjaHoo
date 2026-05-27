@@ -2,11 +2,13 @@
 // algorithms.md V1.0-2 Match Simulation V1.0 — 5-Zone Markov (Stage I.1' 상태 머신 + I.2' zone resolution).
 // 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 (design-decisions.md #44 / #55).
 // 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
-// 후속: Foul/Card/Penalty/Injury = I.3 / 평점 = I.4 / 텍스트 events = I.5 / SubstitutionAI = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
+// I.3: Foul/Card/Penalty/Injury — Tackle 시 maybeFoul → box penalty / 2옐로 퇴장 / Injury + PlayerInjuredEvent + sentOff.
+// 후속: 평점 = I.4 / 텍스트 events = I.5 / SubstitutionAI(부상 교체) = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FMLite.Core;
 using FMLite.Domain;
 using UnityEngine;
 using Random = System.Random;
@@ -52,6 +54,10 @@ namespace FMLite.Application
             public int awayPendingAssist = -1;
 
             public Dictionary<int, PlayerMatchStat> stats;
+
+            // I.3 — 카드/퇴장. yellows = 이 매치 누적 옐로. sentOff = 퇴장 (snap 제외).
+            public Dictionary<int, int> yellows = new Dictionary<int, int>();
+            public HashSet<int> sentOff = new HashSet<int>();
         }
 
         public static MatchResult Simulate(Match match, GameState state, GameBalanceSO balance)
@@ -220,7 +226,10 @@ namespace FMLite.Application
                 if (defender != null)
                 {
                     if (sim.rng.NextDouble() < sim.balance.midfieldTackleRatio)
+                    {
                         sim.stats[defender.id].tackles++;
+                        MaybeFoul(sim, attacker, defender); // I.3 — 일반 파울 (FreeKick, penalty X)
+                    }
                     else
                         sim.stats[defender.id].interceptions++;
                 }
@@ -253,7 +262,10 @@ namespace FMLite.Application
                 if (defender != null)
                 {
                     if (sim.rng.NextDouble() < sim.balance.attackingThirdTackleRatio)
+                    {
                         sim.stats[defender.id].tackles++;
+                        MaybeFoul(sim, attacker, defender); // I.3 — 위험지역 파울
+                    }
                     // else Clearance (통계 X)
                 }
                 // Corner 기회 (25%) → box 재진입 (30%)
@@ -277,6 +289,22 @@ namespace FMLite.Application
             var gk = FindGoalkeeper(sim, def);
             if (shooter == null)
             {
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            // I.3 — 박스 안 수비 파울 → 페널티 (penaltyProbability)
+            if (sim.rng.NextDouble() < sim.balance.penaltyProbability)
+            {
+                var fouler = SnapPlayer(sim, def, Line.DF);
+                if (fouler != null)
+                {
+                    sim.stats[fouler.id].foulsCommitted++;
+                    sim.stats[shooter.id].foulsSuffered++;
+                    MaybeCard(sim, fouler.id);
+                    MaybeInjury(sim, shooter);
+                }
+                ResolvePenalty(sim, att, shooter, gk);
                 TurnOver(sim, att, Zone.Midfield);
                 return;
             }
@@ -325,6 +353,133 @@ namespace FMLite.Application
             // else Saved (GK 평점 = I.4)
 
             TurnOver(sim, att, Zone.Midfield);
+        }
+
+        // ── I.3: Foul / Card / Penalty / Injury ──────────────────────
+
+        // Tackle 시 파울 판정 (일반 파울 — FreeKick). foulsCommitted/Suffered + 카드 + 부상.
+        private static void MaybeFoul(SimState sim, Player fouled, Player fouler)
+        {
+            if (fouler == null)
+                return;
+            double foulChance =
+                sim.balance.foulProbability
+                * (0.6 + fouler.stats.mental.aggression / 100.0 * 0.8);
+            if (sim.rng.NextDouble() >= foulChance)
+                return;
+
+            sim.stats[fouler.id].foulsCommitted++;
+            if (fouled != null && sim.stats.ContainsKey(fouled.id))
+                sim.stats[fouled.id].foulsSuffered++;
+            MaybeCard(sim, fouler.id);
+            MaybeInjury(sim, fouled);
+        }
+
+        // 카드 — yellow / direct red / 2옐로 퇴장. sentOff 갱신.
+        private static void MaybeCard(SimState sim, int foulerId)
+        {
+            if (sim.rng.NextDouble() >= sim.balance.yellowCardProbability)
+                return;
+
+            if (sim.rng.NextDouble() < sim.balance.redCardProbability)
+            {
+                // 다이렉트 레드
+                sim.stats[foulerId].redCards++;
+                sim.sentOff.Add(foulerId);
+                return;
+            }
+
+            int y = sim.yellows.TryGetValue(foulerId, out var c) ? c + 1 : 1;
+            sim.yellows[foulerId] = y;
+            sim.stats[foulerId].yellowCards++;
+            if (y >= 2)
+            {
+                // 2옐로 = 퇴장 (redCards 로도 표기 → suspendedMatches 트리거)
+                sim.stats[foulerId].redCards++;
+                sim.sentOff.Add(foulerId);
+            }
+        }
+
+        // 부상 — InjuryTypeSO 추첨 + InjuryInfo + PlayerInjuredEvent. 즉시 교체는 I.6.
+        private static void MaybeInjury(SimState sim, Player fouled)
+        {
+            if (fouled == null || fouled.state?.injury == null)
+                return;
+            // injuryProneness (Hidden) 비례 — fatigue 임계 보정은 I.8.
+            int proneness = fouled.hiddenAttrs?.injuryProneness ?? 50;
+            double rate =
+                sim.balance.matchInjuryProbability * (proneness / sim.balance.injuryProneRefDivisor);
+            if (sim.rng.NextDouble() >= rate)
+                return;
+            if (fouled.state.injury.injuryTypeId != -1)
+                return; // 이미 부상
+
+            var type = PickInjuryType(sim.rng);
+            if (type == null)
+                return; // 카탈로그 부재 환경
+
+            int baseDays = sim.rng.Next(type.minDays, type.maxDays + 1);
+            var club = sim.gameState.GetClub(fouled.currentClubId);
+            int medical = club?.facilities?.medicalLevel ?? 1;
+            int gym = club?.facilities?.gymLevel ?? 1;
+            int recoveryDays = InjurySystem.ComputeRecoveryDays(baseDays, medical, gym, sim.balance);
+
+            fouled.state.injury = new InjuryInfo
+            {
+                injuryTypeId = type.id,
+                startDate = sim.gameState.currentDate,
+                expectedReturn = sim.gameState.currentDate.AddDays(recoveryDays),
+                isCareerThreatening = recoveryDays >= sim.balance.injuryCareerThreateningDays,
+            };
+            EventBus.Publish(
+                new PlayerInjuredEvent { playerId = fouled.id, injury = fouled.state.injury }
+            );
+        }
+
+        // 인-매치 페널티 — penaltyTaking vs GK. taker = 파울 얻은 선수 (단순; 지정 키커 = I.10).
+        private static void ResolvePenalty(SimState sim, Side att, Player taker, Player gk)
+        {
+            if (taker == null)
+                return;
+            sim.stats[taker.id].shots++;
+            sim.stats[taker.id].shotsOnTarget++;
+
+            double gkRating = gk != null ? GkRating(gk) : 40.0;
+            double conv = Clamp(
+                sim.balance.penaltyConversion
+                    + (taker.stats.technical.penaltyTaking - gkRating) / 300.0,
+                0.5,
+                0.95
+            );
+            if (sim.rng.NextDouble() < conv)
+            {
+                if (att == Side.Home)
+                    sim.homeScore++;
+                else
+                    sim.awayScore++;
+                sim.stats[taker.id].goals++;
+            }
+            // else 세이브 (GK 평점 = I.4)
+        }
+
+        // InjuryTypeSO 카탈로그 weight 비례 추첨.
+        private static InjuryTypeSO PickInjuryType(Random rng)
+        {
+            var all = GameDatabase.AllInjuryTypes.ToList();
+            if (all.Count == 0)
+                return null;
+            double total = all.Sum(t => Math.Max(0f, t.weight));
+            if (total <= 0)
+                return all[rng.Next(all.Count)];
+            double r = rng.NextDouble() * total;
+            double acc = 0;
+            foreach (var t in all)
+            {
+                acc += Math.Max(0f, t.weight);
+                if (r < acc)
+                    return t;
+            }
+            return all[all.Count - 1];
         }
 
         // ── 헬퍼: 상태 전이 ───────────────────────────────────────────
@@ -378,12 +533,16 @@ namespace FMLite.Application
                 return null;
             var candidates = xi.Where(id =>
                 {
+                    if (sim.sentOff.Contains(id))
+                        return false; // I.3 — 퇴장 선수 제외
                     var p = sim.gameState.GetPlayer(id);
                     return p != null && StartingSquadGacha.LineOf(p.info.primaryPosition) == line;
                 })
                 .ToList();
             if (candidates.Count == 0)
-                candidates = xi;
+                candidates = xi.Where(id => !sim.sentOff.Contains(id)).ToList();
+            if (candidates.Count == 0)
+                return null;
             int pid = candidates[sim.rng.Next(candidates.Count)];
             return sim.gameState.GetPlayer(pid);
         }
@@ -393,6 +552,8 @@ namespace FMLite.Application
             var xi = XIof(sim, s);
             for (int i = 0; i < xi.Count; i++)
             {
+                if (sim.sentOff.Contains(xi[i]))
+                    continue; // I.3 — 퇴장 GK 제외 (필드 플레이어 골문, 드묾)
                 var p = sim.gameState.GetPlayer(xi[i]);
                 if (p != null && p.info.primaryPosition == Position.GK)
                     return p;
@@ -408,6 +569,8 @@ namespace FMLite.Application
             int count = 0;
             foreach (var id in xi)
             {
+                if (sim.sentOff.Contains(id))
+                    continue; // I.3 — 퇴장 제외 (수적 열세 → 점유 contest 약화)
                 var p = sim.gameState.GetPlayer(id);
                 if (p == null || StartingSquadGacha.LineOf(p.info.primaryPosition) != Line.MF)
                     continue;
