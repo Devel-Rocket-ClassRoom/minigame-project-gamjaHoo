@@ -172,16 +172,6 @@ namespace FMLite.Domain
         // 5단계 티어 (Elite / Strong / Average / Weak / Poor) 누적 분포 임계점.
         public float[] tierThresholdsAccumulated = new[] { 0.10f, 0.40f, 0.80f, 0.95f };
 
-        [Header("Match Simulation (algorithms.md #2 — V0.1)")]
-        public float avgGoalsPerMatch = 2.70f; // EPL 평균 — SimulateLite (I.7) 에서 재활용
-        public float homeAdvantageGoalBonus = 0.30f; // SimulateLite (I.7) 에서 재활용
-
-        // strengthRatio 비선형 지수 — I.9 에서 폐기 예정. SimulateLite 가 사용.
-        public float strengthExponent = 1.5f;
-
-        // Line enum 순서 (GK=0 / DF=1 / MF=2 / AT=3) 와 일치.
-        public float[] scoringWeightByLine = { 0.0f, 0.4f, 1.5f, 5.0f };
-
         // ============================================================
         // Match Simulation V1.0 — I.2 분 단위 이벤트 (algorithms.md V1.0-2)
         // ============================================================
@@ -195,7 +185,7 @@ namespace FMLite.Domain
         public float shotOnTargetDivisor = 100f; // (finishing × composure) / N → on-target 확률 %
         public float shotSaveDivisor = 100f; // (reflexes × handling) / N → save 확률 %
 
-        // 슈터 선정 가중 (Line enum 순서 GK=0/DF=1/MF=2/AT=3). scoringWeightByLine 와 동일 의도 — V1.0 매치 엔진은 stat × position 결합.
+        // 슈터 선정 가중 (Line enum 순서 GK=0/DF=1/MF=2/AT=3).
         public float[] shotPositionWeights = { 0f, 0.4f, 1.5f, 5f };
 
         [Header("Match V1.0 — KeyPass / Cross")]
