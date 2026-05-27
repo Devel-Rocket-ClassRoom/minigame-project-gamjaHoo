@@ -4,7 +4,7 @@
 // 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
 // I.3: Foul/Card/Penalty/Injury — Tackle 시 maybeFoul → box penalty / 2옐로 퇴장 / Injury + PlayerInjuredEvent + sentOff.
 // I.5: collectEvents=true → Match.events 핵심 이벤트 (Goal/Shot/Card/Injury/KeyPass) 채움. textKey/textArgs 포함.
-// 후속: SubstitutionAI(부상 교체) = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
+// 후속: 세트피스 = I.10 / 연장 = I.11.
 
 using System;
 using System.Collections.Generic;
