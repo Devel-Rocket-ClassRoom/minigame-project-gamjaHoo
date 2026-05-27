@@ -19,7 +19,8 @@ namespace FMLite.Application
             Match match,
             MatchResult result,
             GameState state,
-            GameBalanceSO balance
+            GameBalanceSO balance,
+            bool publishEvent = true
         )
         {
             if (match == null)
@@ -66,8 +67,9 @@ namespace FMLite.Application
             // e. 카드 → 시즌 누적 옐로 + 정지 (V1.0 I.3). 부상은 MatchSimulator 가 InjuryInfo 직접 설정.
             ProcessSuspensions(match, result, state, balance);
 
-            // f. MatchFinishedEvent 발행
-            EventBus.Publish(new MatchFinishedEvent { matchId = match.id, result = result });
+            // f. MatchFinishedEvent 발행 (비활성 매치 = false — UI 갱신 비용 ↓, #55)
+            if (publishEvent)
+                EventBus.Publish(new MatchFinishedEvent { matchId = match.id, result = result });
         }
 
         // ── 카드 누적 + 출장 정지 (I.3) ──────────────────────────────

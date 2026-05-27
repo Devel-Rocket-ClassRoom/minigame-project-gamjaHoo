@@ -19,18 +19,24 @@ namespace FMLite.Tests
         [SetUp]
         public void Setup()
         {
-            _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
-            _balance.avgGoalsPerMatch = 2.70f;
-            _balance.homeAdvantageGoalBonus = 0.30f;
-            _balance.strengthExponent = 1.5f;
-            _balance.scoringWeightByLine = new[] { 0.0f, 0.4f, 1.5f, 5.0f };
-            _balance.fatigueGainPerMatch = 30;
+            GameDatabase.Clear();
             EventBus.Clear();
+            _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
+            _balance.fatigueGainPerMatch = 30;
+            // V1.0 엔진용 InjuryTypeSO 카탈로그 (MaybeInjury fallback용)
+            var injType = ScriptableObject.CreateInstance<InjuryTypeSO>();
+            injType.id = 1;
+            injType.displayName = "Test Injury";
+            injType.minDays = 7;
+            injType.maxDays = 14;
+            injType.weight = 1f;
+            GameDatabase.Register(injType);
         }
 
         [TearDown]
         public void TearDown()
         {
+            GameDatabase.Clear();
             EventBus.Clear();
         }
 
@@ -161,6 +167,32 @@ namespace FMLite.Tests
 
             foreach (var e in state.leagues[0].standings.entries)
                 Assert.AreEqual(0, e.played, $"T4: clubId={e.clubId} played=0 유지");
+        }
+
+        // ── T6. I.7 — background publishEvent=false ─────────────────
+
+        [Test]
+        public void T6_Background_MatchFinishedEvent_NotPublished()
+        {
+            var date = new DateTime(2025, 8, 15);
+            var state = BuildLeague(clubCount: 4, matchDate: date, seed: 42);
+            state.currentDate = date;
+
+            int eventCount = 0;
+            EventBus.Subscribe<MatchFinishedEvent>(_ => eventCount++);
+
+            BackgroundSimulator.SimulateDay(state, _balance);
+
+            Assert.AreEqual(0, eventCount, "T6: 비활성 매치 MatchFinishedEvent 미발행");
+
+            // 결과는 정상 수집됨
+            var matches = state.leagues[0].schedule.Where(m => m.date.Date == date).ToList();
+            foreach (var m in matches)
+            {
+                Assert.IsNotNull(m.result, $"T6: match.id={m.id} result 수집됨");
+                Assert.GreaterOrEqual(m.result.playerStats.Count, 22, "T6: playerStats 수집");
+                Assert.AreEqual(0, m.result.events.Count, "T6: collectEvents=false → events 비어있음");
+            }
         }
 
         // ── T5. GameLoop 통합 ───────────────────────────────────────
