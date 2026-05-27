@@ -271,6 +271,19 @@ namespace FMLite.Tests
                     morale = 50,
                     form = 50,
                 },
+                // V1.0 I.2 매치 엔진이 stat 직접 참조 (finishing × composure 등). 평균 stat 50.
+                stats = NewBalancedStats(50),
+                hiddenAttrs = new HiddenAttributes { injuryProneness = 50 },
             };
+
+        private static Stats NewBalancedStats(int v)
+        {
+            var s = new Stats();
+            s.technical.ApplyToAll(_ => v);
+            s.mental.ApplyToAll(_ => v);
+            s.physical.ApplyToAll(_ => v);
+            s.gk.ApplyToAll(_ => v);
+            return s;
+        }
     }
 }
