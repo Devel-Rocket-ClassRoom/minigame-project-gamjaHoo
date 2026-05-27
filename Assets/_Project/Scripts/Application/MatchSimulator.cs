@@ -1,14 +1,12 @@
 // MatchSimulator.cs
-// algorithms.md #2 Match Simulation V0.1 구현.
-// 결과 우선 모델 (시드 고정 → starting11 → 전력 → λ Poisson → 득점자 → playerStats).
-// design-decisions.md #17 (시드 고정 → 결과 미리 산출) / #24 (CA 합 기반) / #33 (V0.1 정책).
-// V1.0+ 이벤트 시퀀스 전환 (#34) 시 인터페이스 유지하고 내부만 교체.
+// algorithms.md V1.0-2 Match Simulation V1.0 (분 단위 이벤트 시퀀스) — Stage I.1 골격.
+// 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 / 내부 재작성 (design-decisions.md #34 / #44).
+// 이벤트 종류 = I.2 / 부상·카드 = I.3 / 평점 = I.4 / 텍스트 = I.5 / SubstitutionAI = I.6 / SimulateLite = I.7 / 외부 영향 = I.8 / strengthExponent 폐기 = I.9.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using FMLite.Domain;
-using FMLite.Utils;
 using UnityEngine;
 using Random = System.Random;
 
@@ -34,64 +32,33 @@ namespace FMLite.Application
 
             if (match.type != CompetitionType.League)
                 Debug.LogWarning(
-                    $"[MatchSimulator] V0.1 호출 경로 없음 — match.type={match.type}. League 와 동일 처리."
+                    $"[MatchSimulator] V1.0 호출 경로 없음 — match.type={match.type}. League 와 동일 처리."
                 );
 
-            if (balance.scoringWeightByLine == null || balance.scoringWeightByLine.Length != 4)
-                throw new ArgumentException(
-                    "scoringWeightByLine 은 4-length 배열이어야 함 (GK/DF/MF/AT)"
-                );
-
-            // 1단계: 시드 고정 (design-decisions.md #17)
+            // 1단계: 시드 고정 (algorithms.md V1.0-2 1단계 / design-decisions.md #17 유지)
             var rng = new Random(match.id ^ state.randomSeed);
 
-            // 2단계: starting11 자동 선정 (V0.1 — UI 라인업 결정 시스템 부재 임시 단순화)
+            // 2단계: starting11 결정 (Tactic 도입 = Stage J. I.1 골격 = top-by-CA 자동 라인업 + 부상/정지 제외)
             var homeStarting11 = SelectStartingEleven(home, state);
             var awayStarting11 = SelectStartingEleven(away, state);
 
-            // 3단계: 전력 계산 (단순 CA 합, design-decisions.md #24)
-            // V1.0 G.3: 라커룸 분위기 < 임계 시 strength 곱셈 (≈ 폼 -5 효과).
-            int homeStrength = (int)(SumCA(homeStarting11, state) * MoodFactor(home, balance));
-            int awayStrength = (int)(SumCA(awayStarting11, state) * MoodFactor(away, balance));
+            // 3단계: 경기 상태 초기화 (minute=0, score=0:0)
+            int homeScore = 0;
+            int awayScore = 0;
 
-            // 4단계: λ 계산 + Poisson 골수 결정
-            // strengthExponent (k) 로 비선형화 — CA 차이를 골수 차이로 증폭.
-            // k=1 이면 선형 (양 팀 합으로 골 나눠가짐). k=1.5 (기본) 면 강팀이 더 큰 비율 차지.
-            // V1.0+ 매치 엔진 재작성 시 폐기 — finishing 등 개별 stats 가 결정력 표현 (#33 V1.0 트리거).
-            int totalStrength = homeStrength + awayStrength;
-            double strengthRatio;
-            if (totalStrength == 0)
+            // 4단계: 분 단위 step (1~90) — I.1 골격
+            // I.2 가 매 분 이벤트 추첨 (Shot / Foul / Injury / KeyPass / Cross / Pass / Tackle / Interception)
+            // + 주체 선수 추첨 (Role 가중치 + Stat) + 결과 분기 (Shot → Goal/Save/Miss/Block) 채움.
+            // I.3 부상·카드, I.4 평점, I.5 텍스트, I.6 SubstitutionAI 후속.
+            for (int minute = 1; minute <= 90; minute++)
             {
-                strengthRatio = 0.5;
-            }
-            else
-            {
-                double k = balance.strengthExponent;
-                double sh = Math.Pow(homeStrength, k);
-                double sa = Math.Pow(awayStrength, k);
-                strengthRatio = sh / (sh + sa);
+                // 후속 Task 진입점. I.1 = 빈 루프 (rng 소비 X — 결정성 영향 X).
             }
 
-            double homeLambda =
-                balance.avgGoalsPerMatch * strengthRatio + balance.homeAdvantageGoalBonus;
-            double awayLambda = balance.avgGoalsPerMatch * (1.0 - strengthRatio);
-
-            // 음수 λ 방어 (avgGoalsPerMatch 가 비정상으로 0 이거나 ratio 가 극단인 경우)
-            if (homeLambda < 0)
-                homeLambda = 0;
-            if (awayLambda < 0)
-                awayLambda = 0;
-
-            int homeScore = rng.NextPoisson(homeLambda);
-            int awayScore = rng.NextPoisson(awayLambda);
-
-            // 5단계: 득점자 선정 (라인 가중치 × CA/100)
-            var homeGoalsByPlayer = PickScorers(homeStarting11, state, homeScore, balance, rng);
-            var awayGoalsByPlayer = PickScorers(awayStarting11, state, awayScore, balance, rng);
-
-            // 6단계: PlayerMatchStat 빌드 (V0.1 — goals + minutesPlayed=90 만)
-            var playerStats = BuildPlayerStats(homeStarting11, homeGoalsByPlayer);
-            playerStats.AddRange(BuildPlayerStats(awayStarting11, awayGoalsByPlayer));
+            // 5단계: 최종 누적 = MatchResult
+            // I.1 골격: homeScore/awayScore = 0, playerStats 22명 minutesPlayed=90, 나머지 필드 0.
+            var playerStats = BuildPlayerStats(homeStarting11);
+            playerStats.AddRange(BuildPlayerStats(awayStarting11));
 
             return new MatchResult
             {
@@ -103,102 +70,39 @@ namespace FMLite.Application
             };
         }
 
-        // ── 2단계: starting11 자동 선정 ────────────────────────────────
-
-        // V0.1: top-11 by CA, 부상자 제외, 포지션 무시.
-        // V1.0+ 라인업 결정 시스템 도입 시 호출자가 starting11 을 인자로 전달하고
-        // 이 메서드는 폐기 또는 폴백으로 격하 (algorithms.md #2 V1.0 Migration Notes).
+        // ── starting11 자동 선정 ──────────────────────────────────────
+        // Tactic 도입 (Stage J) 시 Tactic.slots.assignedPlayerId 사용으로 교체.
+        // 부상자 / suspendedMatches > 0 제외 (algorithms.md V1.0-2 2단계).
         private static List<int> SelectStartingEleven(Club club, GameState state)
         {
             return club
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
-                .Where(p => p != null && p.state.injury.injuryTypeId == -1)
+                .Where(p =>
+                    p != null && p.state.injury.injuryTypeId == -1 && p.state.suspendedMatches <= 0
+                )
                 .OrderByDescending(p => p.currentAbility)
                 .Take(11)
                 .Select(p => p.id)
                 .ToList();
         }
 
-        private static int SumCA(List<int> playerIds, GameState state)
-        {
-            int sum = 0;
-            for (int i = 0; i < playerIds.Count; i++)
-            {
-                var p = state.GetPlayer(playerIds[i]);
-                if (p != null)
-                    sum += p.currentAbility;
-            }
-            return sum;
-        }
-
-        // ── 5단계: 득점자 선정 ────────────────────────────────────────
-
-        private static Dictionary<int, int> PickScorers(
-            List<int> starting11,
-            GameState state,
-            int totalGoals,
-            GameBalanceSO balance,
-            Random rng
-        )
-        {
-            var result = new Dictionary<int, int>();
-            if (totalGoals == 0 || starting11.Count == 0)
-                return result;
-
-            // WeightedSample 는 IList<T> 받음. starting11 자체가 List<int> 이므로 그대로 사용.
-            // weightFn 은 매 호출마다 같은 ID 에 같은 weight 반환 — Player lookup 캐시는 V1.0+.
-            for (int g = 0; g < totalGoals; g++)
-            {
-                int scorerId = rng.WeightedSample(
-                    starting11,
-                    id =>
-                    {
-                        var p = state.GetPlayer(id);
-                        if (p == null)
-                            return 0.0;
-                        int lineIdx = (int)StartingSquadGacha.LineOf(p.info.primaryPosition);
-                        double lineWeight = balance.scoringWeightByLine[lineIdx];
-                        return lineWeight * (p.currentAbility / 100.0);
-                    }
-                );
-                result[scorerId] = result.TryGetValue(scorerId, out var c) ? c + 1 : 1;
-            }
-            return result;
-        }
-
-        // ── 라커룸 분위기 영향 (V1.0 G.3) ─────────────────────────────
-
-        // mood < lowThreshold 시 strength 곱셈 (≈ 폼 -5 효과). 그 외 1.0.
-        private static float MoodFactor(Club club, GameBalanceSO balance)
-        {
-            if (club?.season == null)
-                return 1.0f;
-            return club.season.dressingRoomMood < balance.dressingRoomMoodLowThreshold
-                ? balance.dressingRoomLowMoodStrengthFactor
-                : 1.0f;
-        }
-
-        // ── 6단계: PlayerMatchStat 빌드 ────────────────────────────────
-
-        private static List<PlayerMatchStat> BuildPlayerStats(
-            List<int> starting11,
-            Dictionary<int, int> goalsByPlayer
-        )
+        // ── PlayerMatchStat 빌드 ──────────────────────────────────────
+        // I.1 골격: 모든 누적 필드 0. I.2 (goals/assists/shots/passes) / I.3 (yellow/red) / I.4 (rating) 가 점진적 채움.
+        private static List<PlayerMatchStat> BuildPlayerStats(List<int> starting11)
         {
             var stats = new List<PlayerMatchStat>(starting11.Count);
             for (int i = 0; i < starting11.Count; i++)
             {
-                int id = starting11[i];
                 stats.Add(
                     new PlayerMatchStat
                     {
-                        playerId = id,
-                        minutesPlayed = 90, // V0.1: 교체 X
-                        goals = goalsByPlayer.TryGetValue(id, out var g) ? g : 0,
-                        assists = 0, // V1.0+
-                        rating = 0f, // V1.0+
-                        yellowCards = 0, // V1.0+
-                        redCards = 0, // V1.0+
+                        playerId = starting11[i],
+                        minutesPlayed = 90, // I.6 SubstitutionAI 도입 시 교체/퇴장 반영 (가변)
+                        goals = 0,
+                        assists = 0,
+                        rating = 0f,
+                        yellowCards = 0,
+                        redCards = 0,
                     }
                 );
             }
