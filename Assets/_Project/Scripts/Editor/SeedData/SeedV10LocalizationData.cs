@@ -379,6 +379,19 @@ namespace FMLite.Editor
                 E("match_free_kick_fmt", "프리킥 ({minute}')", "Free kick ({minute}')"),
                 E("match_corner_fmt", "코너킥 ({minute}')", "Corner ({minute}')"),
                 E("match_long_throw_fmt", "롱스로인 ({minute}')", "Long throw ({minute}')"),
+                E("match_extra_time_kickoff", "연장전 시작", "Extra time kick-off"),
+                E("match_extra_time_halftime", "연장 전반 종료", "Extra time half time"),
+                E("match_extra_time_end", "연장전 종료 — 승부차기", "Extra time end — penalties"),
+                E(
+                    "match_penalty_shootout_goal_fmt",
+                    "{playerName} 승부차기 성공 ({minute}')",
+                    "{playerName} scores penalty ({minute}')"
+                ),
+                E(
+                    "match_penalty_shootout_miss_fmt",
+                    "{playerName} 승부차기 실패 ({minute}')",
+                    "{playerName} misses penalty ({minute}')"
+                ),
                 // 드리블 / 태클
                 E(
                     "match_dribble_fmt",

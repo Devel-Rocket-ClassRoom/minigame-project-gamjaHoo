@@ -238,8 +238,12 @@ namespace FMLite.Domain
         public float midfieldTackleRatio = 0.60f; // midfield 실패 시 Tackle vs Interception
         public float attackingThirdTackleRatio = 0.50f;
 
-        [Header("Match 5-Zone — Stoppage")]
+        [Header("Match 5-Zone — Stoppage / ExtraTime (I.11)")]
         public int stoppageTimeMax = 4; // 하프당 추가시간 최대 (rng 0~N)
+        public int extraTimeStoppageMax = 2; // 연장 하프당 추가시간 최대
+        public int penaltyShootoutRounds = 5; // 승부차기 기본 라운드
+        public float penaltyShootoutConversionBase = 0.75f; // 승부차기 기본 전환율
+        public float penaltyShootoutDivisor = 300f; // (taker.penaltyTaking - gkRating) / N → conversion 보정
 
         [Header("Match 5-Zone — External Effects (I.8)")]
         public int fatiguePerfThreshold = 50; // fatigue ≤ N → 경기력 보정 없음

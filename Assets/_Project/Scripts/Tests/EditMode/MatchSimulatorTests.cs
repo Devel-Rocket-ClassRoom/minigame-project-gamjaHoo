@@ -636,6 +636,39 @@ namespace FMLite.Tests
             Assert.GreaterOrEqual(rForm.homeScore, 0, "T7-d: form=100 매치 정상 완료");
         }
 
+        // ── T11. 연장 / 승부차기 ──────────────────────────────────────
+
+        [Test]
+        public void T11_ExtraTimeAndPenaltyShootout()
+        {
+            // actionsPerMinuteMin=Max=0 → 매 분 0 액션 → 골 불가 → 0-0 보장 (결정적)
+            _balance.actionsPerMinuteMin = 0;
+            _balance.actionsPerMinuteMax = 0;
+
+            // T11-a: 컵 매치 0-0 → 연장 → 승부차기 결착
+            var (s, m) = BuildState(seed: 1, matchId: 1);
+            m.type = CompetitionType.FACup;
+            m.allowsExtraTime = true;
+
+            var r = MatchSimulator.Simulate(m, s, _balance);
+
+            Assert.IsTrue(r.decidedByPenalties, "T11-a: 컵 0-0 → 승부차기 결착");
+            Assert.AreEqual(0, r.homeScore, "T11-a: ET 종료 시 매치 스코어 0-0 (home)");
+            Assert.AreEqual(0, r.awayScore, "T11-a: ET 종료 시 매치 스코어 0-0 (away)");
+
+            // T11-b: 승부차기 스코어 불일치 (결착)
+            Assert.AreNotEqual(
+                r.penaltyHomeScore,
+                r.penaltyAwayScore,
+                "T11-b: 승부차기 결착 → penaltyHomeScore ≠ penaltyAwayScore"
+            );
+
+            // T11-c: 리그 매치 → decidedByPenalties=false
+            var (sL, mL) = BuildState(seed: 2, matchId: 2);
+            var rL = MatchSimulator.Simulate(mL, sL, _balance);
+            Assert.IsFalse(rL.decidedByPenalties, "T11-c: 리그 매치 → decidedByPenalties=false");
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
 
         private (GameState, Match) BuildState(

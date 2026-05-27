@@ -4,7 +4,7 @@
 // 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
 // I.3: Foul/Card/Penalty/Injury — Tackle 시 maybeFoul → box penalty / 2옐로 퇴장 / Injury + PlayerInjuredEvent + sentOff.
 // I.5: collectEvents=true → Match.events 핵심 이벤트 (Goal/Shot/Card/Injury/KeyPass) 채움. textKey/textArgs 포함.
-// 후속: 세트피스 = I.10 / 연장 = I.11.
+// I.10: 세트피스 (Corner/FreeKick/LongThrow). I.11: 연장/승부차기.
 
 using System;
 using System.Collections.Generic;
@@ -93,10 +93,8 @@ namespace FMLite.Application
                 state.GetClub(match.awayClubId)
                 ?? throw new ArgumentException($"awayClub id={match.awayClubId} not found");
 
-            if (match.type != CompetitionType.League)
-                Debug.LogWarning(
-                    $"[MatchSimulator] V1.0 호출 경로 없음 — match.type={match.type}. League 와 동일 처리."
-                );
+            // 컵 매치: allowsExtraTime=true 로 설정. League는 무승부 허용.
+            // V0.1 경고 제거 — I.11 에서 컵 연장/승부차기 지원.
 
             // 1단계: 시드 고정 (forward simulation — 결정성은 시드에서만, #17 V1.0)
             var rng = new Random(match.id ^ state.randomSeed);
@@ -127,32 +125,98 @@ namespace FMLite.Application
             if (collectEvents)
                 EmitEvent(sim, MatchEventType.KickOff, Side.Home, 0, 0, "match_kickoff", null);
 
-            // 4단계: 분 단위 step (1~90). 연장/stoppage = I.11.
-            for (int minute = 1; minute <= 90; minute++)
+            // 4단계: 전반 (1~45+stoppage) — I.11 stoppage 추가.
+            int firstHalfStoppage = sim.rng.Next(0, sim.balance.stoppageTimeMax + 1);
+            for (int minute = 1; minute <= 45 + firstHalfStoppage; minute++)
             {
                 sim.currentMinute = minute;
-                if (minute == 46)
-                {
-                    // 후반 킥오프 — possession 교대 + ball Midfield
-                    sim.ballZone = Zone.Midfield;
-                    sim.possession = Side.Away;
-                    if (collectEvents)
-                        EmitEvent(
-                            sim,
-                            MatchEventType.HalfTime,
-                            Side.Home,
-                            0,
-                            0,
-                            "match_halftime",
-                            null
-                        );
-                }
                 PlayMinute(sim);
             }
 
-            // 전체 종료
+            // 하프타임 — possession 교대 + ball Midfield
+            sim.ballZone = Zone.Midfield;
+            sim.possession = Side.Away;
+            if (collectEvents)
+                EmitEvent(sim, MatchEventType.HalfTime, Side.Home, 0, 0, "match_halftime", null);
+
+            // 후반 (46~90+stoppage)
+            int secondHalfStoppage = sim.rng.Next(0, sim.balance.stoppageTimeMax + 1);
+            for (int minute = 46; minute <= 90 + secondHalfStoppage; minute++)
+            {
+                sim.currentMinute = minute;
+                PlayMinute(sim);
+            }
+
+            // 정규시간 종료
             if (collectEvents)
                 EmitEvent(sim, MatchEventType.FullTime, Side.Home, 0, 0, "match_fulltime", null);
+
+            // I.11 — 컵 동점 시 연장전 + 승부차기
+            int penaltyHomeScore = 0,
+                penaltyAwayScore = 0;
+            bool decidedByPenalties = false;
+
+            if (match.allowsExtraTime && sim.homeScore == sim.awayScore)
+            {
+                if (collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.ExtraTimeKickOff,
+                        Side.Home,
+                        0,
+                        0,
+                        "match_extra_time_kickoff",
+                        null
+                    );
+                sim.ballZone = Zone.Midfield;
+                sim.possession = Side.Home;
+
+                // 연장 전반 (91~105+stoppage)
+                int etFirstStoppage = sim.rng.Next(0, sim.balance.extraTimeStoppageMax + 1);
+                for (int minute = 91; minute <= 105 + etFirstStoppage; minute++)
+                {
+                    sim.currentMinute = minute;
+                    PlayMinute(sim);
+                }
+
+                sim.ballZone = Zone.Midfield;
+                sim.possession = Side.Away;
+                if (collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.ExtraTimeHalfTime,
+                        Side.Home,
+                        0,
+                        0,
+                        "match_extra_time_halftime",
+                        null
+                    );
+
+                // 연장 후반 (106~120+stoppage)
+                int etSecondStoppage = sim.rng.Next(0, sim.balance.extraTimeStoppageMax + 1);
+                for (int minute = 106; minute <= 120 + etSecondStoppage; minute++)
+                {
+                    sim.currentMinute = minute;
+                    PlayMinute(sim);
+                }
+
+                // 연장 후에도 동점 → 승부차기
+                if (sim.homeScore == sim.awayScore)
+                {
+                    if (collectEvents)
+                        EmitEvent(
+                            sim,
+                            MatchEventType.ExtraTimeEnd,
+                            Side.Home,
+                            0,
+                            0,
+                            "match_extra_time_end",
+                            null
+                        );
+                    (penaltyHomeScore, penaltyAwayScore) = SimulatePenaltyShootout(sim);
+                    decidedByPenalties = true;
+                }
+            }
 
             // 5단계: 평점 계산 (I.4) + MatchResult (minutesPlayed 가변 = I.6)
             ComputeRatings(sim);
@@ -171,6 +235,9 @@ namespace FMLite.Application
                 homePossessionPct = homePct,
                 awayPossessionPct = 100f - homePct,
                 events = sim.events,
+                penaltyHomeScore = penaltyHomeScore,
+                penaltyAwayScore = penaltyAwayScore,
+                decidedByPenalties = decidedByPenalties,
             };
         }
 
@@ -1042,6 +1109,113 @@ namespace FMLite.Application
         private static double Clamp(double v, double lo, double hi) =>
             v < lo ? lo : (v > hi ? hi : v);
 
+        // ── I.11: 승부차기 ────────────────────────────────────────────
+
+        private static (int homePen, int awayPen) SimulatePenaltyShootout(SimState sim)
+        {
+            int homePen = 0,
+                awayPen = 0;
+            var homeQueue = BuildShootoutQueue(sim, Side.Home);
+            var awayQueue = BuildShootoutQueue(sim, Side.Away);
+            int homeIdx = 0,
+                awayIdx = 0;
+
+            // 5 라운드 + 조기 종료 + sudden death
+            int round = 0;
+            bool finished = false;
+            while (!finished)
+            {
+                bool isRegular = round < sim.balance.penaltyShootoutRounds;
+
+                // Home 킥
+                var homeTaker = homeQueue.Count > 0
+                    ? homeQueue[homeIdx % homeQueue.Count]
+                    : null;
+                bool homeScored = SimulatePenaltyKick(
+                    sim,
+                    Side.Home,
+                    homeTaker,
+                    FindGoalkeeper(sim, Side.Away)
+                );
+                if (homeScored)
+                    homePen++;
+                homeIdx++;
+
+                // Away 킥
+                var awayTaker = awayQueue.Count > 0
+                    ? awayQueue[awayIdx % awayQueue.Count]
+                    : null;
+                bool awayScored = SimulatePenaltyKick(
+                    sim,
+                    Side.Away,
+                    awayTaker,
+                    FindGoalkeeper(sim, Side.Home)
+                );
+                if (awayScored)
+                    awayPen++;
+                awayIdx++;
+
+                round++;
+
+                if (isRegular)
+                {
+                    // 조기 종료: 남은 라운드 기준으로 한 쪽이 수학적으로 따라잡을 수 없으면 종료
+                    int remaining = sim.balance.penaltyShootoutRounds - round;
+                    if (homePen > awayPen + remaining || awayPen > homePen + remaining)
+                        finished = true;
+                    else if (round >= sim.balance.penaltyShootoutRounds)
+                        finished = homePen != awayPen; // 5라운드 후 동점이면 sudden death 진입
+                }
+                else
+                {
+                    // sudden death: 이번 라운드에서 승부 갈렸으면 종료
+                    finished = homePen != awayPen;
+                }
+            }
+
+            return (homePen, awayPen);
+        }
+
+        private static bool SimulatePenaltyKick(SimState sim, Side att, Player taker, Player gk)
+        {
+            if (taker == null)
+                return sim.rng.NextDouble() < sim.balance.penaltyShootoutConversionBase;
+
+            double gkRating = gk != null ? GkRating(gk) : 40.0;
+            double conv = Clamp(
+                sim.balance.penaltyShootoutConversionBase
+                    + (taker.stats.technical.penaltyTaking - gkRating)
+                        / sim.balance.penaltyShootoutDivisor,
+                0.5,
+                0.95
+            );
+            bool scored = sim.rng.NextDouble() < conv;
+
+            if (sim.collectEvents)
+                EmitEvent(
+                    sim,
+                    MatchEventType.PenaltyShootoutKick,
+                    att,
+                    taker.id,
+                    0,
+                    scored ? "match_penalty_shootout_goal_fmt" : "match_penalty_shootout_miss_fmt",
+                    MakeArgs(sim, taker.id, 0)
+                );
+
+            return scored;
+        }
+
+        private static List<Player> BuildShootoutQueue(SimState sim, Side s)
+        {
+            var xi = XIof(sim, s);
+            // GK 제외, sentOff 제외, penaltyTaking 내림차순
+            return xi.Where(id => !sim.sentOff.Contains(id))
+                .Select(id => sim.gameState.GetPlayer(id))
+                .Where(p => p != null && p.info.primaryPosition != Position.GK)
+                .OrderByDescending(p => p.stats.technical.penaltyTaking)
+                .ToList();
+        }
+
         // ── I.10: 세트피스 해결 ───────────────────────────────────────
 
         // setPieceTakers 우선, 미지정 시 stat 최상위 폴백.
@@ -1078,9 +1252,7 @@ namespace FMLite.Application
             var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
             var target = xi.Select(id => sim.gameState.GetPlayer(id))
                 .Where(p => p != null)
-                .OrderByDescending(p =>
-                    p.stats.technical.heading * p.stats.physical.jumpingReach
-                )
+                .OrderByDescending(p => p.stats.technical.heading * p.stats.physical.jumpingReach)
                 .FirstOrDefault();
             var gk = FindGoalkeeper(sim, def);
 
@@ -1173,7 +1345,8 @@ namespace FMLite.Application
                 sim.stats[taker.id].shots++;
                 double takerRating = Eff(taker.stats.technical.freeKickTaking, att, sim, taker);
                 double accuracy = Clamp(
-                    sim.balance.freeKickConversionBase + takerRating / sim.balance.freeKickDirectDivisor,
+                    sim.balance.freeKickConversionBase
+                        + takerRating / sim.balance.freeKickDirectDivisor,
                     0.05,
                     0.35
                 );
