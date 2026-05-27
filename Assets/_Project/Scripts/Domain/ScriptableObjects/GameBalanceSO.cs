@@ -476,5 +476,10 @@ namespace FMLite.Domain
         public int promiseTransferDeadlineMonthSummerEnd = 8;
         public int promiseTransferDeadlineDaysWinterEnd = 31; // 1/31
         public int promiseTransferDeadlineMonthWinterEnd = 1;
+
+        // ── V1.0 I.6 SubstitutionAI ─────────────────────────────────────
+        public int maxSubstitutionsPerTeam = 3;
+        public int substitutionFatigueThreshold = 70; // fatigue > N → 교체 후보
+        public int substitutionTacticalMinute = 60;   // 전술 교체 (피로/스코어) 시작 분
     }
 }

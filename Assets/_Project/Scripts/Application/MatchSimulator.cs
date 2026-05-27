@@ -63,6 +63,12 @@ namespace FMLite.Application
 
             // I.5 — 텍스트 이벤트 (collectEvents=true 한정).
             public bool collectEvents;
+
+            // I.6 — 교체 잔여 횟수 (팀별 최대 3).
+            public int homeSubsRemaining;
+            public int awaySubsRemaining;
+            public Club homeClub;
+            public Club awayClub;
             public List<MatchEvent> events = new List<MatchEvent>();
         }
 
@@ -111,6 +117,10 @@ namespace FMLite.Application
                 possession = Side.Home,
                 stats = InitStatsMap(homeXI, awayXI),
                 collectEvents = collectEvents,
+                homeSubsRemaining = balance.maxSubstitutionsPerTeam,
+                awaySubsRemaining = balance.maxSubstitutionsPerTeam,
+                homeClub = home,
+                awayClub = away,
             };
 
             // 킥오프 이벤트
@@ -168,6 +178,14 @@ namespace FMLite.Application
 
         private static void PlayMinute(SimState sim)
         {
+            // I.6 — 전술 교체 체크 포인트 (45/60/75분 초입).
+            int m = sim.currentMinute;
+            if (m == 45 || m == 60 || m == 75)
+            {
+                TryTacticalSubs(sim, Side.Home);
+                TryTacticalSubs(sim, Side.Away);
+            }
+
             // possession 누적
             if (sim.possession == Side.Home)
                 sim.homePossessionTicks++;
@@ -625,6 +643,15 @@ namespace FMLite.Application
                     "match_injury_fmt",
                     MakeArgs(sim, fouled.id, 0)
                 );
+
+            // I.6 — 부상 즉시 교체 시도
+            bool isHome = sim.homeXI.Contains(fouled.id);
+            var injCtx = BuildSubContext(sim, isHome ? Side.Home : Side.Away);
+            SubstitutionAI.TrySubstituteForInjury(injCtx, fouled.id);
+            if (isHome)
+                sim.homeSubsRemaining = injCtx.subsRemaining;
+            else
+                sim.awaySubsRemaining = injCtx.subsRemaining;
         }
 
         // 인-매치 페널티 — penaltyTaking vs GK. taker = 파울 얻은 선수 (단순; 지정 키커 = I.10).
@@ -992,6 +1019,38 @@ namespace FMLite.Application
             foreach (var id in awayXI)
                 map[id] = new PlayerMatchStat { playerId = id, minutesPlayed = 90 };
             return map;
+        }
+
+        // ── I.6 교체 헬퍼 ────────────────────────────────────────────────
+
+        private static SubstitutionAI.SubContext BuildSubContext(SimState sim, Side side)
+        {
+            bool isHome = side == Side.Home;
+            return new SubstitutionAI.SubContext
+            {
+                xi = isHome ? sim.homeXI : sim.awayXI,
+                subsRemaining = isHome ? sim.homeSubsRemaining : sim.awaySubsRemaining,
+                club = isHome ? sim.homeClub : sim.awayClub,
+                state = sim.gameState,
+                balance = sim.balance,
+                sentOff = sim.sentOff,
+                stats = sim.stats,
+                currentMinute = sim.currentMinute,
+                homeScore = sim.homeScore,
+                awayScore = sim.awayScore,
+                isHome = isHome,
+                events = sim.collectEvents ? sim.events : null,
+            };
+        }
+
+        private static void TryTacticalSubs(SimState sim, Side side)
+        {
+            var ctx = BuildSubContext(sim, side);
+            SubstitutionAI.TryTacticalSubstitution(ctx);
+            if (side == Side.Home)
+                sim.homeSubsRemaining = ctx.subsRemaining;
+            else
+                sim.awaySubsRemaining = ctx.subsRemaining;
         }
     }
 }
