@@ -172,18 +172,57 @@ namespace FMLite.Domain
         // 5단계 티어 (Elite / Strong / Average / Weak / Poor) 누적 분포 임계점.
         public float[] tierThresholdsAccumulated = new[] { 0.10f, 0.40f, 0.80f, 0.95f };
 
-        [Header("Match Simulation (algorithms.md #2)")]
-        public float avgGoalsPerMatch = 2.70f; // EPL 평균
-        public float homeAdvantageGoalBonus = 0.30f; // homeLambda 에 가산 (away 감산 X)
+        [Header("Match Simulation (algorithms.md #2 — V0.1)")]
+        public float avgGoalsPerMatch = 2.70f; // EPL 평균 — SimulateLite (I.7) 에서 재활용
+        public float homeAdvantageGoalBonus = 0.30f; // SimulateLite (I.7) 에서 재활용
 
-        // strengthRatio 비선형 지수 — CA 차이를 골수 차이로 증폭.
-        // k=1 이면 선형 (강팀 64% / 원정 51% 근사). k=1.5 (기본) 이면 강팀 ~72% / 원정 ~59%.
-        // V1.0+ 매치 엔진 재작성 시 finishing 등 개별 stats 가 결정력 직접 표현하므로 k=1 회귀 또는 폐기.
+        // strengthRatio 비선형 지수 — I.9 에서 폐기 예정. SimulateLite 가 사용.
         public float strengthExponent = 1.5f;
 
         // Line enum 순서 (GK=0 / DF=1 / MF=2 / AT=3) 와 일치.
-        // GK=0 → 페널티/코너 GK 골은 V1.0+ 텍스트 이벤트 시스템 진입 시 예외 처리.
         public float[] scoringWeightByLine = { 0.0f, 0.4f, 1.5f, 5.0f };
+
+        // ============================================================
+        // Match Simulation V1.0 — I.2 분 단위 이벤트 (algorithms.md V1.0-2)
+        // ============================================================
+        // 명세 표의 분모 (Shot=200 / Foul=500 / KeyPass=Cross=50000) 는 placeholder 성격 — 매 분 발생 빈도가
+        // 비현실적 (avgCA 100 기준 90분 45슛/팀). I.2 에서 EPL 통계 (12-15 슛/팀/매치) 근사하도록 재조정.
+        // EditMode 분포 테스트로 확정. 모두 외부화 (#11 매직 넘버 금지).
+
+        [Header("Match V1.0 — Shot")]
+        // EPL 통계 근사 (12-15 슛/팀/매치). avgCA 100 / 720 × 90 = ~12.5 슛/팀.
+        public int shotChanceBaseDivisor = 720; // shotChance per min per team = avgCA / N × mentalityModifier
+        public float shotOnTargetDivisor = 100f; // (finishing × composure) / N → on-target 확률 %
+        public float shotSaveDivisor = 100f; // (reflexes × handling) / N → save 확률 %
+
+        // 슈터 선정 가중 (Line enum 순서 GK=0/DF=1/MF=2/AT=3). scoringWeightByLine 와 동일 의도 — V1.0 매치 엔진은 stat × position 결합.
+        public float[] shotPositionWeights = { 0f, 0.4f, 1.5f, 5f };
+
+        [Header("Match V1.0 — KeyPass / Cross")]
+        // KeyPass: 11명 × 90 × (50×50) / divisor = 8 keyPasses/팀/매치 target → divisor ~ 310,000
+        public int keyPassChanceDivisor = 300_000;
+        // Cross (LW/RW 2명만): 2 × 90 × (50×50) / divisor = 15 cross/팀/매치 target → divisor ~ 30,000
+        public int crossChanceDivisor = 30_000;
+
+        [Header("Match V1.0 — Pass / Tackle / Interception 누적")]
+        // Pass: 11명 × 90 × 50 / divisor = 330 pass/팀 target (30/선수) → divisor 150
+        public int passChanceDivisor = 150;
+        public float passSuccessDivisor = 100f; // passing / N → 성공 확률 % (passesCompleted)
+        // Tackle/Interception (DF/MF 7명만): 7 × 90 × 50 / divisor = 21 tackles/팀 target → divisor 1500
+        public int tackleChanceDivisor = 1500;
+        public int interceptionChanceDivisor = 1500;
+
+        [Header("Match V1.0 — Foul / Card")]
+        // Foul: 7 × 90 × 50 / divisor = 12 fouls/팀 target → divisor 2625
+        public int foulChanceDivisor = 2625;
+        public float foulYellowRatio = 0.50f; // Foul 시 옐로 확률
+        public float foulRedRatio = 0.03f; // Foul 시 레드 확률
+
+        [Header("Match V1.0 — Injury")]
+        // 11 × 90 × baseRate = ~0.1 부상/팀/매치 target → baseRate 0.0001 (10매치당 1 부상)
+        public float injuryBaseRate = 0.0001f;
+        public float injuryProneRefDivisor = 50f; // injuryProneness 기준값 (50 = 평균)
+        public int injuryCareerThreateningDays = 90; // recoveryDays >= N → isCareerThreatening = true
 
         // ============================================================
         // Youth Intake (algorithms.md #4)

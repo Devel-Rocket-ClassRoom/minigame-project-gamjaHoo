@@ -111,11 +111,11 @@ public class MatchFinishedEvent {
 }
 ```
 
-#### PlayerInjuredEvent (V1.0+)
-- **Publisher:** MatchPostProcessor
+#### PlayerInjuredEvent (V1.0 I.2)
+- **Publisher:** `MatchSimulator` (분 단위 step 에서 부상 발생 시 즉시 발행)
 - **Subscribers:** UI (알림), SquadView
 - **Payload:** 선수 ID, 부상 정보
-- **Trigger:** 경기 중 부상 발생
+- **Trigger:** 매치 분 단위 시뮬레이션 중 `injuryBaseRate × ComputeInjuryRate × injuryProneness/50` 확률 충족
 
 ```csharp
 public class PlayerInjuredEvent {
@@ -534,3 +534,4 @@ public class PlayerUpdatedEvent {
 | 2026-05-26 | V1.0 G.2 — Promise Events 3종 (PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent) 신규 섹션. PromiseSystem.CheckProgress 매주 월요일 deadline 도래 약속 평가 → 사기 변동 + 이벤트 발행. UI 인박스 구독은 Sub-B (면담 UI / Dashboard 인박스). |
 | 2026-05-26 | V1.0 G.2 Sub-B — PromiseDeadlineApproachingEvent 신규 (30일 임박, Promise.deadlineNotified 플래그로 중복 차단). DashboardController 가 5 이벤트 구독 (PromiseCreated / Fulfilled / Broken / DeadlineApproaching / TransferRequest) → in-memory 인박스 (씬 재진입 시 비워짐, V1.0 단순). |
 | 2026-05-26 | V1.0 H.1 — ContractRenewedEvent / ContractRenewalRejectedEvent 신규 섹션. TransferSystem.RenewContract 가 수락/거절 시 발행. 수락 시 MoraleSystem.OnContractRenewed 직접 호출 후 발행. Future 섹션 ContractRenewed 완료 처리. |
+| 2026-05-27 | V1.0 I.2 — PlayerInjuredEvent 본격 도입. MatchSimulator 분 단위 step 에서 부상 발생 시 즉시 발행. 기존 "V1.0+ MatchPostProcessor" placeholder → MatchSimulator 발행으로 정정 (구조적으로 분 단위 이벤트 발생 위치가 자연). MatchEvents.cs 에 코드 추가 (이전엔 catalog 만 있고 코드 없었음). |

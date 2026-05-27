@@ -27,9 +27,11 @@ namespace FMLite.Domain
         public int yellowCards;
         public int redCards;
 
-        // V1.0 확장 (design-decisions.md #44)
+        // V1.0 확장 (design-decisions.md #44 / algorithms.md V1.0-2)
         public int shots;
+        public int shotsOnTarget; // I.2 — 정확 슈팅 (finishing × composure 기반)
         public int passes;
+        public int passesCompleted; // I.2 — 성공 패스 (passing / 100 기반)
         public int tackles;
         public int interceptions;
         public int keyPasses;

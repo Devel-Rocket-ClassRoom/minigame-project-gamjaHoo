@@ -2295,6 +2295,8 @@ public class MatchEvent {
 - 골 결정자 가중 = `finishing × offTheBall`
 - Cross 정확도 = `crossing × technique / 100`
 
+> **I.2 구현 노트 (2026-05-27)**: 위 분모 (Shot=200 / Foul=500 / KeyPass·Cross=50000) 는 placeholder 성격 — 매 분 발생 빈도가 비현실적 (예: avgCA 100 / 200 × 90 = 45 슛/팀, EPL 평균 12-15 의 3배). I.2 구현은 **GameBalanceSO 외부화 + EPL 통계 근사** 로 조정: `shotChanceBaseDivisor=720` / `keyPassChanceDivisor=300000` / `crossChanceDivisor=30000` / `passChanceDivisor=150` / `tackleChanceDivisor=interceptionChanceDivisor=1500` / `foulChanceDivisor=2625` / `injuryBaseRate=0.0001`. Pass/Tackle/Interception 발생 공식 신규 추가 (명세 표에 "누적 통계용" 만 표시되어 있어 보완). 모든 수치는 EditMode 분포 테스트 + 플레이테스트로 미세 조정 — 외부화 필드 그대로 인스펙터 갱신 가능.
+
 ### 외부 영향 (form / morale / fatigue)
 
 매치 strength 곱셈 보정:
