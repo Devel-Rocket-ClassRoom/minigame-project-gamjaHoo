@@ -261,6 +261,23 @@ namespace FMLite.Domain
         public int yellowSuspensionThreshold = 5; // 시즌 누적 옐로 5/10/15 → 정지 1/2/3
         public int redSuspensionMatches = 2; // 레드 / 2옐로 → 정지 경기 수
 
+        [Header("Match 5-Zone — Rating (I.4)")]
+        public float ratingBase = 6.5f; // 기본 평점
+        public float ratingGoalBonus = 1.0f;
+        public float ratingAssistBonus = 0.5f;
+        public float ratingKeyPassBonus = 0.1f;
+        public float ratingDefActionBonus = 0.05f; // Tackle + Interception 당
+        public float ratingShotOnTargetBonus = 0.1f;
+        public float ratingYellowPenalty = -0.3f;
+        public float ratingRedPenalty = -1.5f;
+        public float ratingSaveBonus = 0.15f; // GK 선방당
+        public float ratingCleanSheetBonus = 0.5f; // GK 무실점
+        public float ratingConcededPenalty = -0.2f; // GK 실점당
+        public float ratingWinBonus = 0.2f; // 팀 승리 전원
+        public float ratingLossPenalty = -0.2f; // 팀 패배 전원
+        public float ratingMin = 1.0f;
+        public float ratingMax = 10.0f;
+
         // ============================================================
         // Youth Intake (algorithms.md #4)
         // ============================================================

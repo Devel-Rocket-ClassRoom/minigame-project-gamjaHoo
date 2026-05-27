@@ -113,7 +113,9 @@ namespace FMLite.Application
                 PlayMinute(sim);
             }
 
-            // 5단계: MatchResult (rating = I.4, minutesPlayed 가변 = I.6)
+            // 5단계: 평점 계산 (I.4) + MatchResult (minutesPlayed 가변 = I.6)
+            ComputeRatings(sim);
+
             int totalTicks = sim.homePossessionTicks + sim.awayPossessionTicks;
             float homePct =
                 totalTicks > 0 ? (float)sim.homePossessionTicks / totalTicks * 100f : 50f;
@@ -350,7 +352,10 @@ namespace FMLite.Application
                     sim.stats[assister].assists++;
                 ClearPendingAssist(sim, att);
             }
-            // else Saved (GK 평점 = I.4)
+            else if (gk != null && sim.stats.ContainsKey(gk.id))
+            {
+                sim.stats[gk.id].saves++; // I.4 — GK 선방
+            }
 
             TurnOver(sim, att, Zone.Midfield);
         }
@@ -363,8 +368,7 @@ namespace FMLite.Application
             if (fouler == null)
                 return;
             double foulChance =
-                sim.balance.foulProbability
-                * (0.6 + fouler.stats.mental.aggression / 100.0 * 0.8);
+                sim.balance.foulProbability * (0.6 + fouler.stats.mental.aggression / 100.0 * 0.8);
             if (sim.rng.NextDouble() >= foulChance)
                 return;
 
@@ -408,7 +412,8 @@ namespace FMLite.Application
             // injuryProneness (Hidden) 비례 — fatigue 임계 보정은 I.8.
             int proneness = fouled.hiddenAttrs?.injuryProneness ?? 50;
             double rate =
-                sim.balance.matchInjuryProbability * (proneness / sim.balance.injuryProneRefDivisor);
+                sim.balance.matchInjuryProbability
+                * (proneness / sim.balance.injuryProneRefDivisor);
             if (sim.rng.NextDouble() >= rate)
                 return;
             if (fouled.state.injury.injuryTypeId != -1)
@@ -422,7 +427,12 @@ namespace FMLite.Application
             var club = sim.gameState.GetClub(fouled.currentClubId);
             int medical = club?.facilities?.medicalLevel ?? 1;
             int gym = club?.facilities?.gymLevel ?? 1;
-            int recoveryDays = InjurySystem.ComputeRecoveryDays(baseDays, medical, gym, sim.balance);
+            int recoveryDays = InjurySystem.ComputeRecoveryDays(
+                baseDays,
+                medical,
+                gym,
+                sim.balance
+            );
 
             fouled.state.injury = new InjuryInfo
             {
@@ -459,7 +469,10 @@ namespace FMLite.Application
                     sim.awayScore++;
                 sim.stats[taker.id].goals++;
             }
-            // else 세이브 (GK 평점 = I.4)
+            else if (gk != null && sim.stats.ContainsKey(gk.id))
+            {
+                sim.stats[gk.id].saves++; // I.4 — 페널티 선방
+            }
         }
 
         // InjuryTypeSO 카탈로그 weight 비례 추첨.
@@ -480,6 +493,51 @@ namespace FMLite.Application
                     return t;
             }
             return all[all.Count - 1];
+        }
+
+        // ── I.4: 평점 계산 (매치 종료 시) ────────────────────────────
+
+        // 이벤트 누적 통계 → rating (base 6.5, clamp 1.0~10.0). pressureHandling 빅매치 가산 = V1.x.
+        private static void ComputeRatings(SimState sim)
+        {
+            var b = sim.balance;
+            var homeSet = new HashSet<int>(sim.homeXI);
+            foreach (var stat in sim.stats.Values)
+            {
+                var p = sim.gameState.GetPlayer(stat.playerId);
+                bool isHome = homeSet.Contains(stat.playerId);
+
+                double r = b.ratingBase;
+                r += stat.goals * b.ratingGoalBonus;
+                r += stat.assists * b.ratingAssistBonus;
+                r += stat.keyPasses * b.ratingKeyPassBonus;
+                r += (stat.tackles + stat.interceptions) * b.ratingDefActionBonus;
+                r += stat.shotsOnTarget * b.ratingShotOnTargetBonus;
+                r += stat.yellowCards * b.ratingYellowPenalty; // penalty 음수
+                r += stat.redCards * b.ratingRedPenalty;
+
+                // GK — 선방 / 무실점 / 실점
+                if (p != null && p.info.primaryPosition == Position.GK)
+                {
+                    r += stat.saves * b.ratingSaveBonus;
+                    int conceded = isHome ? sim.awayScore : sim.homeScore;
+                    if (conceded == 0)
+                        r += b.ratingCleanSheetBonus;
+                    else
+                        r += conceded * b.ratingConcededPenalty;
+                }
+
+                // 팀 승/패 전원 가감
+                int teamScore = isHome ? sim.homeScore : sim.awayScore;
+                int oppScore = isHome ? sim.awayScore : sim.homeScore;
+                if (teamScore > oppScore)
+                    r += b.ratingWinBonus;
+                else if (teamScore < oppScore)
+                    r += b.ratingLossPenalty;
+
+                r = Math.Round(r, 1);
+                stat.rating = (float)Clamp(r, b.ratingMin, b.ratingMax);
+            }
         }
 
         // ── 헬퍼: 상태 전이 ───────────────────────────────────────────
