@@ -233,13 +233,19 @@ public class TechnicalStats {
 
 ---
 
-## 17. 경기 결과 — 시작 직전 시드 고정
+## 17. 경기 결과 — 시작 직전 시드 고정 (V0.1 한정 — "결과 미리 산출")
 
-**결정:** 경기 결과는 경기 시작 직전 시드를 고정하고 미리 산출한다. 이후 표시되는 이벤트들은 그 결과에 부합하도록 생성.
+**결정 (V0.1):** 경기 결과는 경기 시작 직전 시드를 고정하고 미리 산출한다. 이후 표시되는 이벤트들은 그 결과에 부합하도록 생성.
 
 **이유:**
 - 결과 검증 가능
 - 세이브 로드 후 같은 결과 보장 (멀티 세이브 일관성)
+
+**V1.0 변경 (2026-05-27) — "결과 미리 산출" 완전 폐기:**
+- V1.0 매치 엔진 (#44 5-zone Markov) 은 **forward simulation** — 매 분 emergent. "결과 먼저 정하고 이벤트 끼워맞추기" 폐기.
+- **결정성의 진짜 출처는 시드 고정** (`match.id ^ randomSeed`) — "결과 미리 산출" 이 아님. 같은 시드 + 같은 입력 state → 같은 이벤트 시퀀스 → 같은 결과 (재현성 / 세이브 일관성 그대로 달성).
+- 즉 이 결정의 _목적_ (검증 가능 + 세이브 일관성) 은 V1.0 에서도 유지되나, _수단_ (결과 미리 산출) 은 폐기. Markov forward 와 "결과 미리 정하기" 는 양립 불가 (결과 강제 시 이벤트 조작 필요 → 흐름 왜곡).
+- SimulateLite (비활성 매치) 도 V1.0 은 Markov → "결과 미리 산출" 은 V1.0 전체 어디에도 없음 (V0.1 역사적 정책으로만 존재).
 
 ---
 
@@ -734,6 +740,10 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 - **퇴장 후 strength 보정** — 11명 → 10명 시 strength × 0.9 같은 보정 또는 자연 발생 이벤트 (10명은 슈팅 시도 횟수 자체가 줄어 자연 반영).
 - **`MatchEvent` 도메인 필드 활용** — `class-diagram.md` 의 `Match.events: List<MatchEvent>` placeholder 가 본격 사용. 분 단위 이벤트 기록.
 
+**V1.0 실현 (2026-05-27) — 5-Zone Markov 채택:**
+- 이 진화 경로가 #44 에서 본격 실현. 단, "분 단위 vs 이벤트 단위" 중 **OFM 5-zone Markov** (ballZone + possession 상태 전이) 채택 — 위 보완 포인트의 "매 분 RNG" 보다 상태 전이가 "앞 이벤트 영향" 을 더 자연스럽게 표현.
+- 초안 (I.1/I.2 "양 팀 독립 추첨") 은 상태 전이가 없어 폐기 → 5-zone 재설계. 상세 #44 / `algorithms.md` V1.0-2.
+
 ---
 
 ## 35. V0.1 Youth Pool Generation 정책
@@ -1151,48 +1161,47 @@ public class Promise {
 
 ---
 
-## 44. 매치 엔진 V1.0 — 분 단위 이벤트 시퀀스 (#34 실현)
+## 44. 매치 엔진 V1.0 — 5-Zone Markov 이벤트 시퀀스 (#34 실현)
 
-**결정:** `design-decisions.md` #34 V1.0+ 진화 경로 본격 실현. 인터페이스 (`Simulate(match, state) → MatchResult`) 유지 / 내부 전면 재작성.
+**결정:** `#34` V1.0+ 진화 경로 실현. **초안 "분 단위 양 팀 독립 추첨" → openfootmanager(OFM) 5-zone Markov 상태 전이 모델로 전면 재설계** (2026-05-27). 인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지 / 내부 상태 머신 교체.
 
-**구조 (`v1.0-plan.md` §3.5):**
+**왜 재설계했나 (초안의 한계):**
+- 초안 (I.1/I.2 머지본 — PR #316/#318) 은 "매 분 양 팀이 동시에 독립적으로 이벤트 추첨" — 축구 흐름(앞 상황이 뒤에 영향)이 없음. 양 팀이 매 분 동시에 계속 슛 시도하는 비현실적 구조.
+- #34 가 V1.0 진화 이유로 "앞 이벤트가 뒤에 영향" 을 들었으나, 초안 구현은 누적 score/card 가 다음 분 _확률_ 에 영향 X (assist 추적만).
+- OFM 코드 분석 → ball 위치(zone) + 점유(possession) 상태 전이가 자연 흐름 생성. 점유 우세 → 공격 기회 ↑ / 슛 후 점유 전환 / 수적 우위 등.
+
+**5-zone Markov 구조 (`algorithms.md` V1.0-2 상세):**
 ```
-1. 시드 고정 (V0.1 동일)
-2. starting11 결정 — Tactic (#45) 산출물 사용 (Role 호환 + 자동 라인업)
-3. 분 단위 step (1~90, 컵은 ~120 + 승부차기 — Q2 V2.0+ 라 미적용):
-   a. 이벤트 종류 추첨 (Shot / Pass / Tackle / Foul / Card / Injury / Sub)
-   b. 이벤트 주체 선수 추첨 (포지션 + 스탯 + Role 가중치 + 폼 + 사기)
-   c. 이벤트 결과 분기 (Shot → Goal/Save/Miss/Block)
-   d. 누적 상태 갱신 + SubstitutionAI 판단
-4. 최종 누적 = MatchResult
+상태: ballZone {HomeBox/HomeDefense/Midfield/AwayDefense/AwayBox} + possession {Home/Away}
+매 분: possessionTicks++ → fatigue 증가 → 1~3 ResolveAction(zone 분기) → possession contest
+ResolveAction: Buildup → Midfield → AttackingThird → Shot (ball 한 zone씩 전진 / 실패 시 턴오버)
+success = attEff / (attEff + defEff)
 ```
 
 **핵심 결정:**
-1. **이벤트 종류 정의** — Shot / Save / Foul / Card (Y/R) / Injury / Sub / Pass / Cross / OffsidesCalled / KeyPass / Goal / Assist. ~12 종.
-2. **stat 직접 참조 (#39 V1.0)** — Shot 결과 = `finishing × composure / 100`, Save = `reflexes × handling / 100`, Foul = `aggression`, KeyPass = `vision × passing`, Cross = `crossing × technique`.
-3. **외부 영향 (form / morale / fatigue)** — strength 계산 시 곱셈 보정. `effectiveCA = CA × (1+form-50/200) × (1+morale-50/200) × max(0.5, 1-fatigue/200)`.
-4. **부상 / 카드 / 정지 시스템 자연 발생** — Foul → Yellow / Red, Yellow 2장 = Red, 옐로 5장 = 1경기 정지, Injury 자연 발생 + 교체 트리거.
-5. **AI 자동 교체 (`SubstitutionAI`)** — fatigue 70+ / Injury / 스코어 상황 기반.
-6. **텍스트 이벤트 (Q5)** — 유저 매치 한정 핵심 ~15-20 이벤트 (Shot/Goal/Card/Injury/Sub + KeyPass). 비활성 매치 = `Match.events` 비움.
-7. **SimulateLite 경량 경로** — 비활성 구단 매치는 V0.1 단순 Poisson + 라인 가중. 텍스트 / 분 단위 step X.
-8. **strengthExponent (k=1.5) 폐기** — `design-decisions.md` #33 V0.1 임시 변통. 개별 stats 가 결정력 직접 표현 → 비선형 보정 불필요.
-9. **시드 결정성 (#17)** — 같은 시드 = 같은 시퀀스 = 같은 결과 유지.
-10. **컵 연장전 / 승부차기** — Q2 V2.0+ 미도입. 인터페이스만 대비 (`match.type` 분기).
+1. **Forward simulation** — 결과 미리 산출(#17 V0.1) **완전 폐기**. 결정성은 시드 고정(`match.id ^ randomSeed`)에서만. 같은 시드 + 같은 입력 state → 같은 시퀀스.
+2. **49 stat zone별 매핑** — Buildup(`passing+vision+composure+teamwork`) / Midfield(`dribbling+passing+vision+teamwork` vs `tackling+positioning+decisions+teamwork`) / AttackingThird(`dribbling+pace+agility+composure` vs `marking+tackling+positioning+heading`) / Shot(`finishing+composure+decisions` vs GK `handling+reflexes+positioning`). OFM 18 stat → FM 49 매핑으로 stat 활용도 대폭 ↑.
+3. **fatigue 임계 (#54)** — OFM 선형 `condition/100` 대신 임계. fatigue > 50 경기력 ↓ / > 40 부상률 ↑ (과도 로테이션 방지).
+4. **활성 / 비활성 동일 엔진 (#55)** — background 도 동일 Markov. `collectEvents` 플래그로 텍스트(`Match.events`)만 분기. 통계(점유율/슛/패스/카드)는 양쪽 수집.
+5. **부상 / 카드 / 페널티** — Tackle → maybeFoul → box면 penalty(`penaltyProbability`) / 2옐로 퇴장 / Injury + `PlayerInjuredEvent`.
+6. **세트피스 별도 (I.10)** — Corner/FreeKick/Penalty 는 트리거만, `SetPieceResolver` 가 `corners`/`freeKickTaking`/`penaltyTaking`/`longThrows` 반영.
+7. **연장 / 승부차기 (I.11, #56)** — MatchPhase 확장. 컵 매치 동점 → ExtraTime → PenaltyShootout. 컵 대회 자체는 Stage Q 신규.
+8. **strengthExponent 폐기 (I.9)** — SimulateLite 도 Markov 라 V1.0 어디에도 미사용.
+9. **Mentality (J.3) + Trait (C.1) 합류** — OFM `play_style_modifier` / `trait_bonus` 자리에 우리 Mentality 7단계 + TraitSO.effects.
 
 **이유:**
-- **#34 진화 경로 실현**: 옐로 2장 → 퇴장 → 10명 / 부상 → 교체 같은 누적 효과 자연 표현.
-- **사용자 피드백 2.9**: 텍스트 이벤트 유저 구단 한정 직역. SimulateLite 분리로 비활성 비용 ↓.
-- **V0.1 → V1.0 사이즈 폭증**: 매치 엔진 재작성이 V1.0 단일 최대 작업. Stage I 9 Sub-task.
+- 사용자 통찰 "앞 상황 영향 = Markov 우월" + "기왕 하는 거 컵/연장까지" (2026-05-27). OFM 코드 분석으로 검증 (`engine/live_match/`).
+- I.3~I.9 진입 _전_ 이 구조 교체 적기 — 후속 task (부상누적/평점/텍스트/교체/외부영향) 가 모두 이 매 분 구조 위에 쌓임.
 
-**영향 범위:** `MatchSimulator` 전면 재작성 / `MatchEvent` 도메인 본격 활용 (`textKey / textArgs`) / `InjuryTypeSO` 카탈로그 본격 채움 (~15 종) / `PlayerMatchStat` 필드 확장 (shots / passes / tackles 등) / 평점 시스템 / `algorithms.md` #2 V1.0 재작성 / UI `MatchTextScene` / `SubstitutionAI.cs` 신규.
+**영향 범위:** `MatchSimulator` 5-zone 재작성 (I.1/I.2 코드 교체 — 이벤트종류/stat공식/외부화 분모는 재활용) / `MatchEvent` 종류 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) / `SetPieceResolver` (I.10) 신규 / 연장·승부차기 (I.11) / `SubstitutionAI` (I.6) / Stage Q 컵 대회 신규 / `algorithms.md` V1.0-2 재작성 / `v1.0-tasks.md` Stage I 재구성.
 
 ### V1.0+ 보완 포인트 (V1.x)
 
-- **Team Instructions 효과** (#45 V1.x) — Tempo / Passing / Pressing / Line / Width 가 이벤트 확률 가중 입력으로 추가.
-- **유저 코칭 인터럽트** — 전반 종료 / 중요 이벤트 시 외침 / 교체 옵션. UI 의존.
-- **xG / heatmap / 슈팅 위치** — 매치 통계 풍부화. V1.x.
-- **컵 연장전 / 승부차기** — Q2 V2.0+ 도입 시점.
-- **날씨 / 잔디 상태** — strength 보정 추가. V1.x+.
+- **15-zone 정밀화** — OFM legacy 처럼 zone 세분화 + transition matrix (현 5-zone → 15-zone).
+- **Team Instructions** (#45 V1.x) — Tempo / Pressing / Line / Width 이벤트 가중.
+- **유저 코칭 인터럽트** — 전반 종료 / 중요 이벤트 시 외침 / 교체 (OFM `MatchCommand` 패턴).
+- **xG / heatmap / 슈팅 위치** — 매치 통계 풍부화.
+- **날씨 / 잔디 상태** — strength 보정 추가.
 
 ---
 
@@ -1694,6 +1703,75 @@ public class ScoutReport {
 
 ---
 
+## 54. 매치 fatigue 임계 모델 (V1.0 — OFM 선형 대체)
+
+**결정:** OFM 의 선형 `effective_overall = overall × (condition/100)` 대신 **임계 기반** fatigue 영향. 사용자 결정 (2026-05-27).
+
+```
+fatigue ≤ 50              → 경기력 보정 없음 (perf = 1.0)
+fatigue > 50             → 경기력 ↓ (1점당 -1%, floor 0.6)
+fatigue > 40             → 부상 발생률 × 1.5
+```
+(우리 `PlayerState.fatigue`: 0 = 최상, 100 = 완전 피로. OFM condition = 100 - fatigue 관점)
+
+**외부화:** `fatiguePerfThreshold(50)` / `fatiguePerfFloor(0.6)` / `fatiguePerfPenaltyPerPoint(0.01)` / `fatigueInjuryThreshold(40)` / `fatigueInjuryMultiplier(1.5)`.
+
+**이유:**
+- **과도 로테이션 방지** (사용자 핵심 의도) — OFM 처럼 100부터 선형 감소하면 매니저가 항상 풀 컨디션만 쓰려고 과도 로테이션. 실제 FM 도 컨디션 ~50%(우리 fatigue 50)까진 경기력 영향 미미.
+- **임계 분리** — 부상(fatigue>40)과 경기력(fatigue>50)을 다른 임계로 — "조금 피곤하면 부상 위험만, 많이 피곤하면 경기력까지" 자연스러운 단계.
+- form / morale / dressingRoomMood / homeAdvantage 와 함께 곱셈 합류 (I.8).
+
+### V1.0+ 보완 포인트
+- **회복 곡선** — 시설(Medical/Gym) + 나이 + Natural Fitness 에 따라 fatigue 회복 속도 차등 (현재 `fatigueRecoveryPerDay` 균등).
+- **부상 multi-phase** — fatigue 누적이 장기 부상(`fitness`)으로 전이 (#53 / OFM `fitness` 필드).
+
+---
+
+## 55. 매치 엔진 5-Zone 모델 + Background 동일 엔진 (V1.0)
+
+**결정:** 매치 엔진은 OFM 5-zone Markov 채택 (#44). **활성 / 비활성(background) 매치 동일 엔진** 사용 — `collectEvents` 플래그로 텍스트 로그만 분기. 통계는 양쪽 수집. 사용자 결정 (2026-05-27).
+
+**5-zone:** `HomeBox / HomeDefense / Midfield / AwayDefense / AwayBox`. ball 이 한 zone 씩 전진(성공)/후퇴·턴오버(실패). 점유 contest 로 possession 전환.
+
+**Background 정책:**
+- 별도 Poisson 경량 경로 (초안 SimulateLite) **폐기** — Markov 통일.
+- `collectEvents = false` → `Match.events` 텍스트 로그만 생략. 점유율/슛/패스/카드/평점 통계는 수집 (사용자 요구: "다른 팀 경기도 통계 다 확인").
+- `MatchPostProcessor.Process(..., publishEvent: false)` — UI 갱신 비용 ↓.
+
+**이유:**
+- **연산 부담 0** (검증) — 매치 ~9K 산술, 1 라운드 10매치 < 1ms. 단일 리그 V1.0 에서 full Markov 도 문제 없음. 다중 리그 V2.0 도 ~수 ms.
+- **코드 일관성** — 한 엔진, 플래그 분기. 두 코드 경로 유지보수 부담 제거. OFM 도 instant/live 모드가 동일 core resolution 공유.
+- **통계 완전 정확** — 비활성 매치도 점유율/슛 등 정확 (Poisson 근사보다 우월).
+
+### V1.0+ 보완 포인트
+- **다중 리그 대규모** (V2.0) — 라운드당 매치 수 ↑ 시 경량 모드 (action 1개 고정) 옵션 검토.
+- **15-zone 정밀화** — zone 세분화 + transition matrix.
+
+---
+
+## 56. 컵 대회 + 연장 / 승부차기 (V1.0 — 스코프 확대)
+
+**결정:** 원래 V2.0 였던 컵 대회 + 연장전 + 승부차기를 V1.0 으로 끌어옴. 사용자 결정 (2026-05-27, "기왕 하는 거 추가").
+
+**분리:**
+- **연장 / 승부차기 (I.11)** — 매치 엔진(#44) 내부. `MatchPhase` 확장 (ExtraTimeFirstHalf/HalfTime/SecondHalf/End + PenaltyShootout). 컵 매치 동점 시 발동 (`match.type` 분기 + `allowsExtraTime`).
+- **컵 대회 (Stage Q 신규)** — 대진표 / 녹아웃 / 스케줄 / 시드 배정. 매치 엔진(I.11) + 시즌 시스템(M) 둘 다 의존. I.11 선행 필요.
+
+**연장:** 91~105 + 106~120 (각 stoppage). 여전히 동점 → 승부차기 (`penaltyShootoutRounds(5)` 교대 → sudden death). 각 킥 `penaltyTaking vs GK reflexes×handling`.
+
+**리그 매치:** `allowsExtraTime = false` → FullTime 종료 (무승부 허용). 기존 V1.0 리그 영향 없음.
+
+**이유:**
+- 사용자: 탄탄한 게임 지향 — 컵 대회는 시즌 깊이 + 회고 가치 (FA컵 우승 등).
+- 매치 엔진 5-zone 재작성 _하는 김에_ MatchPhase 확장 = 한계비용 낮음.
+
+### V1.0+ 보완 포인트
+- **다중 컵** (리그컵 + FA컵) — V1.0 단일 컵 → 여러 대회.
+- **유럽 대회** (챔피언스리그 류) — V2.0 다중 리그와 짝.
+- **2-leg 녹아웃** (홈 앤 어웨이 합산) — V1.0 단판 → 합산 방식.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -1715,3 +1793,4 @@ public class ScoutReport {
 | 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V1.0-10 + V1.0-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / 2단계 모델 (발생 확률 + size 분포 +1/+2/+3) / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.x derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
 | 2026-05-26 | #53 보강 | 성장 size 분포 도입. V1.0-10 의 초안 (`+1` 단위만) → 사용자 지적 ("특정 스탯 +2 가능") 반영. **2단계 모델**: (1) 발생 확률 `growthBaseChance = 0.01` (월 1% — 초안 0.05 너무 빈번해서 1/5 로 낮춤. 49 stat × 1% = 평범 선수 1년 ~6 stat 변동). (2) 발생 시 size 추첨 `[+1, +2, +3]` 분포 `[75, 20, 5]`. peak youth (ageFactor ≥ 1.3, 16-18세) 는 큰 점프 분포 `[60, 30, 10]`. decline 대칭. 18세 wonderkid 1년 stat 합산 ~12 (peak 추정), 평범 25세 ~5. FM 표준 (15-20 wonderkid / 5-10 평범) 와 일치. |
 | 2026-05-26 | #47 V1.0+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V1.0 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.x 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V1.0 본문 정책 (매주 호출) 은 그대로 유지 — V1.x 스코프. |
+| 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V1.0 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V1.0 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V1.0-2 재작성 + `v1.0-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
