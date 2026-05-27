@@ -433,7 +433,10 @@ V1.0 작업 시 추가될 이벤트들:
 - `BoardConfidenceChangedEvent` (보드 신뢰도, V1.0 M.4)
 - `ManagerSackedEvent` (경질, V1.0 M.4)
 - `MatchEventOccurredEvent` (경기 중 텍스트 이벤트, V1.0 I.5)
+- `CupRoundCompletedEvent / CupWonEvent` (컵 대회, V1.0 Stage Q.3 / #56)
 - `PressConferenceEvent` (기자회견, V1.x)
+
+> **MatchEvent (≠ EventBus 이벤트)**: 5-zone Markov (V1.0-2 / #44) 의 `Match.events: List<MatchEvent>` 는 EventBus 가 아닌 매치 내부 이벤트 로그. type enum 확장 (KickOff / PassCompleted / Dribble / Cross / ShotOnTarget / ShotOffTarget / ShotBlocked / ShotSaved / Goal / Penalty* / Tackle / Interception / Clearance / Foul / YellowCard / RedCard / SecondYellow / Corner / FreeKick / Injury / Substitution) 은 `MatchEvents.cs` 코드 (Sub-B) — collectEvents=true 일 때만 수집.
 
 ---
 
@@ -535,3 +538,4 @@ public class PlayerUpdatedEvent {
 | 2026-05-26 | V1.0 G.2 Sub-B — PromiseDeadlineApproachingEvent 신규 (30일 임박, Promise.deadlineNotified 플래그로 중복 차단). DashboardController 가 5 이벤트 구독 (PromiseCreated / Fulfilled / Broken / DeadlineApproaching / TransferRequest) → in-memory 인박스 (씬 재진입 시 비워짐, V1.0 단순). |
 | 2026-05-26 | V1.0 H.1 — ContractRenewedEvent / ContractRenewalRejectedEvent 신규 섹션. TransferSystem.RenewContract 가 수락/거절 시 발행. 수락 시 MoraleSystem.OnContractRenewed 직접 호출 후 발행. Future 섹션 ContractRenewed 완료 처리. |
 | 2026-05-27 | V1.0 I.2 — PlayerInjuredEvent 본격 도입. MatchSimulator 분 단위 step 에서 부상 발생 시 즉시 발행. 기존 "V1.0+ MatchPostProcessor" placeholder → MatchSimulator 발행으로 정정 (구조적으로 분 단위 이벤트 발생 위치가 자연). MatchEvents.cs 에 코드 추가 (이전엔 catalog 만 있고 코드 없었음). |
+| 2026-05-27 | Stage I 5-zone Markov 재설계 (이슈 #319 Sub-A) — Future 섹션에 CupRoundCompletedEvent / CupWonEvent (Stage Q.3) 추가. MatchEvent (Match.events 내부 로그, ≠ EventBus) 와 EventBus 이벤트 구분 노트 추가 — 5-zone type enum 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) 은 MatchEvents.cs 코드 (Sub-B), collectEvents 플래그 분기. |

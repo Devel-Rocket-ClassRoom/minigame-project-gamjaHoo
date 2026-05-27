@@ -2209,180 +2209,284 @@ hiddenAttrStdDev = 15         # 표준편차
 
 ---
 
-## V1.0-2. Match Simulation V1.0 (분 단위 이벤트 시퀀스)
+## V1.0-2. Match Simulation V1.0 (5-Zone Markov 이벤트 시퀀스)
 
-> 갱신: Part 1 #2 → V1.0 전면 재작성. **인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지**. 내부 구조 교체.
+> **전면 재설계 (2026-05-27)**: 초안 "분 단위 양 팀 독립 추첨" → openfootmanager (OFM) 5-zone Markov 차용.
+> 인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지 / 내부 상태 전이 머신.
+> 근거: `design-decisions.md` #17 (결과우선 = V0.1 한정) / #34 (진화 경로) / #44 (5-zone Markov 전면) / #54 (fatigue 임계) / #55 (zone + background) / #56 (컵 / 연장).
 
-### Purpose 변경
+### Purpose
 
-- V0.1 "결과 우선 모델" 폐기. V1.0 "분 단위 이벤트 시퀀스" (`design-decisions.md` #34 / #44).
-- 호출 시점 동일 (유저 매치 / `BackgroundSimulator`).
+- **Forward simulation** — 매 분 emergent. "결과 미리 산출" (#17 V0.1) **V1.0 완전 폐기** (SimulateLite 포함). 결정성은 시드 고정 (`match.id ^ state.randomSeed`) 에서만 나옴 — 같은 시드 + 같은 입력 state → 같은 시퀀스 → 같은 결과 (재현성 / 세이브 일관성).
+- **앞 상황 영향** — `ballZone` + `possession` 상태가 다음 분 이벤트를 결정 (Markov). 점유 우세 → 공격 기회 ↑ / 슛 후 점유 전환 / 수적 우위 등 축구 흐름 자연 발생.
+- **활성 / 비활성 동일 엔진** (#55) — background 매치도 동일 full Markov. `collectEvents` 플래그로 텍스트 로그(`Match.events`)만 분기 — 통계 (점유율 / 슛 / 패스 / 카드 / 평점) 는 양쪽 다 수집.
 
-### Outputs 변경
+### State (상태 머신)
 
-`PlayerMatchStat` 확장:
+```
+enum Zone  { HomeBox, HomeDefense, Midfield, AwayDefense, AwayBox }
+enum Side  { Home, Away }
+enum MatchPhase { PreKickOff, FirstHalf, HalfTime, SecondHalf, FullTime,
+                  ExtraTimeFirstHalf, ExtraTimeHalfTime, ExtraTimeSecondHalf, ExtraTimeEnd,
+                  PenaltyShootout, Finished }
+
+MatchState (시뮬레이션 내부 — GameState 와 별개, 직렬화 X):
+  ballZone: Zone               # 킥오프 Midfield
+  possession: Side             # 킥오프 Home
+  phase / minute
+  homeScore / awayScore
+  possessionTicks[Home/Away]   # 점유율 누적
+  events: List<MatchEvent>     # collectEvents=true 일 때만
+  yellows: Dict<playerId,int> / sentOff: Set<playerId>
+  playerStat: Dict<playerId, PlayerMatchStat>
+  fatigueDelta: Dict<playerId, float>   # 매치 내 누적 (종료 시 state.fatigue 반영)
+```
+
+Zone helpers:
+- `AttackingBox(side)` = Home→AwayBox / Away→HomeBox
+- `AttackingThird(side)` = Home→AwayDefense / Away→HomeDefense
+- `DefensiveThird(side)` = Home→HomeDefense / Away→AwayDefense
+- `Advance(zone, side)` = ball 한 zone 전진 (attacking box 도달 시 정지)
+
+### Outputs
+
+`PlayerMatchStat` (I.2 확장 완료 — `shotsOnTarget` / `passesCompleted` 포함):
 ```csharp
 public class PlayerMatchStat {
-    // V0.1 기존 (goals / minutesPlayed)
-    public int   playerId;
-    public int   minutesPlayed;      // V1.0: 교체 / 퇴장 반영 (가변)
-    public int   goals;
-    public int   assists;            // V1.0: 본격 채움
-    public float rating;             // V1.0: 평점 시스템
-    public int   yellowCards;        // V1.0
-    public int   redCards;           // V1.0
-    
-    // V1.0 신규 필드
-    public int   shots;              // 총 슈팅
-    public int   shotsOnTarget;      // 유효 슈팅
-    public int   passes;
-    public int   passesCompleted;
-    public int   tackles;
-    public int   interceptions;
-    public int   keyPasses;
-    public int   foulsCommitted;
-    public int   foulsSuffered;
+    public int playerId; public int minutesPlayed; // I.6 교체/퇴장 가변
+    public int goals; public int assists; public float rating; // I.4
+    public int yellowCards; public int redCards;
+    public int shots; public int shotsOnTarget;
+    public int passes; public int passesCompleted;
+    public int tackles; public int interceptions; public int keyPasses;
+    public int foulsCommitted; public int foulsSuffered;
 }
 ```
 
-`Match.events` 본격 채움 (유저 매치 한정 — `#44` Q5):
+`MatchEvent` (collectEvents=true 한정 — 유저 매치):
 ```csharp
 public class MatchEvent {
     public int minute;
-    public MatchEventType type;       // Shot / Goal / Card / Injury / Sub / KeyPass / Save / FullTime / HalfTime
-    public int actorPlayerId;
-    public int targetPlayerId;        // 어시스트 / 파울 대상 (0 = 없음)
-    public string textKey;            // String Table key (#52)
-    public Dictionary<string, string> textArgs;
+    public MatchEventType type;   // KickOff/HalfTime/.../PassCompleted/Dribble/Cross/
+                                  // ShotOnTarget/ShotOffTarget/ShotBlocked/ShotSaved/Goal/
+                                  // PenaltyAwarded/PenaltyGoal/PenaltyMiss/Tackle/Interception/
+                                  // Clearance/Foul/YellowCard/RedCard/SecondYellow/Corner/
+                                  // FreeKick/Injury/Substitution
+    public Side side;
+    public Zone zone;
+    public int actorPlayerId;     // 주체 (슈터/패서/파울러)
+    public int targetPlayerId;    // 보조 (어시스트/파울 대상, 0 = 없음)
+    public string textKey;        // String Table key (I.5)
+    public Dictionary<string,string> textArgs;
 }
 ```
 
-### Logic V1.0
+### Logic (매 분 — PlayMinute)
 
 ```
-1. 시드 고정 (V0.1 동일 — match.id ^ state.randomSeed)
-2. starting11 결정 — Tactic (#45) 산출물 사용 (Role + Duty + Mentality)
-   - Tactic.slots 의 assignedPlayerId 사용 / 0 이면 자동 라인업 (호환 포지션 + top CA + 폼/사기 가산)
-   - 부상자 / suspendedMatches > 0 제외
-3. 경기 상태 초기화 (minute=0, score=0:0, 11명 출전, fatigue 시작값)
-4. 분 단위 step (1~90):
-   a. 매 분 (또는 Poisson 시간 간격) 이벤트 종류 추첨
-   b. 이벤트 주체 선수 추첨 (Role 가중치 + Stat + form + morale)
-   c. 이벤트 결과 분기 (Shot → Goal/Save/Miss/Block)
-   d. 누적 상태 갱신 (score / cards / injuries / subs)
-   e. SubstitutionAI 판단 (fatigue 70+, injury, 스코어 상황)
-   f. 텍스트 이벤트 생성 (유저 매치 한정, 핵심 이벤트만 ~15-20)
-5. 최종 누적 = MatchResult
+1. minute++
+2. possessionTicks[possession]++
+3. DepleteFatigue — 출전 11명 fatigueDelta 누적 (분당, fatigueGainPerMatch 와 정합)
+4. actions = rng(actionsPerMinuteMin..actionsPerMinuteMax)   # 1~3
+   for each: ResolveAction(ballZone, possession)
+5. Possession contest:
+     midAtt = EffectiveMidfield(possession), midDef = EffectiveMidfield(opposite)
+     retain = midAtt / (midAtt + midDef)
+     if rng > retain:  possession = opposite;  ballZone = Midfield
+6. Phase 전환 (45+stoppage → HalfTime / 90+stoppage → FullTime / 연장 → I.11)
 ```
 
-### 이벤트 종류 + 발생 공식
-
-| 이벤트 | 발생 트리거 | 결과 분기 |
-| --- | --- | --- |
-| **Shot** | 매 분 확률 = `attackStrength / 200 × mentalityModifier` (Attacking 1.5×) | Goal / Save / Miss / Block — `finishing × composure / 10000` |
-| **Save** | Shot 결과 분기 | GK `reflexes × handling / 10000` ≥ rng → Save |
-| **Foul** | 매 분 확률 = `defenderAggression / 500` | Yellow (50%) / Red (3%) / 그냥 (47%) |
-| **Injury** | 매 분 확률 = `0.0003 × player.injuryProneness / 50` | InjuryInfo 생성 + 즉시 교체 시도 |
-| **KeyPass** | 매 분 확률 = `attackerVision × passing / 50000` | 다음 Shot 의 어시스트 후보로 등록 |
-| **Cross** | 매 분 확률 = `LW/RW crossing × technique / 50000` | Shot 시도 (헤딩 가중) |
-| **Substitution** | SubstitutionAI 판단 | 벤치 → 출전 (Tactic Role 호환 선수) |
-| **Pass / Tackle / Interception** | 누적 통계용 (텍스트 X) | 카운트만 |
-
-**stat 직접 참조 (`#44`):**
-- Shot 결과 = `finishing × composure / 100` (양 stat 1-100 → 결과 0-100, 그대로 확률 %)
-- Save = `reflexes × handling / 100`
-- Foul = `aggression`
-- 골 결정자 가중 = `finishing × offTheBall`
-- Cross 정확도 = `crossing × technique / 100`
-
-> **I.2 구현 노트 (2026-05-27)**: 위 분모 (Shot=200 / Foul=500 / KeyPass·Cross=50000) 는 placeholder 성격 — 매 분 발생 빈도가 비현실적 (예: avgCA 100 / 200 × 90 = 45 슛/팀, EPL 평균 12-15 의 3배). I.2 구현은 **GameBalanceSO 외부화 + EPL 통계 근사** 로 조정: `shotChanceBaseDivisor=720` / `keyPassChanceDivisor=300000` / `crossChanceDivisor=30000` / `passChanceDivisor=150` / `tackleChanceDivisor=interceptionChanceDivisor=1500` / `foulChanceDivisor=2625` / `injuryBaseRate=0.0001`. Pass/Tackle/Interception 발생 공식 신규 추가 (명세 표에 "누적 통계용" 만 표시되어 있어 보완). 모든 수치는 EditMode 분포 테스트 + 플레이테스트로 미세 조정 — 외부화 필드 그대로 인스펙터 갱신 가능.
-
-### 외부 영향 (form / morale / fatigue)
-
-매치 strength 곱셈 보정:
-```
-effectiveCA = CA × (1 + (form - 50) / 200)
-                × (1 + (morale - 50) / 200)
-                × max(0.5, 1 - fatigue / 200)
-```
-- 폼 50, 사기 50, 피로 0 = 변동 없음.
-- 폼 100 + 사기 100 + 피로 0 = CA × 1.5 (이론치).
-
-### 부상 / 카드 / 출장 정지
-
-**부상:**
-- `InjuryTypeSO` 카탈로그 ~15 종 (Sprained Ankle / Muscle Strain / Hamstring / Knee Ligament 등).
-- 부상 발생 시 `InjuryInfo` 채우기 + `PlayerInjuredEvent` 발행.
-- 회복 일수 = `InjuryTypeSO.recoveryDays / (1 + medicalLevel × 0.05)` (시설 효과).
-
-**카드:**
-- 옐로 5장 → 1경기 정지 (EPL 룰). 10장 → 2경기. 15장 → 3경기.
-- 레드 → 1-3경기 정지 (사유별).
-- `Player.state.suspendedMatches: int` 신규.
-- 스타팅11 선정 시 `injury` / `suspendedMatches > 0` 제외.
-
-### 평점 시스템
-
-매 분 이벤트 가산:
-- 골 +1.0 / 어시스트 +0.5 / 키패스 +0.1 / 인터셉트 +0.1 / 옐로 -0.3 / 레드 -1.5 / 자책 -1.0
-- 기본 6.5 시작, 매치 종료 시 Round1.
-- 골키퍼: 세이브당 +0.2 / 무실점 +0.5 / 실점당 -0.3.
-- 팀 승리 +0.2 / 패배 -0.2 전 선수 가산.
-
-### 비활성 구단 — SimulateLite 경량 경로
-
-`BackgroundSimulator.SimulateDay` 가 비활성 구단 매치는 `SimulateLite` 사용:
-- 분 단위 step X. V0.1 단순 Poisson + 라인 가중 득점자 (Part 1 #2 V0.1 로직 재활용).
-- `Match.events` 비움.
-- `playerStats` = goals + minutesPlayed=90 만.
-- 옵션 `MatchPostProcessor.Process(..., publishEvent: false)` — UI 갱신 비용 ↓.
-
-### Balancing Parameters (V1.0 신규)
+### ResolveAction (zone 분기)
 
 ```
-[매치 엔진 V1.0]
-mentalityModifiers = [0.6, 0.75, 0.9, 1.0, 1.15, 1.3, 1.5]   # 7단계 Mentality (Shot 빈도 곱셈)
-formCoefficient = 200                                          # effectiveCA = CA × (1 + (form-50)/200)
-moraleCoefficient = 200
-fatigueCoefficient = 200
-injuryBaseRate = 0.0003                                        # 분당 발생 확률 (× injuryProneness / 50)
-foulYellowRatio = 0.50                                         # Foul 시 옐로 비율
-foulRedRatio = 0.03
-yellowSuspensionThreshold = 5                                  # 누적 옐로 정지 임계
-redSuspensionMatchesMin = 1
-redSuspensionMatchesMax = 3
-ratingGoalBonus = 1.0
-ratingAssistBonus = 0.5
-ratingYellowPenalty = -0.3
-ratingRedPenalty = -1.5
+att = possession;  def = opposite
+if ballZone == AttackingBox(att):       ResolveShot
+elif ballZone == AttackingThird(att):   ResolveAttackingThird
+elif ballZone == Midfield:              ResolveMidfield
+else (DefensiveThird):                  ResolveBuildup
+```
 
-[V0.1 폐기]
-strengthExponent → 폐기 (#33 임시 변통, 매치 엔진 stat 직접 참조로 비선형 보정 불필요)
+공통: `success = attEff / (attEff + defEff)`. 성공 → ball 전진 / 실패 → 이벤트(Tackle/Interception/Clearance) + 점유 전환 + ball 후퇴.
+
+#### 49 stat 매핑 (zone별 — OFM 18 → FM-Lite 49)
+
+| Phase | 공격 조합 (÷N) | 수비 조합 (÷N) | 성공 | 실패 |
+| --- | --- | --- | --- | --- |
+| **Buildup** (수비 third) | `passing+vision+composure+teamwork` /4 | press: 상대 `workRate+aggression+positioning` /3 | PassCompleted → ball Midfield | PassIntercepted + Interception → 점유 전환 |
+| **Midfield** | `dribbling+passing+vision+teamwork` /4 | `tackling+positioning+decisions+teamwork` /4 | PassCompleted → ball AttackingThird | Tackle(60% maybeFoul) / Interception(40%) → 점유 전환 |
+| **AttackingThird** | `dribbling+pace+agility+composure` /4 | `marking+tackling+positioning+heading` /4 | Dribble → ball AttackingBox | Tackle(maybeFoul)/Clearance + Corner(25%) → 점유 전환 |
+| **Shot** (box) | shooter `finishing+composure+decisions` /3 | GK `handling+reflexes+positioning` /3 | (아래 Shot 분기) | — |
+
+Shot 분기:
+```
+accuracy = shotAccuracyBase(0.45) + (shootRating - 50) / shotAccuracyDivisor(200), clamp 0.15~0.85
+if rng > accuracy:
+    ShotBlocked(40%) / ShotOffTarget(60%) → ball Midfield + 점유 전환
+else (on target):
+    shotsOnTarget++
+    conversion = goalConversionBase(0.30) + (shootRating - gkRating) / goalConversionDivisor(150), clamp 0.10~0.70
+    if rng < conversion:  Goal + 직전 KeyPass 발행자 assists++ (있으면)
+    else:                 ShotSaved (GK 평점 가산 I.4)
+    → ball Midfield + 점유 전환
+```
+
+> OFM 의 단일 stat `defending` / `aerial` / `shooting` → 우리 `marking` / `heading` / `finishing` 로 매핑. 49 stats 활용도 대폭 ↑ (현 I.2 는 일부만 사용).
+
+### Effective skill (fatigue 임계 — #54)
+
+OFM 의 선형 `× condition/100` 대신 **임계 기반** (과도 로테이션 방지 — fatigue 50까진 영향 X):
+```
+EffectiveSkill(rawStat, player):
+    perf = 1.0
+    if player.state.fatigue > fatiguePerfThreshold (50):
+        perf = max(fatiguePerfFloor (0.6),
+                   1 - (fatigue - 50) * fatiguePerfPenaltyPerPoint (0.01))
+    return rawStat * perf * mentalityMod * traitMod * homeMod * formMoraleMod
+```
+- fatigue ≤ 50 → 보정 없음 (1.0)
+- fatigue > 50 → 1점당 -1% (fatigue 100 → perf floor 0.6)
+- 부상률: `player.state.fatigue > fatigueInjuryThreshold (40)` → injuryChance × `fatigueInjuryMultiplier (1.5)`
+
+곱셈 보정 합류 (I.8):
+- `mentalityMod` = `mentalityShotMultiplier[mentality]` 등 (Tactic J.3 — 전까지 Balanced index 3 = 1.0)
+- `traitMod` = `TraitSO.effects` MatchModifier (C.1)
+- `homeMod` = home 팀 `homeAdvantageMultiplier (1.08)`
+- `formMoraleMod` = `(1 + (form-50)/formCoeff(200)) × (1 + (morale-50)/moraleCoeff(200))`
+- `dressingRoomMood < dressingRoomMoodLowThreshold(30)` → `× dressingRoomLowMoodStrengthFactor(0.95)` (G.3 부활)
+
+### Foul / Card / Penalty / Injury (I.3)
+
+```
+maybeFoul (Tackle 발생 시):
+    foulChance = foulProbability(0.12) * (0.6 + aggression/100 * 0.8) * traitMod
+    if rng < foulChance:
+        Foul event (fouler, fouled)
+        if box 안 + rng < penaltyProbability(0.08):  PenaltyAwarded → ResolvePenalty (I.10)
+        else:                                         FreeKick
+        maybeCard
+        if rng < injuryProbability(0.03) * (fatigue>40 ? fatigueInjuryMultiplier : 1):  Injury
+
+maybeCard:
+    if rng < yellowCardProbability(0.30):
+        if rng < redCardProbability(0.04):  RedCard → sentOff
+        else:
+            yellows[id]++
+            if yellows[id] >= 2:  SecondYellow → sentOff
+            else:                 YellowCard
+
+Injury:
+    injuryType = WeightedSample(GameDatabase.AllInjuryTypes, weight)
+    baseDays = rng(minDays, maxDays)
+    recoveryDays = InjurySystem.ComputeRecoveryDays(baseDays, medical, gym, balance)
+    player.state.injury = InjuryInfo{...}; PlayerInjuredEvent 발행
+    SubstitutionAI 즉시 교체 시도 (I.6)
+```
+
+**카드 누적 → 정지** (시즌 단위, MatchPostProcessor / I.3):
+- 옐로 5장 → suspendedMatches=1 / 10장 → 2 / 15장 → 3
+- 레드 / 2옐로 → 1~3경기 (사유별)
+- starting11 선정 시 `injury.injuryTypeId != -1` / `suspendedMatches > 0` 제외
+
+### 세트피스 (I.10 SetPieceResolver)
+
+zone resolution 은 세트피스 **트리거** (Corner / FreeKick / Penalty 이벤트) 만. 해결은 별도 — 세트피스 스탯 본격 반영:
+```
+Corner:    taker.corners + 타겟 (heading × jumpingReach) → 헤더 슛 (ResolveShot 변형, 헤딩 가중)
+FreeKick:  근거리 직접 → freeKickTaking vs GK / 원거리 → 크로스 → 헤더
+Penalty:   penaltyTaking vs GK (reflexes × handling) → PenaltyGoal / PenaltyMiss
+LongThrow: longThrows + 타겟 heading → box 진입
+```
+- 담당자 = `Tactic.setPieceTakers` (J.5). 미지정 시 자동 (해당 stat 최상위).
+
+### 평점 (I.4)
+
+기본 6.5 시작, 이벤트별 가산 (외부화):
+- Goal +1.0 / Assist +0.5 / KeyPass +0.1 / Tackle·Interception +0.05 / ShotOnTarget +0.1
+- YellowCard -0.3 / RedCard -1.5 / 자책 -1.0 / PenaltyMiss -0.5
+- GK: Save +0.15 / 무실점 +0.5 / 실점 -0.2
+- 팀 승리 +0.2 / 패배 -0.2 전원
+- `pressureHandling` (Hidden) 빅매치 가산
+- 매치 종료 시 Round1, clamp 1.0~10.0
+
+### 연장 / 승부차기 (I.11)
+
+```
+FullTime + 동점 + allowsExtraTime (컵 — match.type 분기):
+    → ExtraTimeFirstHalf (91~105+st) → ExtraTimeHalfTime → ExtraTimeSecondHalf (106~120+st)
+    → 여전히 동점: PenaltyShootout
+        penaltyShootoutRounds(5) 교대 → 동점 시 sudden death
+        각 킥: penaltyTaking vs GK (reflexes × handling)
+리그 매치 (allowsExtraTime=false): FullTime = 종료 (무승부 허용)
+```
+
+### Background / SimulateLite (#55, I.7)
+
+- **동일 5-zone Markov 엔진** 사용. 별도 Poisson 경량 경로 **폐기** (V0.1 잔재 제거 — `strengthExponent` / `avgGoalsPerMatch` / `scoringWeightByLine` 미사용).
+- `collectEvents = false` → `Match.events` 텍스트 로그만 생략. 통계 (점유율 / 슛 / 패스 / 카드 / 평점) 는 수집.
+- `MatchPostProcessor.Process(..., publishEvent: false)` — UI 갱신 비용 ↓.
+- 연산: 매치 ~9K 산술 / 1 라운드 10매치 < 1ms. 단일 리그 V1.0 부담 0 (다중 리그 V2.0 도 ~수 ms).
+
+### Balancing Parameters (V1.0 — 전면 외부화, GameBalanceSO)
+
+```
+[5-zone Markov]
+homeAdvantageMultiplier = 1.08
+shotAccuracyBase = 0.45  / shotAccuracyDivisor = 200
+goalConversionBase = 0.30 / goalConversionDivisor = 150
+actionsPerMinuteMin = 1 / actionsPerMinuteMax = 3
+cornerChance = 0.25 / cornerToBoxChance = 0.30
+midfieldTackleRatio = 0.60         # 실패 시 Tackle vs Interception
+attackingThirdTackleRatio = 0.50
+
+[fatigue 임계 — #54]
+fatiguePerfThreshold = 50 / fatiguePerfFloor = 0.6 / fatiguePerfPenaltyPerPoint = 0.01
+fatigueInjuryThreshold = 40 / fatigueInjuryMultiplier = 1.5
+
+[Foul / Card / Injury]
+foulProbability = 0.12 / penaltyProbability = 0.08
+yellowCardProbability = 0.30 / redCardProbability = 0.04 / injuryProbability = 0.03
+yellowSuspensionThreshold = 5 (10→2 / 15→3) / redSuspensionMatchesMin = 1 / Max = 3
+
+[외부 영향 — I.8]
+formCoeff = 200 / moraleCoeff = 200
+
+[stoppage / 연장]
+stoppageTimeMax = 4 / extraTimeStoppageMax = 2 / penaltyShootoutRounds = 5
+
+[I.2 잔존 외부화 — 5-zone 에서 재활용 / 일부 폐기]
+shotChanceBaseDivisor / keyPassChanceDivisor / ... (I.2) → 5-zone 은 zone 도달 빈도가 슛수를 결정하므로 일부 폐기, 일부 재해석. 구현(Sub-B) 시 정리.
+
+[폐기 — I.9]
+strengthExponent (#33 V0.1) — SimulateLite 도 Markov 라 완전 미사용 → 제거.
+avgGoalsPerMatch / homeAdvantageGoalBonus / scoringWeightByLine — V0.1 Poisson 전용 → 미사용 (제거 검토).
 ```
 
 ### Test Scenarios (V1.0)
 
 | ID | 시나리오 | 검증 |
 | --- | --- | --- |
-| T1 | 결정성 | 같은 시드 → 같은 시퀀스 + 같은 MatchResult |
-| T2 | 부상 발생 | injuryProneness=100 선수 100매치 → 평균 ~0.5 부상 (분당 0.06% × 90 = 5.4% / 매치) |
-| T3 | 카드 시스템 | 옐로 5장 누적 선수 → suspendedMatches=1 (다음 매치 출전 X) |
-| T4 | SimulateLite | 비활성 매치 → events 비움, playerStats 22명 minutes=90 |
-| T5 | 평점 시스템 | 골 2 + 어시스트 1 + 옐로 1 선수 → rating ≈ 6.5 + 2.0 + 0.5 - 0.3 = 8.7 |
-| T6 | Mentality 영향 | VeryDefensive vs VeryAttacking 같은 팀 → 골수 차이 (defensive 평균 ↓~30%) |
-| T7 | form / morale / fatigue 보정 | form 100 + morale 100 vs form 0 + morale 0 → effectiveCA 차이 ~×2 |
-| T8 | Role 가중치 | Poacher vs Target Forward 같은 stat → 슈팅 비율 차이 (Poacher ~2배) |
-| T9 | 텍스트 이벤트 분량 | 유저 매치 events 15-20 / 비활성 매치 events 0 |
-| T10 | 인터페이스 호환 | `Simulate(match, state, balance) → MatchResult` 시그니처 동일 (호출자 변경 X) |
+| T1 | 결정성 | 같은 시드 + 같은 입력 → 같은 시퀀스 + MatchResult |
+| T2 | 인터페이스 호환 | `Simulate(match, state, balance) → MatchResult` 시그니처 동일 |
+| T3 | 골 분포 | 평균 ~2.7골/매치 (±) — 100매치 통계 |
+| T4 | 점유율 | possessionTicks home+away ≈ 100% / 강팀 점유 우세 |
+| T5 | 강팀 우세 | CA 170 vs 90 → 강팀 승률 ≥ 임계 (zone 우세 누적) |
+| T6 | 슛 분포 | 슛/팀/매치 ~10-15 (box 도달 빈도) |
+| T7 | fatigue 임계 | fatigue ≤ 50 보정 0 / 100 perf 0.6 / fatigue > 40 부상률 ↑ |
+| T8 | 카드 / 퇴장 | 2옐로 → sentOff / 레드 → sentOff / 옐로 5 → suspendedMatches |
+| T9 | 텍스트 이벤트 | collectEvents=true events 채움 / false 비움 (통계는 양쪽) |
+| T10 | 부상 발생 | injuryProneness 100 → 부상률 ↑ + PlayerInjuredEvent |
+| T11 | 연장 / 승부차기 | 컵 동점 → ExtraTime → PenaltyShootout 결착 |
+| T12 | Mentality | VeryAttacking vs VeryDefensive → 슛수 차이 (J.3 도입 후) |
+| T13 | 세트피스 | Corner / FreeKick / Penalty → taker stat 반영 (I.10) |
 
 ### V1.0 → V1.x Migration Notes
 
 | 항목 | V1.0 | V1.x+ |
 | --- | --- | --- |
-| **Team Instructions** | 미적용 (Mentality 만) | Tempo / Passing / Pressing / Line / Width 5 옵션 이벤트 가중 입력 |
-| **유저 코칭 인터럽트** | 미구현 | 전반 종료 / 중요 이벤트 시 외침 / 교체 옵션. UI 의존 |
+| **Team Instructions** | Mentality 만 | Tempo / Passing / Pressing / Line / Width 가중 |
+| **유저 코칭 인터럽트** | 미구현 | 전반 종료 외침 / 교체 (OFM MatchCommand 패턴) |
 | **xG / heatmap** | 미적용 | 매치 통계 풍부화 |
-| **컵 연장전 / 승부차기** | Q2 미도입 (V2.0+) | match.type 분기 + extraTimeLambda |
+| **15-zone 정밀화** | 5-zone | OFM legacy 처럼 15-zone + transition matrix |
 | **날씨 / 잔디** | 미적용 | strength 보정 추가 |
 
 ---
