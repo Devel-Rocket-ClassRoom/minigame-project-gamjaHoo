@@ -3,7 +3,8 @@
 // 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 (design-decisions.md #44 / #55).
 // 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
 // I.3: Foul/Card/Penalty/Injury — Tackle 시 maybeFoul → box penalty / 2옐로 퇴장 / Injury + PlayerInjuredEvent + sentOff.
-// 후속: 평점 = I.4 / 텍스트 events = I.5 / SubstitutionAI(부상 교체) = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
+// I.5: collectEvents=true → Match.events 핵심 이벤트 (Goal/Shot/Card/Injury/KeyPass) 채움. textKey/textArgs 포함.
+// 후속: SubstitutionAI(부상 교체) = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
 
 using System;
 using System.Collections.Generic;
@@ -48,6 +49,7 @@ namespace FMLite.Application
             public int awayScore;
             public int homePossessionTicks;
             public int awayPossessionTicks;
+            public int currentMinute;
 
             // 직전 KeyPass(슛 연결 패스) 발행자 — Goal 시 assist 카운트.
             public int homePendingAssist = -1;
@@ -58,9 +60,18 @@ namespace FMLite.Application
             // I.3 — 카드/퇴장. yellows = 이 매치 누적 옐로. sentOff = 퇴장 (snap 제외).
             public Dictionary<int, int> yellows = new Dictionary<int, int>();
             public HashSet<int> sentOff = new HashSet<int>();
+
+            // I.5 — 텍스트 이벤트 (collectEvents=true 한정).
+            public bool collectEvents;
+            public List<MatchEvent> events = new List<MatchEvent>();
         }
 
-        public static MatchResult Simulate(Match match, GameState state, GameBalanceSO balance)
+        public static MatchResult Simulate(
+            Match match,
+            GameState state,
+            GameBalanceSO balance,
+            bool collectEvents = false
+        )
         {
             if (match == null)
                 throw new ArgumentNullException(nameof(match));
@@ -99,19 +110,39 @@ namespace FMLite.Application
                 ballZone = Zone.Midfield,
                 possession = Side.Home,
                 stats = InitStatsMap(homeXI, awayXI),
+                collectEvents = collectEvents,
             };
+
+            // 킥오프 이벤트
+            if (collectEvents)
+                EmitEvent(sim, MatchEventType.KickOff, Side.Home, 0, 0, "match_kickoff", null);
 
             // 4단계: 분 단위 step (1~90). 연장/stoppage = I.11.
             for (int minute = 1; minute <= 90; minute++)
             {
+                sim.currentMinute = minute;
                 if (minute == 46)
                 {
                     // 후반 킥오프 — possession 교대 + ball Midfield
                     sim.ballZone = Zone.Midfield;
                     sim.possession = Side.Away;
+                    if (collectEvents)
+                        EmitEvent(
+                            sim,
+                            MatchEventType.HalfTime,
+                            Side.Home,
+                            0,
+                            0,
+                            "match_halftime",
+                            null
+                        );
                 }
                 PlayMinute(sim);
             }
+
+            // 전체 종료
+            if (collectEvents)
+                EmitEvent(sim, MatchEventType.FullTime, Side.Home, 0, 0, "match_fulltime", null);
 
             // 5단계: 평점 계산 (I.4) + MatchResult (minutesPlayed 가변 = I.6)
             ComputeRatings(sim);
@@ -129,6 +160,7 @@ namespace FMLite.Application
                 playerStats = sim.stats.Values.ToList(),
                 homePossessionPct = homePct,
                 awayPossessionPct = 100f - homePct,
+                events = sim.events,
             };
         }
 
@@ -258,6 +290,18 @@ namespace FMLite.Application
                 SetPendingAssist(sim, att, attacker.id);
                 sim.stats[attacker.id].keyPasses++;
                 sim.ballZone = AttackingBox(att);
+
+                // I.5 — 드리블 성공 (KeyPass) 이벤트
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.Dribble,
+                        att,
+                        attacker.id,
+                        0,
+                        "match_dribble_fmt",
+                        MakeArgs(sim, attacker.id, 0)
+                    );
             }
             else
             {
@@ -306,6 +350,17 @@ namespace FMLite.Application
                     MaybeCard(sim, fouler.id);
                     MaybeInjury(sim, shooter);
                 }
+                // I.5 — 페널티 선언
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.PenaltyAwarded,
+                        att,
+                        shooter.id,
+                        fouler?.id ?? 0,
+                        "match_penalty_awarded_fmt",
+                        MakeArgs(sim, shooter.id, 0)
+                    );
                 ResolvePenalty(sim, att, shooter, gk);
                 TurnOver(sim, att, Zone.Midfield);
                 return;
@@ -323,12 +378,34 @@ namespace FMLite.Application
             );
             if (sim.rng.NextDouble() > accuracy)
             {
-                // off-target (block / miss — 통계는 shots 만)
+                // off-target (block / miss)
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.ShotOffTarget,
+                        att,
+                        shooter.id,
+                        0,
+                        "match_shot_off_target_fmt",
+                        MakeArgs(sim, shooter.id, 0)
+                    );
                 TurnOver(sim, att, Zone.Midfield);
                 return;
             }
 
             sim.stats[shooter.id].shotsOnTarget++;
+
+            // I.5 — 유효슛
+            if (sim.collectEvents)
+                EmitEvent(
+                    sim,
+                    MatchEventType.ShotOnTarget,
+                    att,
+                    shooter.id,
+                    0,
+                    "match_shot_on_target_fmt",
+                    MakeArgs(sim, shooter.id, 0)
+                );
 
             // GK save 판정
             double gkRating = gk != null ? Eff(GkRating(gk), def, sim) : 40.0;
@@ -351,10 +428,40 @@ namespace FMLite.Application
                 if (assister != -1 && assister != shooter.id && sim.stats.ContainsKey(assister))
                     sim.stats[assister].assists++;
                 ClearPendingAssist(sim, att);
+
+                // I.5 — 골 이벤트
+                if (sim.collectEvents)
+                {
+                    string key =
+                        assister != -1 && assister != shooter.id
+                            ? "match_goal_assist_fmt"
+                            : "match_goal_fmt";
+                    EmitEvent(
+                        sim,
+                        MatchEventType.Goal,
+                        att,
+                        shooter.id,
+                        assister != -1 ? assister : 0,
+                        key,
+                        MakeArgs(sim, shooter.id, assister != -1 ? assister : 0)
+                    );
+                }
             }
             else if (gk != null && sim.stats.ContainsKey(gk.id))
             {
                 sim.stats[gk.id].saves++; // I.4 — GK 선방
+
+                // I.5 — 선방 이벤트
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.ShotSaved,
+                        att,
+                        shooter.id,
+                        gk.id,
+                        "match_shot_saved_fmt",
+                        MakeArgs(sim, gk.id, shooter.id)
+                    );
             }
 
             TurnOver(sim, att, Zone.Midfield);
@@ -375,6 +482,30 @@ namespace FMLite.Application
             sim.stats[fouler.id].foulsCommitted++;
             if (fouled != null && sim.stats.ContainsKey(fouled.id))
                 sim.stats[fouled.id].foulsSuffered++;
+
+            // I.5 — 파울 + 프리킥
+            if (sim.collectEvents && fouled != null)
+            {
+                EmitEvent(
+                    sim,
+                    MatchEventType.Foul,
+                    Opposite(sim.possession),
+                    fouler.id,
+                    fouled.id,
+                    "match_foul_fmt",
+                    MakeArgs(sim, fouler.id, fouled.id)
+                );
+                EmitEvent(
+                    sim,
+                    MatchEventType.FreeKick,
+                    sim.possession,
+                    0,
+                    0,
+                    "match_free_kick_fmt",
+                    null
+                );
+            }
+
             MaybeCard(sim, fouler.id);
             MaybeInjury(sim, fouled);
         }
@@ -385,11 +516,25 @@ namespace FMLite.Application
             if (sim.rng.NextDouble() >= sim.balance.yellowCardProbability)
                 return;
 
+            // 파울러 소속팀 (카드 이벤트 side 정확성 — 파울러는 항상 수비팀).
+            Side foulerSide = sim.homeXI.Contains(foulerId) ? Side.Home : Side.Away;
+
             if (sim.rng.NextDouble() < sim.balance.redCardProbability)
             {
                 // 다이렉트 레드
                 sim.stats[foulerId].redCards++;
                 sim.sentOff.Add(foulerId);
+
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.RedCard,
+                        foulerSide,
+                        foulerId,
+                        0,
+                        "match_red_card_fmt",
+                        MakeArgs(sim, foulerId, 0)
+                    );
                 return;
             }
 
@@ -401,6 +546,30 @@ namespace FMLite.Application
                 // 2옐로 = 퇴장 (redCards 로도 표기 → suspendedMatches 트리거)
                 sim.stats[foulerId].redCards++;
                 sim.sentOff.Add(foulerId);
+
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.SecondYellow,
+                        foulerSide,
+                        foulerId,
+                        0,
+                        "match_second_yellow_fmt",
+                        MakeArgs(sim, foulerId, 0)
+                    );
+            }
+            else
+            {
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.YellowCard,
+                        foulerSide,
+                        foulerId,
+                        0,
+                        "match_yellow_card_fmt",
+                        MakeArgs(sim, foulerId, 0)
+                    );
             }
         }
 
@@ -444,6 +613,18 @@ namespace FMLite.Application
             EventBus.Publish(
                 new PlayerInjuredEvent { playerId = fouled.id, injury = fouled.state.injury }
             );
+
+            // I.5 — 부상 이벤트
+            if (sim.collectEvents)
+                EmitEvent(
+                    sim,
+                    MatchEventType.Injury,
+                    sim.possession,
+                    fouled.id,
+                    0,
+                    "match_injury_fmt",
+                    MakeArgs(sim, fouled.id, 0)
+                );
         }
 
         // 인-매치 페널티 — penaltyTaking vs GK. taker = 파울 얻은 선수 (단순; 지정 키커 = I.10).
@@ -468,10 +649,33 @@ namespace FMLite.Application
                 else
                     sim.awayScore++;
                 sim.stats[taker.id].goals++;
+
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.PenaltyGoal,
+                        att,
+                        taker.id,
+                        0,
+                        "match_penalty_goal_fmt",
+                        MakeArgs(sim, taker.id, 0)
+                    );
             }
-            else if (gk != null && sim.stats.ContainsKey(gk.id))
+            else
             {
-                sim.stats[gk.id].saves++; // I.4 — 페널티 선방
+                if (gk != null && sim.stats.ContainsKey(gk.id))
+                    sim.stats[gk.id].saves++; // I.4 — 페널티 선방
+
+                if (sim.collectEvents)
+                    EmitEvent(
+                        sim,
+                        MatchEventType.PenaltyMiss,
+                        att,
+                        taker.id,
+                        0,
+                        "match_penalty_miss_fmt",
+                        MakeArgs(sim, taker.id, 0)
+                    );
             }
         }
 
@@ -538,6 +742,57 @@ namespace FMLite.Application
                 r = Math.Round(r, 1);
                 stat.rating = (float)Clamp(r, b.ratingMin, b.ratingMax);
             }
+        }
+
+        // ── I.5: 이벤트 발행 헬퍼 ────────────────────────────────────
+
+        private static void EmitEvent(
+            SimState sim,
+            MatchEventType type,
+            Side side,
+            int actorId,
+            int targetId,
+            string textKey,
+            Dictionary<string, string> textArgs
+        )
+        {
+            sim.events.Add(
+                new MatchEvent
+                {
+                    minute = sim.currentMinute,
+                    type = type,
+                    side = (int)side,
+                    actorPlayerId = actorId,
+                    targetPlayerId = targetId,
+                    textKey = textKey,
+                    textArgs = textArgs,
+                }
+            );
+        }
+
+        // textArgs 빌더 — actorId/targetId → 선수 이름 (UI 표시용).
+        private static Dictionary<string, string> MakeArgs(SimState sim, int actorId, int targetId)
+        {
+            var args = new Dictionary<string, string> { ["minute"] = sim.currentMinute.ToString() };
+            if (actorId > 0)
+            {
+                var p = sim.gameState.GetPlayer(actorId);
+                args["playerName"] = p?.info.name ?? actorId.ToString();
+            }
+            if (targetId > 0)
+            {
+                var p = sim.gameState.GetPlayer(targetId);
+                args["targetName"] = p?.info.name ?? targetId.ToString();
+                // GK 선방 이벤트용 alias
+                args["gkName"] = p?.info.name ?? targetId.ToString();
+                // assist
+                args["assistName"] = p?.info.name ?? targetId.ToString();
+                // fouler (파울 이벤트) — actorId = fouler
+                args["foulerName"] =
+                    sim.gameState.GetPlayer(actorId)?.info.name ?? actorId.ToString();
+                args["fouledName"] = p?.info.name ?? targetId.ToString();
+            }
+            return args;
         }
 
         // ── 헬퍼: 상태 전이 ───────────────────────────────────────────
