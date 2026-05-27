@@ -78,16 +78,12 @@ namespace FMLite.Tests
             foreach (var m in firstSeasonSchedule)
                 Assert.IsNotNull(m.result, $"T1: 첫 시즌 match.id={m.id} result 채워짐");
 
-            // 2. 첫 시즌 매치 결과 데이터 — 골 누적 검증 (standings 는 NewSeasonProcessor
-            //    6/1 호출 시 초기화되어 365일 종료 시점에 0 으로 돌아감)
+            // 2. 첫 시즌 매치 결과 데이터 — I.1 골격: 모든 매치 0:0 (이벤트 종류 도입 = I.2).
+            //    Assert.Greater 골 누적 검증은 I.2 (Shot/Goal 이벤트) 머지 시 복원.
             int totalGoals = firstSeasonSchedule.Sum(m =>
                 (m.result?.homeScore ?? 0) + (m.result?.awayScore ?? 0)
             );
-            Assert.Greater(
-                totalGoals,
-                0,
-                "T1: 첫 시즌 매치 골 누적 (MatchPostProcessor 가 result 채움)"
-            );
+            Assert.AreEqual(0, totalGoals, "T1: I.1 골격 — 모든 매치 0:0. I.2 진입 시 Assert.Greater 복원.");
 
             // 3. 시즌 종료 / 신규 시즌 시작 이벤트 발행
             Assert.GreaterOrEqual(seasonEndedReceived, 1, "T1: SeasonEndedEvent ≥ 1");
@@ -300,6 +296,7 @@ namespace FMLite.Tests
         }
 
         [Test]
+        [Ignore("I.1 골격 — 모든 매치 0:0 이라 시드 무관 동일 결과. I.2 (Shot/Goal 이벤트) 진입 시 복원.")]
         public void T3b_DifferentSeeds_DifferentResults()
         {
             var s1 = GameInitializer.NewGame(seed: 42, _seasonStart, _leagueConfig, _balance);
