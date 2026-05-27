@@ -338,14 +338,19 @@ namespace FMLite.Tests
             var (state, match) = BuildState(seed: 5, matchId: 1);
             var r = MatchSimulator.Simulate(match, state, _balance);
 
-            Assert.AreEqual(
-                r.homeStarting11.Count + r.awayStarting11.Count,
-                r.playerStats.Count
+            // I.6 이후: 교체 선수 포함 — 최소 22명, 최대 22 + subs
+            Assert.GreaterOrEqual(
+                r.playerStats.Count,
+                r.homeStarting11.Count + r.awayStarting11.Count
             );
             foreach (var ps in r.playerStats)
             {
-                // minutesPlayed 가변 = I.6 (아직 90 고정). rating = I.4 채워짐 (1.0~10.0).
-                Assert.AreEqual(90, ps.minutesPlayed, $"minutesPlayed=90 (id={ps.playerId})");
+                // minutesPlayed: I.6 교체 시 가변 (1~90). rating = I.4 채워짐 (1.0~10.0).
+                Assert.That(
+                    ps.minutesPlayed,
+                    Is.InRange(1, 90),
+                    $"minutesPlayed 1~90 (id={ps.playerId})"
+                );
                 Assert.That(
                     ps.rating,
                     Is.InRange(1.0f, 10.0f),
@@ -435,6 +440,48 @@ namespace FMLite.Tests
                 Assert.IsNotEmpty(e.textKey, $"T9: textKey 빈 문자열 (type={e.type})");
                 Assert.GreaterOrEqual(e.minute, 0, $"T9: minute >= 0 (type={e.type})");
             }
+        }
+
+        // ── T11. I.6 SubstitutionAI — 피로 기반 자동 교체 ───────────────
+
+        [Test]
+        public void T11_Substitution_FatigueTrigger_MinutesPlayedUpdated()
+        {
+            var (state, match) = BuildState(seed: 77, matchId: 77);
+            // 전원 피로 80 → threshold(70) 초과 → 45/60/75분 체크에서 교체 발생
+            for (int id = 1; id <= 50; id++)
+            {
+                var p = state.GetPlayer(id);
+                if (p != null)
+                    p.state.fatigue = 80;
+            }
+            _balance.substitutionFatigueThreshold = 70;
+            _balance.substitutionTacticalMinute = 45;
+            _balance.maxSubstitutionsPerTeam = 3;
+
+            var result = MatchSimulator.Simulate(match, state, _balance, collectEvents: true);
+
+            var subEvents = result.events.Where(e => e.type == MatchEventType.Substitution).ToList();
+            Assert.Greater(subEvents.Count, 0, "T11: 피로 교체 미발동");
+
+            foreach (var e in subEvents)
+            {
+                Assert.Greater(e.minute, 0, $"T11: minute={e.minute} 유효하지 않음");
+                Assert.Less(e.minute, 90, $"T11: minute={e.minute} 90분 이상");
+                Assert.AreNotEqual(e.actorPlayerId, e.targetPlayerId, "T11: playerIn == playerOut");
+            }
+
+            // 교체 아웃 선수는 minutesPlayed < 90
+            Assert.IsTrue(
+                result.playerStats.Any(ps => ps.minutesPlayed < 90),
+                "T11: 교체 아웃 선수 minutesPlayed < 90 없음"
+            );
+
+            // 팀당 최대 3회 초과 금지
+            int homeSubCount = subEvents.Count(e => e.side == 0);
+            int awaySubCount = subEvents.Count(e => e.side == 1);
+            Assert.LessOrEqual(homeSubCount, 3, "T11: home 교체 횟수 초과");
+            Assert.LessOrEqual(awaySubCount, 3, "T11: away 교체 횟수 초과");
         }
 
         // ── Helpers ───────────────────────────────────────────────────

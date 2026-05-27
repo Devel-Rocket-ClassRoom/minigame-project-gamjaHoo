@@ -389,6 +389,12 @@ namespace FMLite.Editor
                     "{playerName} 부상! ({minute}')",
                     "{playerName} injured! ({minute}')"
                 ),
+                // 교체
+                E(
+                    "match_substitution_fmt",
+                    "{playerIn} IN / {playerOut} OUT ({minute}')",
+                    "{playerIn} ON / {playerOut} OFF ({minute}')"
+                ),
                 // MatchReport 헤드라인 — OFM headline.{outcome}.{variant} 패턴 (3 변형)
                 E(
                     "match_report_win_headline_0",
