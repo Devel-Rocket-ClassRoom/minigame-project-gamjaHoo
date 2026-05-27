@@ -60,11 +60,12 @@ namespace FMLite.Tests
             foreach (var entry in league.standings.entries)
                 Assert.AreEqual(1, entry.played, $"T1: clubId={entry.clubId} played=1");
 
-            // 총 점수 합 일관성 (승+승=6 / 무무=4 또는 그 조합)
+            // 총 점수 합 일관성 — 매치당 승부=3(3+0) / 무=2(1+1). 2매치 합:
+            //   무 0개 = 3+3 = 6 / 무 1개 = 3+2 = 5 / 무 2개 = 2+2 = 4
             int totalPoints = league.standings.entries.Sum(e => e.points);
             Assert.IsTrue(
-                totalPoints == 6 || totalPoints == 4 || totalPoints == 2,
-                $"T1: 2매치 → 가능한 총점 6/4/2 (무 0개/1개/2개) (실측 {totalPoints})"
+                totalPoints == 6 || totalPoints == 5 || totalPoints == 4,
+                $"T1: 2매치 → 가능한 총점 6/5/4 (무 0개/1개/2개) (실측 {totalPoints})"
             );
         }
 

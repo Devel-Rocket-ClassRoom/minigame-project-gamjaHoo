@@ -14,6 +14,10 @@ namespace FMLite.Domain
         public List<int> homeStarting11 = new List<int>();
         public List<int> awayStarting11 = new List<int>();
         public List<PlayerMatchStat> playerStats = new List<PlayerMatchStat>();
+
+        // V1.0 5-zone (I.2') — 점유율 % (possessionTicks 기반). 활성/비활성 매치 모두 채움 (#55).
+        public float homePossessionPct;
+        public float awayPossessionPct;
     }
 
     [Serializable]

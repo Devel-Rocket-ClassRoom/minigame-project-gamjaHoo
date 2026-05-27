@@ -1,13 +1,12 @@
 // MatchSimulator.cs
-// algorithms.md V1.0-2 Match Simulation V1.0 (분 단위 이벤트 시퀀스) — Stage I.1 골격 + I.2 이벤트 종류.
-// 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 (design-decisions.md #34 / #44).
-// I.2: Shot/KeyPass/Cross/Foul/Injury/Pass/Tackle/Interception 이벤트 + Goal/Save 결과 + assist 추적.
-// 후속: suspendedMatches 누적 = I.3 / 평점 = I.4 / 텍스트 = I.5 / SubstitutionAI = I.6 / SimulateLite = I.7 / 외부 영향 = I.8 / strengthExponent 폐기 = I.9.
+// algorithms.md V1.0-2 Match Simulation V1.0 — 5-Zone Markov (Stage I.1' 상태 머신 + I.2' zone resolution).
+// 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 (design-decisions.md #44 / #55).
+// 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
+// 후속: Foul/Card/Penalty/Injury = I.3 / 평점 = I.4 / 텍스트 events = I.5 / SubstitutionAI = I.6 / background collectEvents = I.7 / fatigue·form·morale = I.8 / strengthExponent 폐기 = I.9 / 세트피스 = I.10 / 연장 = I.11.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FMLite.Core;
 using FMLite.Domain;
 using UnityEngine;
 using Random = System.Random;
@@ -16,6 +15,45 @@ namespace FMLite.Application
 {
     public static class MatchSimulator
     {
+        // 피치 5-zone (Home 기준 방향). Home 공격 = AwayBox 향함.
+        private enum Zone
+        {
+            HomeBox,
+            HomeDefense,
+            Midfield,
+            AwayDefense,
+            AwayBox,
+        }
+
+        private enum Side
+        {
+            Home,
+            Away,
+        }
+
+        // 매치 시뮬레이션 내부 상태 (직렬화 X — 매치 종료 시 MatchResult 로 변환).
+        private sealed class SimState
+        {
+            public Random rng;
+            public GameState gameState;
+            public GameBalanceSO balance;
+            public List<int> homeXI;
+            public List<int> awayXI;
+
+            public Zone ballZone = Zone.Midfield;
+            public Side possession = Side.Home;
+            public int homeScore;
+            public int awayScore;
+            public int homePossessionTicks;
+            public int awayPossessionTicks;
+
+            // 직전 KeyPass(슛 연결 패스) 발행자 — Goal 시 assist 카운트.
+            public int homePendingAssist = -1;
+            public int awayPendingAssist = -1;
+
+            public Dictionary<int, PlayerMatchStat> stats;
+        }
+
         public static MatchResult Simulate(Match match, GameState state, GameBalanceSO balance)
         {
             if (match == null)
@@ -37,70 +75,420 @@ namespace FMLite.Application
                     $"[MatchSimulator] V1.0 호출 경로 없음 — match.type={match.type}. League 와 동일 처리."
                 );
 
-            // 1단계: 시드 고정 (algorithms.md V1.0-2 1단계 / design-decisions.md #17)
+            // 1단계: 시드 고정 (forward simulation — 결정성은 시드에서만, #17 V1.0)
             var rng = new Random(match.id ^ state.randomSeed);
 
-            // 2단계: starting11 결정 (Tactic 도입 = Stage J. 자동 라인업 + 부상/정지 제외)
-            var homeStarting11 = SelectStartingEleven(home, state);
-            var awayStarting11 = SelectStartingEleven(away, state);
+            // 2단계: starting11 자동 선정 (Tactic = Stage J. 부상/정지 제외)
+            var homeXI = SelectStartingEleven(home, state);
+            var awayXI = SelectStartingEleven(away, state);
 
-            // 3단계: 경기 상태 초기화
-            int homeScore = 0;
-            int awayScore = 0;
-            var stats = InitStatsMap(homeStarting11, awayStarting11);
+            // 3단계: 상태 초기화
+            var sim = new SimState
+            {
+                rng = rng,
+                gameState = state,
+                balance = balance,
+                homeXI = homeXI,
+                awayXI = awayXI,
+                ballZone = Zone.Midfield,
+                possession = Side.Home,
+                stats = InitStatsMap(homeXI, awayXI),
+            };
 
-            // 양 팀 직전 KeyPass 발행자 (다음 골 발생 시 assist 카운트).
-            int homePendingAssist = -1;
-            int awayPendingAssist = -1;
-
-            // 4단계: 분 단위 step (1~90) — 양 팀 독립 이벤트 추첨
+            // 4단계: 분 단위 step (1~90). 연장/stoppage = I.11.
             for (int minute = 1; minute <= 90; minute++)
             {
-                (homeScore, homePendingAssist) = SimulateTeamMinute(
-                    home,
-                    homeStarting11,
-                    awayStarting11,
-                    state,
-                    balance,
-                    rng,
-                    stats,
-                    homeScore,
-                    homePendingAssist
-                );
-                (awayScore, awayPendingAssist) = SimulateTeamMinute(
-                    away,
-                    awayStarting11,
-                    homeStarting11,
-                    state,
-                    balance,
-                    rng,
-                    stats,
-                    awayScore,
-                    awayPendingAssist
-                );
+                if (minute == 46)
+                {
+                    // 후반 킥오프 — possession 교대 + ball Midfield
+                    sim.ballZone = Zone.Midfield;
+                    sim.possession = Side.Away;
+                }
+                PlayMinute(sim);
             }
 
-            // 5단계: 최종 누적 = MatchResult (I.4 평점 / I.6 minutesPlayed 가변 후속)
+            // 5단계: MatchResult (rating = I.4, minutesPlayed 가변 = I.6)
+            int totalTicks = sim.homePossessionTicks + sim.awayPossessionTicks;
+            float homePct =
+                totalTicks > 0 ? (float)sim.homePossessionTicks / totalTicks * 100f : 50f;
+
             return new MatchResult
             {
-                homeScore = homeScore,
-                awayScore = awayScore,
-                homeStarting11 = homeStarting11,
-                awayStarting11 = awayStarting11,
-                playerStats = stats.Values.ToList(),
+                homeScore = sim.homeScore,
+                awayScore = sim.awayScore,
+                homeStarting11 = homeXI,
+                awayStarting11 = awayXI,
+                playerStats = sim.stats.Values.ToList(),
+                homePossessionPct = homePct,
+                awayPossessionPct = 100f - homePct,
             };
         }
 
-        // ── starting11 자동 선정 (Tactic 도입 = Stage J) ─────────────
+        // ── 매 분 (PlayMinute) ────────────────────────────────────────
+
+        private static void PlayMinute(SimState sim)
+        {
+            // possession 누적
+            if (sim.possession == Side.Home)
+                sim.homePossessionTicks++;
+            else
+                sim.awayPossessionTicks++;
+
+            // 1~3 actions
+            int actions = sim.rng.Next(
+                sim.balance.actionsPerMinuteMin,
+                sim.balance.actionsPerMinuteMax + 1
+            );
+            for (int i = 0; i < actions; i++)
+                ResolveAction(sim);
+
+            // Possession contest (midfield 대결)
+            double midAtt = EffectiveMidfield(sim, sim.possession);
+            double midDef = EffectiveMidfield(sim, Opposite(sim.possession));
+            double total = midAtt + midDef;
+            double retain = total > 0 ? midAtt / total : 0.5;
+            if (sim.rng.NextDouble() > retain)
+            {
+                sim.possession = Opposite(sim.possession);
+                sim.ballZone = Zone.Midfield;
+            }
+        }
+
+        // ── ResolveAction (zone 분기) ─────────────────────────────────
+
+        private static void ResolveAction(SimState sim)
+        {
+            Side att = sim.possession;
+            if (sim.ballZone == AttackingBox(att))
+                ResolveShot(sim, att);
+            else if (sim.ballZone == AttackingThird(att))
+                ResolveAttackingThird(sim, att);
+            else if (sim.ballZone == Zone.Midfield)
+                ResolveMidfield(sim, att);
+            else
+                ResolveBuildup(sim, att);
+        }
+
+        // 수비 third — 빌드업 패스. 성공 → Midfield / 실패 → Interception + 점유 전환.
+        private static void ResolveBuildup(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var passer = SnapPlayer(sim, att, Line.DF);
+            var interceptor = SnapPlayer(sim, def, Line.MF);
+            if (passer == null)
+                return;
+
+            double attEff = Eff(BuildupAtt(passer), att, sim) * 1.3; // 빌드업은 패스 우위
+            double defEff = interceptor != null ? Eff(Press(interceptor), def, sim) : 40.0;
+            double success = attEff / (attEff + defEff);
+
+            sim.stats[passer.id].passes++;
+            if (sim.rng.NextDouble() < success)
+            {
+                sim.stats[passer.id].passesCompleted++;
+                sim.ballZone = Zone.Midfield;
+            }
+            else
+            {
+                if (interceptor != null)
+                    sim.stats[interceptor.id].interceptions++;
+                TurnOver(sim, att, Zone.Midfield);
+            }
+        }
+
+        // 미드필드 대결. 성공 → AttackingThird / 실패 → Tackle·Interception + 점유 전환.
+        private static void ResolveMidfield(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var attacker = SnapPlayer(sim, att, Line.MF);
+            var defender = SnapPlayer(sim, def, Line.MF);
+            if (attacker == null)
+                return;
+
+            double attEff = Eff(MidfieldAtt(attacker), att, sim);
+            double defEff = defender != null ? Eff(MidfieldDef(defender), def, sim) : 40.0;
+            double success = attEff / (attEff + defEff);
+
+            sim.stats[attacker.id].passes++;
+            if (sim.rng.NextDouble() < success)
+            {
+                sim.stats[attacker.id].passesCompleted++;
+                sim.ballZone = AttackingThird(att);
+            }
+            else
+            {
+                if (defender != null)
+                {
+                    if (sim.rng.NextDouble() < sim.balance.midfieldTackleRatio)
+                        sim.stats[defender.id].tackles++;
+                    else
+                        sim.stats[defender.id].interceptions++;
+                }
+                TurnOver(sim, att, Zone.Midfield);
+            }
+        }
+
+        // 공격 third — 드리블 돌파. 성공 → Box / 실패 → Tackle·Clearance + Corner(25%) + 점유 전환.
+        private static void ResolveAttackingThird(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var attacker = SnapPlayer(sim, att, Line.AT);
+            var defender = SnapPlayer(sim, def, Line.DF);
+            if (attacker == null)
+                return;
+
+            double attEff = Eff(AttackingThirdAtt(attacker), att, sim);
+            double defEff = defender != null ? Eff(AttackingThirdDef(defender), def, sim) : 40.0;
+            double success = attEff / (attEff + defEff);
+
+            if (sim.rng.NextDouble() < success)
+            {
+                // 드리블 성공 → box 진입. 직전 패스 = keyPass 후보 (assist 추적).
+                SetPendingAssist(sim, att, attacker.id);
+                sim.stats[attacker.id].keyPasses++;
+                sim.ballZone = AttackingBox(att);
+            }
+            else
+            {
+                if (defender != null)
+                {
+                    if (sim.rng.NextDouble() < sim.balance.attackingThirdTackleRatio)
+                        sim.stats[defender.id].tackles++;
+                    // else Clearance (통계 X)
+                }
+                // Corner 기회 (25%) → box 재진입 (30%)
+                if (
+                    sim.rng.NextDouble() < sim.balance.zoneCornerChance
+                    && sim.rng.NextDouble() < sim.balance.zoneCornerToBoxChance
+                )
+                {
+                    sim.ballZone = AttackingBox(att);
+                    return;
+                }
+                TurnOver(sim, att, DefensiveThird(att));
+            }
+        }
+
+        // 박스 — 슈팅. on-target → GK save 판정 → Goal/Saved. off → block/miss.
+        private static void ResolveShot(SimState sim, Side att)
+        {
+            Side def = Opposite(att);
+            var shooter = SnapPlayer(sim, att, Line.AT);
+            var gk = FindGoalkeeper(sim, def);
+            if (shooter == null)
+            {
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            double shootRating = Eff(ShotRating(shooter), att, sim);
+            sim.stats[shooter.id].shots++;
+
+            // On-target 판정
+            double accuracy = Clamp(
+                sim.balance.shotAccuracyBase
+                    + (shootRating - 50.0) / sim.balance.shotAccuracyDivisor,
+                0.15,
+                0.85
+            );
+            if (sim.rng.NextDouble() > accuracy)
+            {
+                // off-target (block / miss — 통계는 shots 만)
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
+
+            sim.stats[shooter.id].shotsOnTarget++;
+
+            // GK save 판정
+            double gkRating = gk != null ? Eff(GkRating(gk), def, sim) : 40.0;
+            double conversion = Clamp(
+                sim.balance.goalConversionBase
+                    + (shootRating - gkRating) / sim.balance.goalConversionDivisor,
+                0.10,
+                0.70
+            );
+            if (sim.rng.NextDouble() < conversion)
+            {
+                // GOAL
+                if (att == Side.Home)
+                    sim.homeScore++;
+                else
+                    sim.awayScore++;
+                sim.stats[shooter.id].goals++;
+
+                int assister = GetPendingAssist(sim, att);
+                if (assister != -1 && assister != shooter.id && sim.stats.ContainsKey(assister))
+                    sim.stats[assister].assists++;
+                ClearPendingAssist(sim, att);
+            }
+            // else Saved (GK 평점 = I.4)
+
+            TurnOver(sim, att, Zone.Midfield);
+        }
+
+        // ── 헬퍼: 상태 전이 ───────────────────────────────────────────
+
+        private static void TurnOver(SimState sim, Side att, Zone newZone)
+        {
+            sim.possession = Opposite(att);
+            sim.ballZone = newZone;
+            ClearPendingAssist(sim, att);
+        }
+
+        private static Side Opposite(Side s) => s == Side.Home ? Side.Away : Side.Home;
+
+        private static Zone AttackingBox(Side s) => s == Side.Home ? Zone.AwayBox : Zone.HomeBox;
+
+        private static Zone AttackingThird(Side s) =>
+            s == Side.Home ? Zone.AwayDefense : Zone.HomeDefense;
+
+        private static Zone DefensiveThird(Side s) =>
+            s == Side.Home ? Zone.HomeDefense : Zone.AwayDefense;
+
+        private static void SetPendingAssist(SimState sim, Side att, int playerId)
+        {
+            if (att == Side.Home)
+                sim.homePendingAssist = playerId;
+            else
+                sim.awayPendingAssist = playerId;
+        }
+
+        private static int GetPendingAssist(SimState sim, Side att) =>
+            att == Side.Home ? sim.homePendingAssist : sim.awayPendingAssist;
+
+        private static void ClearPendingAssist(SimState sim, Side att)
+        {
+            if (att == Side.Home)
+                sim.homePendingAssist = -1;
+            else
+                sim.awayPendingAssist = -1;
+        }
+
+        // ── 헬퍼: 선수 선정 ───────────────────────────────────────────
+
+        private static List<int> XIof(SimState sim, Side s) =>
+            s == Side.Home ? sim.homeXI : sim.awayXI;
+
+        // 해당 Line 의 선수 중 랜덤 1명. 없으면 XI 전체에서 랜덤 (fallback).
+        private static Player SnapPlayer(SimState sim, Side s, Line line)
+        {
+            var xi = XIof(sim, s);
+            if (xi.Count == 0)
+                return null;
+            var candidates = xi.Where(id =>
+                {
+                    var p = sim.gameState.GetPlayer(id);
+                    return p != null && StartingSquadGacha.LineOf(p.info.primaryPosition) == line;
+                })
+                .ToList();
+            if (candidates.Count == 0)
+                candidates = xi;
+            int pid = candidates[sim.rng.Next(candidates.Count)];
+            return sim.gameState.GetPlayer(pid);
+        }
+
+        private static Player FindGoalkeeper(SimState sim, Side s)
+        {
+            var xi = XIof(sim, s);
+            for (int i = 0; i < xi.Count; i++)
+            {
+                var p = sim.gameState.GetPlayer(xi[i]);
+                if (p != null && p.info.primaryPosition == Position.GK)
+                    return p;
+            }
+            return null;
+        }
+
+        // MF 라인 평균 rating × homeMod (possession contest 용).
+        private static double EffectiveMidfield(SimState sim, Side s)
+        {
+            var xi = XIof(sim, s);
+            double sum = 0;
+            int count = 0;
+            foreach (var id in xi)
+            {
+                var p = sim.gameState.GetPlayer(id);
+                if (p == null || StartingSquadGacha.LineOf(p.info.primaryPosition) != Line.MF)
+                    continue;
+                sum += MidfieldAtt(p);
+                count++;
+            }
+            double avg = count > 0 ? sum / count : 40.0;
+            return Eff(avg, s, sim);
+        }
+
+        // ── 헬퍼: stat 조합 (49 stat zone별 매핑, algorithms.md V1.0-2) ──
+
+        private static double BuildupAtt(Player p) =>
+            (
+                p.stats.technical.passing
+                + p.stats.mental.vision
+                + p.stats.mental.composure
+                + p.stats.mental.teamwork
+            ) / 4.0;
+
+        private static double Press(Player p) =>
+            (p.stats.mental.workRate + p.stats.mental.aggression + p.stats.mental.positioning)
+            / 3.0;
+
+        private static double MidfieldAtt(Player p) =>
+            (
+                p.stats.technical.dribbling
+                + p.stats.technical.passing
+                + p.stats.mental.vision
+                + p.stats.mental.teamwork
+            ) / 4.0;
+
+        private static double MidfieldDef(Player p) =>
+            (
+                p.stats.technical.tackling
+                + p.stats.mental.positioning
+                + p.stats.mental.decisions
+                + p.stats.mental.teamwork
+            ) / 4.0;
+
+        private static double AttackingThirdAtt(Player p) =>
+            (
+                p.stats.technical.dribbling
+                + p.stats.physical.pace
+                + p.stats.physical.agility
+                + p.stats.mental.composure
+            ) / 4.0;
+
+        private static double AttackingThirdDef(Player p) =>
+            (
+                p.stats.technical.marking
+                + p.stats.technical.tackling
+                + p.stats.mental.positioning
+                + p.stats.technical.heading
+            ) / 4.0;
+
+        private static double ShotRating(Player p) =>
+            (p.stats.technical.finishing + p.stats.mental.composure + p.stats.mental.decisions)
+            / 3.0;
+
+        private static double GkRating(Player p) =>
+            (p.stats.gk.handling + p.stats.gk.reflexes + p.stats.mental.positioning) / 3.0;
+
+        // raw stat × homeMod (fatigue/form/morale/mentality/trait 보정 = I.8 / J).
+        private static double Eff(double raw, Side s, SimState sim)
+        {
+            double homeMod = s == Side.Home ? sim.balance.homeAdvantageMultiplier : 1.0;
+            return raw * homeMod;
+        }
+
+        private static double Clamp(double v, double lo, double hi) =>
+            v < lo ? lo : (v > hi ? hi : v);
+
+        // ── 헬퍼: starting11 / stats ──────────────────────────────────
 
         private static List<int> SelectStartingEleven(Club club, GameState state)
         {
             return club
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
                 .Where(p =>
-                    p != null
-                    && p.state.injury.injuryTypeId == -1
-                    && p.state.suspendedMatches <= 0
+                    p != null && p.state.injury.injuryTypeId == -1 && p.state.suspendedMatches <= 0
                 )
                 .OrderByDescending(p => p.currentAbility)
                 .Take(11)
@@ -108,339 +496,17 @@ namespace FMLite.Application
                 .ToList();
         }
 
-        // ── 매 분 한 팀 이벤트 추첨 ──────────────────────────────────
-
-        private static (int newScore, int newPendingAssist) SimulateTeamMinute(
-            Club attackerClub,
-            List<int> attackers,
-            List<int> defenders,
-            GameState state,
-            GameBalanceSO balance,
-            Random rng,
-            Dictionary<int, PlayerMatchStat> stats,
-            int currentScore,
-            int pendingAssist
-        )
-        {
-            // Mentality — Tactic 도입 (J) 전이라 Balanced (인덱스 3) 디폴트
-            float mentalityMod = balance.mentalityShotMultiplier[3];
-
-            // ─ Shot ─
-            int avgCA = AvgCA(attackers, state);
-            double shotChance = (double)avgCA / balance.shotChanceBaseDivisor * mentalityMod;
-            if (rng.NextDouble() < shotChance)
-            {
-                int shooterId = PickShooter(attackers, state, balance, rng);
-                if (shooterId != -1)
-                {
-                    var shooter = state.GetPlayer(shooterId);
-                    stats[shooterId].shots++;
-
-                    // On-target 판정
-                    double onTargetProb =
-                        shooter.stats.technical.finishing
-                        * shooter.stats.mental.composure
-                        / balance.shotOnTargetDivisor;
-                    if (rng.NextDouble() * 100 < onTargetProb)
-                    {
-                        stats[shooterId].shotsOnTarget++;
-
-                        // GK Save 판정
-                        var gk = FindGoalkeeper(defenders, state);
-                        double saveProb =
-                            gk != null
-                                ? (gk.stats.gk.reflexes * gk.stats.gk.handling)
-                                    / balance.shotSaveDivisor
-                                : 50.0;
-
-                        if (rng.NextDouble() * 100 >= saveProb)
-                        {
-                            // GOAL!
-                            currentScore++;
-                            stats[shooterId].goals++;
-
-                            // Assist 처리 (직전 KeyPass 가 있고 슈터 본인 아닌 경우)
-                            if (
-                                pendingAssist != -1
-                                && pendingAssist != shooterId
-                                && stats.ContainsKey(pendingAssist)
-                            )
-                            {
-                                stats[pendingAssist].assists++;
-                            }
-                            pendingAssist = -1;
-                        }
-                        // else Save — GK 평점 가산 = I.4
-                    }
-                    // else Miss
-                }
-            }
-
-            // ─ KeyPass (한 분 최대 1명/팀) ─
-            foreach (var pid in attackers)
-            {
-                var p = state.GetPlayer(pid);
-                if (p == null)
-                    continue;
-                double chance =
-                    (double)(p.stats.mental.vision * p.stats.technical.passing)
-                    / balance.keyPassChanceDivisor;
-                if (rng.NextDouble() < chance)
-                {
-                    stats[pid].keyPasses++;
-                    pendingAssist = pid;
-                    break;
-                }
-            }
-
-            // ─ Cross (LW/RW 만, 한 분 최대 1명/팀) ─
-            foreach (var pid in attackers)
-            {
-                var p = state.GetPlayer(pid);
-                if (p == null)
-                    continue;
-                if (
-                    p.info.primaryPosition != Position.LW
-                    && p.info.primaryPosition != Position.RW
-                )
-                    continue;
-                double chance =
-                    (double)(p.stats.technical.crossing * p.stats.technical.technique)
-                    / balance.crossChanceDivisor;
-                if (rng.NextDouble() < chance)
-                {
-                    // Cross = pass 시도 가산. 헤딩 슛 변환은 V1.x.
-                    stats[pid].passes++;
-                    if (rng.NextDouble() * 100 < p.stats.technical.crossing)
-                        stats[pid].passesCompleted++;
-                    break;
-                }
-            }
-
-            // ─ Foul (DF/MF 만, 한 분 최대 1명/팀) ─
-            foreach (var pid in attackers)
-            {
-                var p = state.GetPlayer(pid);
-                if (p == null)
-                    continue;
-                var line = StartingSquadGacha.LineOf(p.info.primaryPosition);
-                if (line != Line.DF && line != Line.MF)
-                    continue;
-                double chance = (double)p.stats.mental.aggression / balance.foulChanceDivisor;
-                if (rng.NextDouble() < chance)
-                {
-                    stats[pid].foulsCommitted++;
-
-                    // Y/R 분기 (suspendedMatches 누적 = I.3)
-                    double r = rng.NextDouble();
-                    if (r < balance.foulRedRatio)
-                        stats[pid].redCards++;
-                    else if (r < balance.foulRedRatio + balance.foulYellowRatio)
-                        stats[pid].yellowCards++;
-
-                    // 파울 당한 선수 (상대 starting11 중 랜덤)
-                    if (defenders.Count > 0)
-                    {
-                        int victim = defenders[rng.Next(defenders.Count)];
-                        if (stats.ContainsKey(victim))
-                            stats[victim].foulsSuffered++;
-                    }
-                    break;
-                }
-            }
-
-            // ─ Injury (한 분 최대 1명/팀) ─
-            float injRateFactor = InjurySystem.ComputeInjuryRate(
-                attackerClub.facilities?.medicalLevel ?? 1,
-                balance
-            );
-            foreach (var pid in attackers)
-            {
-                var p = state.GetPlayer(pid);
-                if (p == null)
-                    continue;
-                if (p.state.injury.injuryTypeId != -1)
-                    continue; // 이미 부상 중
-
-                int proneness = p.hiddenAttrs?.injuryProneness ?? 50;
-                double rate =
-                    balance.injuryBaseRate
-                    * injRateFactor
-                    * (proneness / balance.injuryProneRefDivisor);
-                if (rng.NextDouble() < rate)
-                {
-                    var injuryType = PickInjuryType(rng);
-                    if (injuryType == null)
-                        break; // 카탈로그 없으면 스킵 (시드 자산 부재 환경)
-                    int baseDays = rng.Next(injuryType.minDays, injuryType.maxDays + 1);
-                    int recoveryDays = InjurySystem.ComputeRecoveryDays(
-                        baseDays,
-                        attackerClub.facilities?.medicalLevel ?? 1,
-                        attackerClub.facilities?.gymLevel ?? 1,
-                        balance
-                    );
-                    var injuryInfo = new InjuryInfo
-                    {
-                        injuryTypeId = injuryType.id,
-                        startDate = state.currentDate,
-                        expectedReturn = state.currentDate.AddDays(recoveryDays),
-                        isCareerThreatening = recoveryDays >= balance.injuryCareerThreateningDays,
-                    };
-                    p.state.injury = injuryInfo;
-                    EventBus.Publish(
-                        new PlayerInjuredEvent { playerId = pid, injury = injuryInfo }
-                    );
-                    break;
-                }
-            }
-
-            // ─ Pass / Tackle / Interception 누적 (매 분 각 선수 독립) ─
-            foreach (var pid in attackers)
-            {
-                var p = state.GetPlayer(pid);
-                if (p == null)
-                    continue;
-
-                // Pass — 모든 선수
-                double passChance = (double)p.stats.technical.passing / balance.passChanceDivisor;
-                if (rng.NextDouble() < passChance)
-                {
-                    stats[pid].passes++;
-                    if (rng.NextDouble() * 100 < p.stats.technical.passing)
-                        stats[pid].passesCompleted++;
-                }
-
-                // Tackle / Interception — DF/MF 만
-                var line = StartingSquadGacha.LineOf(p.info.primaryPosition);
-                if (line == Line.DF || line == Line.MF)
-                {
-                    double tackleChance =
-                        (double)p.stats.technical.tackling / balance.tackleChanceDivisor;
-                    if (rng.NextDouble() < tackleChance)
-                        stats[pid].tackles++;
-
-                    double intChance =
-                        (double)p.stats.mental.anticipation / balance.interceptionChanceDivisor;
-                    if (rng.NextDouble() < intChance)
-                        stats[pid].interceptions++;
-                }
-            }
-
-            return (currentScore, pendingAssist);
-        }
-
-        // ── 헬퍼 ──────────────────────────────────────────────────────
-
         private static Dictionary<int, PlayerMatchStat> InitStatsMap(
-            List<int> homeStarting11,
-            List<int> awayStarting11
+            List<int> homeXI,
+            List<int> awayXI
         )
         {
-            var map = new Dictionary<int, PlayerMatchStat>(
-                homeStarting11.Count + awayStarting11.Count
-            );
-            foreach (var id in homeStarting11)
-                map[id] = NewStat(id);
-            foreach (var id in awayStarting11)
-                map[id] = NewStat(id);
+            var map = new Dictionary<int, PlayerMatchStat>(homeXI.Count + awayXI.Count);
+            foreach (var id in homeXI)
+                map[id] = new PlayerMatchStat { playerId = id, minutesPlayed = 90 };
+            foreach (var id in awayXI)
+                map[id] = new PlayerMatchStat { playerId = id, minutesPlayed = 90 };
             return map;
-        }
-
-        private static PlayerMatchStat NewStat(int id) =>
-            new PlayerMatchStat
-            {
-                playerId = id,
-                minutesPlayed = 90, // I.6 SubstitutionAI 도입 시 가변
-                rating = 0f, // I.4
-            };
-
-        private static int AvgCA(List<int> playerIds, GameState state)
-        {
-            if (playerIds.Count == 0)
-                return 0;
-            int sum = 0;
-            int count = 0;
-            for (int i = 0; i < playerIds.Count; i++)
-            {
-                var p = state.GetPlayer(playerIds[i]);
-                if (p != null)
-                {
-                    sum += p.currentAbility;
-                    count++;
-                }
-            }
-            return count > 0 ? sum / count : 0;
-        }
-
-        // 슈터 선정 — shotPositionWeights[Line] × (finishing × offTheBall / 100) 비례 WeightedSample.
-        private static int PickShooter(
-            List<int> attackers,
-            GameState state,
-            GameBalanceSO balance,
-            Random rng
-        )
-        {
-            if (attackers.Count == 0)
-                return -1;
-            double total = 0;
-            var weights = new double[attackers.Count];
-            for (int i = 0; i < attackers.Count; i++)
-            {
-                var p = state.GetPlayer(attackers[i]);
-                if (p == null)
-                    continue;
-                int lineIdx = (int)StartingSquadGacha.LineOf(p.info.primaryPosition);
-                if (lineIdx < 0 || lineIdx >= balance.shotPositionWeights.Length)
-                    continue;
-                double posWeight = balance.shotPositionWeights[lineIdx];
-                double statWeight =
-                    (p.stats.technical.finishing * p.stats.mental.offTheBall) / 100.0;
-                weights[i] = posWeight * statWeight;
-                total += weights[i];
-            }
-            if (total <= 0)
-                return -1;
-
-            double r = rng.NextDouble() * total;
-            double acc = 0;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                acc += weights[i];
-                if (r < acc)
-                    return attackers[i];
-            }
-            return attackers[attackers.Count - 1];
-        }
-
-        private static Player FindGoalkeeper(List<int> playerIds, GameState state)
-        {
-            for (int i = 0; i < playerIds.Count; i++)
-            {
-                var p = state.GetPlayer(playerIds[i]);
-                if (p != null && p.info.primaryPosition == Position.GK)
-                    return p;
-            }
-            return null;
-        }
-
-        // InjuryTypeSO 카탈로그 추첨 (weight 비례). 카탈로그 비어있으면 null.
-        private static InjuryTypeSO PickInjuryType(Random rng)
-        {
-            var all = GameDatabase.AllInjuryTypes.ToList();
-            if (all.Count == 0)
-                return null;
-            double total = all.Sum(t => Math.Max(0f, t.weight));
-            if (total <= 0)
-                return all[rng.Next(all.Count)];
-            double r = rng.NextDouble() * total;
-            double acc = 0;
-            foreach (var t in all)
-            {
-                acc += Math.Max(0f, t.weight);
-                if (r < acc)
-                    return t;
-            }
-            return all[all.Count - 1];
         }
     }
 }

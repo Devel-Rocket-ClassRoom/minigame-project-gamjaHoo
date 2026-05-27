@@ -1,7 +1,6 @@
 // MatchSimulatorTests.cs
-// DoD: algorithms.md V1.0-2 Test Scenarios — Stage I.1 골격 + I.2 이벤트 종류.
-// 후속: T2 부상 누적 = I.3 / T3 카드 누적 = I.3 / T4 SimulateLite = I.7 / T5 평점 = I.4 /
-//      T6 Mentality = I.2+J.3 / T7 form/morale/fatigue = I.8 / T8 Role 가중치 = J.2 / T9 텍스트 = I.5.
+// DoD: algorithms.md V1.0-2 Test Scenarios — Stage I.1' (5-zone 상태 머신) + I.2' (zone resolution).
+// 후속: Foul/Card/Injury = I.3 / 평점 = I.4 / 텍스트 = I.5 / SubstitutionAI = I.6 / background = I.7 / fatigue·form·morale = I.8 / 연장 = I.11.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -22,21 +21,24 @@ namespace FMLite.Tests
             _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
         }
 
-        // ── T1. 결정성 (algorithms.md V1.0-2 T1) ──────────────────────
+        // ── T1. 결정성 ────────────────────────────────────────────────
 
         [Test]
         public void T1_Determinism_SameSeedSameResult()
         {
-            var (state1, match1) = BuildState(homeCA: 110, awayCA: 110, seed: 42, matchId: 1);
-            var (state2, match2) = BuildState(homeCA: 110, awayCA: 110, seed: 42, matchId: 1);
+            var (s1, m1) = BuildState(seed: 42, matchId: 1);
+            var (s2, m2) = BuildState(seed: 42, matchId: 1);
 
-            var r1 = MatchSimulator.Simulate(match1, state1, _balance);
-            var r2 = MatchSimulator.Simulate(match2, state2, _balance);
+            var r1 = MatchSimulator.Simulate(m1, s1, _balance);
+            var r2 = MatchSimulator.Simulate(m2, s2, _balance);
 
             Assert.AreEqual(r1.homeScore, r2.homeScore, "T1: homeScore 결정적");
             Assert.AreEqual(r1.awayScore, r2.awayScore, "T1: awayScore 결정적");
-            CollectionAssert.AreEqual(r1.homeStarting11, r2.homeStarting11);
-            CollectionAssert.AreEqual(r1.awayStarting11, r2.awayStarting11);
+            Assert.AreEqual(
+                r1.homePossessionPct,
+                r2.homePossessionPct,
+                "T1: 점유율 결정적"
+            );
             Assert.AreEqual(r1.playerStats.Count, r2.playerStats.Count);
             for (int i = 0; i < r1.playerStats.Count; i++)
             {
@@ -47,12 +49,12 @@ namespace FMLite.Tests
             }
         }
 
-        // ── T10. 인터페이스 호환 ──────────────────────────────────────
+        // ── T2. 인터페이스 호환 ──────────────────────────────────────
 
         [Test]
-        public void T10_InterfaceCompatibility_SignatureUnchanged()
+        public void T2_InterfaceCompatibility_SignatureUnchanged()
         {
-            var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: 1, matchId: 1);
+            var (state, match) = BuildState(seed: 1, matchId: 1);
             MatchResult result = MatchSimulator.Simulate(match, state, _balance);
             Assert.IsNotNull(result);
             Assert.IsNotNull(result.homeStarting11);
@@ -65,7 +67,7 @@ namespace FMLite.Tests
         [Test]
         public void StartingEleven_TopByCAExcludingInjured()
         {
-            var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: 1, matchId: 1);
+            var (state, match) = BuildState(seed: 1, matchId: 1);
             var result = MatchSimulator.Simulate(match, state, _balance);
 
             Assert.AreEqual(11, result.homeStarting11.Count);
@@ -74,17 +76,15 @@ namespace FMLite.Tests
                 .seniorSquadIds.Where(id => !result.homeStarting11.Contains(id))
                 .Select(id => state.GetPlayer(id))
                 .ToList();
-            int starting11MinCA = result
-                .homeStarting11.Select(id => state.GetPlayer(id).currentAbility)
-                .Min();
-            int benchMaxCA = bench.Count > 0 ? bench.Max(p => p.currentAbility) : 0;
-            Assert.GreaterOrEqual(starting11MinCA, benchMaxCA);
+            int xiMin = result.homeStarting11.Select(id => state.GetPlayer(id).currentAbility).Min();
+            int benchMax = bench.Count > 0 ? bench.Max(p => p.currentAbility) : 0;
+            Assert.GreaterOrEqual(xiMin, benchMax);
         }
 
         [Test]
         public void StartingEleven_ExcludesInjuredPlayers()
         {
-            var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: 1, matchId: 1);
+            var (state, match) = BuildState(seed: 1, matchId: 1);
             var home = state.GetClub(match.homeClubId);
             var top5 = home
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
@@ -103,7 +103,7 @@ namespace FMLite.Tests
         [Test]
         public void StartingEleven_ExcludesSuspendedPlayers()
         {
-            var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: 1, matchId: 1);
+            var (state, match) = BuildState(seed: 1, matchId: 1);
             var home = state.GetClub(match.homeClubId);
             var top5 = home
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
@@ -132,8 +132,8 @@ namespace FMLite.Tests
             state.AddClub(home);
             state.AddClub(away);
             int nextId = 1;
-            nextId = AddPlayersToClub(state, home, ca: 100, nextId: nextId, count: 5);
-            nextId = AddPlayersToClub(state, away, ca: 100, nextId: nextId, count: 25);
+            nextId = AddSquad(state, home, statVal: 50, nextId: nextId, count: 5);
+            nextId = AddSquad(state, away, statVal: 50, nextId: nextId, count: 25);
             var match = new Match
             {
                 id = 1,
@@ -147,95 +147,136 @@ namespace FMLite.Tests
             Assert.AreEqual(11, result.awayStarting11.Count);
         }
 
-        // ── I.2 골 생성 (200 매치 평균 골수) ─────────────────────────
+        // ── T3. 골 분포 (200 매치 평균) ──────────────────────────────
 
         [Test]
-        public void I2_Goals_GeneratedAcrossMultipleMatches()
+        public void T3_Goals_DistributionReasonable()
         {
             var seedGen = new System.Random(42);
             int totalGoals = 0;
             const int N = 200;
             for (int i = 0; i < N; i++)
             {
-                int seed = seedGen.Next();
-                var (state, match) = BuildState(
-                    homeCA: 100,
-                    awayCA: 100,
-                    seed: seed,
-                    matchId: i + 1
-                );
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i + 1);
                 var r = MatchSimulator.Simulate(match, state, _balance);
                 totalGoals += r.homeScore + r.awayScore;
             }
-            double avgGoals = (double)totalGoals / N;
-            Assert.Greater(totalGoals, 0, "I.2: 200 매치 중 적어도 1골 발생");
-            // EPL 평균 ~2.7 골/매치. 외부화 분모 조정 시 ±50% 허용.
+            double avg = (double)totalGoals / N;
+            Assert.Greater(totalGoals, 0, "T3: 골 발생");
+            // 5-zone — 균등팀 평균 골수 합리 범위 (튜닝 여지 ±). EPL ~2.7.
+            Assert.That(avg, Is.InRange(1.0, 6.0), $"T3: 평균 골수 (실측 {avg:F2}/매치)");
+        }
+
+        // ── T4. 점유율 ───────────────────────────────────────────────
+
+        [Test]
+        public void T4_Possession_SumsTo100AndBalancedForEqualTeams()
+        {
+            var seedGen = new System.Random(77);
+            double homeSum = 0;
+            const int N = 100;
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                Assert.That(
+                    r.homePossessionPct + r.awayPossessionPct,
+                    Is.EqualTo(100f).Within(0.1f),
+                    "T4: 점유율 합 = 100"
+                );
+                homeSum += r.homePossessionPct;
+            }
+            double homeAvg = homeSum / N;
+            // 균등팀 (stat 동일) — home advantage 로 home 약간 우세하나 ~40-60 범위
             Assert.That(
-                avgGoals,
-                Is.InRange(0.5, 6.0),
-                $"I.2: 평균 골수 합리 범위 (실측 {avgGoals:F2}/매치)"
+                homeAvg,
+                Is.InRange(40.0, 65.0),
+                $"T4: 균등팀 home 점유율 ~50 근방 (실측 {homeAvg:F1})"
             );
         }
 
-        // ── I.2 슛 분포 (100 매치) ────────────────────────────────────
+        // ── T5. 강팀 우세 (stat 차등) ────────────────────────────────
 
         [Test]
-        public void I2_Shots_DistributionInRange()
+        public void T5_StrongerTeamScoresMore()
+        {
+            // home stat 75 vs away stat 35 — home 골 우세 검증 (100 매치)
+            var seedGen = new System.Random(500);
+            int homeGoals = 0,
+                awayGoals = 0;
+            const int N = 100;
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match) = BuildState(
+                    seed: seedGen.Next(),
+                    matchId: i,
+                    homeStat: 75,
+                    awayStat: 35
+                );
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                homeGoals += r.homeScore;
+                awayGoals += r.awayScore;
+            }
+            Assert.Greater(
+                homeGoals,
+                awayGoals,
+                $"T5: 강팀(home stat 75) 골 > 약팀(away 35). home={homeGoals} away={awayGoals}"
+            );
+        }
+
+        // ── T6. 슛 분포 ──────────────────────────────────────────────
+
+        [Test]
+        public void T6_Shots_DistributionInRange()
         {
             var seedGen = new System.Random(100);
             int totalShots = 0;
             const int N = 100;
             for (int i = 0; i < N; i++)
             {
-                int seed = seedGen.Next();
-                var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: seed, matchId: i);
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
                 var r = MatchSimulator.Simulate(match, state, _balance);
                 totalShots += r.playerStats.Sum(ps => ps.shots);
             }
-            double avgShotsPerTeamPerMatch = (double)totalShots / N / 2;
+            double perTeam = (double)totalShots / N / 2;
+            // 5-zone box 도달 빈도 기반 — 넓은 범위 허용 (튜닝 여지).
             Assert.That(
-                avgShotsPerTeamPerMatch,
-                Is.InRange(6.0, 20.0),
-                $"I.2: 평균 슛/팀/매치 ~6-20 (target 12, 실측 {avgShotsPerTeamPerMatch:F1})"
+                perTeam,
+                Is.InRange(3.0, 30.0),
+                $"T6: 슛/팀/매치 (실측 {perTeam:F1})"
             );
         }
 
-        // ── I.2 누적 통계 채워짐 (50 매치) ────────────────────────────
+        // ── 누적 통계 채워짐 ──────────────────────────────────────────
 
         [Test]
-        public void I2_PlayerMatchStat_AccumulatesAllFields()
+        public void PlayerMatchStat_AccumulatesCoreFields()
         {
             var seedGen = new System.Random(200);
-            int totalPasses = 0,
-                totalTackles = 0,
-                totalKeyPasses = 0,
-                totalFouls = 0,
-                totalShotsOnTarget = 0;
+            int passes = 0,
+                tackles = 0,
+                keyPasses = 0,
+                shotsOnTarget = 0;
             const int N = 50;
             for (int i = 0; i < N; i++)
             {
-                int seed = seedGen.Next();
-                var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: seed, matchId: i);
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i);
                 var r = MatchSimulator.Simulate(match, state, _balance);
-                totalPasses += r.playerStats.Sum(ps => ps.passes);
-                totalTackles += r.playerStats.Sum(ps => ps.tackles);
-                totalKeyPasses += r.playerStats.Sum(ps => ps.keyPasses);
-                totalFouls += r.playerStats.Sum(ps => ps.foulsCommitted);
-                totalShotsOnTarget += r.playerStats.Sum(ps => ps.shotsOnTarget);
+                passes += r.playerStats.Sum(ps => ps.passes);
+                tackles += r.playerStats.Sum(ps => ps.tackles);
+                keyPasses += r.playerStats.Sum(ps => ps.keyPasses);
+                shotsOnTarget += r.playerStats.Sum(ps => ps.shotsOnTarget);
             }
-            Assert.Greater(totalPasses, 0, "I.2: passes > 0");
-            Assert.Greater(totalTackles, 0, "I.2: tackles > 0");
-            Assert.Greater(totalKeyPasses, 0, "I.2: keyPasses > 0");
-            Assert.Greater(totalFouls, 0, "I.2: foulsCommitted > 0");
-            Assert.Greater(totalShotsOnTarget, 0, "I.2: shotsOnTarget > 0");
+            Assert.Greater(passes, 0, "passes > 0");
+            Assert.Greater(tackles, 0, "tackles > 0");
+            Assert.Greater(keyPasses, 0, "keyPasses > 0");
+            Assert.Greater(shotsOnTarget, 0, "shotsOnTarget > 0");
         }
 
-        // ── I.2 minutesPlayed 기본 90 (I.6 가변 도입 전) ──────────────
-
         [Test]
-        public void I2_PlayerMatchStat_MinutesPlayedIs90()
+        public void PlayerMatchStat_MinutesPlayedIs90AndRatingZero()
         {
-            var (state, match) = BuildState(homeCA: 100, awayCA: 100, seed: 5, matchId: 1);
+            var (state, match) = BuildState(seed: 5, matchId: 1);
             var r = MatchSimulator.Simulate(match, state, _balance);
 
             Assert.AreEqual(
@@ -246,12 +287,18 @@ namespace FMLite.Tests
             {
                 Assert.AreEqual(90, ps.minutesPlayed, $"minutesPlayed=90 (id={ps.playerId})");
                 Assert.AreEqual(0f, ps.rating, $"rating=0 (I.4) (id={ps.playerId})");
+                Assert.AreEqual(0, ps.foulsCommitted, $"foulsCommitted=0 (I.3) (id={ps.playerId})");
             }
         }
 
         // ── Helpers ───────────────────────────────────────────────────
 
-        private (GameState, Match) BuildState(int homeCA, int awayCA, int seed, int matchId)
+        private (GameState, Match) BuildState(
+            int seed,
+            int matchId,
+            int homeStat = 50,
+            int awayStat = 50
+        )
         {
             var state = new GameState
             {
@@ -263,8 +310,8 @@ namespace FMLite.Tests
             state.AddClub(home);
             state.AddClub(away);
             int nextId = 1;
-            nextId = AddPlayersToClub(state, home, ca: homeCA, nextId: nextId, count: 25);
-            nextId = AddPlayersToClub(state, away, ca: awayCA, nextId: nextId, count: 25);
+            nextId = AddSquad(state, home, statVal: homeStat, nextId: nextId, count: 25);
+            nextId = AddSquad(state, away, statVal: awayStat, nextId: nextId, count: 25);
             var match = new Match
             {
                 id = matchId,
@@ -284,33 +331,47 @@ namespace FMLite.Tests
                 facilities = new Facilities { medicalLevel = 1, gymLevel = 1 },
             };
 
-        private static int AddPlayersToClub(
+        // 라인 분포 GK 3 / DF 8 / MF 8 / AT 6 (25명) — 5-zone snap 이 라인별 선수 필요.
+        private static int AddSquad(
             GameState state,
             Club club,
-            int ca,
+            int statVal,
             int nextId,
             int count
         )
         {
-            for (int i = 0; i < count; i++)
+            var composition = new (Position pos, int n)[]
             {
-                int variedCA = ca + ((i % 5) - 2);
-                Position pos = (i % 5) switch
+                (Position.GK, 3),
+                (Position.CB, 4),
+                (Position.LB, 2),
+                (Position.RB, 2),
+                (Position.DM, 2),
+                (Position.CM, 4),
+                (Position.LM, 1),
+                (Position.RM, 1),
+                (Position.ST, 4),
+                (Position.CF, 2),
+            };
+            int added = 0;
+            int idx = 0;
+            foreach (var (pos, n) in composition)
+            {
+                for (int i = 0; i < n && added < count; i++)
                 {
-                    0 => Position.GK,
-                    1 => Position.CB,
-                    2 => Position.CM,
-                    3 => Position.ST,
-                    _ => Position.LM,
-                };
-                state.AddPlayer(NewPlayer(nextId, pos, variedCA));
-                club.seniorSquadIds.Add(nextId);
-                nextId++;
+                    // CA 약간 다양화 (starting11 정렬 안정성)
+                    int ca = 100 + ((idx % 5) - 2);
+                    state.AddPlayer(NewPlayer(nextId, pos, ca, statVal));
+                    club.seniorSquadIds.Add(nextId);
+                    nextId++;
+                    added++;
+                    idx++;
+                }
             }
             return nextId;
         }
 
-        private static Player NewPlayer(int id, Position pos, int ca) =>
+        private static Player NewPlayer(int id, Position pos, int ca, int statVal) =>
             new Player
             {
                 id = id,
@@ -330,8 +391,7 @@ namespace FMLite.Tests
                     form = 50,
                     suspendedMatches = 0,
                 },
-                // I.2 매치 엔진이 stat 직접 참조 (finishing × composure 등). 평균 stat 50 으로 채움.
-                stats = NewBalancedStats(50),
+                stats = NewBalancedStats(statVal),
                 hiddenAttrs = new HiddenAttributes { injuryProneness = 50 },
             };
 

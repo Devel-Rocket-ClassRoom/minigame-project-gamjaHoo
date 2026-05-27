@@ -225,6 +225,33 @@ namespace FMLite.Domain
         public int injuryCareerThreateningDays = 90; // recoveryDays >= N → isCareerThreatening = true
 
         // ============================================================
+        // Match Simulation V1.0 — 5-Zone Markov (algorithms.md V1.0-2 / #44 / #55)
+        // I.1' 상태 머신 + I.2' zone resolution. OFM 차용.
+        // I.2 분 단위 독립 추첨 필드 (shotChanceBaseDivisor 등) 는 5-zone 에서 미사용 → I.9 정리.
+        // ============================================================
+
+        [Header("Match 5-Zone — Core")]
+        public float homeAdvantageMultiplier = 1.08f; // home 팀 rating 곱셈 (I.8 통합, OFM 1.08)
+        public int actionsPerMinuteMin = 1; // 매 분 action 수
+        public int actionsPerMinuteMax = 3;
+
+        [Header("Match 5-Zone — Shot")]
+        public float shotAccuracyBase = 0.45f; // on-target = base + (shootRating-50)/divisor, clamp 0.15~0.85
+        public float shotAccuracyDivisor = 200f;
+        public float goalConversionBase = 0.30f; // goal = base + (shootRating-gkRating)/divisor, clamp 0.10~0.70
+        public float goalConversionDivisor = 150f;
+        public float shotBlockedRatio = 0.40f; // off-target 중 block 비율 (나머지 off)
+
+        [Header("Match 5-Zone — Zone Transition")]
+        public float zoneCornerChance = 0.25f; // attacking third 실패 시 corner 확률
+        public float zoneCornerToBoxChance = 0.30f; // corner → box 재진입 확률
+        public float midfieldTackleRatio = 0.60f; // midfield 실패 시 Tackle vs Interception
+        public float attackingThirdTackleRatio = 0.50f;
+
+        [Header("Match 5-Zone — Stoppage")]
+        public int stoppageTimeMax = 4; // 하프당 추가시간 최대 (rng 0~N)
+
+        // ============================================================
         // Youth Intake (algorithms.md #4)
         // ============================================================
 
