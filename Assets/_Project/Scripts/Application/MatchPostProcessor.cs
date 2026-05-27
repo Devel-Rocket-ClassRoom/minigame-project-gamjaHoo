@@ -61,10 +61,68 @@ namespace FMLite.Application
                 );
             }
 
-            // e. 부상자 / 카드 — V1.0+ (미구현)
+            // e. 카드 → 시즌 누적 옐로 + 정지 (V1.0 I.3). 부상은 MatchSimulator 가 InjuryInfo 직접 설정.
+            ProcessSuspensions(match, result, state, balance);
 
             // f. MatchFinishedEvent 발행
             EventBus.Publish(new MatchFinishedEvent { matchId = match.id, result = result });
+        }
+
+        // ── 카드 누적 + 출장 정지 (I.3) ──────────────────────────────
+
+        private static void ProcessSuspensions(
+            Match match,
+            MatchResult result,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            // 1. 정지 소화 — 양 클럽 스쿼드 중 이번 경기 미출전 + 정지 중 선수 1경기 차감
+            var played = new System.Collections.Generic.HashSet<int>(result.homeStarting11);
+            played.UnionWith(result.awayStarting11);
+            DecrementSuspensions(match.homeClubId, played, state);
+            DecrementSuspensions(match.awayClubId, played, state);
+
+            // 2. 새 카드 → 정지 부여 (출전 선수)
+            foreach (var ps in result.playerStats)
+            {
+                var p = state.GetPlayer(ps.playerId);
+                if (p?.state == null)
+                    continue;
+
+                // 레드 / 2옐로 퇴장 → 즉시 정지
+                if (ps.redCards > 0)
+                    p.state.suspendedMatches += balance.redSuspensionMatches;
+
+                // 시즌 누적 옐로 → 임계 (5/10/15) 배수 통과 시 1경기 정지
+                if (ps.yellowCards > 0)
+                {
+                    int before = p.state.seasonYellowCards;
+                    p.state.seasonYellowCards += ps.yellowCards;
+                    int t = balance.yellowSuspensionThreshold;
+                    if (t > 0 && (p.state.seasonYellowCards / t) > (before / t))
+                        p.state.suspendedMatches += 1;
+                }
+            }
+        }
+
+        private static void DecrementSuspensions(
+            int clubId,
+            System.Collections.Generic.HashSet<int> played,
+            GameState state
+        )
+        {
+            var club = state.GetClub(clubId);
+            if (club == null)
+                return;
+            foreach (var pid in club.seniorSquadIds)
+            {
+                if (played.Contains(pid))
+                    continue; // 이번 경기 출전 → 정지 소화 아님
+                var p = state.GetPlayer(pid);
+                if (p?.state != null && p.state.suspendedMatches > 0)
+                    p.state.suspendedMatches--;
+            }
         }
 
         // ── 피로 + 출전 횟수 ──────────────────────────────────────────
