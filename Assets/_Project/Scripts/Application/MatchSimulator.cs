@@ -236,8 +236,9 @@ namespace FMLite.Application
             if (passer == null)
                 return;
 
-            double attEff = Eff(BuildupAtt(passer), att, sim) * 1.3; // 빌드업은 패스 우위
-            double defEff = interceptor != null ? Eff(Press(interceptor), def, sim) : 40.0;
+            double attEff = Eff(BuildupAtt(passer), att, sim, passer) * 1.3; // 빌드업은 패스 우위
+            double defEff =
+                interceptor != null ? Eff(Press(interceptor), def, sim, interceptor) : 40.0;
             double success = attEff / (attEff + defEff);
 
             sim.stats[passer.id].passes++;
@@ -263,8 +264,9 @@ namespace FMLite.Application
             if (attacker == null)
                 return;
 
-            double attEff = Eff(MidfieldAtt(attacker), att, sim);
-            double defEff = defender != null ? Eff(MidfieldDef(defender), def, sim) : 40.0;
+            double attEff = Eff(MidfieldAtt(attacker), att, sim, attacker);
+            double defEff =
+                defender != null ? Eff(MidfieldDef(defender), def, sim, defender) : 40.0;
             double success = attEff / (attEff + defEff);
 
             sim.stats[attacker.id].passes++;
@@ -298,8 +300,9 @@ namespace FMLite.Application
             if (attacker == null)
                 return;
 
-            double attEff = Eff(AttackingThirdAtt(attacker), att, sim);
-            double defEff = defender != null ? Eff(AttackingThirdDef(defender), def, sim) : 40.0;
+            double attEff = Eff(AttackingThirdAtt(attacker), att, sim, attacker);
+            double defEff =
+                defender != null ? Eff(AttackingThirdDef(defender), def, sim, defender) : 40.0;
             double success = attEff / (attEff + defEff);
 
             if (sim.rng.NextDouble() < success)
@@ -384,7 +387,7 @@ namespace FMLite.Application
                 return;
             }
 
-            double shootRating = Eff(ShotRating(shooter), att, sim);
+            double shootRating = Eff(ShotRating(shooter), att, sim, shooter);
             sim.stats[shooter.id].shots++;
 
             // On-target 판정
@@ -426,7 +429,7 @@ namespace FMLite.Application
                 );
 
             // GK save 판정
-            double gkRating = gk != null ? Eff(GkRating(gk), def, sim) : 40.0;
+            double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
             double conversion = Clamp(
                 sim.balance.goalConversionBase
                     + (shootRating - gkRating) / sim.balance.goalConversionDivisor,
@@ -596,11 +599,16 @@ namespace FMLite.Application
         {
             if (fouled == null || fouled.state?.injury == null)
                 return;
-            // injuryProneness (Hidden) 비례 — fatigue 임계 보정은 I.8.
+            // injuryProneness (Hidden) 비례 + fatigue 임계 보정 (I.8)
             int proneness = fouled.hiddenAttrs?.injuryProneness ?? 50;
+            double fatigueMult =
+                fouled.state.fatigue > sim.balance.fatigueInjuryThreshold
+                    ? sim.balance.fatigueInjuryMultiplier
+                    : 1.0;
             double rate =
                 sim.balance.matchInjuryProbability
-                * (proneness / sim.balance.injuryProneRefDivisor);
+                * (proneness / sim.balance.injuryProneRefDivisor)
+                * fatigueMult;
             if (sim.rng.NextDouble() >= rate)
                 return;
             if (fouled.state.injury.injuryTypeId != -1)
@@ -983,11 +991,38 @@ namespace FMLite.Application
         private static double GkRating(Player p) =>
             (p.stats.gk.handling + p.stats.gk.reflexes + p.stats.mental.positioning) / 3.0;
 
-        // raw stat × homeMod (fatigue/form/morale/mentality/trait 보정 = I.8 / J).
-        private static double Eff(double raw, Side s, SimState sim)
+        // raw stat × homeMod × fatigue/form/morale/mood (I.8). player=null → 팀 평균 경로 (homeMod 만).
+        private static double Eff(double raw, Side s, SimState sim, Player player = null)
         {
             double homeMod = s == Side.Home ? sim.balance.homeAdvantageMultiplier : 1.0;
-            return raw * homeMod;
+            if (player?.state == null)
+                return raw * homeMod;
+
+            // fatigue 임계 — > 50 → 1pt 당 -1%, floor 0.6
+            double perf = 1.0;
+            int fatigue = player.state.fatigue;
+            if (fatigue > sim.balance.fatiguePerfThreshold)
+                perf = System.Math.Max(
+                    sim.balance.fatiguePerfFloor,
+                    1.0
+                        - (fatigue - sim.balance.fatiguePerfThreshold)
+                            * sim.balance.fatiguePerfPenaltyPerPoint
+                );
+
+            // form / morale 곱셈
+            double formMod =
+                (1.0 + (player.state.form - 50.0) / sim.balance.formCoeff)
+                * (1.0 + (player.state.morale - 50.0) / sim.balance.moraleCoeff);
+
+            // dressingRoomMood (G.3)
+            var club = sim.gameState.GetClub(player.currentClubId);
+            double moodMod =
+                club?.season != null
+                && club.season.dressingRoomMood < sim.balance.dressingRoomMoodLowThreshold
+                    ? sim.balance.dressingRoomLowMoodStrengthFactor
+                    : 1.0;
+
+            return raw * perf * formMod * moodMod * homeMod;
         }
 
         private static double Clamp(double v, double lo, double hi) =>
