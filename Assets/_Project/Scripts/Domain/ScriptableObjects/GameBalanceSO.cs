@@ -250,6 +250,15 @@ namespace FMLite.Domain
         public float formCoeff = 200f; // formMoraleMod = (1+(form-50)/formCoeff)×…
         public float moraleCoeff = 200f;
 
+        [Header("Match 5-Zone — SetPiece (I.10)")]
+        public float cornerConversionBase = 0.08f; // corner → on-header 기본 확률
+        public float cornerHeadingDivisor = 150f; // (corners + heading×jumpingReach/100) / N → accuracy
+        public float freeKickDirectProb = 0.50f; // 직접 슛 vs 간접 (크로스→헤더)
+        public float freeKickConversionBase = 0.15f; // 직접 FK on-target 기본 확률
+        public float freeKickDirectDivisor = 200f;
+        public float longThrowChance = 0.10f; // 공격 third 실패 시 long throw 발생 확률
+        public float longThrowBoxChance = 0.60f; // long throw → box 진입 기본 확률
+
         [Header("Match 5-Zone — Foul / Card / Injury (I.3)")]
         public float foulProbability = 0.12f; // Tackle 시 파울 base (× aggression 보정)
         public float penaltyProbability = 0.08f; // box 안 파울 → 페널티 확률
