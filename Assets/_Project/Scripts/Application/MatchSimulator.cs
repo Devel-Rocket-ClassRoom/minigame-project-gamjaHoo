@@ -331,9 +331,12 @@ namespace FMLite.Application
             if (attacker == null)
                 return;
 
-            double attEff = Eff(MidfieldAtt(attacker), att, sim, attacker);
+            double attEff =
+                Eff(MidfieldAtt(attacker), att, sim, attacker) * MentalityKeyPassMult(sim, att);
             double defEff =
-                defender != null ? Eff(MidfieldDef(defender), def, sim, defender) : 40.0;
+                defender != null
+                    ? Eff(MidfieldDef(defender), def, sim, defender) * MentalityPressMult(sim, def)
+                    : 40.0;
             double success = attEff / (attEff + defEff);
 
             sim.stats[attacker.id].passes++;
@@ -371,9 +374,13 @@ namespace FMLite.Application
             if (attacker == null)
                 return;
 
-            double attEff = Eff(AttackingThirdAtt(attacker), att, sim, attacker);
+            double attEff =
+                Eff(AttackingThirdAtt(attacker), att, sim, attacker) * MentalityShotMult(sim, att);
             double defEff =
-                defender != null ? Eff(AttackingThirdDef(defender), def, sim, defender) : 40.0;
+                defender != null
+                    ? Eff(AttackingThirdDef(defender), def, sim, defender)
+                        * MentalityPressMult(sim, def)
+                    : 40.0;
             double success = attEff / (attEff + defEff);
 
             if (sim.rng.NextDouble() < success)
@@ -467,7 +474,8 @@ namespace FMLite.Application
                 return;
             }
 
-            double shootRating = Eff(ShotRating(shooter), att, sim, shooter);
+            double shootRating =
+                Eff(ShotRating(shooter), att, sim, shooter) * MentalityShotMult(sim, att);
             sim.stats[shooter.id].shots++;
 
             // On-target 판정
@@ -1109,6 +1117,31 @@ namespace FMLite.Application
         private static double Clamp(double v, double lo, double hi) =>
             v < lo ? lo : (v > hi ? hi : v);
 
+        // J.3 — 팀 Mentality 에 따른 이벤트 가중치 (tactic null 이면 Balanced=1.0 폴백).
+        private static float MentalityShotMult(SimState sim, Side s)
+        {
+            var club = s == Side.Home ? sim.homeClub : sim.awayClub;
+            int m = (int)(club?.tactic?.mentality ?? Mentality.Balanced);
+            var mults = sim.balance.mentalityShotMultiplier;
+            return mults != null && m < mults.Length ? mults[m] : 1.0f;
+        }
+
+        private static float MentalityPressMult(SimState sim, Side s)
+        {
+            var club = s == Side.Home ? sim.homeClub : sim.awayClub;
+            int m = (int)(club?.tactic?.mentality ?? Mentality.Balanced);
+            var mults = sim.balance.mentalityPressureMultiplier;
+            return mults != null && m < mults.Length ? mults[m] : 1.0f;
+        }
+
+        private static float MentalityKeyPassMult(SimState sim, Side s)
+        {
+            var club = s == Side.Home ? sim.homeClub : sim.awayClub;
+            int m = (int)(club?.tactic?.mentality ?? Mentality.Balanced);
+            var mults = sim.balance.mentalityKeyPassMultiplier;
+            return mults != null && m < mults.Length ? mults[m] : 1.0f;
+        }
+
         // ── I.11: 승부차기 ────────────────────────────────────────────
 
         private static (int homePen, int awayPen) SimulatePenaltyShootout(SimState sim)
@@ -1128,9 +1161,7 @@ namespace FMLite.Application
                 bool isRegular = round < sim.balance.penaltyShootoutRounds;
 
                 // Home 킥
-                var homeTaker = homeQueue.Count > 0
-                    ? homeQueue[homeIdx % homeQueue.Count]
-                    : null;
+                var homeTaker = homeQueue.Count > 0 ? homeQueue[homeIdx % homeQueue.Count] : null;
                 bool homeScored = SimulatePenaltyKick(
                     sim,
                     Side.Home,
@@ -1142,9 +1173,7 @@ namespace FMLite.Application
                 homeIdx++;
 
                 // Away 킥
-                var awayTaker = awayQueue.Count > 0
-                    ? awayQueue[awayIdx % awayQueue.Count]
-                    : null;
+                var awayTaker = awayQueue.Count > 0 ? awayQueue[awayIdx % awayQueue.Count] : null;
                 bool awayScored = SimulatePenaltyKick(
                     sim,
                     Side.Away,

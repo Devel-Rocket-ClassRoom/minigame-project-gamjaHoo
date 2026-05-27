@@ -412,6 +412,18 @@ namespace FMLite.Domain
             0.65f,
         };
 
+        [Header("Mentality — Key Pass Frequency Multiplier (VeryDef→VeryAtk)")]
+        public float[] mentalityKeyPassMultiplier =
+        {
+            0.70f,
+            0.85f,
+            0.95f,
+            1.00f,
+            1.10f,
+            1.20f,
+            1.40f,
+        };
+
         // ── V1.0 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V1.0-10 + V1.0-11) ──
 
         [Header("Player Growth System (V1.0-10)")]
