@@ -522,22 +522,39 @@ namespace FMLite.Tests
 
         private static void RegisterFacilityLevels()
         {
-            // Youth Lv1~5 (인스펙션 검증용)
-            var defs = new (int lv, int pool, int avgPa)[]
+            var recruitDefs = new (int lv, int pool, float signRatio)[]
             {
-                (1, 15, 80),
-                (2, 18, 100),
-                (3, 21, 130),
-                (4, 25, 145),
-                (5, 30, 160),
+                (1, 15, 0.33f),
+                (2, 18, 0.45f),
+                (3, 21, 0.60f),
+                (4, 25, 0.80f),
+                (5, 30, 1.00f),
             };
-            foreach (var (lv, pool, avgPa) in defs)
+            foreach (var (lv, pool, ratio) in recruitDefs)
+            {
+                var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
+                so.facilityType = FacilityType.YouthRecruitment;
+                so.level = lv;
+                so.youthPoolSize = pool;
+                so.signRatio = ratio;
+                GameDatabase.Register(so);
+            }
+
+            var coachDefs = new (int lv, int paBonus, float traitChance)[]
+            {
+                (1, 0, 0.05f),
+                (2, 20, 0.08f),
+                (3, 30, 0.11f),
+                (4, 45, 0.14f),
+                (5, 60, 0.18f),
+            };
+            foreach (var (lv, paBonus, traitChance) in coachDefs)
             {
                 var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
                 so.facilityType = FacilityType.YouthCoach;
                 so.level = lv;
-                so.youthPoolSize = pool;
-                so.youthAvgPA = avgPa;
+                so.youthAvgPABonus = paBonus;
+                so.traitGrantChance = traitChance;
                 GameDatabase.Register(so);
             }
         }

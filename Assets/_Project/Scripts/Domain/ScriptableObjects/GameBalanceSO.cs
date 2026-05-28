@@ -304,6 +304,7 @@ namespace FMLite.Domain
         // ============================================================
 
         [Header("Youth Intake — PA Distribution")]
+        public int youthBaseAvgPA = 100; // Lv1 YouthCoach 기준 PA 기준값 (youthAvgPABonus 가산 전)
         public float youthStarPickProbability = 0.05f; // 5% 스타 픽 (PA bonus)
         public float youthStarPaBonus = 50f; // 스타 PA 평균 보너스
         public float youthPaStdDev = 15f; // PA 분포 σ

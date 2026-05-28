@@ -98,6 +98,82 @@ namespace FMLite.Application
                         balance
                     );
                 }
+
+                // L.3: 유스 스쿼드 — YouthFacility.youthGrowthRate 적용
+                if (club.youthSquadIds == null)
+                    continue;
+
+                var youthFacility =
+                    GameDatabase.GetFacilityLevel(
+                        FacilityType.YouthFacility,
+                        club.facilities.youthFacilityLevel
+                    )
+                    ?? GameDatabase.GetFacilityLevel(
+                        FacilityType.Youth,
+                        club.facilities.youthFacilityLevel
+                    );
+                float youthGrowthRate = youthFacility?.youthGrowthRate ?? 1f;
+
+                foreach (var pid in club.youthSquadIds)
+                {
+                    var player = state.GetPlayer(pid);
+                    if (player?.stats == null || player.info == null)
+                        continue;
+
+                    int seed = state.randomSeed ^ player.id ^ (year * 12 + month);
+                    var rng = new Random(seed);
+
+                    int age = ComputeAge(player.info.birthDate, state.currentDate);
+                    float ageFactor = ComputeAgeFactor(age, balance);
+                    int paGap = player.potentialAbility - player.currentAbility;
+                    float paFactor =
+                        (paGap > 0) ? Math.Min(1f, paGap / balance.growthPaGapNormalizer) : 0f;
+
+                    ProcessCategory(
+                        player,
+                        player.stats.technical,
+                        rng,
+                        ageFactor,
+                        paFactor,
+                        0,
+                        0,
+                        balance,
+                        youthGrowthRate
+                    );
+                    ProcessCategory(
+                        player,
+                        player.stats.mental,
+                        rng,
+                        ageFactor,
+                        paFactor,
+                        0,
+                        0,
+                        balance,
+                        youthGrowthRate
+                    );
+                    ProcessCategory(
+                        player,
+                        player.stats.physical,
+                        rng,
+                        ageFactor,
+                        paFactor,
+                        0,
+                        0,
+                        balance,
+                        youthGrowthRate
+                    );
+                    ProcessCategory(
+                        player,
+                        player.stats.gk,
+                        rng,
+                        ageFactor,
+                        paFactor,
+                        0,
+                        0,
+                        balance,
+                        youthGrowthRate
+                    );
+                }
             }
         }
 
@@ -109,7 +185,8 @@ namespace FMLite.Application
             float paFactor,
             int trainingLevel,
             int gymLevel,
-            GameBalanceSO balance
+            GameBalanceSO balance,
+            float facilityGrowthRate = 1f
         )
         {
             if (category == null)
@@ -164,7 +241,8 @@ namespace FMLite.Application
                         * absoluteFactor
                         * trainingBonus
                         * gymBonus
-                        * paFactor;
+                        * paFactor
+                        * facilityGrowthRate;
                     if (rng.NextDouble() < growthChance)
                     {
                         int size = SampleGrowthSize(rng, ageFactor, balance);
