@@ -424,6 +424,15 @@ namespace FMLite.Domain
             1.40f,
         };
 
+        // ── V1.0 J.4 TacticImpact (design-decisions.md #57 / algorithms.md V1.0-7) ──
+        // 이벤트 주체 선택 시 Duty 가중치. 이벤트에 맞는 duty = Primary, Support = Secondary, 반대 = Off.
+        // (Shot: Attack=Primary/Defend=Off, Tackle: Defend=Primary/Attack=Off, KeyPass: Support=KeyPassSupport/그 외=Secondary)
+        [Header("Tactic Impact — Duty Weight (J.4)")]
+        public float tacticDutyPrimaryWeight = 1.5f;
+        public float tacticDutySecondaryWeight = 1.0f;
+        public float tacticDutyOffWeight = 0.5f;
+        public float tacticDutyKeyPassSupportWeight = 1.3f;
+
         // ── V1.0 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V1.0-10 + V1.0-11) ──
 
         [Header("Player Growth System (V1.0-10)")]
