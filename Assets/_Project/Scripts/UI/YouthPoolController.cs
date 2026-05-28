@@ -113,7 +113,13 @@ namespace FMLite.UI
             if (_state == null || _currentIntake == null)
                 return;
 
-            YouthSystem.SignPlayers(_currentIntake, _selectedIds.ToList(), _userClub, _state);
+            YouthSystem.SignPlayers(
+                _currentIntake,
+                _selectedIds.ToList(),
+                _userClub,
+                _state,
+                GameDatabase.GameBalance
+            );
             SceneManager.LoadScene(DashboardScene);
         }
 
