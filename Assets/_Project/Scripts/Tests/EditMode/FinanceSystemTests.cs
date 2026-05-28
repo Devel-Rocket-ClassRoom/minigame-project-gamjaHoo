@@ -50,13 +50,15 @@ namespace FMLite.Tests
         [Test]
         public void T1_MatchDayIncome_Applied()
         {
-            var club = MakeClub(1, rep: 100, stadiumLevel: 1);
+            var club = MakeClub(1, rep: 100, stadiumLevel: 2);
             AddHomeMatches(club.id, played: 3);
 
             FinanceSystem.ProcessSeasonFinance(_state, _balance);
 
-            int expected = (int)(50_000 * 1 * 1.0f * 3);
-            Assert.AreEqual(expected, club.finance.money, "T1: 입장료 = base × level × (rep/100) × homeMatches");
+            int matchDay = (int)(50_000 * 2 * 1.0f * 3); // level=2
+            int tv = (int)(1_500_000 * 1.0f); // rep=100
+            // totalClubs=1 → prize=0
+            Assert.AreEqual(matchDay + tv, club.finance.money, "T1: 입장료 = base × level × (rep/100) × homeMatches");
         }
 
         // ── T2. TV 중계권 — rep 비율 적용 ────────────────────────────────

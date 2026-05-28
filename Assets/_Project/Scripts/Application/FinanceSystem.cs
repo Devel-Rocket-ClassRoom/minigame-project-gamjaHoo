@@ -50,6 +50,8 @@ namespace FMLite.Application
 
         private static int ComputeMatchDay(Club club, List<Match> schedule, GameBalanceSO balance)
         {
+            if (club.facilities == null)
+                return 0;
             int homeMatches = schedule.Count(m => m.homeClubId == club.id && m.result != null);
             return (int)(
                 balance.baseMatchDayIncome
