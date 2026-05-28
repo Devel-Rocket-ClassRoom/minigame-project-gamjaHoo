@@ -205,6 +205,46 @@ namespace FMLite.Tests
             Assert.That(diff, Is.GreaterThan(30), $"T8: 차이 > 30 (실측 {diff:F1})");
         }
 
+        // ── T12. maxSign 제한 — Lv1=33% / Lv5=100% (L.2 DoD) ──────────
+
+        [Test]
+        public void T12_SignPlayers_Lv5_CanSignFullPool()
+        {
+            var (state, club) = BuildScenario(
+                userMoney: 10_000_000,
+                youthCoachLevel: 5,
+                seed: 42
+            );
+            club.facilities.youthRecruitmentLevel = 5;
+            var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
+            var allIds = intake.candidatePlayerIds.ToList();
+
+            Assert.DoesNotThrow(
+                () => YouthSystem.SignPlayers(intake, allIds, club, state),
+                "T12: Lv5 → 풀 전체 영입 가능 (예외 없어야 함)"
+            );
+        }
+
+        [Test]
+        public void T12b_SignPlayers_Lv1_ExceedLimitThrows()
+        {
+            var (state, club) = BuildScenario(
+                userMoney: 10_000_000,
+                youthCoachLevel: 1,
+                seed: 42
+            );
+            club.facilities.youthRecruitmentLevel = 1;
+            var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
+            int poolSize = intake.candidatePlayerIds.Count; // Lv1 = 15
+            // maxSign = Round(15 * 0.33) = Round(4.95) = 5
+            var tooMany = intake.candidatePlayerIds.Take(poolSize).ToList(); // 전체 선택 시도
+
+            Assert.Throws<ArgumentException>(
+                () => YouthSystem.SignPlayers(intake, tooMany, club, state),
+                "T12b: Lv1 → 전체 영입 시도 시 예외"
+            );
+        }
+
         // ── T11. CA 캡 — 모든 유스 CA ≤ youthMaxCa (L.1 DoD) ────────
 
         [Test]
@@ -437,8 +477,8 @@ namespace FMLite.Tests
 
         private void RegisterFacilityLevels()
         {
-            // Youth Lv1~5 — avgPA 80/100/120/140/160, poolSize 15/18/21/25/30
-            var levels = new (int lv, int pool, int avgPa)[]
+            // YouthCoach Lv1~5 — avgPA + poolSize (풀 사이즈 조회는 현재 YouthCoach, L.3 에서 Recruitment 로 이동)
+            var coachLevels = new (int lv, int pool, int avgPa)[]
             {
                 (1, 15, 80),
                 (2, 18, 100),
@@ -446,13 +486,32 @@ namespace FMLite.Tests
                 (4, 25, 145),
                 (5, 30, 160),
             };
-            foreach (var (lv, pool, avgPa) in levels)
+            foreach (var (lv, pool, avgPa) in coachLevels)
             {
                 var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
                 so.facilityType = FacilityType.YouthCoach;
                 so.level = lv;
                 so.youthPoolSize = pool;
                 so.youthAvgPA = avgPa;
+                GameDatabase.Register(so);
+            }
+
+            // YouthRecruitment Lv1~5 — poolSize 15/18/21/25/30, signRatio 0.33~1.0
+            var recruitLevels = new (int lv, int pool, float ratio)[]
+            {
+                (1, 15, 0.33f),
+                (2, 18, 0.50f),
+                (3, 21, 0.67f),
+                (4, 25, 0.80f),
+                (5, 30, 1.00f),
+            };
+            foreach (var (lv, pool, ratio) in recruitLevels)
+            {
+                var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
+                so.facilityType = FacilityType.YouthRecruitment;
+                so.level = lv;
+                so.youthPoolSize = pool;
+                so.signRatio = ratio;
                 GameDatabase.Register(so);
             }
         }
