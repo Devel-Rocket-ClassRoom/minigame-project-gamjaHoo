@@ -551,6 +551,12 @@ namespace FMLite.Domain
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
 
+        [Header("Manager Reputation (V1.0 M.8)")]
+        public int managerRepLeagueWin = 20;
+        public int managerRepMonthlyAward = 5;
+        public int managerRepSacked = -30;
+        public int managerRepBoardBonusDivisor = 20; // 월간 boardConfidence += rep / divisor
+
         [Header("Finance System (V1.0 M.6)")]
         public int baseMatchDayIncome = 50_000; // 홈 경기당 × stadiumLevel × (rep/100)
         public int baseTvIncome = 1_500_000; // 시즌당 × (rep/100)

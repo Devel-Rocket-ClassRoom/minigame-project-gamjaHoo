@@ -35,6 +35,9 @@ namespace FMLite.Application
             // b. 시즌 어워드 계산 (V1.0 M.2)
             SeasonAwardSystem.ComputeSeasonAwards(state, balance);
 
+            // b2. 매니저 평판 — 리그 우승 트리거 (V1.0 M.8)
+            ManagerReputationSystem.OnLeagueWin(state, balance);
+
             // c. 재정 결산 (V1.0 M.6)
             FinanceSystem.ProcessSeasonFinance(state, balance);
 

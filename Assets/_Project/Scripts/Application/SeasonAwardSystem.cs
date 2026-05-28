@@ -203,6 +203,8 @@ namespace FMLite.Application
                         topManagerClub.season.boardConfidence
                             + balance.monthlyManagerConfidenceBonus
                     );
+                if (topManagerClubId == state.userClubId)
+                    ManagerReputationSystem.OnMonthlyManagerAward(state, balance);
 
                 // Player of the Month — 직전 월 평점 + 골/어시
                 var monthPlayers = league
