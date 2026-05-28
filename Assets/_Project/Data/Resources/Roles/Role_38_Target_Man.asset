@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Target Man
   compatiblePositions: 0c000000
   defaultDuty: 1
-  eventModifiers: []
+  eventModifiers:
+  - eventType: shot
+    multiplier: 0.75

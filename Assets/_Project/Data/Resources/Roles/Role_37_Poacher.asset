@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Poacher
   compatiblePositions: 0c000000
   defaultDuty: 0
-  eventModifiers: []
+  eventModifiers:
+  - eventType: shot
+    multiplier: 1.5

@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Winger RW
   compatiblePositions: 0b00000009000000
   defaultDuty: 0
-  eventModifiers: []
+  eventModifiers:
+  - eventType: cross
+    multiplier: 1.3

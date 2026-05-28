@@ -21,6 +21,7 @@
 2. **MUIP 원본 prefab 수정 금지** — `Assets/Imported/Modern UI Pack/Prefabs/...` 안 파일은 손대지 말 것.
 3. **신규 prefab 은 반드시 `Assets/Imported/FMLite UI/Prefabs/` 밑에 저장** (유료 에셋 저작권 관리).
 4. 작업 후 `Ctrl+S` 로 저장.
+5. ⚠️ **EventSystem 필수**: EventSystem 없으면 버튼·드롭다운 등 UI 인터랙션 전혀 동작 안 함. Step 2.2 의 MUIP Canvas.prefab 사용 시 자동 포함됨.
 
 ---
 
@@ -104,14 +105,14 @@
 ### 2.2 기본 오브젝트 확인
 
 - Hierarchy 에 `Main Camera` 존재 확인 (없으면 추가).
-- Hierarchy 에 `EventSystem` 존재 확인 (없으면 추가).
+- ⚠️ EventSystem 은 Step 2.3 의 MUIP Canvas.prefab 에 포함됨. 별도 추가 불필요.
 
-### 2.3 Canvas 생성
+### 2.3 Canvas 생성 (MUIP Canvas.prefab 사용)
 
-1. Hierarchy 우클릭 → `UI → Canvas`. 이름 `Canvas`.
-2. Inspector:
-   - Canvas: `Render Mode` = `Screen Space - Overlay`
-   - Canvas Scaler: `Scale With Screen Size`, Reference Resolution `1920 × 1080`, Match `0.5`
+1. Project 창에서 `Assets/Imported/Modern UI Pack/Prefabs/Other/Canvas.prefab` 찾기.
+2. Hierarchy 에 **드래그**. **Canvas + EventSystem 자동 포함**, Canvas 설정 (1920×1080, Scale With Screen Size, Match 0.5) 도 이미 올바르게 구성됨.
+3. 루트 이름 `Canvas` 확인.
+4. ⚠️ 기존 EventSystem 이 있으면 중복 제거 (1개만).
 
 ### 2.4 LineupRoot (컨트롤러 호스트)
 
@@ -233,6 +234,11 @@
    - 두 번째: `BackButton`
 
 ### 2.11 ⭐ LineupController 와이어링 (가장 중요)
+
+> ℹ️ **버튼 OnClick 은 코드에서 자동 연결됨.**
+> `AutoLineupButton`, `SaveButton`, `BackButton` 의 클릭 이벤트는 `LineupController.Start()` 에서 `ButtonManager.clickEvent.AddListener()` 로 자동 등록된다.
+> Inspector 에서 `Button Manager → Click Event` 또는 `Button → On Click ()` 를 별도로 연결하지 말 것.
+> 이 Step 에서는 **SerializeField 슬롯에 참조만 드래그**하면 됨.
 
 Hierarchy 에서 `LineupRoot` 선택 → Inspector 의 `Lineup Controller` 컴포넌트의 모든 필드를 채운다:
 

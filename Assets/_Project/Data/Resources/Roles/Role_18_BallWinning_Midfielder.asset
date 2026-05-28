@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Ball-Winning Midfielder
   compatiblePositions: 0500000006000000
   defaultDuty: 2
-  eventModifiers: []
+  eventModifiers:
+  - eventType: tackle
+    multiplier: 1.5

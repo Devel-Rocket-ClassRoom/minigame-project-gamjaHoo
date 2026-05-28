@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Advanced Playmaker
   compatiblePositions: 0700000006000000
   defaultDuty: 1
-  eventModifiers: []
+  eventModifiers:
+  - eventType: keyPass
+    multiplier: 1.4

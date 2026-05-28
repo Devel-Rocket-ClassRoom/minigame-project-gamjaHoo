@@ -14,6 +14,7 @@
 1. **`.cs` 파일 생성/수정/삭제 절대 금지.** 컴파일 에러가 나도 .cs 손대지 말고 멈춰서 보고만.
 2. **`Assets/Imported/Modern UI Pack/` 안의 프리팹 자체를 수정하지 말 것.** 씬에 인스턴스를 드래그해 배치만.
 3. 모든 작업이 끝나면 `Ctrl+S` 로 씬 저장.
+4. ⚠️ **EventSystem 필수**: EventSystem 없으면 버튼·드롭다운 등 UI 인터랙션 전혀 동작 안 함. Step 3 의 MUIP Canvas.prefab 사용 시 자동 포함됨.
 
 ## 목표
 - 새 씬 `Assets/Scenes/TacticScene.unity` 생성
@@ -30,19 +31,15 @@
 
 ## Step 2 — 기본 오브젝트 확인
 - Hierarchy 에 `Main Camera` 존재 확인 (없으면 `GameObject → Camera` 로 추가).
-- Hierarchy 에 `EventSystem` 존재 확인 (없으면 `GameObject → UI → Event System` 으로 추가).
+- ⚠️ EventSystem 은 Step 3 의 MUIP Canvas.prefab 에 포함됨. 여기서 별도 추가 불필요.
 
-## Step 3 — Canvas 생성
-1. Hierarchy 우클릭 → `UI → Canvas`. 이름은 `Canvas` (그대로).
-2. 생성된 Canvas 선택 후 Inspector 에서:
-   - **Canvas** 컴포넌트:
-     - `Render Mode` = `Screen Space - Overlay`
-   - **Canvas Scaler** 컴포넌트:
-     - `UI Scale Mode` = `Scale With Screen Size`
-     - `Reference Resolution` = X **1920**, Y **1080**
-     - `Screen Match Mode` = `Match Width Or Height`
-     - `Match` = **0.5**
-   - **Graphic Raycaster** 컴포넌트: 기본값 그대로.
+## Step 3 — Canvas 생성 (MUIP Canvas.prefab 사용)
+
+1. Project 창에서 `Assets/Imported/Modern UI Pack/Prefabs/Other/Canvas.prefab` 찾기.
+2. Hierarchy 에 **드래그**.
+   - **Canvas + EventSystem 이 자동 포함**됨. Canvas 설정 (1920×1080, Scale With Screen Size, Match 0.5) 도 이미 올바르게 구성됨.
+3. 생성된 루트 이름이 `Canvas` 인지 확인 (다르면 이름 변경).
+4. ⚠️ 기존에 Hierarchy 에 EventSystem 이 이미 있으면 중복 제거 (1개만 있어야 함).
 
 ## Step 4 — TacticRoot (컨트롤러 호스트)
 1. Hierarchy 우클릭 → `Create Empty`. 이름 `TacticRoot`.

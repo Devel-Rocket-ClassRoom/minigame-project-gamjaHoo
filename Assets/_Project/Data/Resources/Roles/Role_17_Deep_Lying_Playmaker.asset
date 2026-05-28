@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Deep Lying Playmaker
   compatiblePositions: 0500000006000000
   defaultDuty: 1
-  eventModifiers: []
+  eventModifiers:
+  - eventType: keyPass
+    multiplier: 1.3

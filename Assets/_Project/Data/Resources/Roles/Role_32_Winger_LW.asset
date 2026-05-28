@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Winger LW
   compatiblePositions: 0a00000008000000
   defaultDuty: 0
-  eventModifiers: []
+  eventModifiers:
+  - eventType: cross
+    multiplier: 1.3

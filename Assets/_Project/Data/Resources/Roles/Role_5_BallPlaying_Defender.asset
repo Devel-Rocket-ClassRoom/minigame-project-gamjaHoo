@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Ball-Playing Defender
   compatiblePositions: 01000000
   defaultDuty: 1
-  eventModifiers: []
+  eventModifiers:
+  - eventType: keyPass
+    multiplier: 1.2
