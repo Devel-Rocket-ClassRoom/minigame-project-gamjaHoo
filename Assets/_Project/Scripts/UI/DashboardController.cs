@@ -76,6 +76,10 @@ namespace FMLite.UI
         [SerializeField]
         private TransferRequestDialogController transferRequestDialog;
 
+        [Header("보드 약속 모달 (V1.0 M.5)")]
+        [SerializeField]
+        private BoardMeetingController boardMeetingPanel;
+
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
@@ -105,6 +109,25 @@ namespace FMLite.UI
             if (savePanel != null)
                 savePanel.SetActive(false);
             RefreshInfo();
+            CheckBoardMeeting();
+        }
+
+        private void CheckBoardMeeting()
+        {
+            if (boardMeetingPanel == null)
+                return;
+            var state = GameManager.Instance?.State;
+            var userClub = state?.GetClub(state.userClubId);
+            if (userClub?.season == null)
+                return;
+            foreach (var promise in userClub.season.boardPromises)
+            {
+                if (promise.status == FMLite.Domain.BoardPromiseStatus.PendingReview)
+                {
+                    boardMeetingPanel.Show(promise, state);
+                    return;
+                }
+            }
         }
 
         public void OnContinueClicked()

@@ -551,7 +551,8 @@ namespace FMLite.Domain
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
 
-        [Header("Board System (V1.0 M.4)")]
+        [Header("Board System (V1.0 M.4~M.5)")]
+        public int boardPromiseRejectPenalty = 10; // 보드 약속 거절 시 boardConfidence 감소
         public int boardConfidenceLossPerDefeat = 2;
         public int boardConfidenceBigMatchLossExtra = 3; // 빅매치 패배 시 추가 감소 (합계 = Loss + Extra = 5)
         public int boardConfidenceWinGain = 1;
