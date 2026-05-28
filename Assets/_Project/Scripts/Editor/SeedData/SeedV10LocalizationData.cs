@@ -478,6 +478,14 @@ namespace FMLite.Editor
                     "유효슛: 홈 {homeOnTarget} 원정 {awayOnTarget}",
                     "Shots on Target: Home {homeOnTarget} Away {awayOnTarget}"
                 ),
+                // ── V1.0 M.5 보드 약속 ────────────────────────────────────
+                E(
+                    "board_promise_transfer_in_desc",
+                    "이사회에서 {0} 포지션 선수 영입을 요구합니다.\n수락하면 여름 이적 시장 종료까지 이행해야 합니다.",
+                    "The board demands you sign a {0}.\nYou must fulfil this before the summer transfer window closes."
+                ),
+                E("board_promise_accept", "수락", "Accept"),
+                E("board_promise_reject", "거절 (-10 신뢰도)", "Reject (-10 confidence)"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

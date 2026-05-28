@@ -88,7 +88,10 @@ namespace FMLite.Application
             // d. 클럽별 season 갱신 (V0.1 단순 — 명성 순위 = 목표, design-decisions.md #27 패턴)
             UpdateClubSeasonTargets(state, balance);
 
-            // e. SeasonStartedEvent 발행
+            // e. 보드 약속 생성 (M.5 — 유저 구단만)
+            BoardSystem.GenerateSeasonPromises(state, balance);
+
+            // f. SeasonStartedEvent 발행
             int seasonYear = state.leagues.Count > 0 ? state.leagues[0].seasonYear : 0;
             EventBus.Publish(new SeasonStartedEvent { seasonYear = seasonYear });
         }
