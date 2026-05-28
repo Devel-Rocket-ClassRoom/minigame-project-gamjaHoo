@@ -458,7 +458,8 @@ MonoBehaviour:
     korean: "{0} \uC5ED\uC81C\uC548 \uB3C4\uCC29"
     english: '{0} Counter Offer'
   - key: negotiation_counter_detail_fmt
-    korean: "\uC81C\uC548: {0}  \u2192  \uC5ED\uC81C\uC548: {1}  (\uB77C\uC6B4\uB4DC {2})"
+    korean: "\uC81C\uC548: {0}  \u2192  \uC5ED\uC81C\uC548: {1}  (\uB77C\uC6B4\uB4DC
+      {2})"
     english: 'Offered: {0}  ->  Counter: {1}  (Round {2})'
   - key: negotiation_status_counter
     korean: "\uC5ED\uC81C\uC548"
@@ -481,3 +482,42 @@ MonoBehaviour:
   - key: negotiation_re_counter
     korean: "\uC7AC\uC5ED\uC81C\uC548"
     english: Re-Counter
+  - key: tactic_title
+    korean: "\uC804\uC220"
+    english: Tactic
+  - key: tactic_save
+    korean: "\uC800\uC7A5"
+    english: Save
+  - key: tactic_back
+    korean: "\uB4A4\uB85C"
+    english: Back
+  - key: mentality_very_defensive
+    korean: "\uB9E4\uC6B0 \uC218\uBE44\uC801"
+    english: Very Defensive
+  - key: mentality_defensive
+    korean: "\uC218\uBE44\uC801"
+    english: Defensive
+  - key: mentality_cautious
+    korean: "\uC2E0\uC911"
+    english: Cautious
+  - key: mentality_balanced
+    korean: "\uADE0\uD615"
+    english: Balanced
+  - key: mentality_positive
+    korean: "\uACF5\uC138"
+    english: Positive
+  - key: mentality_attacking
+    korean: "\uACF5\uACA9\uC801"
+    english: Attacking
+  - key: mentality_very_attacking
+    korean: "\uB9E4\uC6B0 \uACF5\uACA9\uC801"
+    english: Very Attacking
+  - key: duty_attack
+    korean: "\uACF5\uACA9"
+    english: Attack
+  - key: duty_support
+    korean: "\uC9C0\uC6D0"
+    english: Support
+  - key: duty_defend
+    korean: "\uC218\uBE44"
+    english: Defend
