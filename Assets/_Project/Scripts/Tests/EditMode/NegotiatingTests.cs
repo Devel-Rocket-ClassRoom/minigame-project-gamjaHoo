@@ -250,6 +250,16 @@ namespace FMLite.Tests
 
             TransferSystem.ProcessOffers(state, _balance);
 
+            // 새 흐름: AI 수락 → CounterOffer(counterAmount=amount). 유저 수락 시뮬레이션으로 PlayerNegotiate 발동.
+            if (offer.status == OfferStatus.CounterOffer)
+                TransferSystem.RespondToCounterOffer(
+                    offer.id,
+                    CounterResponse.Accept,
+                    0,
+                    state,
+                    _balance
+                );
+
             return offer.status == OfferStatus.Accepted || offer.status == OfferStatus.Completed;
         }
 

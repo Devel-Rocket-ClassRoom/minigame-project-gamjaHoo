@@ -207,22 +207,32 @@ namespace FMLite.UI
                     ? $"{player.info.firstName} {player.info.lastName}"
                     : $"id={offer.playerId}";
 
+            bool isAccept = offer.counterAmount == offer.amount;
+
             if (responseTitleText != null)
-                responseTitleText.text = Localization.Get(
-                    "negotiation_counter_title_fmt",
-                    playerName
-                );
+                responseTitleText.text = isAccept
+                    ? Localization.Get("negotiation_accepted_title_fmt", playerName)
+                    : Localization.Get("negotiation_counter_title_fmt", playerName);
 
             if (responseDetailText != null)
-                responseDetailText.text = Localization.Get(
-                    "negotiation_counter_detail_fmt",
-                    FormatMoney(offer.amount),
-                    FormatMoney(offer.counterAmount),
-                    offer.negotiationRound
-                );
+                responseDetailText.text = isAccept
+                    ? Localization.Get("negotiation_accepted_detail_fmt", FormatMoney(offer.amount))
+                    : Localization.Get(
+                        "negotiation_counter_detail_fmt",
+                        FormatMoney(offer.amount),
+                        FormatMoney(offer.counterAmount),
+                        offer.negotiationRound
+                    );
 
+            // 수락 상태에서는 재역제안 불필요
+            if (reCounterButton != null)
+                reCounterButton.gameObject.SetActive(!isAccept);
             if (reCounterAmountInput != null)
-                reCounterAmountInput.text = offer.counterAmount.ToString();
+            {
+                reCounterAmountInput.gameObject.SetActive(!isAccept);
+                if (!isAccept)
+                    reCounterAmountInput.text = offer.counterAmount.ToString();
+            }
 
             ShowResponsePanel();
         }
@@ -267,10 +277,12 @@ namespace FMLite.UI
                     ? $"{player.info.firstName} {player.info.lastName}"
                     : $"id={offer.playerId}";
 
-            // 상태 레이블
+            // 상태 레이블 — AI 수락(counterAmount==amount) vs 역제안 구분
             string statusLabel = offer.status switch
             {
-                OfferStatus.CounterOffer => Localization.Get("negotiation_status_counter"),
+                OfferStatus.CounterOffer => offer.counterAmount == offer.amount
+                    ? Localization.Get("negotiation_status_ai_accepted")
+                    : Localization.Get("negotiation_status_counter"),
                 OfferStatus.Pending => Localization.Get("negotiation_status_pending"),
                 OfferStatus.Negotiating => Localization.Get("negotiation_status_negotiating"),
                 OfferStatus.Accepted => Localization.Get("negotiation_status_accepted"),
