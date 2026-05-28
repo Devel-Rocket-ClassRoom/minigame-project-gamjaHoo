@@ -101,7 +101,7 @@ namespace FMLite.Application
 
             // (g) 모든 구단 캡틴/부캡틴 자동 배정 (J.6)
             foreach (var club in state.allClubs)
-                CaptainSystem.AssignAuto(club, state);
+                CaptainSystem.AssignAuto(club, state, balance);
 
             return state;
         }
