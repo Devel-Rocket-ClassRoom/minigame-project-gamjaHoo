@@ -6,6 +6,7 @@
 // (Save→MainMenu→LoadGame V0.1 테스트 흐름 활성화).
 // V1.0 G.2 Sub-B (#300): 인박스 패널 — Promise* / TransferRequest 5 이벤트 구독, in-memory 메시지 리스트.
 
+using System.Collections.Generic;
 using System.Linq;
 using FMLite.Application;
 using FMLite.Core;
@@ -83,6 +84,23 @@ namespace FMLite.UI
         [Header("보드 약속 모달 (V1.0 M.5)")]
         [SerializeField]
         private BoardMeetingController boardMeetingPanel;
+
+        [Header("다음 매치 상세 (N.2)")]
+        [SerializeField]
+        private TMP_Text opponentFormText;
+
+        [SerializeField]
+        private TMP_Text lastResultText;
+
+        [SerializeField]
+        private TMP_Text h2hText;
+
+        [Header("사기 / 부상 요약 (N.2)")]
+        [SerializeField]
+        private TMP_Text moraleWarningText;
+
+        [SerializeField]
+        private TMP_Text injuryText;
 
         private bool _youthIntakePending;
 
@@ -423,12 +441,25 @@ namespace FMLite.UI
 
             dateText.text = state.currentDate.ToString("yyyy-MM-dd");
             tokenText.text = Localization.Get("reroll_token_fmt", state.rerollTokens);
-            nextMatchText.text = GetNextMatchText(state);
+            var nextMatch = FindNextUserMatch(state);
+            nextMatchText.text = nextMatch != null
+                ? FormatNextMatchText(state, nextMatch)
+                : Localization.Get("no_next_match");
+            RefreshMatchDetail(state, nextMatch);
+            RefreshSquadAlerts(state);
         }
 
-        private string GetNextMatchText(GameState state)
+        private static string FormatNextMatchText(GameState state, Match m)
         {
-            var nextMatch = state
+            bool isHome = m.homeClubId == state.userClubId;
+            var opponent = state.GetClub(isHome ? m.awayClubId : m.homeClubId);
+            var homeAway = Localization.Get(isHome ? "home" : "away");
+            return $"{m.date:MM/dd}  {opponent?.name ?? "?"}  ({homeAway})";
+        }
+
+        private static Match FindNextUserMatch(GameState state)
+        {
+            return state
                 .leagues.SelectMany(l => l.schedule)
                 .Where(m =>
                     m.result == null
@@ -437,16 +468,163 @@ namespace FMLite.UI
                 )
                 .OrderBy(m => m.date)
                 .FirstOrDefault();
-
-            if (nextMatch == null)
-                return Localization.Get("no_next_match");
-
-            bool isHome = nextMatch.homeClubId == state.userClubId;
-            var opponentId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
-            var opponent = state.GetClub(opponentId);
-            var homeAway = Localization.Get(isHome ? "home" : "away");
-            return $"{nextMatch.date:MM/dd}  {opponent?.name ?? "?"}  ({homeAway})";
         }
+
+        // ── 다음 매치 상세 (N.2) ─────────────────────────────────────
+
+        private void RefreshMatchDetail(GameState state, Match nextMatch)
+        {
+            if (nextMatch == null)
+            {
+                if (opponentFormText != null) opponentFormText.text = "";
+                if (lastResultText != null) lastResultText.text = "";
+                if (h2hText != null) h2hText.text = "";
+                return;
+            }
+            bool isHome = nextMatch.homeClubId == state.userClubId;
+            int opponentId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
+
+            if (opponentFormText != null)
+                opponentFormText.text = Localization.Get(
+                    "dashboard_form_fmt",
+                    OpponentForm(state, opponentId)
+                );
+            if (lastResultText != null)
+                lastResultText.text = Localization.Get(
+                    "dashboard_last_result_fmt",
+                    LastResultVs(state, opponentId)
+                );
+            if (h2hText != null)
+                h2hText.text = Localization.Get("dashboard_h2h_fmt", H2HRecord(state, opponentId));
+        }
+
+        private static string OpponentForm(GameState state, int opponentId)
+        {
+            var recent = state
+                .leagues.SelectMany(l => l.schedule)
+                .Where(m =>
+                    m.result != null
+                    && (m.homeClubId == opponentId || m.awayClubId == opponentId)
+                )
+                .OrderByDescending(m => m.date)
+                .Take(5)
+                .ToList();
+
+            if (recent.Count == 0)
+                return Localization.Get("dashboard_no_record");
+
+            var symbols = recent
+                .Select(m =>
+                {
+                    bool oppIsHome = m.homeClubId == opponentId;
+                    int scored = oppIsHome ? m.result.homeScore : m.result.awayScore;
+                    int conceded = oppIsHome ? m.result.awayScore : m.result.homeScore;
+                    return scored > conceded ? "W" : scored == conceded ? "D" : "L";
+                })
+                .Reverse();
+            return string.Join(" ", symbols);
+        }
+
+        private string LastResultVs(GameState state, int opponentId)
+        {
+            var match = state
+                .leagues.SelectMany(l => l.schedule)
+                .Where(m =>
+                    m.result != null
+                    && (
+                        (m.homeClubId == state.userClubId && m.awayClubId == opponentId)
+                        || (m.awayClubId == state.userClubId && m.homeClubId == opponentId)
+                    )
+                )
+                .OrderByDescending(m => m.date)
+                .FirstOrDefault();
+
+            if (match == null)
+                return Localization.Get("dashboard_no_record");
+
+            bool userIsHome = match.homeClubId == state.userClubId;
+            int us = userIsHome ? match.result.homeScore : match.result.awayScore;
+            int them = userIsHome ? match.result.awayScore : match.result.homeScore;
+            string wdl = us > them ? "W" : us == them ? "D" : "L";
+            return $"{us}-{them} ({wdl})";
+        }
+
+        private string H2HRecord(GameState state, int opponentId)
+        {
+            var matches = state
+                .leagues.SelectMany(l => l.schedule)
+                .Where(m =>
+                    m.result != null
+                    && (
+                        (m.homeClubId == state.userClubId && m.awayClubId == opponentId)
+                        || (m.awayClubId == state.userClubId && m.homeClubId == opponentId)
+                    )
+                )
+                .ToList();
+
+            if (matches.Count == 0)
+                return Localization.Get("dashboard_no_record");
+
+            int w = 0,
+                d = 0,
+                l = 0;
+            foreach (var m in matches)
+            {
+                bool userIsHome = m.homeClubId == state.userClubId;
+                int us = userIsHome ? m.result.homeScore : m.result.awayScore;
+                int them = userIsHome ? m.result.awayScore : m.result.homeScore;
+                if (us > them) w++;
+                else if (us == them) d++;
+                else l++;
+            }
+            return $"{w}W {d}D {l}L";
+        }
+
+        // ── 사기 / 부상 요약 (N.2) ──────────────────────────────────
+
+        private void RefreshSquadAlerts(GameState state)
+        {
+            var userClub = state.GetClub(state.userClubId);
+            if (userClub == null)
+            {
+                if (moraleWarningText != null) moraleWarningText.text = "";
+                if (injuryText != null) injuryText.text = "";
+                return;
+            }
+
+            var unhappy = new List<string>();
+            var unavailable = new List<string>();
+
+            foreach (int pid in userClub.seniorSquadIds)
+            {
+                var p = state.GetPlayer(pid);
+                if (p?.state == null)
+                    continue;
+
+                if (p.state.morale < 40)
+                    unhappy.Add(p.info?.lastName ?? $"id={pid}");
+
+                bool injured = p.state.injury != null && p.state.injury.injuryTypeId != -1;
+                bool suspended = p.state.suspendedMatches > 0;
+                if (injured || suspended)
+                    unavailable.Add(p.info?.lastName ?? $"id={pid}");
+            }
+
+            if (moraleWarningText != null)
+                moraleWarningText.text = unhappy.Count > 0
+                    ? Localization.Get("dashboard_morale_warning_fmt", FormatNameList(unhappy))
+                    : "";
+
+            if (injuryText != null)
+                injuryText.text = unavailable.Count > 0
+                    ? Localization.Get("dashboard_injury_fmt", FormatNameList(unavailable))
+                    : "";
+        }
+
+        private static string FormatNameList(List<string> names) =>
+            names.Count <= 3
+                ? string.Join(", ", names)
+                : Localization.Get("dashboard_count_fmt", names.Count);
 
         // N.3: 오늘 날짜에 유저 클럽 매치가 있으면 반환
         private static Match FindTodayUserMatch(GameState state)
