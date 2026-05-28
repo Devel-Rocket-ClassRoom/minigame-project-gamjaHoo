@@ -3186,107 +3186,110 @@ satisfiedThreshold = 80                # 만족
 
 ### Purpose
 
-- Tactic (Formation + Role + Duty + Mentality) 이 매치 시뮬에 미치는 영향 정량화.
-- 호출 시점: `MatchSimulator.Simulate` 내부 (이벤트 가중치 계산).
-- 단일 책임: Tactic + 선수 stats 입력 → 이벤트 가중치 산출.
+- Tactic (Role × Duty × Stat) 이 매치 **이벤트 주체 선택** 에 미치는 영향 정량화.
+- 호출 시점: `MatchSimulator.SnapPlayer` (이벤트 주체 선수 추첨) — 같은 팀 같은 라인 후보 간 상대 가중치.
+- 단일 책임: Tactic + 선수 stats 입력 → 선택 가중치 산출. (`Application/TacticImpact.cs`, Stateless — `design-decisions.md #57`)
+
+> **구현 정합 (J.4, 2026-05-28)**: 아래는 실제 코드 (`TacticImpact.ComputeEventWeight`) 기준. 초안 의사코드와 다른 점:
+> - **eventType = `string`** (`"shot"`/`"keyPass"`/`"tackle"`) — `PlayerRoleSO.eventModifiers` 의 string 키와 일치 (`MatchEventType` enum 에는 추상 "Shot"/"KeyPass" 항목 없음).
+> - **`slot.roleId`** (실제 필드명, `playerRoleSOId` 아님).
+> - **Mentality 미포함** — 팀 전체 곱셈은 같은 팀 후보 선택에서 상수로 상쇄 + J.3 (`MentalityShotMult` 등) 이 zone 전이에 이미 적용 → **double-counting 방지**.
+> - **외부 영향 (form/morale/fatigue/mood) 미포함** — `MatchSimulator.Eff()` 가 성공률에 이미 적용 → double-counting 방지.
+> - **Duty 가중치 = `GameBalanceSO` 외부화** (`tacticDutyPrimaryWeight=1.5` / `tacticDutySecondaryWeight=1.0` / `tacticDutyOffWeight=0.5` / `tacticDutyKeyPassSupportWeight=1.3`) — 매직넘버 금지 (`design-decisions.md #11`). `balance` 파라미터 사용. statWeight 분모(10000)는 구조적 상수 (선택은 상대값이라 스케일 무관, `MatchSimulator` 의 stat 조합 `/4.0` 등과 동일 정책).
 
 ### Inputs
 
 | Param | Type | Note |
 | --- | --- | --- |
-| `tactic` | `Tactic` | 11 슬롯 + Mentality + Set Pieces |
-| `playerId` | `int` | 이벤트 주체 |
-| `state` | `GameState` | 선수 stats / Hidden 조회 |
-| `eventType` | `MatchEventType` | Shot / KeyPass / Tackle / 등 |
-| `balance` | `GameBalanceSO` | 외부화 |
+| `tactic` | `Tactic` | 11 슬롯 (Role/Duty/assignedPlayerId) + Mentality |
+| `playerId` | `int` | 이벤트 주체 후보 |
+| `state` | `GameState` | 선수 stats 조회 |
+| `eventType` | `string` | `"shot"` / `"keyPass"` / `"tackle"` |
+| `balance` | `GameBalanceSO` | Duty 가중치 외부화 |
 
 ### Outputs
 
-`float weight` — 이벤트 발생 가중치 (0~∞, 평균 ~1.0).
+`float weight` — 이벤트 주체 선택 가중치 (상대 비교용 — 후보 풀에서 정규화). `tactic == null` / 슬롯 미배정 → role·duty = 1.0 (statWeight 만).
 
 ### Logic
 
 ```
 public static float ComputeEventWeight(tactic, playerId, state, eventType, balance):
     player = state.GetPlayer(playerId)
-    slot = tactic.slots.First(s => s.assignedPlayerId == playerId)
-    role = db.GetPlayerRole(slot.playerRoleSOId)
-    duty = slot.duty
-    
-    # Role 가중치 (PlayerRoleSO.eventModifiers 에서)
-    roleWeight = role.eventModifiers[eventType]   # 예: Poacher.Shot = 1.5
-    
-    # Duty 보정
-    dutyWeight = ComputeDutyWeight(duty, eventType)   # Attack = 슈팅 ↑, Defend = 슈팅 ↓
-    
-    # Mentality 보정 (팀 전체 곱셈)
-    mentalityWeight = balance.mentalityModifiers[tactic.mentality][eventType]
-    
-    # Stat 직접 참조 (#44)
-    statWeight = ComputeStatWeight(player, eventType)   
-        # Shot: finishing × composure / 10000
-        # KeyPass: vision × passing / 10000
-        # Tackle: tackling × positioning / 10000
-        # etc.
-    
-    # 외부 영향 (form / morale / fatigue)
-    externalFactor = ComputeExternalFactor(player)
-    
-    return roleWeight × dutyWeight × mentalityWeight × statWeight × externalFactor
+    if player == null: return 1.0
+
+    roleWeight = 1.0
+    dutyWeight = 1.0
+    slot = tactic?.slots?.FirstOrDefault(s => s.assignedPlayerId == playerId)
+    if slot != null:
+        role = GameDatabase.GetPlayerRole(slot.roleId)
+        roleWeight = RoleModifier(role, eventType)        # eventModifiers 에서 (없으면 1.0). 예: Poacher.shot = 1.5
+        dutyWeight = ComputeDutyWeight(slot.duty, eventType, balance)
+
+    return roleWeight × dutyWeight × ComputeStatWeight(player, eventType)
 
 
-ComputeDutyWeight(duty, eventType):
+ComputeDutyWeight(duty, eventType, balance):   # 가중치 = GameBalanceSO 외부화
+    P = balance.tacticDutyPrimaryWeight (1.5), S = balance.tacticDutySecondaryWeight (1.0), O = balance.tacticDutyOffWeight (0.5)
     switch eventType:
-        case Shot: return duty == Attack ? 1.5 : duty == Support ? 1.0 : 0.5
-        case Tackle: return duty == Defend ? 1.5 : duty == Support ? 1.0 : 0.5
-        case KeyPass: return duty == Support ? 1.3 : 1.0
-        # ...
+        case "shot":    return duty == Attack  ? P : duty == Support ? S : O
+        case "tackle":  return duty == Defend  ? P : duty == Support ? S : O
+        case "keyPass": return duty == Support ? balance.tacticDutyKeyPassSupportWeight (1.3) : S
+        default:        return 1.0
+
+
+ComputeStatWeight(player, eventType):    # 1-100 스케일 → /10000 정규화 (선택은 상대값이라 스케일 무관, 구조적 상수)
+    switch eventType:
+        case "shot":    return finishing × composure / 10000
+        case "keyPass": return vision × passing / 10000
+        case "tackle":  return tackling × positioning / 10000
+        default:        return 1.0
 ```
+
+**MatchSimulator 통합 (이벤트 주체 추첨):**
+```
+SnapPlayer(side, line, eventType):
+    candidates = XI ∩ line (퇴장 제외)
+    if eventType != null and candidates ≥ 2 and HasLineup(side.tactic):   # 슬롯에 assignedPlayerId 배정됨
+        weighted pick by ComputeEventWeight(...)   # rng.NextDouble() × Σweight
+    else:
+        uniform pick   # 기존 동작 그대로 — tactic null / 미배정 시 회귀 없음
+```
+- 적용 지점: ResolveShot 슈터(`"shot"`) / ResolveMidfield·ResolveAttackingThird 공격수(`"keyPass"`)·수비수(`"tackle"`).
+- **`HasLineup` 가드**: 슬롯 `assignedPlayerId` 가 하나라도 배정돼야 가중 추첨 활성. J.2 디폴트(전부 -1) 상태에서는 균등 추첨 → **J.5 LineupScene 배정 후 본격 작동**.
 
 ### Set Pieces
 
-```
-public static int SelectSetPieceTaker(tactic, setPieceType, state):
-    if tactic.setPieceTakers.Contains(setPieceType):
-        return tactic.setPieceTakers[setPieceType]
-    
-    # 자동 선정
-    candidates = tactic.slots.Select(s => state.GetPlayer(s.assignedPlayerId))
-    switch setPieceType:
-        case Penalty: return candidates.OrderByDescending(p => p.stats.technical.penaltyTaking).First().id
-        case FreeKick: return candidates.OrderByDescending(p => p.stats.technical.freeKickTaking).First().id
-        case Corner: return candidates.OrderByDescending(p => p.stats.technical.corners).First().id
-```
+- **이미 I.10 구현** — `MatchSimulator.FindSetPieceTaker(tactic.setPieceTakers 우선, 미지정 시 stat 최상위 폴백)`. TacticImpact 책임 아님.
+- Penalty `penaltyTaking` / FreeKick `freeKickTaking` / Corner `corners` / LongThrow `longThrows`.
 
 ### Balancing Parameters
 
-```
-mentalityModifiers = {
-    VeryDefensive: { Shot: 0.6, Tackle: 1.5, KeyPass: 0.7 },
-    Defensive:     { Shot: 0.75, Tackle: 1.3, KeyPass: 0.85 },
-    Cautious:      { Shot: 0.9, Tackle: 1.15, KeyPass: 0.95 },
-    Balanced:      { Shot: 1.0, Tackle: 1.0, KeyPass: 1.0 },
-    Positive:      { Shot: 1.15, Tackle: 0.9, KeyPass: 1.1 },
-    Attacking:     { Shot: 1.3, Tackle: 0.8, KeyPass: 1.2 },
-    VeryAttacking: { Shot: 1.5, Tackle: 0.65, KeyPass: 1.4 }
-}
-```
+- **Role 보정** — `PlayerRoleSO.eventModifiers` (시드 외부화, SeedV10Data). 예: Poacher.shot=1.5 / Target Man.shot=0.75.
+- **Duty 보정** — `GameBalanceSO.tacticDutyPrimaryWeight (1.5)` / `tacticDutySecondaryWeight (1.0)` / `tacticDutyOffWeight (0.5)` / `tacticDutyKeyPassSupportWeight (1.3)` (외부화).
+- **Mentality 보정** — `GameBalanceSO.mentalityShotMultiplier[7]` 등 (J.3, MatchSimulator zone 전이에서 적용 — TacticImpact 밖).
+- **Stat 분모** — 10000 (구조적 정규화 상수, 선택 상대값이라 스케일 무관).
 
 ### Test Scenarios
 
-| ID | 시나리오 | 검증 |
-| --- | --- | --- |
-| T1 | Poacher vs Target Forward | 같은 stat 의 두 ST → 슈팅 비율 Poacher 가 ~2배 |
-| T2 | Mentality 영향 | 같은 팀 VeryDefensive vs VeryAttacking → 골수 차이 ~30% |
-| T3 | Set Pieces 자동 선정 | penaltyTaking 가장 높은 선수가 페널티 키커 |
-| T4 | Duty 영향 | 같은 Role / Attack vs Defend → 슈팅 빈도 차이 3배 |
+> **검증 단위 (J.4)**: 스펙의 "슈팅 비율 ~2×/~3×" 는 **ComputeEventWeight 가중치 비율** 로 정밀 검증. emergent 매치 슛 카운트는 5-zone 점유/zone 동학으로 증폭되므로 (정확 비율 비검증), 통합은 *방향성* 만 별도 검증.
+
+| ID | 시나리오 | 검증 | 위치 |
+| --- | --- | --- | --- |
+| T1 | Poacher vs Target Man | 같은 stat/duty → shot **가중치** 비율 Poacher 2× (1.5/0.75) | `MatchSimulatorTests.T1_RoleWeight_PoacherDoubleTargetMan` |
+| T2 | Mentality 영향 | 기존 `T12_MentalityAffectsShotFrequency` (J.3) 로 대체 | — |
+| T3 | Set Pieces 자동 선정 | 기존 `T13_SetPiece_TakerStatReflected` (I.10) 로 대체 | — |
+| T4 | Duty 영향 | 같은 Role / Attack vs Defend → shot **가중치** 비율 3× (1.5/0.5) | `MatchSimulatorTests.T4_DutyWeight_AttackTripleDefend` |
+| 통합 | 가중치 → 슈터 추첨 반영 | emergent: Poacher 슛 > Target Man (방향성) | `MatchSimulatorTests.TacticWeighting_FlowsIntoShotSelection` |
 
 ### V1.0 → V1.x Migration Notes
 
 | 항목 | V1.0 | V1.x+ |
 | --- | --- | --- |
+| **자동 라인업 배정** | J.5 LineupScene (수동/자동) 후 활성. J.4 단계는 슬롯 미배정 시 폴백 | 가챠/시즌 시작 시 Role 호환 자동 배정 |
+| **Mentality 통합 위치** | MatchSimulator zone 전이 (J.3) | 검토: 단일 가중치 파이프라인 통합 |
+| **외부 영향 in 선택** | 미포함 (Eff 가 성공률에 적용) | 검토: 주체 선택에도 form/fatigue 반영 |
 | **Team Instructions** | 미적용 | Tempo / Passing / Pressing / Line / Width 추가 |
-| **다중 전술 슬롯** | 클럽당 1 전술 | 3 슬롯 (기본 / 강팀 / 약팀) + 매치 직전 자동 선택 |
 | **Role 카탈로그 확장** | ~40 | ~80 (FM 표준) |
 
 ---

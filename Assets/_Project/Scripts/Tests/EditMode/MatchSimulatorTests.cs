@@ -707,7 +707,212 @@ namespace FMLite.Tests
             );
         }
 
+        // ── T1. Role 가중치 — Poacher shot 가중치 = Target Man 의 2× (J.4) ──
+        // 스펙의 "슈팅 비율 ~2×" = ComputeEventWeight 가중치 비율. (emergent 슛 카운트는 5-zone 점유/zone
+        // 동학으로 증폭 — 정확 비율은 가중치 레벨에서 검증, 통합 흐름은 아래 TacticWeighting_FlowsIntoShotSelection.)
+        // (T2 Mentality = 기존 T12 / T3 Set Piece 자동선정 = 기존 T13(I.10) 로 대체)
+
+        [Test]
+        public void T1_RoleWeight_PoacherDoubleTargetMan()
+        {
+            RegisterRole(37, "Poacher", TacticImpact.EventShot, 1.5f);
+            RegisterRole(38, "Target Man", TacticImpact.EventShot, 0.75f);
+
+            // 동일 stat / 동일 duty(Attack) → role(shot) 차이만 (1.5 vs 0.75 = 2×)
+            var (state, _, aId, bId) = BuildTacticState(
+                seed: 1,
+                matchId: 1,
+                roleA: 37,
+                dutyA: Duty.Attack,
+                roleB: 38,
+                dutyB: Duty.Attack
+            );
+            var tactic = state.GetClub(1).tactic;
+            float wPoacher = TacticImpact.ComputeEventWeight(
+                tactic,
+                aId,
+                state,
+                TacticImpact.EventShot,
+                _balance
+            );
+            float wTarget = TacticImpact.ComputeEventWeight(
+                tactic,
+                bId,
+                state,
+                TacticImpact.EventShot,
+                _balance
+            );
+
+            Assert.That(
+                wPoacher / wTarget,
+                Is.EqualTo(2.0).Within(0.01),
+                $"T1: Poacher shot 가중치 = 2× Target Man (wP={wPoacher}, wT={wTarget})"
+            );
+        }
+
+        // ── T4. Duty 가중치 — 같은 Role / Attack shot 가중치 = Defend 의 3× (J.4) ──
+
+        [Test]
+        public void T4_DutyWeight_AttackTripleDefend()
+        {
+            RegisterRole(37, "Poacher", TacticImpact.EventShot, 1.5f); // 동일 Role → role 상쇄, duty 차이만
+
+            // duty(shot): Attack=1.5 vs Defend=0.5 = 3×
+            var (state, _, aId, bId) = BuildTacticState(
+                seed: 1,
+                matchId: 1,
+                roleA: 37,
+                dutyA: Duty.Attack,
+                roleB: 37,
+                dutyB: Duty.Defend
+            );
+            var tactic = state.GetClub(1).tactic;
+            float wAttack = TacticImpact.ComputeEventWeight(
+                tactic,
+                aId,
+                state,
+                TacticImpact.EventShot,
+                _balance
+            );
+            float wDefend = TacticImpact.ComputeEventWeight(
+                tactic,
+                bId,
+                state,
+                TacticImpact.EventShot,
+                _balance
+            );
+
+            Assert.That(
+                wAttack / wDefend,
+                Is.EqualTo(3.0).Within(0.01),
+                $"T4: Attack shot 가중치 = 3× Defend (wA={wAttack}, wD={wDefend})"
+            );
+        }
+
+        // ── J.4 통합 — Tactic 가중치가 MatchSimulator 슈터 추첨에 실제 반영 (방향성) ──
+        // emergent 슛 카운트의 정확 비율은 엔진 동학으로 증폭되므로 방향성만 검증 (정확 비율 = T1).
+
+        [Test]
+        public void TacticWeighting_FlowsIntoShotSelection()
+        {
+            RegisterRole(37, "Poacher", TacticImpact.EventShot, 1.5f);
+            RegisterRole(38, "Target Man", TacticImpact.EventShot, 0.75f);
+
+            int poacherShots = 0,
+                targetShots = 0;
+            const int N = 40;
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match, aId, bId) = BuildTacticState(
+                    seed: i,
+                    matchId: i + 1,
+                    roleA: 37,
+                    dutyA: Duty.Attack,
+                    roleB: 38,
+                    dutyB: Duty.Attack
+                );
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                poacherShots += ShotsOf(r, aId);
+                targetShots += ShotsOf(r, bId);
+            }
+
+            Assert.Greater(
+                (double)poacherShots,
+                targetShots * 1.3,
+                $"통합: Poacher 가 Target Man 보다 슛 우세 (가중 추첨 반영) — P={poacherShots}, T={targetShots}"
+            );
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
+
+        private static int ShotsOf(MatchResult r, int playerId) =>
+            r.playerStats.FirstOrDefault(ps => ps.playerId == playerId)?.shots ?? 0;
+
+        private static void RegisterRole(int id, string name, string eventKey, float mult)
+        {
+            var role = ScriptableObject.CreateInstance<PlayerRoleSO>();
+            role.id = id;
+            role.displayName = name;
+            role.eventModifiers = new List<MatchEventModifier>
+            {
+                new MatchEventModifier { eventType = eventKey, multiplier = mult },
+            };
+            GameDatabase.Register(role);
+        }
+
+        // home XI = GK1 + CB4 + CM4 + ST(aId, roleA/dutyA) + ST(bId, roleB/dutyB) = 11 (둘 다 선발).
+        // home.tactic 에 두 ST 슬롯만 배정 → SnapPlayer(AT) 가중 추첨이 두 ST 사이에서만 작동. away = 표준 25 (tactic null).
+        private (GameState state, Match match, int aId, int bId) BuildTacticState(
+            int seed,
+            int matchId,
+            int roleA,
+            Duty dutyA,
+            int roleB,
+            Duty dutyB
+        )
+        {
+            var state = new GameState
+            {
+                randomSeed = seed,
+                currentDate = new System.DateTime(2025, 8, 15),
+            };
+            var home = NewClub(1, "Home");
+            var away = NewClub(2, "Away");
+            state.AddClub(home);
+            state.AddClub(away);
+
+            int nextId = 1;
+            int AddHome(Position pos)
+            {
+                int id = nextId;
+                state.AddPlayer(NewPlayer(id, pos, ca: 100, statVal: 50));
+                home.seniorSquadIds.Add(id);
+                nextId++;
+                return id;
+            }
+
+            AddHome(Position.GK);
+            for (int i = 0; i < 4; i++)
+                AddHome(Position.CB);
+            for (int i = 0; i < 4; i++)
+                AddHome(Position.CM);
+            int aId = AddHome(Position.ST);
+            int bId = AddHome(Position.ST);
+
+            nextId = AddSquad(state, away, statVal: 50, nextId: nextId, count: 25);
+
+            home.tactic = new Tactic
+            {
+                formationId = 1,
+                mentality = Mentality.Balanced,
+                slots = new List<TacticSlot>
+                {
+                    new TacticSlot
+                    {
+                        slotIndex = 0,
+                        roleId = roleA,
+                        duty = dutyA,
+                        assignedPlayerId = aId,
+                    },
+                    new TacticSlot
+                    {
+                        slotIndex = 1,
+                        roleId = roleB,
+                        duty = dutyB,
+                        assignedPlayerId = bId,
+                    },
+                },
+            };
+
+            var match = new Match
+            {
+                id = matchId,
+                homeClubId = 1,
+                awayClubId = 2,
+                type = CompetitionType.League,
+            };
+            return (state, match, aId, bId);
+        }
 
         private (GameState, Match) BuildState(
             int seed,

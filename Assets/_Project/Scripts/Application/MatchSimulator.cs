@@ -326,8 +326,8 @@ namespace FMLite.Application
         private static void ResolveMidfield(SimState sim, Side att)
         {
             Side def = Opposite(att);
-            var attacker = SnapPlayer(sim, att, Line.MF);
-            var defender = SnapPlayer(sim, def, Line.MF);
+            var attacker = SnapPlayer(sim, att, Line.MF, TacticImpact.EventKeyPass);
+            var defender = SnapPlayer(sim, def, Line.MF, TacticImpact.EventTackle);
             if (attacker == null)
                 return;
 
@@ -369,8 +369,8 @@ namespace FMLite.Application
         private static void ResolveAttackingThird(SimState sim, Side att)
         {
             Side def = Opposite(att);
-            var attacker = SnapPlayer(sim, att, Line.AT);
-            var defender = SnapPlayer(sim, def, Line.DF);
+            var attacker = SnapPlayer(sim, att, Line.AT, TacticImpact.EventKeyPass);
+            var defender = SnapPlayer(sim, def, Line.DF, TacticImpact.EventTackle);
             if (attacker == null)
                 return;
 
@@ -439,7 +439,7 @@ namespace FMLite.Application
         private static void ResolveShot(SimState sim, Side att)
         {
             Side def = Opposite(att);
-            var shooter = SnapPlayer(sim, att, Line.AT);
+            var shooter = SnapPlayer(sim, att, Line.AT, TacticImpact.EventShot);
             var gk = FindGoalkeeper(sim, def);
             if (shooter == null)
             {
@@ -971,8 +971,8 @@ namespace FMLite.Application
         private static List<int> XIof(SimState sim, Side s) =>
             s == Side.Home ? sim.homeXI : sim.awayXI;
 
-        // 해당 Line 의 선수 중 랜덤 1명. 없으면 XI 전체에서 랜덤 (fallback).
-        private static Player SnapPlayer(SimState sim, Side s, Line line)
+        // 해당 Line 의 선수 중 1명. eventType 지정 + 라인업 배정 시 Tactic 가중 추첨 (J.4), 아니면 균등 랜덤. 없으면 XI 전체에서 (fallback).
+        private static Player SnapPlayer(SimState sim, Side s, Line line, string eventType = null)
         {
             var xi = XIof(sim, s);
             if (xi.Count == 0)
@@ -989,9 +989,48 @@ namespace FMLite.Application
                 candidates = xi.Where(id => !sim.sentOff.Contains(id)).ToList();
             if (candidates.Count == 0)
                 return null;
+
+            // J.4 — Tactic 가중 선택 (라인업 배정 + 후보 ≥ 2). 미배정/tactic null → 균등 랜덤 (회귀 없음).
+            var tactic = (s == Side.Home ? sim.homeClub : sim.awayClub)?.tactic;
+            if (eventType != null && candidates.Count > 1 && HasLineup(tactic))
+            {
+                double total = 0;
+                var weights = new double[candidates.Count];
+                for (int i = 0; i < candidates.Count; i++)
+                {
+                    double w = TacticImpact.ComputeEventWeight(
+                        tactic,
+                        candidates[i],
+                        sim.gameState,
+                        eventType,
+                        sim.balance
+                    );
+                    if (w < 0)
+                        w = 0;
+                    weights[i] = w;
+                    total += w;
+                }
+                if (total > 0)
+                {
+                    double r = sim.rng.NextDouble() * total;
+                    double acc = 0;
+                    for (int i = 0; i < candidates.Count; i++)
+                    {
+                        acc += weights[i];
+                        if (r < acc)
+                            return sim.gameState.GetPlayer(candidates[i]);
+                    }
+                    return sim.gameState.GetPlayer(candidates[candidates.Count - 1]);
+                }
+            }
+
             int pid = candidates[sim.rng.Next(candidates.Count)];
             return sim.gameState.GetPlayer(pid);
         }
+
+        // J.4 — 슬롯에 선수가 배정됐는지 (assignedPlayerId >= 0). 미배정(-1)이면 Tactic 가중 비활성 (J.5 LineupScene 이후 활성).
+        private static bool HasLineup(Tactic tactic) =>
+            tactic?.slots != null && tactic.slots.Any(sl => sl.assignedPlayerId >= 0);
 
         private static Player FindGoalkeeper(SimState sim, Side s)
         {

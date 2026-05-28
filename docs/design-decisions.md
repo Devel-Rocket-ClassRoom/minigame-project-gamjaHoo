@@ -1772,6 +1772,34 @@ fatigue > 40             → 부상 발생률 × 1.5
 
 ---
 
+## 57. TacticImpact — 이벤트 "주체 선택" 가중치 (V1.0 J.4)
+
+**결정:** `TacticImpact.ComputeEventWeight` 는 매치 이벤트의 **주체 선수 선택** (`MatchSimulator.SnapPlayer`) 에서 같은 팀 같은 라인 후보 간 **상대 가중치** 만 산출한다. `roleWeight × dutyWeight × statWeight` 3요소. Mentality / 외부 영향 (form·morale·fatigue·mood) 은 **미포함**.
+
+**왜 selection-weighting 인가 (frequency 아님):**
+- 5-zone Markov 엔진 (#44) 은 이미 *이벤트 발생 빈도* 를 자체 결정 (zone 전이 + success ratio). TacticImpact 가 추가로 빈도를 곱하면 엔진 구조와 충돌.
+- J.4 가 채우는 빈틈은 "어느 선수가 그 이벤트의 주체인가" — Poacher 가 Target Man 보다 슛을 더 자주 잡는다. 이건 후보 풀 내 상대 가중치. → `SnapPlayer` 의 균등 추첨을 가중 추첨으로 교체.
+
+**왜 Mentality / 외부영향 제외 (double-counting 방지):**
+- **Mentality**: 팀 전체 곱셈 → 같은 팀 후보 선택에서 *상수로 상쇄* (선택 확률 불변). 게다가 J.3 (`MentalityShotMult`/`PressMult`/`KeyPassMult`) 가 zone 전이 빈도에 이미 적용. 둘 다 → 선택식에 넣을 이유 없음 + 넣으면 빈도 중복.
+- **외부영향 (form/morale/fatigue/mood)**: `MatchSimulator.Eff()` 가 성공률(rating)에 이미 곱셈 적용. 선택식에도 넣으면 지친 선수가 "덜 뽑히고 + 덜 성공" 2중 페널티.
+- `stat` 은 예외로 포함 — 선택(주체)과 성공(Eff)은 다른 축이고, 명사수가 *더 자주 + 더 정확히* 슛하는 건 현실적 (해로운 중복 아님). 스펙도 `statWeight` 명시.
+
+**매직넘버 외부화 (#11):** Duty 가중치 (`tacticDutyPrimaryWeight=1.5` / `tacticDutySecondaryWeight=1.0` / `tacticDutyOffWeight=0.5` / `tacticDutyKeyPassSupportWeight=1.3`) 는 `GameBalanceSO` 외부화 → `ComputeEventWeight(..., balance)` 시그니처 (원 스펙과 일치). statWeight 분모(10000)만 구조적 상수 (`MatchSimulator` stat 조합 `/4.0` 와 동일 — 선택은 상대값이라 스케일이 결과에 무관). Role 보정 = `PlayerRoleSO.eventModifiers`, Mentality = `GameBalanceSO.mentalityShotMultiplier` (J.3) — 이미 SO. 시드 영향: production 은 `HasLineup` 가 J.5 까지 false 라 duty 경로 미실행 → 시드 재생성 전이라도 무해 (테스트는 fresh `CreateInstance` 라 initializer 값 사용).
+
+**assignedPlayerId 의존 (J.5 선행):** ComputeEventWeight 는 `slot.assignedPlayerId == playerId` 로 Role/Duty 조회. J.2 디폴트 Tactic 은 전부 `-1` (미배정). → `SnapPlayer` 에 `HasLineup` 가드: 배정된 슬롯이 하나도 없으면 균등 추첨 (기존 동작, **T1~T12 회귀 0**). **J.5 LineupScene** 에서 선수↔슬롯 배정 후 본격 작동. J.4 단계에서 MatchSimulator auto-assign 은 **도입 안 함** — J.5 자동 라인업 책임과 중복 회피 (단순성).
+
+**검증 — 가중치 비율 (unit) vs emergent 카운트:** ComputeEventWeight 가중치 비율은 정확히 role×duty 비율 (T1 2.0 / T4 3.0). 그러나 5-zone 매치의 emergent 슛 *카운트* 비율은 점유/zone 동학으로 증폭됨 (실측 ~3.3 / ~5.7). 따라서 T1/T4 는 **가중치 비율** 을 정밀 검증 (스펙의 "~2×/~3×" 의 실체) + 별도 통합 테스트는 **방향성** (Poacher 슛 > Target Man) 만 검증. emergent 정확 비율은 비검증 (엔진 동학 특성).
+
+**영향 범위:** `Application/TacticImpact.cs` 신규 / `MatchSimulator.SnapPlayer` 가중 추첨 + `HasLineup` (ResolveShot 슈터·ResolveMidfield/AttackingThird 공격수·수비수에 eventType 전달) / `GameBalanceSO` tacticDuty* 4필드 / `MatchSimulatorTests` T1+T4+통합 / `algorithms.md` V1.0-7.
+
+### V1.0+ 보완 포인트
+- **자동 라인업 (J.5)** — Role 호환 + top CA + 폼/사기 가산 + 부상/정지 제외 자동 배정. 그 후 TacticImpact 가 모든 매치에서 활성.
+- **cross 카테고리** — 윙어 `cross` 보정 (시드에 이미 존재) 은 5-zone 에 독립 cross resolution 단계 부재로 V1.0 휴면. zone 세분화 시 활성.
+- **Mentality 단일 파이프라인** — zone 전이(J.3) 와 선택(J.4) 으로 분산된 Tactic 영향을 단일 가중치 경로로 통합 검토.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -1793,4 +1821,5 @@ fatigue > 40             → 부상 발생률 × 1.5
 | 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V1.0-10 + V1.0-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / 2단계 모델 (발생 확률 + size 분포 +1/+2/+3) / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.x derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
 | 2026-05-26 | #53 보강 | 성장 size 분포 도입. V1.0-10 의 초안 (`+1` 단위만) → 사용자 지적 ("특정 스탯 +2 가능") 반영. **2단계 모델**: (1) 발생 확률 `growthBaseChance = 0.01` (월 1% — 초안 0.05 너무 빈번해서 1/5 로 낮춤. 49 stat × 1% = 평범 선수 1년 ~6 stat 변동). (2) 발생 시 size 추첨 `[+1, +2, +3]` 분포 `[75, 20, 5]`. peak youth (ageFactor ≥ 1.3, 16-18세) 는 큰 점프 분포 `[60, 30, 10]`. decline 대칭. 18세 wonderkid 1년 stat 합산 ~12 (peak 추정), 평범 25세 ~5. FM 표준 (15-20 wonderkid / 5-10 평범) 와 일치. |
 | 2026-05-26 | #47 V1.0+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V1.0 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.x 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V1.0 본문 정책 (매주 호출) 은 그대로 유지 — V1.x 스코프. |
+| 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V1.0-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
 | 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V1.0 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V1.0 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V1.0-2 재작성 + `v1.0-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
