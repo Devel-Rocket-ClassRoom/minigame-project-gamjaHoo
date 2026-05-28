@@ -22,6 +22,7 @@ MonoBehaviour:
   youthAvgPABonus: 0
   traitGrantChance: 0
   youthPoolSize: 0
+  signRatio: 1
   youthGrowthRate: 1.28
   injuryRateMultiplier: 1
   recoverySpeedMultiplier: 1

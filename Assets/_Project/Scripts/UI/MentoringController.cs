@@ -8,6 +8,7 @@ using System.Linq;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
+using Michsky.UI.ModernUIPack;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -30,8 +31,9 @@ namespace FMLite.UI
         [SerializeField]
         private GameObject createPanel;
 
+        [Header("Mentor (MUIP CustomDropdown)")]
         [SerializeField]
-        private TMP_Dropdown mentorDropdown;
+        private CustomDropdown mentorDropdown;
 
         [SerializeField]
         private Transform menteeToggleParent;
@@ -39,15 +41,19 @@ namespace FMLite.UI
         [SerializeField]
         private GameObject menteeTogglePrefab;
 
+        [Header("Panel Buttons (MUIP ButtonManager)")]
         [SerializeField]
-        private Button confirmCreateButton;
-
-        [Header("공통")]
-        [SerializeField]
-        private Button createGroupButton;
+        private ButtonManager confirmCreateButton;
 
         [SerializeField]
-        private Button backButton;
+        private ButtonManager cancelCreateButton;
+
+        [Header("공통 (MUIP ButtonManager)")]
+        [SerializeField]
+        private ButtonManager createGroupButton;
+
+        [SerializeField]
+        private ButtonManager backButton;
 
         private GameState _state;
         private Club _userClub;
@@ -68,6 +74,15 @@ namespace FMLite.UI
             if (createPanel != null)
                 createPanel.SetActive(false);
 
+            if (createGroupButton != null)
+                createGroupButton.clickEvent.AddListener(OnCreateGroupButtonClicked);
+            if (backButton != null)
+                backButton.clickEvent.AddListener(OnBackClicked);
+            if (confirmCreateButton != null)
+                confirmCreateButton.clickEvent.AddListener(OnConfirmCreateClicked);
+            if (cancelCreateButton != null)
+                cancelCreateButton.clickEvent.AddListener(OnCancelCreateClicked);
+
             Refresh();
         }
 
@@ -84,12 +99,15 @@ namespace FMLite.UI
         {
             if (_state == null || _userClub == null)
                 return;
-            if (mentorDropdown == null || mentorDropdown.value < 0)
+            if (mentorDropdown == null || _mentorCandidateIds.Count == 0)
                 return;
             if (_selectedMenteeIds.Count == 0)
                 return;
 
-            int mentorId = _mentorCandidateIds[mentorDropdown.value];
+            int idx = mentorDropdown.selectedItemIndex;
+            if (idx < 0 || idx >= _mentorCandidateIds.Count)
+                return;
+            int mentorId = _mentorCandidateIds[idx];
             try
             {
                 MentoringSystem.AddGroup(_userClub, mentorId, _selectedMenteeIds.ToList(), _state);
@@ -168,8 +186,12 @@ namespace FMLite.UI
 
             if (mentorDropdown != null)
             {
-                mentorDropdown.ClearOptions();
-                mentorDropdown.AddOptions(mentorOptions);
+                mentorDropdown.dropdownItems.Clear();
+                foreach (var opt in mentorOptions)
+                    mentorDropdown.CreateNewItemFast(opt, null);
+                mentorDropdown.selectedItemIndex = 0;
+                mentorDropdown.SetupDropdown();
+                Canvas.ForceUpdateCanvases();
             }
 
             // 멘티 후보: 그룹 미참여

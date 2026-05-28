@@ -15,6 +15,7 @@ MonoBehaviour:
   id: 3
   displayName: 3-5-2
   slotPositions: 0000000001000000010000000100000008000000090000000600000006000000050000000c0000000c000000
+  formationStyle: 1
   squadConfig:
     name: 3-5-2
     gk: 3

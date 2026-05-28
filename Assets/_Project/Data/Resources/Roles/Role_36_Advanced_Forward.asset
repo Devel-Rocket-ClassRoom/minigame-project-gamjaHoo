@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Advanced Forward
   compatiblePositions: 0c0000000d000000
   defaultDuty: 0
-  eventModifiers: []
+  eventModifiers:
+  - eventType: shot
+    multiplier: 1.2

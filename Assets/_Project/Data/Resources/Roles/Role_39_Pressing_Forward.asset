@@ -16,4 +16,6 @@ MonoBehaviour:
   displayName: Pressing Forward
   compatiblePositions: 0c0000000d000000
   defaultDuty: 1
-  eventModifiers: []
+  eventModifiers:
+  - eventType: tackle
+    multiplier: 1.2
