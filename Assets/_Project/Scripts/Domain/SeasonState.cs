@@ -19,5 +19,6 @@ namespace FMLite.Domain
         public int dressingRoomMood; // 1군 Happiness 가중 평균
         public List<MentoringGroup> mentoringGroups = new List<MentoringGroup>();
         public List<BoardPromise> boardPromises = new List<BoardPromise>();
+        public List<int> pendingPromotionPlayerIds = new List<int>();
     }
 }

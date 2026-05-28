@@ -292,6 +292,13 @@ namespace FMLite.Editor
                     "[이적 요청] {0} 가 이적 요청",
                     "[Transfer Request] {0} requested transfer"
                 ),
+                E(
+                    "inbox_youth_promotion_fmt",
+                    "[콜업] {0} (나이 {1}, CA {2}) — 1군 승격 가능",
+                    "[Call-Up] {0} (age {1}, CA {2}) — eligible for promotion"
+                ),
+                E("profile_promote_to_senior", "1군 승격", "Promote to Senior"),
+                E("profile_decline_promotion", "거절", "Decline"),
                 // ── V1.0 G.4 이적 요청 다이얼로그 ─────────────────────────
                 E("transfer_request_dialog_title", "이적 요청", "Transfer Request"),
                 E(

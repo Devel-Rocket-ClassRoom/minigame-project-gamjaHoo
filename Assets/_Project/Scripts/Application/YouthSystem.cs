@@ -375,6 +375,84 @@ namespace FMLite.Application
             return others[rng.Next(others.Count)].code;
         }
 
+        // ── CheckPromotionCandidates (Task L.5, #235) ────────────────
+
+        public static void CheckPromotionCandidates(GameState state, GameBalanceSO balance)
+        {
+            foreach (var club in state.allClubs)
+            {
+                var pending = club.season.pendingPromotionPlayerIds;
+                float clubAvgCa = ComputeSeniorAvgCa(club, state);
+
+                foreach (var pid in club.youthSquadIds.ToList())
+                {
+                    var player = state.GetPlayer(pid);
+                    if (player == null)
+                        continue;
+                    int age = ComputeAge(player.info.birthDate, state.currentDate);
+                    if (age < balance.youthPromotionAge)
+                        continue;
+                    if (player.currentAbility < clubAvgCa * balance.youthPromotionCaRatio)
+                        continue;
+                    if (pending.Contains(pid))
+                        continue;
+
+                    pending.Add(pid);
+                    EventBus.Publish(new YouthPromotionSuggestedEvent { playerId = pid, clubId = club.id });
+                }
+            }
+        }
+
+        public static void PromotePlayer(int playerId, GameState state)
+        {
+            var player = state.GetPlayer(playerId);
+            if (player == null)
+                throw new ArgumentException($"PromotePlayer: player {playerId} not found");
+
+            var club = state.GetClub(player.currentClubId);
+            if (club == null)
+                throw new InvalidOperationException($"PromotePlayer: club {player.currentClubId} not found");
+
+            club.youthSquadIds.Remove(playerId);
+            if (!club.seniorSquadIds.Contains(playerId))
+                club.seniorSquadIds.Add(playerId);
+            club.season.pendingPromotionPlayerIds.Remove(playerId);
+        }
+
+        public static void DeclinePromotion(int playerId, GameState state)
+        {
+            var player = state.GetPlayer(playerId);
+            if (player == null)
+                return;
+            var club = state.GetClub(player.currentClubId);
+            club?.season.pendingPromotionPlayerIds.Remove(playerId);
+        }
+
+        private static float ComputeSeniorAvgCa(Club club, GameState state)
+        {
+            if (club.seniorSquadIds.Count == 0)
+                return 0f;
+            float sum = 0f;
+            int count = 0;
+            foreach (var id in club.seniorSquadIds)
+            {
+                var p = state.GetPlayer(id);
+                if (p == null)
+                    continue;
+                sum += p.currentAbility;
+                count++;
+            }
+            return count == 0 ? 0f : sum / count;
+        }
+
+        private static int ComputeAge(DateTime birthDate, DateTime today)
+        {
+            int age = today.Year - birthDate.Year;
+            if (today.Month < birthDate.Month || (today.Month == birthDate.Month && today.Day < birthDate.Day))
+                age--;
+            return age;
+        }
+
         // ── Lerp (PlayerGen 동일) ─────────────────────────────────────
 
         private static double Lerp(double a, double b, double t) => a + (b - a) * t;
