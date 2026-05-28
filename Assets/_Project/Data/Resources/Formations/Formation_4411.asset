@@ -15,3 +15,15 @@ MonoBehaviour:
   id: 5
   displayName: 4-4-1-1
   slotPositions: 000000000100000001000000020000000300000006000000060000000800000009000000070000000c000000
+  formationStyle: 1
+  squadConfig:
+    name: 4-4-1-1
+    gk: 3
+    cbMin: 4
+    lbMin: 2
+    rbMin: 2
+    dmCmGroupMin: 4
+    lmLwGroupMin: 2
+    rmRwGroupMin: 2
+    stCfGroupMin: 4
+    randomSlots: 2

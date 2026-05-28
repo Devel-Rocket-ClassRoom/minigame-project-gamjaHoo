@@ -15,3 +15,15 @@ MonoBehaviour:
   id: 6
   displayName: 5-3-2
   slotPositions: 0000000001000000010000000100000004000000040000000500000006000000060000000c0000000c000000
+  formationStyle: 0
+  squadConfig:
+    name: 5-3-2
+    gk: 3
+    cbMin: 5
+    lbMin: 2
+    rbMin: 2
+    dmCmGroupMin: 4
+    lmLwGroupMin: 1
+    rmRwGroupMin: 1
+    stCfGroupMin: 5
+    randomSlots: 2
