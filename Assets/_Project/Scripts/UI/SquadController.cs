@@ -1,8 +1,10 @@
 // Task 13.5 (Issue #50) — 스쿼드 화면.
 // 유저 구단 1군 / 유스 명단 탭 표시. 선수 클릭 → PlayerProfileScene.
 // 선택 선수 ID는 PlayerPrefs("SelectedPlayerId")로 씬 간 전달.
+// J.6: 캡틴/부캡틴 임명 — 선수 선택 패널 내 버튼으로 호출.
 
 using System.Collections.Generic;
+using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
 using TMPro;
@@ -94,5 +96,35 @@ namespace FMLite.UI
             PlayerPrefs.SetInt(SelectedPlayerIdKey, playerId);
             SceneManager.LoadScene(PlayerProfileScene);
         }
+
+        // ── J.6 캡틴/부캡틴 임명 ─────────────────────────────────────────────────
+        // Unity AI 가 Squad 씬에서 선수 행 컨텍스트 버튼에 연결.
+
+        public void OnAssignCaptainClicked(int playerId)
+        {
+            var club = GameManager.Instance?.UserClub;
+            if (club == null)
+                return;
+            CaptainSystem.Assign(club, playerId, isVice: false);
+            var state = GameManager.Instance?.State;
+            if (state != null)
+                PopulateList(seniorListParent, club.seniorSquadIds, state);
+        }
+
+        public void OnAssignViceCaptainClicked(int playerId)
+        {
+            var club = GameManager.Instance?.UserClub;
+            if (club == null)
+                return;
+            CaptainSystem.Assign(club, playerId, isVice: true);
+            var state = GameManager.Instance?.State;
+            if (state != null)
+                PopulateList(seniorListParent, club.seniorSquadIds, state);
+        }
+
+        // 현재 캡틴/부캡틴 ID 노출 — PlayerListItem 이 (C)/(VC) 배지 표시에 사용.
+        public int CaptainId => GameManager.Instance?.UserClub?.season?.captainPlayerId ?? -1;
+        public int ViceCaptainId =>
+            GameManager.Instance?.UserClub?.season?.viceCaptainPlayerId ?? -1;
     }
 }

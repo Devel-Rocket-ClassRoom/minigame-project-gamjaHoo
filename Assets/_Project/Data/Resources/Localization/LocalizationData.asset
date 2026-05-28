@@ -521,6 +521,18 @@ MonoBehaviour:
   - key: lineup_suspended
     korean: "\uC815\uC9C0"
     english: suspended
+  - key: squad_captain_badge
+    korean: "(C)"
+    english: (C)
+  - key: squad_vice_captain_badge
+    korean: "(VC)"
+    english: (VC)
+  - key: squad_assign_captain
+    korean: "\uCEA1\uD2F4 \uC784\uBA85"
+    english: Assign Captain
+  - key: squad_assign_vice_captain
+    korean: "\uBD80\uCEA1\uD2F4 \uC784\uBA85"
+    english: Assign Vice Captain
   - key: mentality_very_defensive
     korean: "\uB9E4\uC6B0 \uC218\uBE44\uC801"
     english: Very Defensive
