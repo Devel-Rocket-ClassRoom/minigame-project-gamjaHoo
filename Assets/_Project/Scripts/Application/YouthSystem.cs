@@ -211,7 +211,7 @@ namespace FMLite.Application
                 string nat = SampleYouthNationality(rng, leagueConfig.countryCode, balance);
                 Position position = (Position)rng.Next(0, 14); // V0.1: 균등 랜덤 (14개 포지션)
                 int pa = SampleYouthPA(rng, facility, balance);
-                int ca = DeriveCaFromPa(rng, pa, age, balance);
+                int ca = DeriveCaFromPa(rng, pa, balance);
 
                 // PlayerGenerator 호출 — stats/트레잇/인적사항/계약 알고리즘 재활용
                 // (rng 같음, 결정성 유지). CA/PA 는 PlayerGen 결과 무시하고 덮어쓰기.
@@ -221,16 +221,16 @@ namespace FMLite.Application
                     position,
                     age,
                     nat,
-                    clubId: -1, // 미소속
-                    youthClubId: club.id, // 인스펙션 출처
+                    clubId: -1,
+                    youthClubId: club.id,
                     origin: PlayerOrigin.YouthIntake,
                     state.currentDate,
-                    balance
+                    balance,
+                    forceCa: ca,
+                    forcePa: pa
                 );
 
                 player.id = nextId++;
-                player.potentialAbility = pa; // 덮어쓰기 (PA 진실값)
-                player.currentAbility = ca; // 덮어쓰기 (CA derived from PA)
 
                 state.AddPlayer(player);
                 intake.candidatePlayerIds.Add(player.id);
@@ -265,16 +265,12 @@ namespace FMLite.Application
             return Math.Clamp((int)Math.Round(rawPA), balance.minPA, balance.maxPA);
         }
 
-        private static int DeriveCaFromPa(Random rng, int pa, int age, GameBalanceSO balance)
+        // V1.0: 고정 갭 모델 + CA 캡 (algorithms.md V1.0-4).
+        private static int DeriveCaFromPa(Random rng, int pa, GameBalanceSO balance)
         {
-            int span = balance.paGapZeroAge - balance.youthIntakeMinAge;
-            double ageBlend =
-                span > 0
-                    ? Math.Clamp((double)(age - balance.youthIntakeMinAge) / span, 0.0, 1.0)
-                    : 0.0;
-            double caGap = Lerp((double)balance.paGapMaxMean, 0.0, ageBlend);
-            double rawCA = pa - rng.NextNormal(caGap, balance.youthPaGapStdDev);
-            return Math.Clamp((int)Math.Round(rawCA), balance.minCA, pa);
+            double gap = Math.Max(0, rng.NextNormal(balance.youthCaGapMean, balance.youthPaGapStdDev));
+            double rawCA = pa - gap;
+            return Math.Clamp((int)Math.Round(rawCA), balance.youthMinCa, balance.youthMaxCa);
         }
 
         private static int SampleYouthAge(Random rng, GameBalanceSO balance)

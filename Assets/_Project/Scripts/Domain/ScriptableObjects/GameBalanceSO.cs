@@ -300,6 +300,11 @@ namespace FMLite.Domain
         public float youthPaStdDev = 15f; // PA 분포 σ
         public float youthPaGapStdDev = 25f; // CA-PA 갭 σ (PlayerGen σ=15 의 1.67배)
 
+        [Header("Youth Intake — CA Cap (V1.0)")]
+        public int youthMinCa = 30; // 유스 CA 최소
+        public int youthMaxCa = 95; // 유스 CA 최대 (사용자 피드백)
+        public int youthCaGapMean = 60; // PA - CA 평균 갭
+
         [Header("Youth Intake — Age")]
         public int youthIntakeMinAge = 16;
         public int youthIntakeMaxAge = 18;
