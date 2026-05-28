@@ -688,6 +688,8 @@ namespace FMLite.Application
                 throw new ArgumentNullException(nameof(filter));
 
             DateTime today = state.currentDate;
+            var balance = GameDatabase.GameBalance;
+
             return state
                 .allPlayers.Where(p => p != null)
                 .Where(p =>
@@ -700,6 +702,40 @@ namespace FMLite.Application
                 })
                 .Where(p => p.currentAbility >= filter.minCA && p.currentAbility <= filter.maxCA)
                 .Where(p => !filter.excludeUserClub || p.currentClubId != state.userClubId)
+                .Where(p => filter.onlyClubId == null || p.currentClubId == filter.onlyClubId.Value)
+                .Where(p =>
+                    filter.nationalityCode == null
+                    || p.info.nationalityCode == filter.nationalityCode
+                )
+                .Where(p =>
+                    filter.traitId == null
+                    || (p.traitIds != null && p.traitIds.Contains(filter.traitId.Value))
+                )
+                .Where(p =>
+                {
+                    if (balance == null)
+                        return true;
+                    int mv = CalculateMarketValue(p, state, balance);
+                    return mv >= filter.minMarketValue && mv <= filter.maxMarketValue;
+                })
+                .Where(p =>
+                {
+                    if (p.contract == null)
+                        return filter.minContractMonths == 0;
+                    int months = Math.Max(
+                        0,
+                        (p.contract.endDate.Year - today.Year) * 12
+                            + (p.contract.endDate.Month - today.Month)
+                    );
+                    return months >= filter.minContractMonths && months <= filter.maxContractMonths;
+                })
+                .Where(p =>
+                    string.IsNullOrEmpty(filter.nameContains)
+                    || (p.info.firstName + " " + p.info.lastName).IndexOf(
+                        filter.nameContains,
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
                 .ToList();
         }
 
@@ -775,5 +811,13 @@ namespace FMLite.Application
         public int minCA = 0;
         public int maxCA = 200;
         public bool excludeUserClub = true;
+        public int? onlyClubId = null; // null = 전체 (Squad 검색: userClubId)
+        public string nationalityCode = null; // null = 전체
+        public int? traitId = null; // null = 전체
+        public int minMarketValue = 0;
+        public int maxMarketValue = int.MaxValue;
+        public int minContractMonths = 0;
+        public int maxContractMonths = int.MaxValue;
+        public string nameContains = null; // null = 전체
     }
 }
