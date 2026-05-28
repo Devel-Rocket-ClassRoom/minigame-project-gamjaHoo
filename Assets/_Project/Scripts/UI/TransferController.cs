@@ -31,6 +31,30 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_InputField maxCAInput;
 
+        [SerializeField]
+        private TMP_InputField minAgeInput;
+
+        [SerializeField]
+        private TMP_InputField maxAgeInput;
+
+        [SerializeField]
+        private TMP_InputField nationalityInput;
+
+        [SerializeField]
+        private TMP_Dropdown traitDropdown;
+
+        [SerializeField]
+        private TMP_InputField minMarketValueInput;
+
+        [SerializeField]
+        private TMP_InputField maxMarketValueInput;
+
+        [SerializeField]
+        private TMP_InputField minContractMonthsInput;
+
+        [SerializeField]
+        private TMP_InputField maxContractMonthsInput;
+
         [Header("결과 목록")]
         [SerializeField]
         private Transform resultListParent;
@@ -68,10 +92,15 @@ namespace FMLite.UI
                 return;
 
             InitPositionDropdown();
+            InitTraitDropdown();
             if (minCAInput != null)
                 minCAInput.text = "0";
             if (maxCAInput != null)
                 maxCAInput.text = "200";
+            if (minAgeInput != null)
+                minAgeInput.text = "16";
+            if (maxAgeInput != null)
+                maxAgeInput.text = "99";
 
             if (offerPanel != null)
                 offerPanel.SetActive(false);
@@ -173,6 +202,20 @@ namespace FMLite.UI
             positionDropdown.AddOptions(options);
         }
 
+        private void InitTraitDropdown()
+        {
+            if (traitDropdown == null)
+                return;
+            traitDropdown.ClearOptions();
+            var options = new System.Collections.Generic.List<string>
+            {
+                Localization.Get("filter_all"),
+            };
+            foreach (var t in GameDatabase.AllTraits)
+                options.Add(t.displayName);
+            traitDropdown.AddOptions(options);
+        }
+
         private TransferSearchFilter BuildFilter()
         {
             var filter = new TransferSearchFilter { excludeUserClub = true };
@@ -184,6 +227,33 @@ namespace FMLite.UI
                 filter.minCA = minCA;
             if (int.TryParse(maxCAInput?.text, out int maxCA))
                 filter.maxCA = maxCA;
+
+            if (int.TryParse(minAgeInput?.text, out int minAge))
+                filter.minAge = minAge;
+            if (int.TryParse(maxAgeInput?.text, out int maxAge))
+                filter.maxAge = maxAge;
+
+            var nat = nationalityInput?.text?.Trim();
+            if (!string.IsNullOrEmpty(nat))
+                filter.nationalityCode = nat;
+
+            if (traitDropdown != null && traitDropdown.value > 0)
+            {
+                var traits = GameDatabase.AllTraits.ToList();
+                int idx = traitDropdown.value - 1;
+                if (idx < traits.Count)
+                    filter.traitId = traits[idx].id;
+            }
+
+            if (int.TryParse(minMarketValueInput?.text, out int minMV))
+                filter.minMarketValue = minMV;
+            if (int.TryParse(maxMarketValueInput?.text, out int maxMV))
+                filter.maxMarketValue = maxMV;
+
+            if (int.TryParse(minContractMonthsInput?.text, out int minMonths))
+                filter.minContractMonths = minMonths;
+            if (int.TryParse(maxContractMonthsInput?.text, out int maxMonths))
+                filter.maxContractMonths = maxMonths;
 
             return filter;
         }
