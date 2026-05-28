@@ -56,7 +56,7 @@ namespace FMLite.Application
                 0,
                 Math.Min(100, userClub.season.boardConfidence)
             );
-            CheckThresholds(balance, userClub);
+            CheckThresholds(balance, state, userClub);
         }
 
         // 매월 1일 — 순위 목표 대비 실제 순위 평가.
@@ -91,11 +91,12 @@ namespace FMLite.Application
             int delta = target - actualPosition; // 양수 = 목표보다 상위
             int change = (int)Math.Round(delta * balance.boardConfidenceRankMultiplier);
 
+            int repBonus = state.managerReputation / balance.managerRepBoardBonusDivisor;
             userClub.season.boardConfidence = Math.Max(
                 0,
-                Math.Min(100, userClub.season.boardConfidence + change)
+                Math.Min(100, userClub.season.boardConfidence + change + repBonus)
             );
-            CheckThresholds(balance, userClub);
+            CheckThresholds(balance, state, userClub);
         }
 
         // 시즌 시작 시 유저 구단 보드 약속 생성 (TransferIn).
@@ -153,7 +154,7 @@ namespace FMLite.Application
                 0,
                 userClub.season.boardConfidence - balance.boardPromiseRejectPenalty
             );
-            CheckThresholds(balance, userClub);
+            CheckThresholds(balance, state, userClub);
         }
 
         private static Position FindWeakestPosition(GameState state, Club club)
@@ -212,12 +213,15 @@ namespace FMLite.Application
             return Position.ST;
         }
 
-        private static void CheckThresholds(GameBalanceSO balance, Club club)
+        private static void CheckThresholds(GameBalanceSO balance, GameState state, Club club)
         {
             if (club.season.boardConfidence < balance.boardSackedThreshold)
+            {
+                ManagerReputationSystem.OnManagerSacked(state, balance);
                 EventBus.Publish(
                     new ManagerSackedEvent { boardConfidence = club.season.boardConfidence }
                 );
+            }
             else if (club.season.boardConfidence < balance.boardWarningThreshold)
                 EventBus.Publish(
                     new BoardWarningEvent { boardConfidence = club.season.boardConfidence }
