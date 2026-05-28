@@ -491,6 +491,36 @@ MonoBehaviour:
   - key: tactic_back
     korean: "\uB4A4\uB85C"
     english: Back
+  - key: lineup_title
+    korean: "\uB77C\uC778\uC5C5"
+    english: Lineup
+  - key: lineup_auto_assign
+    korean: "\uC790\uB3D9 \uBC30\uC815"
+    english: Auto Assign
+  - key: lineup_penalty_taker
+    korean: "\uD398\uB110\uD2F0"
+    english: Penalty
+  - key: lineup_free_kick_taker
+    korean: "\uD504\uB9AC\uD0A5"
+    english: Free Kick
+  - key: lineup_corner_taker
+    korean: "\uCF54\uB108\uD0A5"
+    english: Corner
+  - key: lineup_throw_in_taker
+    korean: "\uC2A4\uB85C\uC778"
+    english: Throw In
+  - key: lineup_unassigned
+    korean: "\uBBF8\uBC30\uC815"
+    english: Unassigned
+  - key: lineup_auto_taker
+    korean: "\uC790\uB3D9 (stat \uCD5C\uC0C1\uC704)"
+    english: Auto (best stat)
+  - key: lineup_injured
+    korean: "\uBD80\uC0C1\uC911"
+    english: injured
+  - key: lineup_suspended
+    korean: "\uC815\uC9C0"
+    english: suspended
   - key: mentality_very_defensive
     korean: "\uB9E4\uC6B0 \uC218\uBE44\uC801"
     english: Very Defensive

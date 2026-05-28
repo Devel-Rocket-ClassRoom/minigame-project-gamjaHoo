@@ -27,6 +27,7 @@ namespace FMLite.UI
         private const string FacilityScene = "FacilityScene";
         private const string StandingsScene = "StandingsScene";
         private const string TacticScene = "TacticScene";
+        private const string LineupScene = "LineupScene";
         private const string MainMenuScene = "MainMenuScene";
 
         [Header("요약 정보")]
@@ -125,6 +126,8 @@ namespace FMLite.UI
         public void OnFacilityClicked() => SceneManager.LoadScene(FacilityScene);
 
         public void OnTacticClicked() => SceneManager.LoadScene(TacticScene);
+
+        public void OnLineupClicked() => SceneManager.LoadScene(LineupScene);
 
         public void OnMainMenuClicked() => SceneManager.LoadScene(MainMenuScene);
 

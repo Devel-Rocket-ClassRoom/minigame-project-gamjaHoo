@@ -751,9 +751,17 @@ namespace FMLite.Application
                 sim.awaySubsRemaining = injCtx.subsRemaining;
         }
 
-        // 인-매치 페널티 — penaltyTaking vs GK. taker = 파울 얻은 선수 (단순; 지정 키커 = I.10).
+        // 인-매치 페널티 — penaltyTaking vs GK. 지정 PK 키커 우선, 폴백 = 파울 얻은 선수.
         private static void ResolvePenalty(SimState sim, Side att, Player taker, Player gk)
         {
+            var designatedKicker = FindSetPieceTaker(
+                sim,
+                att,
+                p => p.stats.technical.penaltyTaking,
+                0
+            );
+            if (designatedKicker != null)
+                taker = designatedKicker;
             if (taker == null)
                 return;
             sim.stats[taker.id].shots++;
@@ -1286,21 +1294,26 @@ namespace FMLite.Application
 
         // ── I.10: 세트피스 해결 ───────────────────────────────────────
 
-        // setPieceTakers 우선, 미지정 시 stat 최상위 폴백.
+        // setPieceTakers[typeIndex] 우선, 미지정(-1) 또는 비출전 시 stat 최상위 폴백.
+        // typeIndex: 0=Penalty, 1=FreeKick, 2=Corner, 3=ThrowIn (LineupController 상수와 동기화)
         private static Player FindSetPieceTaker(
             SimState sim,
             Side att,
-            System.Func<Player, int> statSelector
+            System.Func<Player, int> statSelector,
+            int typeIndex = -1
         )
         {
             var club = att == Side.Home ? sim.homeClub : sim.awayClub;
             var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
-            if (club?.tactic?.setPieceTakers != null)
+            if (
+                typeIndex >= 0
+                && club?.tactic?.setPieceTakers != null
+                && typeIndex < club.tactic.setPieceTakers.Count
+            )
             {
-                foreach (var pid in club.tactic.setPieceTakers)
+                var pid = club.tactic.setPieceTakers[typeIndex];
+                if (pid >= 0 && xi.Contains(pid))
                 {
-                    if (!xi.Contains(pid))
-                        continue;
                     var p = sim.gameState.GetPlayer(pid);
                     if (p != null)
                         return p;
@@ -1316,7 +1329,7 @@ namespace FMLite.Application
         private static void ResolveCorner(SimState sim, Side att)
         {
             Side def = Opposite(att);
-            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.corners);
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.corners, 2);
             var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
             var target = xi.Select(id => sim.gameState.GetPlayer(id))
                 .Where(p => p != null)
@@ -1398,7 +1411,7 @@ namespace FMLite.Application
         private static void ResolveFreeKick(SimState sim, Side att)
         {
             Side def = Opposite(att);
-            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.freeKickTaking);
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.freeKickTaking, 1);
             var gk = FindGoalkeeper(sim, def);
 
             if (taker == null)
@@ -1526,7 +1539,7 @@ namespace FMLite.Application
         // LongThrow: longThrows + target.heading → box 진입.
         private static void ResolveLongThrow(SimState sim, Side att)
         {
-            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.longThrows);
+            var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.longThrows, 3);
 
             if (sim.collectEvents && taker != null)
                 EmitEvent(
@@ -1556,6 +1569,46 @@ namespace FMLite.Application
 
         private static List<int> SelectStartingEleven(Club club, GameState state)
         {
+            if (HasLineup(club.tactic))
+            {
+                var result = new List<int>(11);
+                var used = new HashSet<int>();
+                foreach (var slot in club.tactic.slots)
+                {
+                    if (result.Count >= 11)
+                        break;
+                    var pid = slot.assignedPlayerId;
+                    if (pid < 0 || used.Contains(pid))
+                        continue;
+                    var p = state.GetPlayer(pid);
+                    if (
+                        p == null
+                        || p.state.injury.injuryTypeId != -1
+                        || p.state.suspendedMatches > 0
+                    )
+                        continue;
+                    result.Add(pid);
+                    used.Add(pid);
+                }
+                // 부상/정지로 빈 슬롯은 스쿼드 CA 최상위로 채움
+                if (result.Count < 11)
+                {
+                    var fallback = club
+                        .seniorSquadIds.Where(id => !used.Contains(id))
+                        .Select(id => state.GetPlayer(id))
+                        .Where(p =>
+                            p != null
+                            && p.state.injury.injuryTypeId == -1
+                            && p.state.suspendedMatches <= 0
+                        )
+                        .OrderByDescending(p => p.currentAbility)
+                        .Take(11 - result.Count);
+                    foreach (var p in fallback)
+                        result.Add(p.id);
+                }
+                return result;
+            }
+
             return club
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
                 .Where(p =>

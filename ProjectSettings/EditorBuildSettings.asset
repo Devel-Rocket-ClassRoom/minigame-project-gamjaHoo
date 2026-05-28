@@ -41,6 +41,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TacticScene.unity
     guid: 741bda35c53d20844b283bef148172b9
+  - enabled: 1
+    path: Assets/Scenes/LineupScene.unity
+    guid: 1047b32fc8e1793499697d7f4247dfac
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
