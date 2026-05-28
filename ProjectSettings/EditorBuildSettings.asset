@@ -44,6 +44,21 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LineupScene.unity
     guid: 1047b32fc8e1793499697d7f4247dfac
+  - enabled: 1
+    path: Assets/Scenes/MentoringScene.unity
+    guid: 1045ee94284588f42a987476074dc38b
+  - enabled: 1
+    path: Assets/Scenes/SeasonSummaryScene.unity
+    guid: f70c6c5fa9ce0cf46accdd58431e2a20
+  - enabled: 1
+    path: Assets/Scenes/MatchTextScene.unity
+    guid: ec63ddc85a70df040b9a59db3b1b3514
+  - enabled: 1
+    path: Assets/Scenes/NegotiationScene.unity
+    guid: 1ad789976703485488c89e1cc0b646cb
+  - enabled: 1
+    path: Assets/Scenes/PromiseInboxScene.unity
+    guid: 03506cf44142cea4b8bc7ae04b8207fb
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
