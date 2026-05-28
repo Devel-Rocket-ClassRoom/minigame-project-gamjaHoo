@@ -122,6 +122,15 @@ namespace FMLite.Domain
         public int minFacilityLevel = 1;
         public int maxFacilityLevel = 5;
 
+        [Header("Captain Score")]
+        public float captainAgeCap = 35f;
+        public float captainAgeMultiplier = 0.5f;
+        public float captainContractYearsMultiplier = 2.0f;
+
+        [Header("Formation Style Weights")]
+        public float formationStyleMinWeight = 0.1f;
+        public float formationStyleBalancedWeight = 0.5f;
+
         [Header("Club Generation — Formation (V0.1: 4-4-2 단일)")]
         // 분배표는 FormationConfig 단위. V0.1 단일 인스턴스, V1.0 에서 FormationSO 로 추출.
         // 필수 인원 합 + randomSlots = playersPerClub 일치 권장 (불일치 시 분배표 합 기준 진행).

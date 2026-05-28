@@ -120,6 +120,21 @@ namespace FMLite.Application
             if (state == null)
                 throw new ArgumentNullException(nameof(state));
 
+            // 시설 등급 기반 maxSign 검증 (algorithms.md V1.0-4)
+            var recruitFacility = GameDatabase.GetFacilityLevel(
+                FacilityType.YouthRecruitment,
+                club.facilities.youthRecruitmentLevel
+            );
+            if (recruitFacility != null && recruitFacility.signRatio < 1.0f)
+            {
+                int poolSize = intake.candidatePlayerIds.Count;
+                int maxSign = Math.Max(1, (int)Math.Round(poolSize * (double)recruitFacility.signRatio));
+                if (playerIds.Count > maxSign)
+                    throw new ArgumentException(
+                        $"SignPlayers: 시설 등급 초과 — maxSign={maxSign}, requested={playerIds.Count}"
+                    );
+            }
+
             // 영입
             var signedSet = new HashSet<int>();
             foreach (var id in playerIds)

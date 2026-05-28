@@ -48,9 +48,10 @@ namespace FMLite.Application
             var allFormations = GameDatabase.AllFormations.ToList();
             var pickedFormations = new FormationSO[clubCount];
             for (int i = 0; i < clubCount; i++)
-                pickedFormations[i] = allFormations.Count > 0
-                    ? PickFormation(rng, allFormations, ranks[i] / maxRep)
-                    : null;
+                pickedFormations[i] =
+                    allFormations.Count > 0
+                        ? PickFormation(rng, allFormations, ranks[i] / maxRep, balance)
+                        : null;
 
             // 2단계: Club 인스턴스
             for (int i = 0; i < clubCount; i++)
@@ -97,7 +98,8 @@ namespace FMLite.Application
         public static FormationSO PickFormation(
             Random rng,
             IEnumerable<FormationSO> formations,
-            float repNorm
+            float repNorm,
+            GameBalanceSO balance
         )
         {
             var list = formations.ToList();
@@ -107,9 +109,9 @@ namespace FMLite.Application
                 {
                     float w = f.formationStyle switch
                     {
-                        0 => 1f - repNorm + 0.1f, // Solid
-                        2 => repNorm + 0.1f, // Flamboyant
-                        _ => 0.5f, // Balanced
+                        0 => 1f - repNorm + balance.formationStyleMinWeight, // Solid
+                        2 => repNorm + balance.formationStyleMinWeight, // Flamboyant
+                        _ => balance.formationStyleBalancedWeight, // Balanced
                     };
                     return (double)Math.Max(w, 0.01f);
                 }
@@ -284,13 +286,15 @@ namespace FMLite.Application
             {
                 var pos = formation.slotPositions[i];
                 posCount.TryGetValue(pos, out int cnt);
-                slots.Add(new TacticSlot
-                {
-                    slotIndex = i,
-                    roleId = DefaultRoleId(pos, cnt),
-                    duty = DefaultDuty(pos),
-                    assignedPlayerId = -1,
-                });
+                slots.Add(
+                    new TacticSlot
+                    {
+                        slotIndex = i,
+                        roleId = DefaultRoleId(pos, cnt),
+                        duty = DefaultDuty(pos),
+                        assignedPlayerId = -1,
+                    }
+                );
                 posCount[pos] = cnt + 1;
             }
             return new Tactic

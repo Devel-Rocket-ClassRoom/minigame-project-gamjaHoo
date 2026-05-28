@@ -1,6 +1,6 @@
 // CaptainSystem.cs
 // J.6 — 캡틴/부캡틴 자동/수동 배정.
-// 자동: score = leadership + min(age,35)*0.5 + contractYearsLeft*2.0
+// 자동: score = leadership + min(age,captainAgeCap)*captainAgeMultiplier + contractYearsLeft*captainContractYearsMultiplier
 // 수동: Assign(club, playerId, isVice)
 // 라커룸 효과는 MoraleSystem 에서 dressingRoomCaptainLeadershipBonus 로 처리.
 
@@ -14,12 +14,12 @@ namespace FMLite.Application
     public static class CaptainSystem
     {
         // 자동 배정 — 현재 captain/viceCaptain 이 squad 에 없을 때만 덮어씀.
-        public static void AssignAuto(Club club, GameState state)
+        public static void AssignAuto(Club club, GameState state, GameBalanceSO balance)
         {
             if (club?.season == null || state == null)
                 return;
 
-            var ranked = RankPlayers(club, state, state.currentDate);
+            var ranked = RankPlayers(club, state, state.currentDate, balance);
             if (ranked.Count == 0)
                 return;
 
@@ -57,23 +57,27 @@ namespace FMLite.Application
             }
         }
 
-        // score = leadership + min(age, 35) * 0.5 + max(contractYearsLeft, 0) * 2.0
-        public static float Score(Player p, DateTime currentDate)
+        public static float Score(Player p, DateTime currentDate, GameBalanceSO balance)
         {
             if (p?.info == null || p.contract == null || p.stats?.mental == null)
                 return 0f;
             float age = (float)((currentDate - p.info.birthDate).TotalDays / 365.25);
             float yearsLeft = (float)((p.contract.endDate - currentDate).TotalDays / 365.25);
             return p.stats.mental.leadership
-                + Math.Min(age, 35f) * 0.5f
-                + Math.Max(yearsLeft, 0f) * 2.0f;
+                + Math.Min(age, balance.captainAgeCap) * balance.captainAgeMultiplier
+                + Math.Max(yearsLeft, 0f) * balance.captainContractYearsMultiplier;
         }
 
-        private static List<Player> RankPlayers(Club club, GameState state, DateTime currentDate) =>
+        private static List<Player> RankPlayers(
+            Club club,
+            GameState state,
+            DateTime currentDate,
+            GameBalanceSO balance
+        ) =>
             club
                 .seniorSquadIds.Select(id => state.GetPlayer(id))
                 .Where(p => p != null)
-                .OrderByDescending(p => Score(p, currentDate))
+                .OrderByDescending(p => Score(p, currentDate, balance))
                 .ToList();
 
         private static bool IsInSquad(int playerId, Club club) =>

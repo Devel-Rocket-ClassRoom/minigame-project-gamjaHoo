@@ -44,7 +44,7 @@ namespace FMLite.Tests
 
             int flamboyantCount = 0;
             for (int i = 0; i < 200; i++)
-                if (ClubGenerator.PickFormation(rng, formations, 0.9f).id == 2)
+                if (ClubGenerator.PickFormation(rng, formations, 0.9f, _balance).id == 2)
                     flamboyantCount++;
 
             Assert.Greater(
@@ -66,7 +66,7 @@ namespace FMLite.Tests
 
             int solidCount = 0;
             for (int i = 0; i < 200; i++)
-                if (ClubGenerator.PickFormation(rng, formations, 0.1f).id == 1)
+                if (ClubGenerator.PickFormation(rng, formations, 0.1f, _balance).id == 1)
                     solidCount++;
 
             Assert.Greater(

@@ -22,6 +22,7 @@ namespace FMLite.Tests
             // A: leadership=15, age=30, yearsLeft=2 → 15 + 30*0.5 + 2*2.0 = 34
             // B: leadership=10, age=25, yearsLeft=5 → 10 + 25*0.5 + 5*2.0 = 32.5
             // A 가 더 높음 → A 가 캡틴
+            var balance = ScriptableObject.CreateInstance<GameBalanceSO>();
             var state = new GameState { currentDate = BaseDate };
             var club = MakeClub(1);
             state.AddClub(club);
@@ -45,7 +46,7 @@ namespace FMLite.Tests
             club.seniorSquadIds.Add(playerA.id);
             club.seniorSquadIds.Add(playerB.id);
 
-            CaptainSystem.AssignAuto(club, state);
+            CaptainSystem.AssignAuto(club, state, balance);
 
             Assert.AreEqual(playerA.id, club.season.captainPlayerId);
             Assert.AreEqual(playerB.id, club.season.viceCaptainPlayerId);
@@ -108,6 +109,7 @@ namespace FMLite.Tests
         [Test]
         public void T4_Score_AgeCappedAt35()
         {
+            var balance = ScriptableObject.CreateInstance<GameBalanceSO>();
             var p40 = MakePlayer(
                 1,
                 clubId: 1,
@@ -124,8 +126,8 @@ namespace FMLite.Tests
             );
 
             // age cap = 35 이므로 두 선수 점수 동일해야 함
-            float score40 = CaptainSystem.Score(p40, BaseDate);
-            float score35 = CaptainSystem.Score(p35, BaseDate);
+            float score40 = CaptainSystem.Score(p40, BaseDate, balance);
+            float score35 = CaptainSystem.Score(p35, BaseDate, balance);
             Assert.AreEqual(
                 score35,
                 score40,

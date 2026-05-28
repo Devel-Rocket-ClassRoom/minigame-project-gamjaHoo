@@ -28,6 +28,7 @@ namespace FMLite.Domain
 
         [Header("Youth Recruitment")]
         public int youthPoolSize; // 유스 인테이크 풀 크기
+        public float signRatio = 1.0f; // 영입 가능 비율 (Lv1=0.33 ~ Lv10=1.0)
 
         [Header("Youth Facility")]
         public float youthGrowthRate = 1.0f; // 유스 선수 성장률 곱셈
