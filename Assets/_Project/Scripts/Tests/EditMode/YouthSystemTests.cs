@@ -205,6 +205,32 @@ namespace FMLite.Tests
             Assert.That(diff, Is.GreaterThan(30), $"T8: 차이 > 30 (실측 {diff:F1})");
         }
 
+        // ── T11. CA 캡 — 모든 유스 CA ≤ youthMaxCa (L.1 DoD) ────────
+
+        [Test]
+        public void T11_CaCap_AllYouthCaBoundedByYouthMaxCa()
+        {
+            var players = CollectPlayers(youthCoachLevel: 5, intakeCount: 10, baseSeed: 999);
+            foreach (var p in players)
+                Assert.LessOrEqual(
+                    p.currentAbility,
+                    _balance.youthMaxCa,
+                    $"T11: CA={p.currentAbility} ≤ youthMaxCa={_balance.youthMaxCa}"
+                );
+        }
+
+        [Test]
+        public void T11b_CaCap_AllYouthCaAboveYouthMinCa()
+        {
+            var players = CollectPlayers(youthCoachLevel: 1, intakeCount: 10, baseSeed: 888);
+            foreach (var p in players)
+                Assert.GreaterOrEqual(
+                    p.currentAbility,
+                    _balance.youthMinCa,
+                    $"T11b: CA={p.currentAbility} ≥ youthMinCa={_balance.youthMinCa}"
+                );
+        }
+
         // ── T9. Reroll ──────────────────────────────────────────────
 
         [Test]

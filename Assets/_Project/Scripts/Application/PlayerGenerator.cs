@@ -25,7 +25,9 @@ namespace FMLite.Application
             int youthClubId,
             PlayerOrigin origin,
             DateTime currentDate,
-            GameBalanceSO balance
+            GameBalanceSO balance,
+            int forceCa = -1,
+            int forcePa = -1
         )
         {
             clubReputation = Math.Clamp(clubReputation, 0, 100);
@@ -35,8 +37,8 @@ namespace FMLite.Application
                 );
 
             // 1~6단계: algorithms.md #1 Logic 순서 준수
-            int ca = DetermineCA(rng, clubReputation, age, balance);
-            int pa = DeterminePA(rng, ca, age, balance);
+            int ca = forceCa >= 0 ? forceCa : DetermineCA(rng, clubReputation, age, balance);
+            int pa = forcePa >= 0 ? forcePa : DeterminePA(rng, ca, age, balance);
             var stats = DistributeStats(rng, ca, targetPosition, balance);
             var traitIds = SelectTraits(rng, balance);
             var info = BuildPersonalInfo(
