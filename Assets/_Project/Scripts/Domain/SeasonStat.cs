@@ -10,9 +10,13 @@ namespace FMLite.Domain
     {
         public int seasonYear;
         public int clubId;
+        public string competition; // 리그 이름 (leagueConfig.displayName)
         public int appearances;
         public int goals;
         public int assists;
         public float averageRating;
+        public int yellowCards;
+        public int redCards;
+        public int minutesPlayed;
     }
 }

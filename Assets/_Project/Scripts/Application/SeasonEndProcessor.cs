@@ -6,7 +6,7 @@
 //   - 계약 만료 → FA 전환 (currentClubId = -1, squad 제거)
 //   - 33+ 확률적 은퇴 (GameState 제거)
 //   - SeasonEndedEvent 발행
-// V1.0+ 미구현: 시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 / 갱신 협상.
+// V1.0 M.1: SaveCareerStats — 리그 매치 결과 집계 → Player.career.Add
 
 using System;
 using System.Collections.Generic;
@@ -26,13 +26,16 @@ namespace FMLite.Application
             if (balance == null)
                 throw new ArgumentNullException(nameof(balance));
 
-            // a. 계약 만료 → FA 전환
+            // a. 시즌 통계 career 저장 (V1.0 M.1) — 은퇴/계약만료 전에 실행
+            SaveCareerStats(state);
+
+            // b. 계약 만료 → FA 전환
             ProcessExpiredContracts(state);
 
-            // b. 33+ 확률적 은퇴
+            // c. 33+ 확률적 은퇴
             ProcessRetirements(state, balance);
 
-            // c. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
+            // d. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
             int seasonYear = state.leagues.FirstOrDefault()?.seasonYear ?? 0;
             EventBus.Publish(new SeasonEndedEvent { seasonYear = seasonYear });
         }
@@ -92,6 +95,80 @@ namespace FMLite.Application
                 }
                 state.RemovePlayer(id);
             }
+        }
+
+        private static void SaveCareerStats(GameState state)
+        {
+            foreach (var league in state.leagues)
+            {
+                if (league == null)
+                    continue;
+                string competition =
+                    GameDatabase.GetLeagueConfig(league.configSOId)?.displayName ?? "";
+                int seasonYear = league.seasonYear;
+
+                var acc = new Dictionary<int, LeagueStatAcc>();
+
+                foreach (var match in league.schedule)
+                {
+                    if (match?.result == null)
+                        continue;
+                    var result = match.result;
+                    foreach (var ps in result.playerStats)
+                    {
+                        if (!acc.TryGetValue(ps.playerId, out var entry))
+                        {
+                            int clubId = result.homeStarting11.Contains(ps.playerId)
+                                ? match.homeClubId
+                                : match.awayClubId;
+                            entry = new LeagueStatAcc { clubId = clubId };
+                            acc[ps.playerId] = entry;
+                        }
+                        entry.apps++;
+                        entry.goals += ps.goals;
+                        entry.assists += ps.assists;
+                        entry.ratingSum += ps.rating;
+                        entry.yellow += ps.yellowCards;
+                        entry.red += ps.redCards;
+                        entry.minutes += ps.minutesPlayed;
+                    }
+                }
+
+                foreach (var kvp in acc)
+                {
+                    var player = state.GetPlayer(kvp.Key);
+                    if (player == null)
+                        continue;
+                    var e = kvp.Value;
+                    player.career.Add(
+                        new SeasonStat
+                        {
+                            seasonYear = seasonYear,
+                            clubId = e.clubId,
+                            competition = competition,
+                            appearances = e.apps,
+                            goals = e.goals,
+                            assists = e.assists,
+                            averageRating = e.apps > 0 ? e.ratingSum / e.apps : 0f,
+                            yellowCards = e.yellow,
+                            redCards = e.red,
+                            minutesPlayed = e.minutes,
+                        }
+                    );
+                }
+            }
+        }
+
+        private class LeagueStatAcc
+        {
+            public int clubId;
+            public int apps;
+            public int goals;
+            public int assists;
+            public float ratingSum;
+            public int yellow;
+            public int red;
+            public int minutes;
         }
 
         private static int GetAge(Player p, DateTime currentDate)
