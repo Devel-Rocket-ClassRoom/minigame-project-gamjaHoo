@@ -336,6 +336,9 @@ namespace FMLite.Domain
         public int youthPromotionAge = 18;
         public float youthPromotionCaRatio = 0.70f;
 
+        [Header("Youth Signed By Other (V1.0 L.6)")]
+        public float youthRejectedToOtherClubRatio = 0.30f;
+
         [Header("Daily / Season")]
         public int fatigueRecoveryPerDay = 15;
         public int fatigueGainPerMatch = 30;

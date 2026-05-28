@@ -29,4 +29,10 @@ namespace FMLite.Core
         public int playerId;
         public int clubId;
     }
+
+    public class YouthSignedByOtherEvent
+    {
+        public int playerId;
+        public int otherClubId;
+    }
 }

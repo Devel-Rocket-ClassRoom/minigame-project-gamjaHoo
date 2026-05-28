@@ -108,7 +108,8 @@ namespace FMLite.Application
             YouthIntake intake,
             IList<int> playerIds,
             Club club,
-            GameState state
+            GameState state,
+            GameBalanceSO balance = null
         )
         {
             if (intake == null)
@@ -160,13 +161,33 @@ namespace FMLite.Application
                 signedSet.Add(id);
             }
 
-            // 미영입 처리 — V0.1: 모두 GameState 제거 + rejectedPlayerIds 에 ID 만 보관
+            // 미영입 처리 — V1.0 L.6: 일부 AI 다른 구단 영입, 나머지 제거 + ID 보존
+            float aiRatio = balance?.youthRejectedToOtherClubRatio ?? 0f;
+            var otherClubs = state.allClubs.Where(c => c.id != club.id).ToList();
+            var rng = new Random(state.randomSeed ^ intake.id ^ 0xFEED);
+
             foreach (var id in intake.candidatePlayerIds)
             {
                 if (signedSet.Contains(id))
                     continue;
-                state.RemovePlayer(id);
-                intake.rejectedPlayerIds.Add(id);
+
+                if (aiRatio > 0f && otherClubs.Count > 0 && rng.NextDouble() < aiRatio)
+                {
+                    var otherClub = otherClubs[rng.Next(otherClubs.Count)];
+                    var player = state.GetPlayer(id);
+                    if (player != null)
+                    {
+                        player.currentClubId = otherClub.id;
+                        otherClub.youthSquadIds.Add(id);
+                    }
+                    intake.rejectedPlayerIds.Add(id);
+                    EventBus.Publish(new YouthSignedByOtherEvent { playerId = id, otherClubId = otherClub.id });
+                }
+                else
+                {
+                    state.RemovePlayer(id);
+                    intake.rejectedPlayerIds.Add(id);
+                }
             }
 
             intake.candidatePlayerIds.Clear();
