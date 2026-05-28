@@ -31,6 +31,8 @@ namespace FMLite.UI
         private const string MainMenuScene = "MainMenuScene";
         private const string MentoringScene = "MentoringScene";
         private const string SeasonSummaryScene = "SeasonSummaryScene";
+        private const string MatchTextScene = "MatchTextScene";
+        internal const string SelectedMatchIdKey = "SelectedMatchId";
 
         [Header("요약 정보")]
 [SerializeField]
@@ -147,6 +149,15 @@ namespace FMLite.UI
             )
             {
                 SceneManager.LoadScene(SeasonSummaryScene);
+                return;
+            }
+
+            // 유저 매치 완료 시 MatchTextScene 으로 전환
+            var userMatch = FindTodayUserMatch(state);
+            if (userMatch?.result != null)
+            {
+                PlayerPrefs.SetInt(SelectedMatchIdKey, userMatch.id);
+                SceneManager.LoadScene(MatchTextScene);
                 return;
             }
 
@@ -423,6 +434,25 @@ namespace FMLite.UI
             var opponent = state.GetClub(opponentId);
             var homeAway = Localization.Get(isHome ? "home" : "away");
             return $"{nextMatch.date:MM/dd}  {opponent?.name ?? "?"}  ({homeAway})";
+        }
+
+        // N.3: 오늘 날짜에 유저 클럽 매치가 있으면 반환
+        private static Match FindTodayUserMatch(GameState state)
+        {
+            var today = state.currentDate.Date;
+            foreach (var league in state.leagues)
+            {
+                if (league?.schedule == null)
+                    continue;
+                foreach (var m in league.schedule)
+                {
+                    if (m.date.Date != today)
+                        continue;
+                    if (m.homeClubId == state.userClubId || m.awayClubId == state.userClubId)
+                        return m;
+                }
+            }
+            return null;
         }
     }
 }

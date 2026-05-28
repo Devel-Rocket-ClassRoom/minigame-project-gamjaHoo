@@ -146,8 +146,8 @@ namespace FMLite.UI
 
         public void OnBackClicked()
         {
-            Debug.Log("[PlayerProfileController] Back button clicked. Loading SquadScene...");
-            SceneManager.LoadScene(SquadScene);
+            string prev = PlayerPrefs.GetString(PlayerNameLinkController.PreviousSceneKey, SquadScene);
+            SceneManager.LoadScene(prev);
         }
 
         // ── 면담 (V1.0 G.2 Sub-B) ──────────────────────────────────────
