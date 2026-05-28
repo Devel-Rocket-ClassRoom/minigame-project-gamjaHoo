@@ -329,6 +329,9 @@ namespace FMLite.Domain
         public int youthIntakeSecondMonth = 1;
         public int youthIntakeSecondDay = 15; // 보조 인스펙션: 1/15 (시즌 중간)
 
+        [Header("Mentoring System (V1.0 L.4)")]
+        public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 최대 (algorithms.md V1.0-4)
+
         [Header("Daily / Season")]
         public int fatigueRecoveryPerDay = 15;
         public int fatigueGainPerMatch = 30;
