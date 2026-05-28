@@ -99,6 +99,10 @@ namespace FMLite.Application
             // (f) 안전망 — AddClub/AddPlayer 가 이미 인덱스 동기화하므로 사실상 no-op
             state.BuildIndexes();
 
+            // (g) 모든 구단 캡틴/부캡틴 자동 배정 (J.6)
+            foreach (var club in state.allClubs)
+                CaptainSystem.AssignAuto(club, state);
+
             return state;
         }
     }
