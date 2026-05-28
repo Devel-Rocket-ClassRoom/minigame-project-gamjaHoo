@@ -43,6 +43,15 @@ namespace FMLite.Application
             int[] tierCounts = AllocateTierCounts(balance.tierClubRatios, clubCount);
             int[] ranks = AssignReputations(rng, tierCounts, balance);
 
+            // J.7: 명성 기반 포메이션 추첨
+            float maxRep = balance.tierRepMax.Length > 0 ? balance.tierRepMax[0] : 100f;
+            var allFormations = GameDatabase.AllFormations.ToList();
+            var pickedFormations = new FormationSO[clubCount];
+            for (int i = 0; i < clubCount; i++)
+                pickedFormations[i] = allFormations.Count > 0
+                    ? PickFormation(rng, allFormations, ranks[i] / maxRep)
+                    : null;
+
             // 2단계: Club 인스턴스
             for (int i = 0; i < clubCount; i++)
                 result.Clubs.Add(
@@ -54,26 +63,28 @@ namespace FMLite.Application
                         balance,
                         currentDate,
                         leagueId,
-                        startClubId
+                        startClubId,
+                        pickedFormations[i]
                     )
                 );
 
             // 3단계: 스쿼드 생성 (구단마다 분배표 동적 — FormationConfig 필수 + 랜덤 2자리)
             int nextPlayerId = startPlayerId;
-            foreach (var club in result.Clubs)
+            for (int i = 0; i < result.Clubs.Count; i++)
             {
                 var players = RegenerateSquad(
                     rng,
-                    club,
+                    result.Clubs[i],
                     leagueConfig,
                     balance,
                     currentDate,
-                    nextPlayerId
+                    nextPlayerId,
+                    pickedFormations[i]
                 );
                 foreach (var player in players)
                 {
                     result.Players.Add(player);
-                    club.seniorSquadIds.Add(player.id);
+                    result.Clubs[i].seniorSquadIds.Add(player.id);
                 }
                 nextPlayerId += players.Count;
             }
@@ -81,21 +92,48 @@ namespace FMLite.Application
             return result;
         }
 
+        // J.7: 명성 정규화 가중치로 포메이션 선택.
+        // repNorm 0→1 (약체→강팀). Solid=약체선호, Flamboyant=강팀선호, Balanced=중간.
+        public static FormationSO PickFormation(
+            Random rng,
+            IEnumerable<FormationSO> formations,
+            float repNorm
+        )
+        {
+            var list = formations.ToList();
+            return rng.WeightedSample(
+                list,
+                f =>
+                {
+                    float w = f.formationStyle switch
+                    {
+                        0 => 1f - repNorm + 0.1f, // Solid
+                        2 => repNorm + 0.1f, // Flamboyant
+                        _ => 0.5f, // Balanced
+                    };
+                    return (double)Math.Max(w, 0.01f);
+                }
+            );
+        }
+
         // 한 구단의 스쿼드 25명만 재생성 (algorithms.md #6 Reroll 정책 + ClubGen 3단계 공용).
         // 호출자가 club.seniorSquadIds 관리 (Clear / Add). 이 메서드는 순수 생성만.
         // StartingSquadGacha.RerollSquad 와 ClubGen.Generate 가 공용으로 사용.
+        // formation 이 null 이면 balance.formation 폴백.
         public static List<Player> RegenerateSquad(
             Random rng,
             Club club,
             LeagueConfigSO leagueConfig,
             GameBalanceSO balance,
             DateTime currentDate,
-            int startPlayerId
+            int startPlayerId,
+            FormationSO formation = null
         )
         {
             var players = new List<Player>();
             int nextId = startPlayerId;
-            var composition = BuildSquadComposition(rng, balance);
+            var config = formation?.squadConfig ?? balance.formation;
+            var composition = BuildSquadComposition(rng, config);
             foreach (var (pos, count) in composition)
             {
                 for (int j = 0; j < count; j++)
@@ -172,7 +210,8 @@ namespace FMLite.Application
             GameBalanceSO b,
             DateTime currentDate,
             int leagueId,
-            int startClubId
+            int startClubId,
+            FormationSO formation
         )
         {
             // Finance — base + repCoeff*rep + 15% σ 노이즈
@@ -232,11 +271,37 @@ namespace FMLite.Application
                     boardConfidence = b.initialBoardConfidence,
                 },
                 isActiveSimulation = false, // GameInitializer 가 userClub 결정 후 갱신
-                tactic = BuildDefaultTactic(),
+                tactic = formation != null ? BuildDefaultTactic(formation) : BuildDefaultTactic(),
             };
         }
 
-        // J.2 — 4-4-2 Balanced 디폴트. assignedPlayerId=-1 → 자동 배정 (J.5 LineupScene 이후 수동).
+        // J.7: FormationSO.slotPositions 기반 전술 생성.
+        private static Tactic BuildDefaultTactic(FormationSO formation)
+        {
+            var slots = new List<TacticSlot>(11);
+            var posCount = new Dictionary<Position, int>();
+            for (int i = 0; i < formation.slotPositions.Length; i++)
+            {
+                var pos = formation.slotPositions[i];
+                posCount.TryGetValue(pos, out int cnt);
+                slots.Add(new TacticSlot
+                {
+                    slotIndex = i,
+                    roleId = DefaultRoleId(pos, cnt),
+                    duty = DefaultDuty(pos),
+                    assignedPlayerId = -1,
+                });
+                posCount[pos] = cnt + 1;
+            }
+            return new Tactic
+            {
+                formationId = formation.id,
+                mentality = Mentality.Balanced,
+                slots = slots,
+            };
+        }
+
+        // J.2 — 4-4-2 Balanced 디폴트 (FormationSO 미로드 시 폴백).
         private static Tactic BuildDefaultTactic() =>
             new Tactic
             {
@@ -324,6 +389,37 @@ namespace FMLite.Application
                 },
             };
 
+        // Position → 기본 RoleId. WB 는 첫 등장(count=0)=WB_L(9), 두 번째=WB_R(12).
+        private static int DefaultRoleId(Position pos, int count) =>
+            pos switch
+            {
+                Position.GK => 1,
+                Position.CB => 4,
+                Position.LB => 8,
+                Position.RB => 11,
+                Position.WB => count == 0 ? 9 : 12,
+                Position.DM => 16,
+                Position.CM => 20,
+                Position.AM => 23,
+                Position.LM => 26,
+                Position.RM => 29,
+                Position.LW => 32,
+                Position.RW => 34,
+                Position.ST => 36,
+                Position.CF => 38,
+                _ => 20,
+            };
+
+        private static Duty DefaultDuty(Position pos) =>
+            pos switch
+            {
+                Position.GK => Duty.Defend,
+                Position.CB => Duty.Defend,
+                Position.DM => Duty.Defend,
+                Position.LW or Position.RW or Position.ST or Position.CF => Duty.Attack,
+                _ => Duty.Support,
+            };
+
         private static int SampleFacilityLevel(Random rng, double mu, GameBalanceSO b) =>
             Math.Clamp(
                 (int)Math.Round(mu + rng.NextNormal(0, b.facilityNoiseSigma)),
@@ -335,14 +431,11 @@ namespace FMLite.Application
 
         // FormationConfig 기반 분배표 동적 생성 (design-decisions.md #28).
         // 필수 인원 (그룹 합 균등 분배) + randomSlots 시드 기반 추첨.
-        // V0.1 4-4-2 기본: GK 3 + 23 필수 + 2 랜덤 = 25.
-        // V1.0 에서 FormationSO 추출 시 이 메서드가 FormationConfig 입력만 받는 형태로 일관.
         private static List<(Position pos, int count)> BuildSquadComposition(
             Random rng,
-            GameBalanceSO b
+            FormationConfig f
         )
         {
-            var f = b.formation;
             var counts = new Dictionary<Position, int>
             {
                 [Position.GK] = f.gk,
