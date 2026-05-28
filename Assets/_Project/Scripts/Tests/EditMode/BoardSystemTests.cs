@@ -33,7 +33,7 @@ namespace FMLite.Tests
             _balance.boardSackedThreshold = 10;
             _balance.bigMatchReputationThreshold = 75;
 
-            _state = new GameState { currentDate = new DateTime(2025, 3, 15) };
+            _state = new GameState { currentDate = new DateTime(2025, 3, 15), managerReputation = 0 };
 
             _userClub = new Club
             {
