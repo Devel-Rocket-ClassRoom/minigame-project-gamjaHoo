@@ -136,6 +136,7 @@ namespace FMLite.UI
             var state = GameManager.Instance.State;
             GameLoop.ContinueUntilStop(state, balance);
             RefreshInfo();
+            CheckBoardMeeting();
             continueButton.interactable = true;
         }
 
