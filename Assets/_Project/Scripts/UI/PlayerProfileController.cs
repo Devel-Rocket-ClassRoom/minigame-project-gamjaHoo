@@ -66,6 +66,13 @@ namespace FMLite.UI
         [SerializeField]
         private InterviewDialogController interviewDialog;
 
+        [Header("1군 승격 (V1.0 L.5)")]
+        [SerializeField]
+        private Button promoteButton;
+
+        [SerializeField]
+        private Button declinePromotionButton;
+
         private int _currentPlayerId = -1;
 
         private void Start()
@@ -84,6 +91,7 @@ namespace FMLite.UI
             }
             _currentPlayerId = playerId;
             ConfigureInterviewButton(player, state);
+            ConfigurePromotionButtons(player, state);
 
             bool debugMode = GameDatabase.GameBalance != null && GameDatabase.GameBalance.isDebugMode;
             // stats는 항상 정확 수치 노출 (B.5); debugMode는 계약 재무 정보에만 사용
@@ -160,6 +168,52 @@ namespace FMLite.UI
             interviewButton.gameObject.SetActive(isOwnClub);
             interviewButton.onClick.RemoveAllListeners();
             interviewButton.onClick.AddListener(OnInterviewClicked);
+        }
+
+        // ── 1군 승격 (V1.0 L.5) ────────────────────────────────────────────
+
+        public void OnPromoteClicked()
+        {
+            var state = GameManager.Instance?.State;
+            if (state == null || _currentPlayerId == -1)
+                return;
+            YouthSystem.PromotePlayer(_currentPlayerId, state);
+            promoteButton?.gameObject.SetActive(false);
+            declinePromotionButton?.gameObject.SetActive(false);
+        }
+
+        public void OnDeclinePromotionClicked()
+        {
+            var state = GameManager.Instance?.State;
+            if (state == null || _currentPlayerId == -1)
+                return;
+            YouthSystem.DeclinePromotion(_currentPlayerId, state);
+            promoteButton?.gameObject.SetActive(false);
+            declinePromotionButton?.gameObject.SetActive(false);
+        }
+
+        private void ConfigurePromotionButtons(Player player, GameState state)
+        {
+            bool showPromotion = false;
+            if (player.currentClubId == state.userClubId)
+            {
+                var club = state.GetClub(state.userClubId);
+                showPromotion = club != null
+                    && club.youthSquadIds.Contains(player.id)
+                    && club.season.pendingPromotionPlayerIds.Contains(player.id);
+            }
+            if (promoteButton != null)
+            {
+                promoteButton.gameObject.SetActive(showPromotion);
+                promoteButton.onClick.RemoveAllListeners();
+                promoteButton.onClick.AddListener(OnPromoteClicked);
+            }
+            if (declinePromotionButton != null)
+            {
+                declinePromotionButton.gameObject.SetActive(showPromotion);
+                declinePromotionButton.onClick.RemoveAllListeners();
+                declinePromotionButton.onClick.AddListener(OnDeclinePromotionClicked);
+            }
         }
 
         // ── 능력치 ──────────────────────────────────────────────────────────

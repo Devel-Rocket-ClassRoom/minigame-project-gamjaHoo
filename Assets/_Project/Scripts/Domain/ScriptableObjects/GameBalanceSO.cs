@@ -332,6 +332,10 @@ namespace FMLite.Domain
         [Header("Mentoring System (V1.0 L.4)")]
         public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 최대 (algorithms.md V1.0-4)
 
+        [Header("Youth Promotion (V1.0 L.5)")]
+        public int youthPromotionAge = 18;
+        public float youthPromotionCaRatio = 0.70f;
+
         [Header("Daily / Season")]
         public int fatigueRecoveryPerDay = 15;
         public int fatigueGainPerMatch = 30;

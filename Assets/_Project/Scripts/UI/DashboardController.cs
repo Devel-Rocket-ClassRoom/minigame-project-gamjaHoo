@@ -29,9 +29,10 @@ namespace FMLite.UI
         private const string TacticScene = "TacticScene";
         private const string LineupScene = "LineupScene";
         private const string MainMenuScene = "MainMenuScene";
+        private const string MentoringScene = "MentoringScene";
 
         [Header("요약 정보")]
-        [SerializeField]
+[SerializeField]
         private TMP_Text dateText;
 
         [SerializeField]
@@ -84,6 +85,7 @@ namespace FMLite.UI
             EventBus.Subscribe<PromiseBrokenEvent>(OnPromiseBroken);
             EventBus.Subscribe<PromiseDeadlineApproachingEvent>(OnPromiseDeadlineApproaching);
             EventBus.Subscribe<TransferRequestEvent>(OnTransferRequest);
+            EventBus.Subscribe<YouthPromotionSuggestedEvent>(OnYouthPromotion);
         }
 
         private void OnDisable()
@@ -95,6 +97,7 @@ namespace FMLite.UI
             EventBus.Unsubscribe<PromiseBrokenEvent>(OnPromiseBroken);
             EventBus.Unsubscribe<PromiseDeadlineApproachingEvent>(OnPromiseDeadlineApproaching);
             EventBus.Unsubscribe<TransferRequestEvent>(OnTransferRequest);
+            EventBus.Unsubscribe<YouthPromotionSuggestedEvent>(OnYouthPromotion);
         }
 
         private void Start()
@@ -128,6 +131,8 @@ namespace FMLite.UI
         public void OnTacticClicked() => SceneManager.LoadScene(TacticScene);
 
         public void OnLineupClicked() => SceneManager.LoadScene(LineupScene);
+
+        public void OnMentoringClicked() => SceneManager.LoadScene(MentoringScene);
 
         public void OnMainMenuClicked() => SceneManager.LoadScene(MainMenuScene);
 
@@ -243,6 +248,27 @@ namespace FMLite.UI
             {
                 transferRequestDialog.Show(e.playerId);
             }
+        }
+
+        private void OnYouthPromotion(YouthPromotionSuggestedEvent e)
+        {
+            var state = GameManager.Instance?.State;
+            if (e.clubId != state?.userClubId)
+                return;
+            var player = state.GetPlayer(e.playerId);
+            if (player == null)
+                return;
+            string playerName = $"{player.info.firstName} {player.info.lastName}";
+            var today = state.currentDate;
+            int age = today.Year - player.info.birthDate.Year;
+            if (
+                today.Month < player.info.birthDate.Month
+                || (today.Month == player.info.birthDate.Month && today.Day < player.info.birthDate.Day)
+            )
+                age--;
+            PushInbox(
+                Localization.Get("inbox_youth_promotion_fmt", playerName, age, player.currentAbility)
+            );
         }
 
         private string FormatPromise(string key, int promiseId)

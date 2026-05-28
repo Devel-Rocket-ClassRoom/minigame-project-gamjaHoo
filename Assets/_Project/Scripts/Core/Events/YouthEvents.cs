@@ -23,4 +23,10 @@ namespace FMLite.Core
         public int intakeId;
         public List<int> signedPlayerIds;
     }
+
+    public class YouthPromotionSuggestedEvent
+    {
+        public int playerId;
+        public int clubId;
+    }
 }

@@ -8,6 +8,7 @@
 // V1.0 G.1: 매일 MoraleSystem.Tick (사기 50 수렴 + Hidden professionalism 보정).
 // V1.0 G.2: 매주 월요일 PromiseSystem.CheckProgress (deadline 도래 시 status 확정 + 사기 변동).
 // V1.0 L.4: 매월 1일 MentoringSystem.RunMentoring (Hidden Attrs 수렴).
+// V1.0 L.5: 매주 월요일 YouthSystem.CheckPromotionCandidates (1군 콜업 트리거).
 // V1.0 추가 예정: 계약 만료 ContractExpiringEvent.
 
 using System;
@@ -62,6 +63,7 @@ namespace FMLite.Application
                 ScoutingSystem.UpdateKnowledge(state, balance);
                 CpuTransferAi.Run(state, balance);
                 PromiseSystem.CheckProgress(state, balance);
+                YouthSystem.CheckPromotionCandidates(state, balance);
             }
         }
 
