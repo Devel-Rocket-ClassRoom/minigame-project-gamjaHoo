@@ -258,13 +258,15 @@ namespace FMLite.Application
                     ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
             }
 
-            // 3단계: 후보 N명 생성
+            // 3단계: 후보 N명 생성 (V1.0 L.7: 인스펙션별 포지션 가중치)
+            var allPositions = (Position[])Enum.GetValues(typeof(Position));
+            double[] posWeights = SamplePositionWeights(rng, balance?.youthPositionWeightVolatility ?? 0f);
             int nextId = state.nextPlayerId;
             for (int i = 0; i < poolSize; i++)
             {
                 int age = SampleYouthAge(rng, balance);
                 string nat = SampleYouthNationality(rng, leagueConfig.countryCode, balance);
-                Position position = (Position)rng.Next(0, 14); // V0.1: 균등 랜덤 (14개 포지션)
+                Position position = rng.WeightedSample(allPositions, p => posWeights[(int)p]);
                 int pa = SampleYouthPA(rng, coachFacility, balance);
                 int ca = DeriveCaFromPa(rng, pa, balance);
 
@@ -472,6 +474,24 @@ namespace FMLite.Application
             if (today.Month < birthDate.Month || (today.Month == birthDate.Month && today.Day < birthDate.Day))
                 age--;
             return age;
+        }
+
+        // ── SamplePositionWeights (L.7) ──────────────────────────────
+        // volatility=0 → 균등, volatility=1 → 극단 편중. 인스펙션 단위로 1회 호출.
+        public static double[] SamplePositionWeights(Random rng, float volatility)
+        {
+            int n = 14;
+            var weights = new double[n];
+            double sum = 0;
+            double uniform = 1.0 / n;
+            for (int i = 0; i < n; i++)
+            {
+                weights[i] = uniform * (1.0 - volatility) + rng.NextDouble() * volatility;
+                sum += weights[i];
+            }
+            for (int i = 0; i < n; i++)
+                weights[i] /= sum;
+            return weights;
         }
 
         // ── Lerp (PlayerGen 동일) ─────────────────────────────────────
