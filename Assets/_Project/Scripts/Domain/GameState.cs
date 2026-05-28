@@ -50,6 +50,7 @@ namespace FMLite.Domain
         public int managerReputation = 50; // 0-100
         public int nextPromiseId = 1;
         public int nextAwardId = 1;
+        public int nextMentoringGroupId = 1;
 
         // 런타임 인덱스 (직렬화 제외, 로드 후 BuildIndexes 필요)
         [JsonIgnore]
