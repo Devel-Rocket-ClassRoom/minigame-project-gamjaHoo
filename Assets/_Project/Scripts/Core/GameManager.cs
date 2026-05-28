@@ -5,11 +5,15 @@
 
 using FMLite.Domain;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FMLite.Core
 {
     public class GameManager : MonoBehaviour
     {
+        private const string MainMenuScene = "MainMenuScene";
+        public const string SackedKey = "gameSacked";
+
         public static GameManager Instance { get; private set; }
 
         public GameState State { get; private set; }
@@ -25,10 +29,12 @@ namespace FMLite.Core
             }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            EventBus.Subscribe<ManagerSackedEvent>(OnManagerSacked);
         }
 
         private void OnDestroy()
         {
+            EventBus.Unsubscribe<ManagerSackedEvent>(OnManagerSacked);
             if (Instance == this)
                 Instance = null;
         }
@@ -38,6 +44,13 @@ namespace FMLite.Core
             State = state;
             if (state != null)
                 GameTime.Reset(state.currentDate);
+        }
+
+        private void OnManagerSacked(ManagerSackedEvent e)
+        {
+            PlayerPrefs.SetInt(SackedKey, 1);
+            PlayerPrefs.Save();
+            SceneManager.LoadScene(MainMenuScene);
         }
     }
 }

@@ -2,7 +2,7 @@
 // 시즌 사이클 이벤트. event-bus-catalog.md "Season Events".
 // Stage 12 Task 12.1 / 12.2 (#44 / #45) 에서 발행.
 // V0.1: SeasonEndedEvent / SeasonStartedEvent.
-// V1.0+: BoardReviewEvent (보드 시스템 도입 시).
+// V1.0 M.4: BoardWarningEvent / ManagerSackedEvent.
 
 using FMLite.Domain;
 
@@ -24,5 +24,15 @@ namespace FMLite.Core
     {
         public AwardType awardType;
         public int playerId;
+    }
+
+    public class BoardWarningEvent
+    {
+        public int boardConfidence;
+    }
+
+    public class ManagerSackedEvent
+    {
+        public int boardConfidence;
     }
 }
