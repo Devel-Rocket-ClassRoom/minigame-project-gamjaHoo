@@ -643,5 +643,86 @@ MonoBehaviour:
     korean: "\uACE8\uB4E0 \uAE00\uB7EC\uBE0C"
     english: Golden Glove
   - key: award_type_manager_of_season
-    korean: "\uC2DC\uC98C \uCD5C\uAD6C \uAC10\uB3C5\uC0C1"
+    korean: "\uC2DC\uC98C \uCD5C\uC6B0\uC218 \uAC10\uB3C5\uC0C1"
     english: Manager of the Season
+  - key: negotiation_title
+    korean: "\uD611\uC0C1"
+    english: Negotiation
+  - key: negotiation_counter_title_fmt
+    korean: "{0} \u2014 \uC5ED\uC81C\uC548 \uB3C4\uCC29"
+    english: "{0} \u2014 Counter Offer"
+  - key: negotiation_counter_detail_fmt
+    korean: "\uC81C\uC548: {0} / \uC5ED\uC81C\uC548: {1} (\uB77C\uC6B4\uB4DC {2})"
+    english: "Offer: {0} / Counter: {1} (Round {2})"
+  - key: negotiation_status_counter
+    korean: "\uC5ED\uC81C\uC548"
+    english: Counter
+  - key: negotiation_status_pending
+    korean: "\uB300\uAE30\uC911"
+    english: Pending
+  - key: negotiation_status_negotiating
+    korean: "\uD611\uC0C1 \uC911"
+    english: Negotiating
+  - key: negotiation_status_accepted
+    korean: "\uC218\uB77D"
+    english: Accepted
+  - key: negotiation_accept_btn
+    korean: "\uC218\uB77D"
+    english: Accept
+  - key: negotiation_reject_btn
+    korean: "\uAC70\uC808"
+    english: Reject
+  - key: negotiation_recounter_btn
+    korean: "\uC7AC\uC5ED\uC81C\uC548"
+    english: Re-counter
+  - key: negotiation_no_offers
+    korean: "\uC9C4\uD589 \uC911\uC778 \uD611\uC0C1 \uC5C6\uC74C"
+    english: No active negotiations
+  - key: match_text_title
+    korean: "\uB9E4\uCE58 \uC911\uACC4"
+    english: Match
+  - key: match_text_speed_1x
+    korean: "\u00D71"
+    english: "\u00D71"
+  - key: match_text_speed_2x
+    korean: "\u00D72"
+    english: "\u00D72"
+  - key: match_text_speed_4x
+    korean: "\u00D74"
+    english: "\u00D74"
+  - key: match_text_skip
+    korean: "\uC2A4\uD0B5"
+    english: Skip
+  - key: match_text_result_title
+    korean: "\uCD5C\uC885 \uACB0\uACFC"
+    english: Full Time
+  - key: match_text_scorers_label
+    korean: "\uB4DD\uC810"
+    english: Scorers
+  - key: match_text_ratings_label
+    korean: "\uD3C9\uC810 TOP 5"
+    english: Top Ratings
+  - key: match_text_no_goals
+    korean: "\uB4DD\uC810 \uC5C6\uC74C"
+    english: No goals
+  - key: match_text_rating_fmt
+    korean: "{0}  {1:F1}"
+    english: "{0}  {1:F1}"
+  - key: match_text_back_btn
+    korean: "\uB300\uC2DC\uBCF4\uB4DC\uB85C"
+    english: Dashboard
+  - key: promise_inbox_title
+    korean: "\uC57D\uC18D \uD604\uD669"
+    english: Promises
+  - key: promise_item_fmt
+    korean: "{0}  [{1}]  \uB9C8\uAC10: {2}  {3}"
+    english: "{0}  [{1}]  Due: {2}  {3}"
+  - key: promise_progress_fmt
+    korean: "{0}/{1}\uD68C \uCD9C\uC804"
+    english: "{0}/{1} apps"
+  - key: promise_inbox_empty
+    korean: "\uC9C4\uD589 \uC911\uC778 \uC57D\uC18D \uC5C6\uC74C"
+    english: No active promises
+  - key: promise_inbox_back_btn
+    korean: "\uB300\uC2DC\uBCF4\uB4DC\uB85C"
+    english: Dashboard

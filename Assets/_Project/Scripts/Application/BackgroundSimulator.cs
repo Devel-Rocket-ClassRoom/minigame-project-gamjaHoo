@@ -57,7 +57,16 @@ namespace FMLite.Application
                         continue;
                     }
 
-                    var result = MatchSimulator.Simulate(match, state, balance);
+                    // 유저 클럽 매치는 이벤트 수집 (N.3 MatchTextScene 표시용)
+                    bool isUserMatch =
+                        match.homeClubId == state.userClubId
+                        || match.awayClubId == state.userClubId;
+                    var result = MatchSimulator.Simulate(
+                        match,
+                        state,
+                        balance,
+                        collectEvents: isUserMatch
+                    );
                     MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
                     BoardSystem.ProcessMatchResult(state, balance, match, league);
                 }
