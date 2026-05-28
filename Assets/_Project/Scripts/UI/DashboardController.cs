@@ -32,6 +32,7 @@ namespace FMLite.UI
         private const string MentoringScene = "MentoringScene";
         private const string SeasonSummaryScene = "SeasonSummaryScene";
         private const string MatchTextScene = "MatchTextScene";
+        private const string NegotiationScene = "NegotiationScene";
         internal const string SelectedMatchIdKey = "SelectedMatchId";
 
         [Header("요약 정보")]
@@ -158,6 +159,17 @@ namespace FMLite.UI
             {
                 PlayerPrefs.SetInt(SelectedMatchIdKey, userMatch.id);
                 SceneManager.LoadScene(MatchTextScene);
+                return;
+            }
+
+            // AI 클럽 역제안(CounterOffer) 도착 시 NegotiationScene 으로 전환
+            var counterOffer = state.activeOffers?.Find(o =>
+                o != null &&
+                o.toClubId == state.userClubId &&
+                o.status == OfferStatus.CounterOffer);
+            if (counterOffer != null)
+            {
+                SceneManager.LoadScene(NegotiationScene);
                 return;
             }
 

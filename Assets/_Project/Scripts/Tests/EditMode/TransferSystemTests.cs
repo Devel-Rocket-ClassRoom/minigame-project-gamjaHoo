@@ -337,6 +337,15 @@ namespace FMLite.Tests
                 _balance
             );
             TransferSystem.ProcessOffers(state, _balance);
+            // 새 흐름: AI 수락 → CounterOffer. 유저 수락 시뮬레이션.
+            if (highOffer.status == OfferStatus.CounterOffer)
+                TransferSystem.RespondToCounterOffer(
+                    highOffer.id,
+                    CounterResponse.Accept,
+                    0,
+                    state,
+                    _balance
+                );
             // 여름 활성화 기간 안 (currentDate=7/1) — Accepted → 즉시 Completed 일 수도 / 또는 Accepted 유지
             Assert.That(
                 highOffer.status,
@@ -407,7 +416,16 @@ namespace FMLite.Tests
                 _balance
             );
 
-            TransferSystem.ProcessOffers(state, _balance); // Pending → Accepted (높은 ratio)
+            TransferSystem.ProcessOffers(state, _balance); // Pending → CounterOffer (AI 수락, 새 흐름)
+            // 새 흐름: AI 수락 → CounterOffer. 유저 수락 시뮬레이션 → Accepted 대기.
+            if (offer.status == OfferStatus.CounterOffer)
+                TransferSystem.RespondToCounterOffer(
+                    offer.id,
+                    CounterResponse.Accept,
+                    0,
+                    state,
+                    _balance
+                );
             Assert.AreEqual(OfferStatus.Accepted, offer.status, "T9 사전: Accepted 대기");
             Assert.AreEqual(c1.id, p.currentClubId, "T9 사전: 아직 이적 X (활성화 기간 외)");
 

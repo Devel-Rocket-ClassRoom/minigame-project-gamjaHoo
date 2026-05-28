@@ -158,9 +158,7 @@ namespace FMLite.Application
                 {
                     case OfferStatus.Pending:
                         AiRespondToOffer(offer, state, balance);
-                        // AI 구단 수락(Negotiating) → 즉시 선수 협상 진행 (자동, 유저 대기 불필요)
-                        if (offer.status == OfferStatus.Negotiating)
-                            PlayerNegotiate(offer, state, balance);
+                        // CounterOffer/Rejected: Dashboard 가 감지 → NegotiationScene 라우팅
                         break;
 
                     case OfferStatus.Accepted:
@@ -205,10 +203,12 @@ namespace FMLite.Application
             double ratio = aiPerceivedValue > 0 ? offer.amount / aiPerceivedValue : 0;
 
             // V1.0 K.1/K.2 4분기 응답 (algorithms.md V1.0-3.1 [3-a])
-            // AI 구단 수락 → Negotiating (선수 협상 단계로, V0.1 자동 통과 → V1.0 K.2)
+            // AI 구단 수락 → CounterOffer(counterAmount = amount) 로 저장, 유저 NegotiationScene 대기
             if (ratio >= balance.aiAcceptThreshold)
             {
-                offer.status = OfferStatus.Negotiating;
+                offer.status = OfferStatus.CounterOffer;
+                offer.counterAmount = offer.amount;
+                offer.negotiationRound++;
             }
             else if (ratio >= balance.aiCounterOfferThreshold)
             {
@@ -355,8 +355,7 @@ namespace FMLite.Application
                         offer.amount = newAmount;
                         offer.status = OfferStatus.Pending;
                         AiRespondToOffer(offer, state, balance);
-                        if (offer.status == OfferStatus.Negotiating)
-                            PlayerNegotiate(offer, state, balance);
+                        // CounterOffer: Dashboard 가 감지 → NegotiationScene 라우팅
                     }
                     break;
             }

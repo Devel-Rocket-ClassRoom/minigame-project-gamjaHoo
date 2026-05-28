@@ -654,6 +654,15 @@ MonoBehaviour:
   - key: negotiation_counter_detail_fmt
     korean: "\uC81C\uC548: {0} / \uC5ED\uC81C\uC548: {1} (\uB77C\uC6B4\uB4DC {2})"
     english: "Offer: {0} / Counter: {1} (Round {2})"
+  - key: negotiation_accepted_title_fmt
+    korean: "{0} \u2014 \uC774\uC801 \uC218\uB77D"
+    english: "{0} \u2014 Transfer Accepted"
+  - key: negotiation_accepted_detail_fmt
+    korean: "\uC0C1\uB300 \uAD6C\uB2E8\uC774 {0} \uC5D0 \uC218\uB77D\uD588\uC2B5\uB2C8\uB2E4. \uC9C4\uD589\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
+    english: "The club accepted {0}. Proceed with the transfer?"
+  - key: negotiation_status_ai_accepted
+    korean: "\uC218\uB77D \uB300\uAE30"
+    english: Awaiting Confirm
   - key: negotiation_status_counter
     korean: "\uC5ED\uC81C\uC548"
     english: Counter
