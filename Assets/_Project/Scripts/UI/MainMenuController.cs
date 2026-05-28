@@ -51,9 +51,30 @@ namespace FMLite.UI
         [SerializeField]
         private GameBalanceSO balance;
 
+        [Header("경질 팝업")]
+        [SerializeField]
+        private GameObject sackedPanel;
+
         private void Start()
         {
             ShowMainPanel();
+            CheckSackedFlag();
+        }
+
+        private void CheckSackedFlag()
+        {
+            if (!PlayerPrefs.HasKey(FMLite.Core.GameManager.SackedKey))
+                return;
+            PlayerPrefs.DeleteKey(FMLite.Core.GameManager.SackedKey);
+            PlayerPrefs.Save();
+            if (sackedPanel != null)
+                sackedPanel.SetActive(true);
+        }
+
+        public void OnSackedPanelCloseClicked()
+        {
+            if (sackedPanel != null)
+                sackedPanel.SetActive(false);
         }
 
         public void OnNewGameClicked()

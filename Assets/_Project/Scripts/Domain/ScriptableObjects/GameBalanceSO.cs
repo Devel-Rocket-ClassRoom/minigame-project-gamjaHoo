@@ -550,5 +550,14 @@ namespace FMLite.Domain
         public int youngPlayerMaxAge = 21;
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
+
+        [Header("Board System (V1.0 M.4)")]
+        public int boardConfidenceLossPerDefeat = 2;
+        public int boardConfidenceBigMatchLossExtra = 3; // 빅매치 패배 시 추가 감소 (합계 = Loss + Extra = 5)
+        public int boardConfidenceWinGain = 1;
+        public float boardConfidenceRankMultiplier = 2f; // (target - actual) × N
+        public int boardWarningThreshold = 30;
+        public int boardSackedThreshold = 10;
+        public int bigMatchReputationThreshold = 75; // 상대 구단 명성 >= N → 빅매치
     }
 }

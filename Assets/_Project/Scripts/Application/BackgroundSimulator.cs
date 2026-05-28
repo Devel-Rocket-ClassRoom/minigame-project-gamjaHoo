@@ -59,6 +59,7 @@ namespace FMLite.Application
 
                     var result = MatchSimulator.Simulate(match, state, balance);
                     MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
+                    BoardSystem.ProcessMatchResult(state, balance, match, league);
                 }
             }
         }
