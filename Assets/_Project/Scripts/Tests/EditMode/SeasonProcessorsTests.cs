@@ -390,6 +390,55 @@ namespace FMLite.Tests
             return state;
         }
 
+        // ── M.7: Match 데이터 압축 ────────────────────────────────────
+
+        [Test]
+        public void T_M7_CompressMatchData_ClearsEventsAndPlayerStats()
+        {
+            var state = BuildState(seasonEndDate: new DateTime(2026, 5, 15));
+            var league = state.leagues[0];
+            var match = new Match
+            {
+                id = 1,
+                homeClubId = 1,
+                awayClubId = 2,
+                result = new MatchResult
+                {
+                    homeScore = 2,
+                    awayScore = 1,
+                    events = new List<MatchEvent>
+                    {
+                        new MatchEvent { minute = 10 },
+                        new MatchEvent { minute = 60 },
+                    },
+                    playerStats = new List<PlayerMatchStat>
+                    {
+                        new PlayerMatchStat { playerId = 1, goals = 1 },
+                    },
+                },
+            };
+            league.schedule.Add(match);
+
+            SeasonEndProcessor.Run(state, _balance);
+
+            Assert.AreEqual(0, match.result.events.Count, "M7: events 압축 후 비어있음");
+            Assert.AreEqual(0, match.result.playerStats.Count, "M7: playerStats 압축 후 비어있음");
+            Assert.AreEqual(2, match.result.homeScore, "M7: 스코어는 보존");
+        }
+
+        [Test]
+        public void T_M7_UnplayedMatch_NotTouched()
+        {
+            var state = BuildState(seasonEndDate: new DateTime(2026, 5, 15));
+            var league = state.leagues[0];
+            var unplayed = new Match { id = 2, homeClubId = 1, awayClubId = 2, result = null };
+            league.schedule.Add(unplayed);
+
+            SeasonEndProcessor.Run(state, _balance);
+
+            Assert.IsNull(unplayed.result, "M7: 미플레이 경기는 result null 유지");
+        }
+
         private Player NewPlayer(int id, int age)
         {
             var refDate = new DateTime(2026, 5, 15);

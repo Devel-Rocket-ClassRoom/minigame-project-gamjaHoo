@@ -29,6 +29,9 @@ namespace FMLite.Application
             // a. 시즌 통계 career 저장 (V1.0 M.1) — 은퇴/계약만료 전에 실행
             SaveCareerStats(state);
 
+            // a2. Match 데이터 압축 (V1.0 M.7) — career 저장 후 events/playerStats 비우기
+            CompressMatchData(state);
+
             // b. 시즌 어워드 계산 (V1.0 M.2)
             SeasonAwardSystem.ComputeSeasonAwards(state, balance);
 
@@ -175,6 +178,22 @@ namespace FMLite.Application
             public int yellow;
             public int red;
             public int minutes;
+        }
+
+        private static void CompressMatchData(GameState state)
+        {
+            foreach (var league in state.leagues)
+            {
+                if (league?.schedule == null)
+                    continue;
+                foreach (var match in league.schedule)
+                {
+                    if (match?.result == null)
+                        continue;
+                    match.result.events?.Clear();
+                    match.result.playerStats?.Clear();
+                }
+            }
         }
 
         private static int GetAge(Player p, DateTime currentDate)
