@@ -30,6 +30,7 @@ namespace FMLite.UI
         private const string LineupScene = "LineupScene";
         private const string MainMenuScene = "MainMenuScene";
         private const string MentoringScene = "MentoringScene";
+        private const string SeasonSummaryScene = "SeasonSummaryScene";
 
         [Header("요약 정보")]
 [SerializeField]
@@ -137,6 +138,18 @@ namespace FMLite.UI
             continueButton.interactable = false;
             var state = GameManager.Instance.State;
             GameLoop.ContinueUntilStop(state, balance);
+
+            // 시즌 종료일(5/15) 도달 시 요약 화면으로 전환
+            if (
+                balance != null
+                && state.currentDate.Month == balance.seasonEndMonth
+                && state.currentDate.Day == balance.seasonEndDay
+            )
+            {
+                SceneManager.LoadScene(SeasonSummaryScene);
+                return;
+            }
+
             RefreshInfo();
             CheckBoardMeeting();
             continueButton.interactable = true;
