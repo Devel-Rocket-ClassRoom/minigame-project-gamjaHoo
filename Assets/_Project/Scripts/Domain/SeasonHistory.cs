@@ -14,6 +14,7 @@ namespace FMLite.Domain
         public int points;
         public int goalsFor;
         public int goalsAgainst;
+        public Standings standings; // V1.0 M.2 — 시즌 종료 시 스냅샷
         public List<SeasonAward> awards = new List<SeasonAward>();
     }
 }

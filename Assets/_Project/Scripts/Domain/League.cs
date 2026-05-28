@@ -15,5 +15,6 @@ namespace FMLite.Domain
         public List<int> clubIds = new List<int>();
         public List<Match> schedule = new List<Match>();
         public Standings standings;
+        public List<SeasonHistory> history = new List<SeasonHistory>(); // V1.0 M.2
     }
 }

@@ -542,5 +542,13 @@ namespace FMLite.Domain
         public int maxSubstitutionsPerTeam = 3;
         public int substitutionFatigueThreshold = 70; // fatigue > N → 교체 후보
         public int substitutionTacticalMinute = 60;   // 전술 교체 (피로/스코어) 시작 분
+
+        [Header("Season / Monthly Awards (V1.0 M.2~M.3)")]
+        public float mvpChampionBonus = 0.3f;
+        public int awardMoraleBonus = 10;
+        public int awardHappinessBonus = 10;
+        public int youngPlayerMaxAge = 21;
+        public int monthlyPlayerMoraleBonus = 10;
+        public int monthlyManagerConfidenceBonus = 5;
     }
 }

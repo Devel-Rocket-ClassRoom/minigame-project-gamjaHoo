@@ -4,6 +4,8 @@
 // V0.1: SeasonEndedEvent / SeasonStartedEvent.
 // V1.0+: BoardReviewEvent (보드 시스템 도입 시).
 
+using FMLite.Domain;
+
 namespace FMLite.Core
 {
     public class SeasonEndedEvent
@@ -16,5 +18,11 @@ namespace FMLite.Core
     {
         public int seasonYear;
         // V1.0+: SeasonState target 페이로드. V0.1 단순.
+    }
+
+    public class AwardWonEvent
+    {
+        public AwardType awardType;
+        public int playerId;
     }
 }
