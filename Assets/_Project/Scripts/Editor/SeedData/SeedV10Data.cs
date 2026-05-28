@@ -384,6 +384,8 @@ namespace FMLite.Editor
 
             // YouthRecruitment
             var yrPoolSize = new[] { 4, 5, 6, 7, 8, 9, 10, 12, 14, 16 };
+            // Lv1=0.33 ~ Lv5=1.0 (L.2 스펙). Lv6+ = 1.0 (풀 전체 영입 가능)
+            var yrSignRatio = new[] { 0.33f, 0.45f, 0.60f, 0.80f, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f, 1.00f };
 
             // YouthFacility
             var yfGrowth = new[]
@@ -498,6 +500,7 @@ namespace FMLite.Editor
                             break;
                         case FacilityType.YouthRecruitment:
                             so.youthPoolSize = yrPoolSize[i];
+                            so.signRatio = yrSignRatio[i];
                             break;
                         case FacilityType.YouthFacility:
                             so.youthGrowthRate = yfGrowth[i];

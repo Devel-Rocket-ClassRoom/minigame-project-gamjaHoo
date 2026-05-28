@@ -197,26 +197,45 @@ namespace FMLite.Application
                 ^ intake.rerollsUsed;
             var rng = new Random(seed);
 
-            // 2단계: 풀 사이즈 = FacilityLevelSO(YouthCoach).youthPoolSize
-            var facility = GameDatabase.GetFacilityLevel(
-                FacilityType.YouthCoach,
-                club.facilities.youthCoachLevel
-            );
-            if (facility == null)
+            // 2단계: 풀 사이즈 — YouthRecruitment (fallback Youth)
+            var recruitFacility =
+                GameDatabase.GetFacilityLevel(
+                    FacilityType.YouthRecruitment,
+                    club.facilities.youthRecruitmentLevel
+                ) ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, club.facilities.youthRecruitmentLevel);
+            if (recruitFacility == null)
             {
                 Debug.LogWarning(
-                    $"[YouthSystem] FacilityLevelSO(YouthCoach, lv={club.facilities.youthCoachLevel}) not found — Lv1 폴백"
+                    $"[YouthSystem] YouthRecruitment/Youth lv={club.facilities.youthRecruitmentLevel} not found — Lv1 폴백"
                 );
-                facility = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 1);
-                if (facility == null)
+                recruitFacility =
+                    GameDatabase.GetFacilityLevel(FacilityType.YouthRecruitment, 1)
+                    ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
+                if (recruitFacility == null)
                 {
                     Debug.LogError(
-                        "[YouthSystem] FacilityLevelSO(YouthCoach, lv=1) 도 없음 — intake 빈 풀 반환"
+                        "[YouthSystem] YouthRecruitment/Youth Lv1 도 없음 — intake 빈 풀 반환"
                     );
                     return;
                 }
             }
-            int poolSize = facility.youthPoolSize;
+            int poolSize = recruitFacility.youthPoolSize;
+
+            // YouthCoach 시설 — PA + 트레잇 (fallback Youth)
+            var coachFacility =
+                GameDatabase.GetFacilityLevel(
+                    FacilityType.YouthCoach,
+                    club.facilities.youthCoachLevel
+                ) ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, club.facilities.youthCoachLevel);
+            if (coachFacility == null)
+            {
+                Debug.LogWarning(
+                    $"[YouthSystem] YouthCoach/Youth lv={club.facilities.youthCoachLevel} not found — Lv1 폴백"
+                );
+                coachFacility =
+                    GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 1)
+                    ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
+            }
 
             // 3단계: 후보 N명 생성
             int nextId = state.nextPlayerId;
@@ -225,7 +244,7 @@ namespace FMLite.Application
                 int age = SampleYouthAge(rng, balance);
                 string nat = SampleYouthNationality(rng, leagueConfig.countryCode, balance);
                 Position position = (Position)rng.Next(0, 14); // V0.1: 균등 랜덤 (14개 포지션)
-                int pa = SampleYouthPA(rng, facility, balance);
+                int pa = SampleYouthPA(rng, coachFacility, balance);
                 int ca = DeriveCaFromPa(rng, pa, balance);
 
                 // PlayerGenerator 호출 — stats/트레잇/인적사항/계약 알고리즘 재활용
@@ -247,10 +266,36 @@ namespace FMLite.Application
 
                 player.id = nextId++;
 
+                // V1.0 L.3: YouthCoach 가산 트레잇
+                if (coachFacility != null && coachFacility.traitGrantChance > 0
+                    && rng.NextDouble() < coachFacility.traitGrantChance)
+                    TryGrantExtraTrait(player, rng);
+
                 state.AddPlayer(player);
                 intake.candidatePlayerIds.Add(player.id);
             }
             state.nextPlayerId = nextId;
+        }
+
+        private static void TryGrantExtraTrait(Player player, Random rng)
+        {
+            var usedGroups = new HashSet<int>();
+            foreach (var tid in player.traitIds)
+            {
+                var t = GameDatabase.GetTrait(tid);
+                if (t != null && t.exclusionGroupId != 0)
+                    usedGroups.Add(t.exclusionGroupId);
+            }
+            var pool = GameDatabase
+                .AllTraits.Where(t =>
+                    !player.traitIds.Contains(t.id)
+                    && (t.exclusionGroupId == 0 || !usedGroups.Contains(t.exclusionGroupId))
+                )
+                .ToList();
+            if (pool.Count == 0)
+                return;
+            var chosen = rng.WeightedSample(pool, t => (double)t.weight);
+            player.traitIds.Add(chosen.id);
         }
 
         private static int ComputeUserActionHash(GameState state)
@@ -270,12 +315,16 @@ namespace FMLite.Application
 
         private static int SampleYouthPA(
             Random rng,
-            FacilityLevelSO facility,
+            FacilityLevelSO coachFacility,
             GameBalanceSO balance
         )
         {
             bool isStar = rng.NextDouble() < balance.youthStarPickProbability;
-            double mu = facility.youthAvgPA + (isStar ? balance.youthStarPaBonus : 0.0);
+            int paBonus = coachFacility?.youthAvgPABonus ?? 0;
+            double mu =
+                balance.youthBaseAvgPA
+                + paBonus
+                + (isStar ? balance.youthStarPaBonus : 0.0);
             double rawPA = rng.NextNormal(mu, balance.youthPaStdDev);
             return Math.Clamp((int)Math.Round(rawPA), balance.minPA, balance.maxPA);
         }

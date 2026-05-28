@@ -24,6 +24,7 @@ namespace FMLite.Tests
             GameDatabase.Clear();
             EventBus.Clear();
             _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
+            _balance.youthBaseAvgPA = 80; // 기준값 — 피처 보너스 없을 때 old youthAvgPA=80 과 동일
             _leagueConfig = NewLeagueConfig();
             RegisterPositions();
             RegisterTraits();
@@ -90,14 +91,14 @@ namespace FMLite.Tests
             Assert.IsTrue(anyDiff, "T2: 자금 1원 차이로 풀 변동 (직플 영상 공유 차단)");
         }
 
-        // ── T3. 풀 사이즈 ────────────────────────────────────────────
+        // ── T3. 풀 사이즈 (L.3: YouthRecruitment 기준) ───────────────
 
         [Test]
-        public void T3_PoolSize_MatchesFacilityYouthPoolSize()
+        public void T3_PoolSize_MatchesYouthRecruitmentPoolSize()
         {
             var (s1, c1) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 1, seed: 42);
             var i1 = YouthSystem.GenerateIntake(c1, s1, _balance, _leagueConfig);
-            var facility1 = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 1);
+            var facility1 = GameDatabase.GetFacilityLevel(FacilityType.YouthRecruitment, 1);
             Assert.AreEqual(
                 facility1.youthPoolSize,
                 i1.candidatePlayerIds.Count,
@@ -106,11 +107,33 @@ namespace FMLite.Tests
 
             var (s5, c5) = BuildScenario(userMoney: 10_000_000, youthCoachLevel: 5, seed: 42);
             var i5 = YouthSystem.GenerateIntake(c5, s5, _balance, _leagueConfig);
-            var facility5 = GameDatabase.GetFacilityLevel(FacilityType.YouthCoach, 5);
+            var facility5 = GameDatabase.GetFacilityLevel(FacilityType.YouthRecruitment, 5);
             Assert.AreEqual(
                 facility5.youthPoolSize,
                 i5.candidatePlayerIds.Count,
                 "T3: Lv5 풀 사이즈"
+            );
+        }
+
+        // ── T13. 풀 사이즈 = YouthRecruitment (not YouthCoach) — L.3 회귀 방지 ──
+
+        [Test]
+        public void T13_PoolSize_FromYouthRecruitmentNotCoach()
+        {
+            // youthCoachLevel=1 (pool=15), youthRecruitmentLevel=5 (pool=30)
+            // 풀 사이즈는 YouthRecruitment Lv5 = 30
+            var (state, club) = BuildScenario(
+                userMoney: 10_000_000,
+                youthCoachLevel: 1,
+                seed: 42,
+                youthRecruitmentLevel: 5
+            );
+            var intake = YouthSystem.GenerateIntake(club, state, _balance, _leagueConfig);
+            var expected = GameDatabase.GetFacilityLevel(FacilityType.YouthRecruitment, 5)!.youthPoolSize;
+            Assert.AreEqual(
+                expected,
+                intake.candidatePlayerIds.Count,
+                $"T13: 풀 사이즈 = YouthRecruitment Lv5 ({expected}), YouthCoach Lv1 아님"
             );
         }
 
@@ -349,8 +372,16 @@ namespace FMLite.Tests
 
         // ── Helpers ───────────────────────────────────────────────────
 
-        private (GameState state, Club club) BuildScenario(int userMoney, int youthCoachLevel, int seed)
+        private (GameState state, Club club) BuildScenario(
+            int userMoney,
+            int youthCoachLevel,
+            int seed,
+            int youthRecruitmentLevel = -1
+        )
         {
+            if (youthRecruitmentLevel < 0)
+                youthRecruitmentLevel = youthCoachLevel;
+
             var state = new GameState
             {
                 currentDate = _today,
@@ -372,6 +403,7 @@ namespace FMLite.Tests
                     scoutLevel = 3,
                     trainingLevel = 3,
                     youthCoachLevel = youthCoachLevel,
+                    youthRecruitmentLevel = youthRecruitmentLevel,
                 },
                 finance = new Finance { money = userMoney },
                 seniorSquadIds = new List<int>(),
@@ -477,22 +509,22 @@ namespace FMLite.Tests
 
         private void RegisterFacilityLevels()
         {
-            // YouthCoach Lv1~5 — avgPA + poolSize (풀 사이즈 조회는 현재 YouthCoach, L.3 에서 Recruitment 로 이동)
-            var coachLevels = new (int lv, int pool, int avgPa)[]
+            // YouthCoach Lv1~5 — PA 보너스 (L.3: balance.youthBaseAvgPA(80) + bonus = 구 avgPA)
+            var coachLevels = new (int lv, int paBonus, float traitChance)[]
             {
-                (1, 15, 80),
-                (2, 18, 100),
-                (3, 21, 130),
-                (4, 25, 145),
-                (5, 30, 160),
+                (1, 0, 0.05f),
+                (2, 20, 0.08f),
+                (3, 50, 0.11f),
+                (4, 65, 0.14f),
+                (5, 80, 0.18f),
             };
-            foreach (var (lv, pool, avgPa) in coachLevels)
+            foreach (var (lv, paBonus, traitChance) in coachLevels)
             {
                 var so = ScriptableObject.CreateInstance<FacilityLevelSO>();
                 so.facilityType = FacilityType.YouthCoach;
                 so.level = lv;
-                so.youthPoolSize = pool;
-                so.youthAvgPA = avgPa;
+                so.youthAvgPABonus = paBonus;
+                so.traitGrantChance = traitChance;
                 GameDatabase.Register(so);
             }
 
