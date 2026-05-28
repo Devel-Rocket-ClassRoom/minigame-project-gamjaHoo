@@ -339,6 +339,9 @@ namespace FMLite.Domain
         [Header("Youth Signed By Other (V1.0 L.6)")]
         public float youthRejectedToOtherClubRatio = 0.30f;
 
+        [Header("Youth Position Weights (V1.0 L.7)")]
+        public float youthPositionWeightVolatility = 0.5f; // 0=균등 / 1=극단 (인스펙션마다 포지션 분포 다양화)
+
         [Header("Daily / Season")]
         public int fatigueRecoveryPerDay = 15;
         public int fatigueGainPerMatch = 30;
