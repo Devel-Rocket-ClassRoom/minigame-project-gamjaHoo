@@ -80,6 +80,8 @@ namespace FMLite.UI
         [SerializeField]
         private BoardMeetingController boardMeetingPanel;
 
+        private bool _youthIntakePending;
+
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
@@ -236,7 +238,19 @@ namespace FMLite.UI
         private void OnYouthIntakeAvailable(YouthIntakeAvailableEvent e)
         {
             if (e.clubId == GameManager.Instance?.State?.userClubId)
+                _youthIntakePending = true;
+        }
+
+        private void Update()
+        {
+            if (
+                _youthIntakePending
+                && (boardMeetingPanel == null || !boardMeetingPanel.gameObject.activeSelf)
+            )
+            {
+                _youthIntakePending = false;
                 SceneManager.LoadScene(YouthScene);
+            }
         }
 
         // ── 인박스 (V1.0 G.2 Sub-B) ──────────────────────────────────
