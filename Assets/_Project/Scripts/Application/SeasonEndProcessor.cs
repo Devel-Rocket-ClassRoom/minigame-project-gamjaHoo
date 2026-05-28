@@ -32,6 +32,9 @@ namespace FMLite.Application
             // b. 시즌 어워드 계산 (V1.0 M.2)
             SeasonAwardSystem.ComputeSeasonAwards(state, balance);
 
+            // c. 재정 결산 (V1.0 M.6)
+            FinanceSystem.ProcessSeasonFinance(state, balance);
+
             // d. 계약 만료 → FA 전환
             ProcessExpiredContracts(state);
 

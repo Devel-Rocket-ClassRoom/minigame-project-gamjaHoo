@@ -551,6 +551,11 @@ namespace FMLite.Domain
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
 
+        [Header("Finance System (V1.0 M.6)")]
+        public int baseMatchDayIncome = 50_000; // 홈 경기당 × stadiumLevel × (rep/100)
+        public int baseTvIncome = 1_500_000; // 시즌당 × (rep/100)
+        public int basePrize = 5_000_000; // 1위 상금 (하위로 선형 감소, 최하위 0)
+
         [Header("Board System (V1.0 M.4~M.5)")]
         public int boardPromiseRejectPenalty = 10; // 보드 약속 거절 시 boardConfidence 감소
         public int boardConfidenceLossPerDefeat = 2;
