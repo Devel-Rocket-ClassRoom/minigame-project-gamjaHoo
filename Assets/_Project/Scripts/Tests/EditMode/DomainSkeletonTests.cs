@@ -134,12 +134,12 @@ namespace FMLite.Tests
         public void SeasonAward_AllAwardTypes_Defined()
         {
             var values = (AwardType[])Enum.GetValues(typeof(AwardType));
-            Assert.AreEqual(7, values.Length);
+            Assert.AreEqual(9, values.Length); // 7 season + 2 monthly (M.3)
 
             var a = new SeasonAward
             {
                 type = AwardType.TopScorer,
-                playerId = 11,
+                playerIds = new System.Collections.Generic.List<int> { 11 },
                 seasonYear = 2026,
             };
             Assert.AreEqual(AwardType.TopScorer, a.type);
@@ -282,7 +282,7 @@ namespace FMLite.Tests
                 new SeasonAward
                 {
                     type = AwardType.LeagueMVP,
-                    playerId = 9,
+                    playerIds = new System.Collections.Generic.List<int> { 9 },
                     seasonYear = 2026,
                 }
             );

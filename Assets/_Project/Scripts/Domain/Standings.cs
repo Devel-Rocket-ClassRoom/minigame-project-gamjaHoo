@@ -10,6 +10,26 @@ namespace FMLite.Domain
     public class Standings
     {
         public List<StandingEntry> entries = new List<StandingEntry>();
+
+        public Standings Clone()
+        {
+            var copy = new Standings();
+            foreach (var e in entries)
+                copy.entries.Add(
+                    new StandingEntry
+                    {
+                        clubId = e.clubId,
+                        played = e.played,
+                        won = e.won,
+                        drawn = e.drawn,
+                        lost = e.lost,
+                        goalsFor = e.goalsFor,
+                        goalsAgainst = e.goalsAgainst,
+                        points = e.points,
+                    }
+                );
+            return copy;
+        }
     }
 
     [Serializable]

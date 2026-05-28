@@ -29,13 +29,16 @@ namespace FMLite.Application
             // a. 시즌 통계 career 저장 (V1.0 M.1) — 은퇴/계약만료 전에 실행
             SaveCareerStats(state);
 
-            // b. 계약 만료 → FA 전환
+            // b. 시즌 어워드 계산 (V1.0 M.2)
+            SeasonAwardSystem.ComputeSeasonAwards(state, balance);
+
+            // d. 계약 만료 → FA 전환
             ProcessExpiredContracts(state);
 
-            // c. 33+ 확률적 은퇴
+            // e. 33+ 확률적 은퇴
             ProcessRetirements(state, balance);
 
-            // d. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
+            // f. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
             int seasonYear = state.leagues.FirstOrDefault()?.seasonYear ?? 0;
             EventBus.Publish(new SeasonEndedEvent { seasonYear = seasonYear });
         }

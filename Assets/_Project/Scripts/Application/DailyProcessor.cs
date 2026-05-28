@@ -49,11 +49,12 @@ namespace FMLite.Application
 
             FacilitySystem.ProcessUpgrades(state);
 
-            // 매월 1일 — stat 성장 + Mentoring Hidden Attr 수렴
+            // 매월 1일 — stat 성장 + Mentoring Hidden Attr 수렴 + 월간 어워드 (M.3)
             if (state.currentDate.Day == 1)
             {
                 GrowthSystem.Tick(state, balance);
                 MentoringSystem.RunMentoring(state, balance);
+                SeasonAwardSystem.ComputeMonthlyAwards(state, balance);
             }
 
             // 매주 월요일 — 스카우트 명단 갱신 + AI 영입 + Promise 진행 체크

@@ -2,6 +2,7 @@
 // 시즌 시상 기록 (design-decisions.md #51).
 
 using System;
+using System.Collections.Generic;
 
 namespace FMLite.Domain
 {
@@ -14,13 +15,17 @@ namespace FMLite.Domain
         BestEleven,
         GoldenGlove,
         ManagerOfSeason,
+        MonthlyManagerOfMonth, // V1.0 M.3
+        MonthlyPlayerOfMonth, // V1.0 M.3
     }
 
     [Serializable]
     public class SeasonAward
     {
         public AwardType type;
-        public int playerId; // -1 = ManagerOfSeason (선수 없음)
+        public List<int> playerIds = new List<int>(); // BestEleven=11명, 나머지=1명, ManagerOfSeason=0
         public int seasonYear;
+        public int leagueId;
+        public DateTime awardedAt;
     }
 }
