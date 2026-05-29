@@ -233,6 +233,9 @@ namespace FMLite.Application
                     );
             }
 
+            // #384 — AI 응답 도착 일자 기록 (EventScheduler 의 stopRequested 트리거용).
+            offer.lastResponseDate = state.currentDate;
+
             EventBus.Publish(
                 new OfferRespondedEvent { offerId = offer.id, newStatus = offer.status }
             );

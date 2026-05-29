@@ -155,5 +155,112 @@ namespace FMLite.Tests
             Assert.IsFalse(stop);
             Assert.AreEqual(0, _captured.Count);
         }
+
+        // ── T7~T10: TryTriggerOfferResponded (#384) ──────────────────
+        // AI 이적 응답 도착 → stopRequested. 시즌 종료에만 응답 surface 되는 버그 수정.
+
+        [Test]
+        public void T7_OfferRespondedToday_UserClubBuyer_StopRequested()
+        {
+            var state = MakeState(new List<Match>(), userClubId: 1);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 100,
+                    toClubId = 1,
+                    fromClubId = 2,
+                    status = OfferStatus.CounterOffer,
+                    lastResponseDate = _today,
+                }
+            );
+
+            bool stop = EventScheduler.Run(state);
+
+            Assert.IsTrue(stop, "T7: 오늘 AI 응답 도착 → 정지 신호");
+        }
+
+        [Test]
+        public void T8_OfferRespondedYesterday_NoStop()
+        {
+            // 이미 본 응답 — Continue 가 매일 정지하면 안 됨
+            var state = MakeState(new List<Match>(), userClubId: 1);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 100,
+                    toClubId = 1,
+                    fromClubId = 2,
+                    status = OfferStatus.CounterOffer,
+                    lastResponseDate = _today.AddDays(-1),
+                }
+            );
+
+            bool stop = EventScheduler.Run(state);
+
+            Assert.IsFalse(stop, "T8: 어제 응답 (이미 본 것) → 정지 X");
+        }
+
+        [Test]
+        public void T9_OfferRespondedToday_OtherClubBuyer_NoStop()
+        {
+            // 다른 구단의 오퍼는 user 정지 사유 아님
+            var state = MakeState(new List<Match>(), userClubId: 1);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 100,
+                    toClubId = 99, // user 클럽 아님
+                    fromClubId = 2,
+                    status = OfferStatus.CounterOffer,
+                    lastResponseDate = _today,
+                }
+            );
+
+            bool stop = EventScheduler.Run(state);
+
+            Assert.IsFalse(stop, "T9: user 클럽 외 응답 → 정지 X");
+        }
+
+        [Test]
+        public void T10_OfferRejectedToday_UserClub_StopRequested()
+        {
+            // Rejected 도 user 가 알아야 할 응답 → 정지
+            var state = MakeState(new List<Match>(), userClubId: 1);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 100,
+                    toClubId = 1,
+                    fromClubId = 2,
+                    status = OfferStatus.Rejected,
+                    lastResponseDate = _today,
+                }
+            );
+
+            bool stop = EventScheduler.Run(state);
+
+            Assert.IsTrue(stop, "T10: Rejected 도 user 정지 사유");
+        }
+
+        [Test]
+        public void T11_OfferPendingToday_NoStop()
+        {
+            // Pending — 아직 AI 응답 안 함 → lastResponseDate 도 null → 정지 X
+            var state = MakeState(new List<Match>(), userClubId: 1);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 100,
+                    toClubId = 1,
+                    fromClubId = 2,
+                    status = OfferStatus.Pending,
+                    lastResponseDate = null,
+                }
+            );
+
+            bool stop = EventScheduler.Run(state);
+
+            Assert.IsFalse(stop, "T11: Pending 상태 → 응답 없음 → 정지 X");
+        }
     }
 }

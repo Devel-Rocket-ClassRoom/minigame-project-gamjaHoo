@@ -65,9 +65,40 @@ namespace FMLite.Application
             if (TryTriggerNewSeason(state, today))
                 stopRequested = true;
 
+            // ── AI 이적 응답 도착 정지 (#384) ─────────────────────────
+            // 오늘 user 클럽 (매수 측) 의 오퍼에 AI 응답 도착 → Continue 정지.
+            // 시즌 종료/매치/유스에 가려져 Continue 가 지나치는 문제 해결.
+            if (TryTriggerOfferResponded(state, today))
+                stopRequested = true;
+
             // TODO V0.5:    이적창 오픈/마감 / 보드 리뷰일
 
             return stopRequested;
+        }
+
+        private static bool TryTriggerOfferResponded(GameState state, DateTime today)
+        {
+            if (state.userClubId < 0 || state.activeOffers == null)
+                return false;
+
+            foreach (var offer in state.activeOffers)
+            {
+                if (offer == null)
+                    continue;
+                if (offer.toClubId != state.userClubId)
+                    continue;
+                if (!offer.lastResponseDate.HasValue)
+                    continue;
+                if (offer.lastResponseDate.Value.Date != today)
+                    continue;
+                // CounterOffer / Rejected 둘 다 user 가 알아야 할 응답.
+                if (
+                    offer.status == OfferStatus.CounterOffer
+                    || offer.status == OfferStatus.Rejected
+                )
+                    return true;
+            }
+            return false;
         }
 
         private static bool TryTriggerSeasonEnd(GameState state, DateTime today)

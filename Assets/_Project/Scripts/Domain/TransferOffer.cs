@@ -28,5 +28,9 @@ namespace FMLite.Domain
         public int negotiationRound; // 협상 라운드 횟수
         public bool releaseClauseActivated; // release clause 발동 여부
         public bool includesPlaytimeAgreement; // 출전시간 약속 포함 여부 (K.2 선수 협상 +0.2)
+
+        // AI 응답 도착 일자 — EventScheduler 가 stopRequested 트리거하기 위한 표식 (#384).
+        // AiRespondToOffer 가 설정. 같은 날 EventScheduler.Run 이 user 클럽 오퍼면 Continue 정지.
+        public DateTime? lastResponseDate;
     }
 }
