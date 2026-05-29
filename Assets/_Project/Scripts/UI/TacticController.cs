@@ -155,6 +155,13 @@ namespace FMLite.UI
             for (int i = 0; i < count; i++)
             {
                 var row = Instantiate(slotRowPrefab, slotRowContainer);
+
+                // 위쪽 row 일수록 sortingOrder 높게 → RoleDropdown 펼침이 아래 row 위에 그려짐 (#390).
+                // row 안 (RoleDropdown 자식) 에 Override Sorting=true Canvas 가 있어야 작동.
+                var slotCanvas = row.GetComponentInChildren<Canvas>(includeInactive: true);
+                if (slotCanvas != null)
+                    slotCanvas.sortingOrder = count - i;
+
                 var slot = _userClub.tactic.slots[i];
                 var pos = _currentFormation.slotPositions[i];
 
