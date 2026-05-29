@@ -2277,7 +2277,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LineupController
   titleText: {fileID: 1820765196}
   slotRowContainer: {fileID: 315075260}
-  slotRowPrefab: {fileID: 8364922990610380105, guid: de6c607151409f74594283e332269b04, type: 3}
+  slotRowPrefab: {fileID: 3337037486770723247, guid: f13dca2b9fbc73c41acd169ba160e7b3, type: 3}
   autoLineupButton: {fileID: 1708294090}
   penaltyLabel: {fileID: 391893939}
   freeKickLabel: {fileID: 628309331}
