@@ -1018,7 +1018,18 @@ public static class TransferSystem {
     else:
         offer.status = Rejected
     
+    offer.lastResponseDate = state.currentDate   # #384 — EventScheduler 정지 트리거 표식
     EventBus.Publish(new OfferRespondedEvent { offerId, newStatus })
+
+[3-b] EventScheduler.TryTriggerOfferResponded(state, today)   — #384 Continue 정지 트리거
+    # 시즌 종료/매치/유스에 가려져 Continue 가 CounterOffer/Rejected 도착일을 지나치는 문제 해결.
+    foreach offer in state.activeOffers:
+        if offer.toClubId != state.userClubId: continue
+        if offer.lastResponseDate == null: continue
+        if offer.lastResponseDate.Date != today: continue
+        if offer.status in (CounterOffer, Rejected):
+            return true   # stopRequested
+    return false
 
 [4] CompleteTransfer(offer, state):
     player = state.GetPlayer(offer.playerId)
