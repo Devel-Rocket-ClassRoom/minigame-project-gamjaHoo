@@ -1,5 +1,5 @@
 // ManagerReputationTests.cs
-// DoD: v1.0-tasks.md M.8 — 매니저 평판 변동
+// DoD: v0.5-tasks.md M.8 — 매니저 평판 변동
 
 using System;
 using System.Collections.Generic;

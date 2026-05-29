@@ -15,14 +15,14 @@ namespace FMLite.Domain
         public List<int> awayStarting11 = new List<int>();
         public List<PlayerMatchStat> playerStats = new List<PlayerMatchStat>();
 
-        // V1.0 5-zone (I.2') — 점유율 % (possessionTicks 기반). 활성/비활성 매치 모두 채움 (#55).
+        // V0.5 5-zone (I.2') — 점유율 % (possessionTicks 기반). 활성/비활성 매치 모두 채움 (#55).
         public float homePossessionPct;
         public float awayPossessionPct;
 
-        // V1.0 I.5 — collectEvents=true 시 채워짐. 배경 매치는 빈 리스트.
+        // V0.5 I.5 — collectEvents=true 시 채워짐. 배경 매치는 빈 리스트.
         public List<MatchEvent> events = new List<MatchEvent>();
 
-        // V1.0 I.11 — 승부차기 결착 시 채워짐. 아니면 둘 다 0.
+        // V0.5 I.11 — 승부차기 결착 시 채워짐. 아니면 둘 다 0.
         public int penaltyHomeScore;
         public int penaltyAwayScore;
         public bool decidedByPenalties;
@@ -39,7 +39,7 @@ namespace FMLite.Domain
         public int yellowCards;
         public int redCards;
 
-        // V1.0 확장 (design-decisions.md #44 / algorithms.md V1.0-2)
+        // V0.5 확장 (design-decisions.md #44 / algorithms.md V0.5-2)
         public int shots;
         public int shotsOnTarget; // I.2 — 정확 슈팅 (finishing × composure 기반)
         public int passes;

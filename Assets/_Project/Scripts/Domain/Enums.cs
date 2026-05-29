@@ -45,7 +45,7 @@ namespace FMLite.Domain
         Completed,
     }
 
-    // V1.0 K.1 — RespondToCounterOffer 유저 응답 옵션.
+    // V0.5 K.1 — RespondToCounterOffer 유저 응답 옵션.
     public enum CounterResponse
     {
         Accept, // counterAmount 수락 → Accepted
@@ -75,7 +75,7 @@ namespace FMLite.Domain
     {
         Scout,
         Training,
-        Youth, // V0.1 호환 유지 — V1.0에서 YouthCoach/YouthRecruitment/YouthFacility 로 분리됨
+        Youth, // V0.1 호환 유지 — V0.5에서 YouthCoach/YouthRecruitment/YouthFacility 로 분리됨
         YouthCoach, // 유스 평균 PA + 트레잇 가중치 (design-decisions.md #49)
         YouthRecruitment, // 유스 풀 크기 + 인스펙션 빈도
         YouthFacility, // 유스 성장률 + 콜업 적응

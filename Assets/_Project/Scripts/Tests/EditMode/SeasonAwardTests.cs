@@ -1,5 +1,5 @@
 // SeasonAwardTests.cs
-// DoD: algorithms.md V1.0-9 T1~T4, T6
+// DoD: algorithms.md V0.5-9 T1~T4, T6
 
 using System;
 using System.Collections.Generic;

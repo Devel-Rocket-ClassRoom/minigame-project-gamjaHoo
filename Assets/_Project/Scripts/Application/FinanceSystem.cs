@@ -1,5 +1,5 @@
 // FinanceSystem.cs
-// V1.0 M.6 — 시즌 종료 재정 결산.
+// V0.5 M.6 — 시즌 종료 재정 결산.
 // SeasonEndProcessor.Run 에서 호출. Stateless (design-decisions.md #3).
 
 using System.Collections.Generic;

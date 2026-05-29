@@ -29,5 +29,5 @@ assignees: []
 ---
 **메타데이터 체크리스트** (이슈 생성 후 확인)
 - [ ] Area 라벨 추가 (area:domain / area:simulation 등)
-- [ ] Milestone 설정 (V0.1 / V1.0 / V1.x)
+- [ ] Milestone 설정 (V0.1 / V0.5 / V1.0)
 - [ ] Projects 보드 추가 + Priority + Size 설정

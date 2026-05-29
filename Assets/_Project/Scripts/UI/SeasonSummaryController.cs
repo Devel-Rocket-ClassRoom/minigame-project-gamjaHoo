@@ -1,5 +1,5 @@
 // SeasonSummaryController.cs
-// V1.0 M.9 — 시즌 종료 요약 화면.
+// V0.5 M.9 — 시즌 종료 요약 화면.
 // 5/15 SeasonEndedEvent 정지 후 DashboardController 가 이 씬으로 전환.
 
 using System.Collections.Generic;

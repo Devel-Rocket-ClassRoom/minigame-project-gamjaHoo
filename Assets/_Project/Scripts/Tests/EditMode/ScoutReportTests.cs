@@ -1,5 +1,5 @@
 // ScoutReportTests.cs
-// V1.0 E.1 — ScoutReport + Club.scoutingKnowledge 도메인 검증.
+// V0.5 E.1 — ScoutReport + Club.scoutingKnowledge 도메인 검증.
 // 완료 조건: 직렬화 라운드트립 OK (Newtonsoft.Json — design-decisions.md #21).
 
 using System;

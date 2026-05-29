@@ -1,5 +1,5 @@
 // TransferListTests.cs
-// V1.0 K.4 — Transfer List DoD: transferListed → 시장가 ×0.7 + AI 영입 가시화.
+// V0.5 K.4 — Transfer List DoD: transferListed → 시장가 ×0.7 + AI 영입 가시화.
 // algorithms.md K.4 / design-decisions.md #48.
 
 using System;

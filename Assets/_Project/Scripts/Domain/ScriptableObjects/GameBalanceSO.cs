@@ -9,7 +9,7 @@ namespace FMLite.Domain
 {
     // 포메이션 단위 분배표 정책 (design-decisions.md #28 / #32).
     // V0.1: 4-4-2 단일 인스턴스 (GameBalanceSO.formation).
-    // V1.0: FormationSO 로 추출 + List<FormationSO> availableFormations 카탈로그.
+    // V0.5: FormationSO 로 추출 + List<FormationSO> availableFormations 카탈로그.
     [Serializable]
     public class FormationConfig
     {
@@ -132,7 +132,7 @@ namespace FMLite.Domain
         public float formationStyleBalancedWeight = 0.5f;
 
         [Header("Club Generation — Formation (V0.1: 4-4-2 단일)")]
-        // 분배표는 FormationConfig 단위. V0.1 단일 인스턴스, V1.0 에서 FormationSO 로 추출.
+        // 분배표는 FormationConfig 단위. V0.1 단일 인스턴스, V0.5 에서 FormationSO 로 추출.
         // 필수 인원 합 + randomSlots = playersPerClub 일치 권장 (불일치 시 분배표 합 기준 진행).
         public FormationConfig formation = new FormationConfig();
 
@@ -182,13 +182,13 @@ namespace FMLite.Domain
         public float[] tierThresholdsAccumulated = new[] { 0.10f, 0.40f, 0.80f, 0.95f };
 
         // ============================================================
-        // Match Simulation V1.0 — I.2 분 단위 이벤트 (algorithms.md V1.0-2)
+        // Match Simulation V0.5 — I.2 분 단위 이벤트 (algorithms.md V0.5-2)
         // ============================================================
         // 명세 표의 분모 (Shot=200 / Foul=500 / KeyPass=Cross=50000) 는 placeholder 성격 — 매 분 발생 빈도가
         // 비현실적 (avgCA 100 기준 90분 45슛/팀). I.2 에서 EPL 통계 (12-15 슛/팀/매치) 근사하도록 재조정.
         // EditMode 분포 테스트로 확정. 모두 외부화 (#11 매직 넘버 금지).
 
-        [Header("Match V1.0 — Shot")]
+        [Header("Match V0.5 — Shot")]
         // EPL 통계 근사 (12-15 슛/팀/매치). avgCA 100 / 720 × 90 = ~12.5 슛/팀.
         public int shotChanceBaseDivisor = 720; // shotChance per min per team = avgCA / N × mentalityModifier
         public float shotOnTargetDivisor = 100f; // (finishing × composure) / N → on-target 확률 %
@@ -197,13 +197,13 @@ namespace FMLite.Domain
         // 슈터 선정 가중 (Line enum 순서 GK=0/DF=1/MF=2/AT=3).
         public float[] shotPositionWeights = { 0f, 0.4f, 1.5f, 5f };
 
-        [Header("Match V1.0 — KeyPass / Cross")]
+        [Header("Match V0.5 — KeyPass / Cross")]
         // KeyPass: 11명 × 90 × (50×50) / divisor = 8 keyPasses/팀/매치 target → divisor ~ 310,000
         public int keyPassChanceDivisor = 300_000;
         // Cross (LW/RW 2명만): 2 × 90 × (50×50) / divisor = 15 cross/팀/매치 target → divisor ~ 30,000
         public int crossChanceDivisor = 30_000;
 
-        [Header("Match V1.0 — Pass / Tackle / Interception 누적")]
+        [Header("Match V0.5 — Pass / Tackle / Interception 누적")]
         // Pass: 11명 × 90 × 50 / divisor = 330 pass/팀 target (30/선수) → divisor 150
         public int passChanceDivisor = 150;
         public float passSuccessDivisor = 100f; // passing / N → 성공 확률 % (passesCompleted)
@@ -211,20 +211,20 @@ namespace FMLite.Domain
         public int tackleChanceDivisor = 1500;
         public int interceptionChanceDivisor = 1500;
 
-        [Header("Match V1.0 — Foul / Card")]
+        [Header("Match V0.5 — Foul / Card")]
         // Foul: 7 × 90 × 50 / divisor = 12 fouls/팀 target → divisor 2625
         public int foulChanceDivisor = 2625;
         public float foulYellowRatio = 0.50f; // Foul 시 옐로 확률
         public float foulRedRatio = 0.03f; // Foul 시 레드 확률
 
-        [Header("Match V1.0 — Injury")]
+        [Header("Match V0.5 — Injury")]
         // 11 × 90 × baseRate = ~0.1 부상/팀/매치 target → baseRate 0.0001 (10매치당 1 부상)
         public float injuryBaseRate = 0.0001f;
         public float injuryProneRefDivisor = 50f; // injuryProneness 기준값 (50 = 평균)
         public int injuryCareerThreateningDays = 90; // recoveryDays >= N → isCareerThreatening = true
 
         // ============================================================
-        // Match Simulation V1.0 — 5-Zone Markov (algorithms.md V1.0-2 / #44 / #55)
+        // Match Simulation V0.5 — 5-Zone Markov (algorithms.md V0.5-2 / #44 / #55)
         // I.1' 상태 머신 + I.2' zone resolution. OFM 차용.
         // I.2 분 단위 독립 추첨 필드 (shotChanceBaseDivisor 등) 는 5-zone 에서 미사용 → I.9 정리.
         // ============================================================
@@ -310,7 +310,7 @@ namespace FMLite.Domain
         public float youthPaStdDev = 15f; // PA 분포 σ
         public float youthPaGapStdDev = 25f; // CA-PA 갭 σ (PlayerGen σ=15 의 1.67배)
 
-        [Header("Youth Intake — CA Cap (V1.0)")]
+        [Header("Youth Intake — CA Cap (V0.5)")]
         public int youthMinCa = 30; // 유스 CA 최소
         public int youthMaxCa = 95; // 유스 CA 최대 (사용자 피드백)
         public int youthCaGapMean = 60; // PA - CA 평균 갭
@@ -329,17 +329,17 @@ namespace FMLite.Domain
         public int youthIntakeSecondMonth = 1;
         public int youthIntakeSecondDay = 15; // 보조 인스펙션: 1/15 (시즌 중간)
 
-        [Header("Mentoring System (V1.0 L.4)")]
-        public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 최대 (algorithms.md V1.0-4)
+        [Header("Mentoring System (V0.5 L.4)")]
+        public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 최대 (algorithms.md V0.5-4)
 
-        [Header("Youth Promotion (V1.0 L.5)")]
+        [Header("Youth Promotion (V0.5 L.5)")]
         public int youthPromotionAge = 18;
         public float youthPromotionCaRatio = 0.70f;
 
-        [Header("Youth Signed By Other (V1.0 L.6)")]
+        [Header("Youth Signed By Other (V0.5 L.6)")]
         public float youthRejectedToOtherClubRatio = 0.30f;
 
-        [Header("Youth Position Weights (V1.0 L.7)")]
+        [Header("Youth Position Weights (V0.5 L.7)")]
         public float youthPositionWeightVolatility = 0.5f; // 0=균등 / 1=극단 (인스펙션마다 포지션 분포 다양화)
 
         [Header("Daily / Season")]
@@ -356,7 +356,7 @@ namespace FMLite.Domain
         //  - seasonEnd*       = 5/15 — SeasonEndProcessor 트리거
         //  - fiscalYearStart* = 6/1  — NewSeasonProcessor 트리거 (회계연도)
         //  - newSeasonOpening*= 8/15 — ScheduleGenerator 가 새 시즌 첫 매치 배치
-        // V1.0+ 트리거: 캘린더/요일 dynamic 계산 ("5월 마지막 토요일") + 매년 가변 일정.
+        // V0.5+ 트리거: 캘린더/요일 dynamic 계산 ("5월 마지막 토요일") + 매년 가변 일정.
 
         [Header("Season Cycle — Trigger Days")]
         public int seasonEndMonth = 5;
@@ -389,7 +389,7 @@ namespace FMLite.Domain
         [Header("Transfer Market — Acceptance")]
         public float aiAcceptRatio = 1.20f; // offer/marketValue 비율 >= 시 Accept (V0.1 legacy)
 
-        [Header("Transfer Market — V1.0 K.1 협상 4분기")]
+        [Header("Transfer Market — V0.5 K.1 협상 4분기")]
         public float aiAcceptThreshold = 1.30f; // ratio >= → Accepted
         public float aiCounterOfferThreshold = 1.10f; // ratio >= → CounterOffer (역제안)
         public float aiMockingThreshold = 0.85f; // ratio < → Mocking (모욕적 오퍼, 사기 감소)
@@ -452,7 +452,7 @@ namespace FMLite.Domain
             1.40f,
         };
 
-        // ── V1.0 J.4 TacticImpact (design-decisions.md #57 / algorithms.md V1.0-7) ──
+        // ── V0.5 J.4 TacticImpact (design-decisions.md #57 / algorithms.md V0.5-7) ──
         // 이벤트 주체 선택 시 Duty 가중치. 이벤트에 맞는 duty = Primary, Support = Secondary, 반대 = Off.
         // (Shot: Attack=Primary/Defend=Off, Tackle: Defend=Primary/Attack=Off, KeyPass: Support=KeyPassSupport/그 외=Secondary)
         [Header("Tactic Impact — Duty Weight (J.4)")]
@@ -461,9 +461,9 @@ namespace FMLite.Domain
         public float tacticDutyOffWeight = 0.5f;
         public float tacticDutyKeyPassSupportWeight = 1.3f;
 
-        // ── V1.0 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V1.0-10 + V1.0-11) ──
+        // ── V0.5 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V0.5-10 + V0.5-11) ──
 
-        [Header("Player Growth System (V1.0-10)")]
+        [Header("Player Growth System (V0.5-10)")]
         public float growthBaseChance = 0.01f;
         public float growthAbsoluteFactor = 0.10f;
         public float growthTrainingCoeff = 0.10f;
@@ -477,15 +477,15 @@ namespace FMLite.Domain
         public float[] growthSizePeakWeights = { 60f, 30f, 10f };
         public float growthBigJumpAgeThreshold = 1.3f;
 
-        [Header("Injury System (V1.0-11)")]
+        [Header("Injury System (V0.5-11)")]
         public float injuryMedicalRecoveryCoeff = 0.05f;
         public float injuryGymRecoveryCoeff = 0.02f;
         public float injuryMedicalRateCoeff = 0.05f;
 
-        [Header("Scouting System (V1.0 E.2)")]
+        [Header("Scouting System (V0.5 E.2)")]
         public int scoutWeeklyLevelGain = 5;
 
-        [Header("Cpu Transfer AI (V1.0 F.1)")]
+        [Header("Cpu Transfer AI (V0.5 F.1)")]
         public float aiWeaknessRatioThreshold = 0.95f;
         public int aiCoreInjuryWeeksThreshold = 4;
         public int aiSavingsThreshold = 10000; // 만원 단위. 명성당 임계.
@@ -494,17 +494,17 @@ namespace FMLite.Domain
         public float aiBudgetRatio = 0.4f;
         public float aiContractFaThresholdDays = 180f; // 잔여 6개월
 
-        // ── V1.0 G.1 Morale System (algorithms.md V1.0-6 / design-decisions.md #42) ──
+        // ── V0.5 G.1 Morale System (algorithms.md V0.5-6 / design-decisions.md #42) ──
 
-        [Header("Morale System (V1.0 G.1)")]
+        [Header("Morale System (V0.5 G.1)")]
         public int moraleDailyRecoveryRate = 1; // 매일 50 으로 수렴 속도
         public int moraleMatchWinBonus = 8;
         public int moraleMatchLossPenalty = 8;
         public float moraleBigMatchMultiplier = 1.5f;
         public int moraleHighRatingBonus = 5;
         public int moraleLowRatingPenalty = 3; // 부호는 호출부에서
-        public int moralePromotionWinBonus = 30; // 시즌 우승 / 승격 — V1.0 M.4 시점 사용
-        public int moraleRelegationPenalty = 50; // 강등 — V1.0 M.4 시점 사용 (부호 호출부)
+        public int moralePromotionWinBonus = 30; // 시즌 우승 / 승격 — V0.5 M.4 시점 사용
+        public int moraleRelegationPenalty = 50; // 강등 — V0.5 M.4 시점 사용 (부호 호출부)
         public int contractRenewalMoraleBoost = 15;
         public int contractRenewalHappinessBoost = 25;
         public int promiseBreakHappinessPenalty = 20; // 부호 호출부
@@ -519,13 +519,13 @@ namespace FMLite.Domain
         public float ratingHighThreshold = 7.5f;
         public float ratingLowThreshold = 6.0f;
 
-        // ── V1.0 G.2 Promise System (algorithms.md V1.0-6 / design-decisions.md #43) ──
+        // ── V0.5 G.2 Promise System (algorithms.md V0.5-6 / design-decisions.md #43) ──
 
-        [Header("Promise System (V1.0 G.2)")]
+        [Header("Promise System (V0.5 G.2)")]
         public int promisePlaytimeDefaultRatio = 50; // OnInterview PromisePlaytime 의 기본 출전 비율 (%)
         public int promiseDeadlineApproachingDays = 30; // (deadline - currentDate).Days ≤ N → 임박 알림 1회
 
-        [Header("Dressing Room Mood (V1.0 G.3)")]
+        [Header("Dressing Room Mood (V0.5 G.3)")]
         public int dressingRoomMoodLowThreshold = 30; // < N → 매치 strength 패널티
         public float dressingRoomLowMoodStrengthFactor = 0.95f; // < 30 시 strength 배율 (≈ 폼 -5)
         public float dressingRoomCaptainLeadershipBonus = 0.2f; // captain leadership × N → mood 가산
@@ -538,12 +538,12 @@ namespace FMLite.Domain
         public int promiseTransferDeadlineDaysWinterEnd = 31; // 1/31
         public int promiseTransferDeadlineMonthWinterEnd = 1;
 
-        // ── V1.0 I.6 SubstitutionAI ─────────────────────────────────────
+        // ── V0.5 I.6 SubstitutionAI ─────────────────────────────────────
         public int maxSubstitutionsPerTeam = 3;
         public int substitutionFatigueThreshold = 70; // fatigue > N → 교체 후보
         public int substitutionTacticalMinute = 60;   // 전술 교체 (피로/스코어) 시작 분
 
-        [Header("Season / Monthly Awards (V1.0 M.2~M.3)")]
+        [Header("Season / Monthly Awards (V0.5 M.2~M.3)")]
         public float mvpChampionBonus = 0.3f;
         public int awardMoraleBonus = 10;
         public int awardHappinessBonus = 10;
@@ -551,18 +551,18 @@ namespace FMLite.Domain
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
 
-        [Header("Manager Reputation (V1.0 M.8)")]
+        [Header("Manager Reputation (V0.5 M.8)")]
         public int managerRepLeagueWin = 20;
         public int managerRepMonthlyAward = 5;
         public int managerRepSacked = -30;
         public int managerRepBoardBonusDivisor = 20; // 월간 boardConfidence += rep / divisor
 
-        [Header("Finance System (V1.0 M.6)")]
+        [Header("Finance System (V0.5 M.6)")]
         public int baseMatchDayIncome = 50_000; // 홈 경기당 × stadiumLevel × (rep/100)
         public int baseTvIncome = 1_500_000; // 시즌당 × (rep/100)
         public int basePrize = 5_000_000; // 1위 상금 (하위로 선형 감소, 최하위 0)
 
-        [Header("Board System (V1.0 M.4~M.5)")]
+        [Header("Board System (V0.5 M.4~M.5)")]
         public int boardPromiseRejectPenalty = 10; // 보드 약속 거절 시 boardConfidence 감소
         public int boardConfidenceLossPerDefeat = 2;
         public int boardConfidenceBigMatchLossExtra = 3; // 빅매치 패배 시 추가 감소 (합계 = Loss + Extra = 5)

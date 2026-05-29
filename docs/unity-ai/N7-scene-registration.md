@@ -7,7 +7,7 @@
 
 ## 목적
 
-V1.0 에서 새로 추가된 씬을 **EditorBuildSettings** 에 등록해 빌드에 포함시킨다.
+V0.5 에서 새로 추가된 씬을 **EditorBuildSettings** 에 등록해 빌드에 포함시킨다.
 
 ---
 

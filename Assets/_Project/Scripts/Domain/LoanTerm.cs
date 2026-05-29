@@ -1,6 +1,6 @@
 // LoanTerm.cs
 // 임대 조건 DTO — TransferSystem.SubmitLoanOffer 파라미터 번들.
-// design-decisions.md #48 / algorithms.md V1.0-3.1.
+// design-decisions.md #48 / algorithms.md V0.5-3.1.
 
 using System;
 

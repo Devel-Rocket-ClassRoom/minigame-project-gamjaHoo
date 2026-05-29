@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace FMLite.Utils
 {
     // design-decisions.md #40 (Absolute/Relative) + #53 (Gym 피지컬 보정)
-    // algorithms.md V1.0-10 GrowthSystem 가 IsAbsolute / IsPhysical 분기 활용.
+    // algorithms.md V0.5-10 GrowthSystem 가 IsAbsolute / IsPhysical 분기 활용.
     public static class StatMetadata
     {
         private static readonly HashSet<string> AbsoluteStats = new HashSet<string>

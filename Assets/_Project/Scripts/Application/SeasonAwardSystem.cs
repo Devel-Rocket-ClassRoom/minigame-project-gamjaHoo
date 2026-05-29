@@ -1,6 +1,6 @@
 // SeasonAwardSystem.cs
-// V1.0 M.2: 시즌 어워드 계산 (algorithms.md V1.0-9).
-// V1.0 M.3: 월간 어워드 계산 (ComputeMonthlyAwards).
+// V0.5 M.2: 시즌 어워드 계산 (algorithms.md V0.5-9).
+// V0.5 M.3: 월간 어워드 계산 (ComputeMonthlyAwards).
 // Stateless (design-decisions.md #3).
 
 using System;

@@ -1,5 +1,5 @@
 // ManagerReputationSystem.cs
-// V1.0 M.8 — 매니저 평판 변동.
+// V0.5 M.8 — 매니저 평판 변동.
 // Stateless (design-decisions.md #3).
 
 using System;

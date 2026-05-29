@@ -8,7 +8,7 @@
 
 1. **이 CLAUDE.md** — 끝까지 (특히 ⚠️ Common Pitfalls 섹션)
 2. **`docs/design-decisions.md`** — 전체. 결정 사항을 무시한 코드는 거의 확실히 사용자 정정 받음.
-3. **`docs/v1.0-tasks.md`** — 현재 진행 상태 파악
+3. **`docs/v0.5-tasks.md`** — 현재 진행 상태 파악
 4. **작업 종류별 추가 docs**:
    - 도메인 클래스 → `docs/class-diagram.md`
    - 알고리즘 / 생성기 / 시뮬레이션 → `docs/algorithms.md` 해당 섹션 **전부**
@@ -61,7 +61,7 @@
 - 두 문서가 자기모순 (`class-diagram.md` Layer Overview 와 본문 섹션 분류 불일치)
 - 본질 분석 (인프라/컨테이너 vs Stateless 도메인 변환) 결과 Core 가 정답
 
-**작업 시작 전 체크**: 표면적 일관성에 끌리지 말고 *왜 이렇게 되어 있나* 질문. 디자인 의도 / 본질 / 다른 시스템과의 응집도. `design-decisions.md` 의 V1.0+ 보완 포인트도 함께 검토.
+**작업 시작 전 체크**: 표면적 일관성에 끌리지 말고 *왜 이렇게 되어 있나* 질문. 디자인 의도 / 본질 / 다른 시스템과의 응집도. `design-decisions.md` 의 V0.5+ 보완 포인트도 함께 검토.
 
 ---
 
@@ -147,7 +147,7 @@ Claude Code 는 코드 / 문서 / Editor 스크립트 (DebugWindow 같은) 영�
 - Title: `[영역] 동사형 작업명`
 - **Type (GitHub Issue Type 필드, 라벨 X)** — `Feature` / `Task` / `Bug` 중 1개. `gh issue create` 후 `gh api -X PATCH "repos/{owner}/{repo}/issues/{n}" -f type="Feature"` 로 설정.
 - Area 라벨 (`area:domain` / `area:simulation` 등) — 1개 이상
-- Milestone (`V0.1` / `V1.0` / `V1.x`)
+- Milestone (`V0.1` / `V0.5` / `V1.0`)
 - Projects 보드 추가 → Priority (P0/P1/P2), Size (XS~XL)
 - 본문 템플릿 채우기 (DoD 포함)
 

@@ -241,11 +241,11 @@ public class TechnicalStats {
 - 결과 검증 가능
 - 세이브 로드 후 같은 결과 보장 (멀티 세이브 일관성)
 
-**V1.0 변경 (2026-05-27) — "결과 미리 산출" 완전 폐기:**
-- V1.0 매치 엔진 (#44 5-zone Markov) 은 **forward simulation** — 매 분 emergent. "결과 먼저 정하고 이벤트 끼워맞추기" 폐기.
+**V0.5 변경 (2026-05-27) — "결과 미리 산출" 완전 폐기:**
+- V0.5 매치 엔진 (#44 5-zone Markov) 은 **forward simulation** — 매 분 emergent. "결과 먼저 정하고 이벤트 끼워맞추기" 폐기.
 - **결정성의 진짜 출처는 시드 고정** (`match.id ^ randomSeed`) — "결과 미리 산출" 이 아님. 같은 시드 + 같은 입력 state → 같은 이벤트 시퀀스 → 같은 결과 (재현성 / 세이브 일관성 그대로 달성).
-- 즉 이 결정의 _목적_ (검증 가능 + 세이브 일관성) 은 V1.0 에서도 유지되나, _수단_ (결과 미리 산출) 은 폐기. Markov forward 와 "결과 미리 정하기" 는 양립 불가 (결과 강제 시 이벤트 조작 필요 → 흐름 왜곡).
-- SimulateLite (비활성 매치) 도 V1.0 은 Markov → "결과 미리 산출" 은 V1.0 전체 어디에도 없음 (V0.1 역사적 정책으로만 존재).
+- 즉 이 결정의 _목적_ (검증 가능 + 세이브 일관성) 은 V0.5 에서도 유지되나, _수단_ (결과 미리 산출) 은 폐기. Markov forward 와 "결과 미리 정하기" 는 양립 불가 (결과 강제 시 이벤트 조작 필요 → 흐름 왜곡).
+- SimulateLite (비활성 매치) 도 V0.5 은 Markov → "결과 미리 산출" 은 V0.5 전체 어디에도 없음 (V0.1 역사적 정책으로만 존재).
 
 ---
 
@@ -305,7 +305,7 @@ public class TechnicalStats {
 
 **변경 이력:** 초안에서는 Malgun Gothic이었으나 (a) Windows 종속 (b) 재배포 라이선스 모호 두 이유로 NotoSansKR로 변경 (Task 1.3 진행 중).
 
-**대체:** V1.x 에서 Pretendard 등 미려한 폰트 고려.
+**대체:** V1.0 에서 Pretendard 등 미려한 폰트 고려.
 
 ---
 
@@ -348,7 +348,7 @@ public static class GameTime {
 
 **Sanity check:** algorithms.md #1 T5 에서 CA 와 stats 가중합의 상관계수 > 0.6 검증 — 완전 분리는 아니지만 한쪽이 폭주하지 않게.
 
-**V1.0 변경 트리거:** 매치 시뮬레이션이 개별 stats 를 사용하기 시작하면 (algorithms.md #2 V1.0 확장 시점) `Player.DeriveCAFromStats(pos)` 도입 검토.
+**V0.5 변경 트리거:** 매치 시뮬레이션이 개별 stats 를 사용하기 시작하면 (algorithms.md #2 V0.5 확장 시점) `Player.DeriveCAFromStats(pos)` 도입 검토.
 
 ---
 
@@ -396,7 +396,7 @@ public class PositionAffinity {
 
 **이유:**
 - 자연스러운 친밀도 (ST → 윙) + 별난 캐릭터 (ST → CB) 의 다양성 둘 다 살림
-- V1.x 적응도 시스템의 데이터 구조 기반
+- V1.0 적응도 시스템의 데이터 구조 기반
 - GK 만 별도 분기 — 데이터로 처리하기엔 너무 강한 제약이라 알고리즘에서 명시 제외
 
 ---
@@ -425,11 +425,11 @@ Rel   | 0.15  |          3          | 25..40     # 강등권
 
 **외부화:** `GameBalanceSO.tierClubRatios/tierRepMin/tierRepMax`, `facilityNoiseSigma`, `financeNoiseSigma` (`algorithms.md #5` 참조).
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
-- **리그별 다른 ratio 표** — 현재는 모든 리그가 동일한 `tierClubRatios` 사용. V1.0 에서 LeagueConfigSO 로 이전해 ESP=빅2 강세, GER=빅3 + 평준화 등 리그 색깔 반영.
-- **다중 리그 동시 운영** — 현재 ClubGenerator 는 단일 리그 호출 (caller loop 로 다중 리그도 가능하나 명성 통합 ranking 없음). V1.0 에서 이적 시장 연동을 위한 글로벌 명성 ranking 도입.
-- **시즌 목표 동적화** — 현재 `targetLeaguePosition = i+1` (명성 순위 = 목표). V1.0 에서 보드 신뢰도·예산 조합 기반 동적 목표.
+- **리그별 다른 ratio 표** — 현재는 모든 리그가 동일한 `tierClubRatios` 사용. V0.5 에서 LeagueConfigSO 로 이전해 ESP=빅2 강세, GER=빅3 + 평준화 등 리그 색깔 반영.
+- **다중 리그 동시 운영** — 현재 ClubGenerator 는 단일 리그 호출 (caller loop 로 다중 리그도 가능하나 명성 통합 ranking 없음). V0.5 에서 이적 시장 연동을 위한 글로벌 명성 ranking 도입.
+- **시즌 목표 동적화** — 현재 `targetLeaguePosition = i+1` (명성 순위 = 목표). V0.5 에서 보드 신뢰도·예산 조합 기반 동적 목표.
 
 ---
 
@@ -456,10 +456,10 @@ Rel   | 0.15  |          3          | 25..40     # 강등권
 
 **이유:**
 - **더블 스쿼드 보장** — 모든 사용 포지션 최소 2명. 부상 / 컨디션 회복 중에도 라인업 가능. GK 는 서드키퍼까지 3명.
-- **포메이션 단위 응집** — V0.1 4-4-2 단일 디폴트지만 `FormationConfig` 데이터 단위로 묶어 V1.0 진입 시 매끄러움 (`#32` 참조).
+- **포메이션 단위 응집** — V0.1 4-4-2 단일 디폴트지만 `FormationConfig` 데이터 단위로 묶어 V0.5 진입 시 매끄러움 (`#32` 참조).
 - **시드 기반 랜덤 2자리** — 구단 / 시드별 미세한 다양성. 결정성 보장.
 
-**외부화:** `GameBalanceSO.formation: FormationConfig` (nested class — `[Serializable]` value object). V0.1 단일 인스턴스. V1.0 에서 `FormationSO` 로 추출.
+**외부화:** `GameBalanceSO.formation: FormationConfig` (nested class — `[Serializable]` value object). V0.1 단일 인스턴스. V0.5 에서 `FormationSO` 로 추출.
 
 ```csharp
 [Serializable]
@@ -477,9 +477,9 @@ public class FormationConfig {
 }
 ```
 
-**가변 `playersPerClub` 대응:** `Σ(필수) + randomSlots ≠ playersPerClub` 일 경우 V0.1 은 **분배표 합 기준으로 진행 + 경고**. V1.0 에서 ratio 화 검토.
+**가변 `playersPerClub` 대응:** `Σ(필수) + randomSlots ≠ playersPerClub` 일 경우 V0.1 은 **분배표 합 기준으로 진행 + 경고**. V0.5 에서 ratio 화 검토.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **`FormationSO` 추출** — nested `FormationConfig` 를 별도 SO 로 분리. `List<FormationSO> availableFormations` 카탈로그 도입.
 - **가챠 시 포메이션 랜덤화** (`#32`) — 초기 스쿼드 가챠 단계에 포메이션도 랜덤 추첨. 각 포메이션이 굴러갈 수 있는 최소 구성 비율 보장 (현재 4-4-2 한정 → 4-3-3 / 3-5-2 등 추가).
@@ -522,7 +522,7 @@ public class FormationConfig {
         → EventScheduler.Run(state)                 ← Application
   ```
 
-**V1.0+ 보완 포인트:**
+**V0.5+ 보완 포인트:**
 
 - 의존 역전 강화: GameManager 가 정말로 시스템을 직접 알아야 하는 시나리오 생기면 인터페이스 도입 (`IDailyProcessor` 등) 또는 EventBus 만으로 처리.
 
@@ -541,7 +541,7 @@ MF : DM, CM, AM, LM, RM
 AT : LW, RW, ST, CF
 ```
 
-V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 필드 추가 검토 (외부화).
+V0.1 알고리즘 내 하드코딩. V0.5 에서 `PositionSO.lineCategory: Line` 필드 추가 검토 (외부화).
 
 **평가 알고리즘 (algorithms.md #6 3단계):**
 
@@ -566,7 +566,7 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 - 중위권 (rep=50, expectedMean=100) + 라인 평균 110 → ratio 1.10 → Strong
 - 같은 절대 CA (120) 도 명성 따라 다른 평가. 빅클럽이면 Average, 중위권이면 Elite.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **z-score 정규화** — 단순 비율 대신 `(lineCA - expectedMean) / caStdDev`. 더 통계적으로 정확.
 - **출전 시간 카테고리** (`#33` 참조) — 능력치 기반 자동 배정 + 노이즈. "주전급/서브급/비상후보급". 사기 시스템과 연동.
@@ -600,34 +600,34 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 
 **대안 검토 — id 재사용:** 디스크 / 메모리 절약은 미미. 디버그 / 결정성 보장 손실이 큼. 거절.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **rerollsUsed 추적** — 시즌 첫 가챠 외 다른 Reroll 시스템 (유스 인스펙션 등) 과 별도 카운터 분리.
 - **트랜잭션 정책** — Reroll 중 ClubGen 실패 시 롤백. V0.1 은 Assert 후 부분 실패.
-- **derived seed 정책** — 현재 호출자가 `rng = new Random(state.randomSeed ^ club.id ^ rerollIdx)` 수동 부여. V1.0 에서 헬퍼 추출.
+- **derived seed 정책** — 현재 호출자가 `rng = new Random(state.randomSeed ^ club.id ^ rerollIdx)` 수동 부여. V0.5 에서 헬퍼 추출.
 
 ---
 
-## 32. V0.1 단일 포메이션 + V1.0 가챠 랜덤화 확장
+## 32. V0.1 단일 포메이션 + V0.5 가챠 랜덤화 확장
 
-**결정:** V0.1 에서 4-4-2 단일 포메이션만 지원. `FormationConfig` 데이터 단위로 묶어 V1.0 진입 시 매끄럽게 확장.
+**결정:** V0.1 에서 4-4-2 단일 포메이션만 지원. `FormationConfig` 데이터 단위로 묶어 V0.5 진입 시 매끄럽게 확장.
 
 **V0.1:**
 - `GameBalanceSO.formation: FormationConfig` 단일 인스턴스 (4-4-2).
 - ClubGen 가 이걸 사용해 분배표 생성.
 - 가챠는 평가 / 리롤만. 포메이션 선택 없음.
 
-**V1.0+ 확장 시나리오 (사용자 의도):**
+**V0.5+ 확장 시나리오 (사용자 의도):**
 - `FormationConfig` → `FormationSO` 로 추출.
 - `List<FormationSO> availableFormations` 카탈로그 (4-4-2 / 4-3-3 / 3-5-2 / 4-2-3-1 / 4-4-1-1 등 5~6개).
 - **가챠 시 포메이션 랜덤 추첨** — 각 구단마다 다른 포메이션. 분배표도 그에 맞춰 다름.
 - 각 포메이션이 굴러갈 수 있는 **최소 구성 비율 보장** — `FormationConfig` 의 필수 인원 + 그룹 정책이 이미 그 형태로 설계됨.
 
 **이유:**
-- V0.1 단순화 (단일 포메이션) 와 V1.0 확장성 동시 달성.
+- V0.1 단순화 (단일 포메이션) 와 V0.5 확장성 동시 달성.
 - nested class → SO 추출은 직관적 마이그레이션 경로.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **FormationSO 신규** — id / name / 분배표 정책 / 전술 매개변수 (압박, 라인 높이 등) 보유.
 - **가챠 추첨 메커닉** — 명성 가중치 (빅클럽 = 화려한 포메이션 ↑) 도 검토.
@@ -641,7 +641,7 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 
 ```
 1. rng = new Random(match.id ^ state.randomSeed)        # 시드 고정 (#17)
-2. starting11 = top-11 by CA (부상자 제외)              # V0.1 자동 선정 (라인업 시스템 V1.0+)
+2. starting11 = top-11 by CA (부상자 제외)              # V0.1 자동 선정 (라인업 시스템 V0.5+)
 3. teamStrength = SUM(starting11.CA)
 4. λ_home = totalLambda * (homeStrength / total) + homeAdvantageGoalBonus
    λ_away = totalLambda * (awayStrength / total)
@@ -652,11 +652,11 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 **이유:**
 
 - **Poisson 분포**: 실제 축구 골 분포의 학계 표준 (Dixon-Coles 1997 등). 같은 λ 라도 매 매치 다른 결과 — 강팀이 무득점, 약팀이 이변 가능. 결정성과 자연 분포 동시 충족.
-- **단순 CA 합 (`#24` 일관)**: V0.1 매치는 CA 만 사용, 개별 stats 무관. 라인별 가중치 / 포지션 적합도 / 폼·사기·피로 보정 모두 V1.0+. 매치 시뮬레이션 복잡도 ↓.
+- **단순 CA 합 (`#24` 일관)**: V0.1 매치는 CA 만 사용, 개별 stats 무관. 라인별 가중치 / 포지션 적합도 / 폼·사기·피로 보정 모두 V0.5+. 매치 시뮬레이션 복잡도 ↓.
 - **starting11 = top-11 by CA**: V0.1 라인업 결정 UI / 자동 라인업 알고리즘 없음 (Task 13 까지). 시뮬레이터가 자동 선정. 포지션 무시 — 명세 단순화.
 - **득점자 = 라인 가중치 × CA**: 공격수가 ~60% 득점 (현실 분포). CA 보정으로 에이스 효과. `algorithms.md` #6 의 4라인 분류 재사용 → 일관성.
 - **홈 어드밴티지 = home λ 가산**: 단순 + 의도 직관적 ("홈팀 이점"). EPL 통계 근사 (홈 46% / 무 26% / 원정 28%).
-- **결과 우선 모델 (#17 정신)**: 시드 고정 → 결과 미리 산출 → 표시 이벤트는 결과에 부합. V0.1 에선 스코어 + 득점자만 미리 결정. 표시할 텍스트 이벤트는 V1.0+.
+- **결과 우선 모델 (#17 정신)**: 시드 고정 → 결과 미리 산출 → 표시 이벤트는 결과에 부합. V0.1 에선 스코어 + 득점자만 미리 결정. 표시할 텍스트 이벤트는 V0.5+.
 
 **외부화:** `GameBalanceSO.avgGoalsPerMatch (2.7)` / `homeAdvantageGoalBonus (0.3)` / `scoringWeightByLine ({0, 0.4, 1.5, 5.0})`. 모두 플레이테스트로 조정.
 
@@ -679,11 +679,11 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 - **k=1 폴백** — 외부화로 선형 ↔ 비선형 토글 가능. 플레이테스트 조정 여지.
 - **동급 팀에서 k 무관** — `s_h == s_w` 면 k 어떤 값이든 ratio = 0.5. 무승부 / 홈 어드밴티지 검증 (T4/T5/T6) 영향 없음.
 
-**V0.1 한정 명시:** 이 변통은 V0.1 단순 CA 합 모델의 결정력 부족을 임시 보강하는 것. V1.0+ 매치 엔진 재작성 시 (`#34` 이벤트 시퀀스) 폐기 예정 — finishing / composure / decisions 등 개별 stats 가 슈팅 변환률을 직접 결정하므로 비선형 보정 불필요.
+**V0.1 한정 명시:** 이 변통은 V0.1 단순 CA 합 모델의 결정력 부족을 임시 보강하는 것. V0.5+ 매치 엔진 재작성 시 (`#34` 이벤트 시퀀스) 폐기 예정 — finishing / composure / decisions 등 개별 stats 가 슈팅 변환률을 직접 결정하므로 비선형 보정 불필요.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
-- **개별 stats 사용** — `#24` V1.0 트리거. 매치가 finishing / passing / tackling 등 직접 참조 시 stats 합과 CA 가 자연스럽게 일치하도록 derived CA 모델 검토.
+- **개별 stats 사용** — `#24` V0.5 트리거. 매치가 finishing / passing / tackling 등 직접 참조 시 stats 합과 CA 가 자연스럽게 일치하도록 derived CA 모델 검토.
 - **`strengthExponent` 폐기** — 위 V0.1 임시 변통. 매치 엔진 재작성 시 k=1 회귀 또는 알고리즘 자체 제거.
 - **라인업 결정 시스템** — 자동 라인업 (포지션 필수 + top-by-CA) → 유저 수동 라인업 UI. `Simulate(match, state, homeXI, awayXI)` 오버로드 도입 시점.
 - **컵 연장전 + 승부차기** — `Match.type == FACup/CarabaoCup` 분기. 동점 시 `extraTimeLambda` Poisson 한 번 더 → 그래도 동점이면 승부차기 (별도 5+ 라운드).
@@ -692,15 +692,15 @@ V0.1 알고리즘 내 하드코딩. V1.0 에서 `PositionSO.lineCategory: Line` 
 
 ---
 
-## 34. V1.0+ Match Simulation 진화 경로 — 이벤트 시퀀스
+## 34. V0.5+ Match Simulation 진화 경로 — 이벤트 시퀀스
 
-**결정:** V0.1 의 "결과 우선" 모델은 V1.0+ 에서 **분 단위 이벤트 시뮬레이션** 으로 전환. 인터페이스 `MatchSimulator.Simulate(match, state) → MatchResult` 는 유지 — 호출자 (`GameLoop`, `BackgroundSimulator`, `MatchPostProcessor`) 영향 없음. 내부만 교체.
+**결정:** V0.1 의 "결과 우선" 모델은 V0.5+ 에서 **분 단위 이벤트 시뮬레이션** 으로 전환. 인터페이스 `MatchSimulator.Simulate(match, state) → MatchResult` 는 유지 — 호출자 (`GameLoop`, `BackgroundSimulator`, `MatchPostProcessor`) 영향 없음. 내부만 교체.
 
-**V0.1 (결과 우선)** vs **V1.0+ (이벤트 시퀀스)**:
+**V0.1 (결과 우선)** vs **V0.5+ (이벤트 시퀀스)**:
 
 ```
 V0.1: rng 고정 → 양 팀 strength → λ → Poisson(home/away goals) → 득점자 추첨 → MatchResult
-V1.0+: rng 고정 → 분 단위 step (1~90) →
+V0.5+: rng 고정 → 분 단위 step (1~90) →
          step 마다 이벤트 발생 (슈팅 시도, 카드, 부상, 교체 …) →
          누적 상태 (점수, 카드 수, 부상자, 11→10명 등) 가 다음 step 분기에 영향 →
          최종 누적 = MatchResult
@@ -710,28 +710,28 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 
 1. **앞 이벤트가 뒤 이벤트에 영향** — 옐로 2장 → 퇴장 → 10명 → strength ↓ → 골 확률 ↓ 같은 누적 효과를 결과 우선 모델로는 표현 불가.
 2. **부상 → 교체** — 부상자 발생 시 벤치 strength 가 들어옴. 교체 타이밍이 결과에 영향.
-3. **교체 / 외침 등 유저·AI 의사결정 반영** — V1.0+ 텍스트 이벤트 시스템 도입 후 유저 응답 (전반 종료 코칭 코멘트 등) 이 후반에 영향.
+3. **교체 / 외침 등 유저·AI 의사결정 반영** — V0.5+ 텍스트 이벤트 시스템 도입 후 유저 응답 (전반 종료 코칭 코멘트 등) 이 후반에 영향.
 4. **카드 / 부상 시스템 자연 발생** — 분 단위 이벤트가 곧 카드/부상 발생 지점.
 
 **왜 V0.1 에선 안 하는가:**
 
 - 분 단위 시뮬레이션은 복잡도 ↑↑ (이벤트 종류 정의 / 분기 / 확률 곱 / 누적 상태 / AI 교체 로직).
 - V0.1 스코프 (2~3주) 에선 결과 우선 모델로 충분 — 스코어 + 득점자만 표시.
-- **사용자 의도**: "교체는 AI 가 자동" / "외침 등 V1.0+ 에 추가될 때 재변동 가능" — 인터페이스만 유지하면 V1.0 에서 내부 자유롭게 교체 가능.
+- **사용자 의도**: "교체는 AI 가 자동" / "외침 등 V0.5+ 에 추가될 때 재변동 가능" — 인터페이스만 유지하면 V0.5 에서 내부 자유롭게 교체 가능.
 
 **인터페이스 호환성 보장:**
 
 - `MatchSimulator.Simulate(match, state) → MatchResult` 시그니처 동일 (`class-diagram.md` 합의).
 - 시드 결정성 (`#17`) 정신 보존 — 매 step rng 상태 누적이지만 같은 시드 → 같은 시퀀스 → 같은 결과.
-- `MatchResult` 스키마 호환 — V1.0+ 에선 `assists` / `rating` / `yellowCards` / `redCards` 가 0 이 아니게 채워지지만 필드 추가/제거는 없음.
+- `MatchResult` 스키마 호환 — V0.5+ 에선 `assists` / `rating` / `yellowCards` / `redCards` 가 0 이 아니게 채워지지만 필드 추가/제거는 없음.
 
 **V0.1 코드의 운명:**
 
-- 4단계 Poisson + 5단계 라인 가중 추첨 알고리즘은 V1.0+ 진입 시 **제거**. 대신 이벤트 시퀀스 엔진이 자체적으로 슈팅 시도 / 골 / 어시스트 / 카드 / 부상 등을 분 단위로 발생.
-- 다만 V0.1 의 외부화 파라미터 (`avgGoalsPerMatch`, `homeAdvantageGoalBonus`, `scoringWeightByLine`) 일부는 V1.0+ 에서도 재활용 가능 (특히 라인 가중치).
-- V0.1 EditMode 테스트 (T1~T7) 는 V1.0+ 진입 시 인터페이스 차원 테스트만 유지 (결정성 / 강팀 승률 / playerStats 정확성) — Poisson 분포 통계 테스트는 폐기 후 이벤트 시퀀스 테스트로 교체.
+- 4단계 Poisson + 5단계 라인 가중 추첨 알고리즘은 V0.5+ 진입 시 **제거**. 대신 이벤트 시퀀스 엔진이 자체적으로 슈팅 시도 / 골 / 어시스트 / 카드 / 부상 등을 분 단위로 발생.
+- 다만 V0.1 의 외부화 파라미터 (`avgGoalsPerMatch`, `homeAdvantageGoalBonus`, `scoringWeightByLine`) 일부는 V0.5+ 에서도 재활용 가능 (특히 라인 가중치).
+- V0.1 EditMode 테스트 (T1~T7) 는 V0.5+ 진입 시 인터페이스 차원 테스트만 유지 (결정성 / 강팀 승률 / playerStats 정확성) — Poisson 분포 통계 테스트는 폐기 후 이벤트 시퀀스 테스트로 교체.
 
-### V1.0+ 보완 포인트 (이벤트 시퀀스 도입 시)
+### V0.5+ 보완 포인트 (이벤트 시퀀스 도입 시)
 
 - **이벤트 종류 정의** — Shot / Save / Goal / YellowCard / RedCard / Injury / Substitution / OffsideCalled / Foul …. 각 이벤트의 발생 확률 공식 / 결과 분기.
 - **분 단위 vs 이벤트 단위** — 매 분 RNG 굴리기 (90 step) vs Poisson 으로 시간 간격 샘플링. 후자가 단순.
@@ -740,9 +740,9 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 - **퇴장 후 strength 보정** — 11명 → 10명 시 strength × 0.9 같은 보정 또는 자연 발생 이벤트 (10명은 슈팅 시도 횟수 자체가 줄어 자연 반영).
 - **`MatchEvent` 도메인 필드 활용** — `class-diagram.md` 의 `Match.events: List<MatchEvent>` placeholder 가 본격 사용. 분 단위 이벤트 기록.
 
-**V1.0 실현 (2026-05-27) — 5-Zone Markov 채택:**
+**V0.5 실현 (2026-05-27) — 5-Zone Markov 채택:**
 - 이 진화 경로가 #44 에서 본격 실현. 단, "분 단위 vs 이벤트 단위" 중 **OFM 5-zone Markov** (ballZone + possession 상태 전이) 채택 — 위 보완 포인트의 "매 분 RNG" 보다 상태 전이가 "앞 이벤트 영향" 을 더 자연스럽게 표현.
-- 초안 (I.1/I.2 "양 팀 독립 추첨") 은 상태 전이가 없어 폐기 → 5-zone 재설계. 상세 #44 / `algorithms.md` V1.0-2.
+- 초안 (I.1/I.2 "양 팀 독립 추첨") 은 상태 전이가 없어 폐기 → 5-zone 재설계. 상세 #44 / `algorithms.md` V0.5-2.
 
 ---
 
@@ -769,9 +769,9 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
    - **결정성 (`#17`) / 멀티세이브 일관성 보존** — 같은 행동 = 같은 hash = 같은 결과
    - **본질적 한계 인정**: 완벽히 동일 플레이는 같은 결과 (결정론의 본질, 막으면 세이브 깨짐)
 
-4. **V0.1 시설 통합 등급 (사용자 #1)**: `FacilityLevelSO(Youth)` 가 시설 + 코치 + 모집 통합 책임. 실제 FM 메커닉 (시설 ≠ 코치 ≠ 모집) 은 V1.0+ 분리 트리거로 명세. V0.1 단순화.
+4. **V0.1 시설 통합 등급 (사용자 #1)**: `FacilityLevelSO(Youth)` 가 시설 + 코치 + 모집 통합 책임. 실제 FM 메커닉 (시설 ≠ 코치 ≠ 모집) 은 V0.5+ 분리 트리거로 명세. V0.1 단순화.
 
-5. **미영입 V0.1 단순화 (사용자 #9)**: 영입 결정 후 미영입 후보 모두 GameState 제거. `intake.rejectedPlayerIds` 에 ID 만 보관 (`#7` 영구 저장). V1.0+ AI 다른 구단 영입 시스템 트리거.
+5. **미영입 V0.1 단순화 (사용자 #9)**: 영입 결정 후 미영입 후보 모두 GameState 제거. `intake.rejectedPlayerIds` 에 ID 만 보관 (`#7` 영구 저장). V0.5+ AI 다른 구단 영입 시스템 트리거.
 
 6. **나이 가중치 + birthDate 저장 (사용자 #4)**: 16=40%, 17=40%, 18=20%. `PersonalInfo.birthDate` 저장 (age 필드 별도 X) — PlayerGen 패턴 그대로. 미래 홈그로운 / 출전 가능 나이 / 적응 기간 등 계산 시 birthDate 필수.
 
@@ -779,12 +779,12 @@ V1.0+: rng 고정 → 분 단위 step (1~90) →
 
 **외부화:** `GameBalanceSO` 신규 12개 필드 (`youthStarPickProbability=0.05`, `youthStarPaBonus=50`, `youthPaStdDev=15`, `youthPaGapStdDev=25`, `youthIntakeMinAge=16`, `youthIntakeMaxAge=18`, `youthIntakeAgeWeights={0.40, 0.40, 0.20}`, `youthPrimaryNationalityRatio=0.78`, `youthIntakeMainMonth/Day=6/15`, `youthIntakeSecondMonth/Day=1/15`). `algorithms.md #4` 참조.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **유스 시설 분리** — `FacilityLevelSO(Youth)` 통합 등급 → `Club.youthCoachLevel` (PA 평균) / `Club.youthRecruitmentLevel` (풀 크기) 분리. 시설 등급은 다른 효과 (스타플레이어 인지도 / 외국 유스 영입 가능 / 보드 신뢰도 +) 로 재정의.
-- **포지션 가중치 변동** — V0.1 균등 → V1.0+ 라운드별 가중치 가챠 (어떤 인스펙션은 GK 0명, ST 다수 / 다른 인스펙션은 반대). `youthPositionWeightVolatility` 같은 외부화 도입.
+- **포지션 가중치 변동** — V0.1 균등 → V0.5+ 라운드별 가중치 가챠 (어떤 인스펙션은 GK 0명, ST 다수 / 다른 인스펙션은 반대). `youthPositionWeightVolatility` 같은 외부화 도입.
 - **AI 다른 구단 영입** — 미영입 후보 일정 확률 (`youthRejectedToOtherClubRatio`) 로 다른 구단 영입. 알림 이벤트 + 추후 조우 시 디스플레이.
-- **CA-Stats 정합성 (algorithms.md #1 V1.0 트리거와 짝)** — PA → CA 단순 derived 대신 stats 가중합 기반 derived 검토. 같은 PA 라도 stats 분포에 따라 CA 다양화.
+- **CA-Stats 정합성 (algorithms.md #1 V0.5 트리거와 짝)** — PA → CA 단순 derived 대신 stats 가중합 기반 derived 검토. 같은 PA 라도 stats 분포에 따라 CA 다양화.
 - **트레잇 가중치 차등** — 유스 시설 등급별 "고급 트레잇 (빅매치형 등)" 가중치 ↑. PlayerGen 트레잇 부여 알고리즘에 분기 추가.
 - **시드 강화** — userActionHash 정교화 (`intakeHistory.Sum(...)` 과거 영입 패턴 / `state.activeOffers.Count` 등 추가).
 - **추가 스카우트 (`data-flows.md #4 [3-c]`)** — 비용 차감 + UI 정보 정확도 ↑ (PA 추정치 범위 좁힘 / 트레잇 노출 정도).
@@ -818,10 +818,10 @@ public class GameState {
 - `GameInitializer` 가 `state.nextIntakeId = 1` 초기화 (이미 디폴트라 사실상 no-op)
 - 세이브 / 로드 라운드트립 검증 필요 (PlayerGen 의 `nextPlayerId` 패턴 그대로)
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **id 재사용 검토 X** — `#31` 과 동일 정책. 디스크 / 메모리 절약 미미. 디버그 / 결정성 손실 큼.
-- **derived seed 헬퍼 추출** — 현재 `state.randomSeed ^ currentDate.Ticks ^ userActionHash ^ club.id ^ intake.id ^ rerollsUsed` 가 호출자 수동 조합. V1.0 에서 `IntakeSeed.Compute(state, club, intake)` 헬퍼 추출.
+- **derived seed 헬퍼 추출** — 현재 `state.randomSeed ^ currentDate.Ticks ^ userActionHash ^ club.id ^ intake.id ^ rerollsUsed` 가 호출자 수동 조합. V0.5 에서 `IntakeSeed.Compute(state, club, intake)` 헬퍼 추출.
 
 ---
 
@@ -844,25 +844,25 @@ public class GameState {
 
 2. **Market Value 슈퍼스타 압도 (사용자 "비교도 안 되게")**: `caFactor = pow(CA / 100, 4)` 비선형 + `marketValueBase = 500k` + `marketValuePaCoeff = 50k`. CA 100 (평범 600k) vs CA 180 슈퍼스타 (9.5M) = **15.7배 차이**. 빅클럽 자금 (~9M) 도 한두 시즌 모아야 슈퍼스타 영입 가능.
 
-3. **V0.1 단일 라운드 / 자동 통과**: AI 판매 구단 응답 (Accept/Reject) 만. 역제안 / 다중 라운드 / 선수 협상 V1.0+. V0.1 단순화 우선.
+3. **V0.1 단일 라운드 / 자동 통과**: AI 판매 구단 응답 (Accept/Reject) 만. 역제안 / 다중 라운드 / 선수 협상 V0.5+. V0.1 단순화 우선.
 
-4. **AI 구단 영입 미구현 (V0.1)**: 다른 AI 구단은 능동 영입 행동 X. 사용자 클럽만 오퍼 제출. V1.0+ AI 영입 시스템 (CpuTransferAi).
+4. **AI 구단 영입 미구현 (V0.1)**: 다른 AI 구단은 능동 영입 행동 X. 사용자 클럽만 오퍼 제출. V0.5+ AI 영입 시스템 (CpuTransferAi).
 
-5. **PA 노출 V0.1 정확도 100%**: 스카우트 시스템 V1.0+. V0.1 검색 결과 모든 선수 정확한 CA/PA 표시.
+5. **PA 노출 V0.1 정확도 100%**: 스카우트 시스템 V0.5+. V0.1 검색 결과 모든 선수 정확한 CA/PA 표시.
 
 6. **시드 결정성 (`#17`)**: `rng = new Random(state.randomSeed ^ offer.id ^ currentDate.Ticks)` AI 응답 결정성. ±10% noise (aiValueNoiseSigma) 로 평가 부정확성 표현.
 
 7. **DailyProcessor 통합**: `ProcessOffers` 가 매일 호출. Pending → AI 응답, Accepted → 활성화 기간 시 자동 체결.
 
-8. **활성화 기간 외부화**: `transferWindowSummerStart/End` + `transferWindowWinterStart/End` (4쌍 month/day). V1.0+ LeagueConfigSO 로 이전.
+8. **활성화 기간 외부화**: `transferWindowSummerStart/End` + `transferWindowWinterStart/End` (4쌍 month/day). V0.5+ LeagueConfigSO 로 이전.
 
 9. **용어 정정**: ❌ "이적창" (모호) → ✅ **"이적시장 활성화 기간"** (한국어 docs / UI 라벨). 영어 변수명 `transferWindow*` / `IsTransferWindowOpen` 그대로 (도메인 표준).
 
 **외부화:** `GameBalanceSO` 신규 ~13개 필드 (`marketValueBase`, `marketValueCaExponent`, `marketValuePaCoeff`, `marketValueAgeCurve[4]`, `marketValueContractCurve[4]`, `marketValuePositionFactor[4]`, `marketValueInjuryFactor`, `aiValueNoiseSigma`, `aiAcceptRatio`, transferWindow* 4쌍). `algorithms.md #3` 참조.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
-`algorithms.md #3` V1.0 Migration Notes 30+ 항목 종합 — 가장 중요한 큰 트리거만 여기 정리:
+`algorithms.md #3` V0.5 Migration Notes 30+ 항목 종합 — 가장 중요한 큰 트리거만 여기 정리:
 
 - **선수/구단 reputation 도입** → Market Value 곱셈 보정. 빅네임 / 빅클럽 프리미엄.
 - **AI 협상 시스템** — 역제안 (CounterOffer status) + 다중 라운드 + 선수 개인 협상.
@@ -876,7 +876,7 @@ public class GameState {
 
 ## 38. V0.1 시즌 사이클 정책
 
-**결정:** V0.1 시즌 사이클 = **5/15 종료 + 6/1 회계연도 + 8/15 매치 개막** 3 시점 분리 + FA 전환 / 은퇴 처리 도입 + 시상·보드 평가·재정 결산·사기 정산·Match 압축 V1.0+ 미루기.
+**결정:** V0.1 시즌 사이클 = **5/15 종료 + 6/1 회계연도 + 8/15 매치 개막** 3 시점 분리 + FA 전환 / 은퇴 처리 도입 + 시상·보드 평가·재정 결산·사기 정산·Match 압축 V0.5+ 미루기.
 
 ```
 5/15 — SeasonEndProcessor (FA 전환 / 은퇴 / SeasonEndedEvent)
@@ -904,15 +904,15 @@ public class GameState {
 2. **고정 날짜 V0.1 (사용자 명시)**:
    - 5/15 / 6/1 / 8/15 고정. 실제 EPL 은 매년 가변 (2025-26 = 8/15 / 5/24, 2026-27 = 8/22 / 5/30)
    - V0.1 단순화 — 매년 동일 일정
-   - V1.0+ 트리거: **캘린더 / 요일 정보 도입 시** "5월 마지막 토요일" / "8월 셋째 토요일" 같은 dynamic 계산. `LeagueConfigSO.seasonEndRule` 같은 enum + DayOfWeek 처리.
+   - V0.5+ 트리거: **캘린더 / 요일 정보 도입 시** "5월 마지막 토요일" / "8월 셋째 토요일" 같은 dynamic 계산. `LeagueConfigSO.seasonEndRule` 같은 enum + DayOfWeek 처리.
 
 3. **계약 만료 → FA 전환 V0.1 도입 (필수)**:
    - 만료 선수 `currentClubId = -1` + `club.seniorSquadIds` 제거
-   - 한 시즌 완주 후 자유계약 시장 형성. V1.0+ 갱신 협상 추가.
+   - 한 시즌 완주 후 자유계약 시장 형성. V0.5+ 갱신 협상 추가.
 
 4. **은퇴 처리 V0.1 단순 도입**:
    - `age >= balance.retirementMinAge (33)` + `rng.NextDouble() < balance.retirementProbabilityPerYear (0.15)`
-   - 은퇴 시 `GameState.RemovePlayer` (단순). V1.0+ `Player.isRetired` 플래그 + 능력치 하락 곡선 + 사후 통계
+   - 은퇴 시 `GameState.RemovePlayer` (단순). V0.5+ `Player.isRetired` 플래그 + 능력치 하락 곡선 + 사후 통계
    - GameBalanceSO 필드 이미 존재 (재활용)
 
 5. **NewSeasonProcessor 책임 (V0.1)**:
@@ -925,9 +925,9 @@ public class GameState {
    - `season.boardConfidence` 초기화 (50)
 
 6. **시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 V0.1 미구현**:
-   - 모두 V1.0+ 별도 시스템과 짝 (사기 / 평점 / 재정 시스템 등)
+   - 모두 V0.5+ 별도 시스템과 짝 (사기 / 평점 / 재정 시스템 등)
    - V0.1 한 시즌 완주 기능에 비필수
-   - `data-flows.md #6` 의 해당 단계 = V1.0+ 트리거로 명세 갱신
+   - `data-flows.md #6` 의 해당 단계 = V0.5+ 트리거로 명세 갱신
 
 7. **EventScheduler 통합 — 2 신규 트리거**:
    - 5/15 → `SeasonEndProcessor.Run` + `SeasonEndedEvent` 발행 + 정지 신호
@@ -935,7 +935,7 @@ public class GameState {
 
 **외부화:** `GameBalanceSO` 신규 6 필드 (`seasonEndMonth/Day`, `fiscalYearStartMonth/Day`, `newSeasonOpeningMonth/Day`). 기존 4 필드 (`seasonRerollTokenGrant`, `maxRerollStockpile`, `retirementMinAge`, `retirementProbabilityPerYear`) 재활용.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 
 - **캘린더 / 요일 dynamic 계산** — `DayOfWeek` 활용 ("5월 마지막 토요일") + LeagueConfigSO 의 enum 기반 규칙. 매년 가변 일정 자연 발생.
 - **시상 시스템** — `SeasonAward` 도메인 (MVP / 득점왕 / 영플레이어 / 베스트XI). `SeasonEndProcessor` 에 단계 추가.
@@ -945,14 +945,14 @@ public class GameState {
 - **Match 데이터 압축** — `Match.events` / `playerStats` 디테일 제거. 우승 / 강등 / 시상 정보만 보존 (#8 패턴).
 - **계약 갱신 협상** — 만료 6개월 전부터 갱신 협상 시작. V0.1 FA 전환과 짝.
 - **은퇴 정교화** — 능력치 하락 곡선 + `Player.isRetired` 플래그 + 사후 통계 / 명예의 전당.
-- **승강** (`data-flows.md #6` 명시) — V0.1 단일 리그라 미구현. V1.0+ 다중 리그 + 승강.
+- **승강** (`data-flows.md #6` 명시) — V0.1 단일 리그라 미구현. V0.5+ 다중 리그 + 승강.
 - **레전 (Regen)** — 은퇴 / 자유계약 선수 일부를 차세대 유스로 환생. `PlayerOrigin.Regen` enum 이미 존재.
 
 ---
 
-## 39. Stats 스케일 + 카테고리 — FM 49 stats 1-100 + CA/PA 1-200 (V1.0)
+## 39. Stats 스케일 + 카테고리 — FM 49 stats 1-100 + CA/PA 1-200 (V0.5)
 
-**결정:** V1.0 Stats 49 필드 (FM26 표준 1:1 매핑) + 스케일 1-100 (FM 1-20 → 5배 세분화). CA / PA 는 FM 표준 1-200 그대로.
+**결정:** V0.5 Stats 49 필드 (FM26 표준 1:1 매핑) + 스케일 1-100 (FM 1-20 → 5배 세분화). CA / PA 는 FM 표준 1-200 그대로.
 
 **카테고리 (49)**:
 - **Technical 14**: Corners, Crossing, Dribbling, Finishing, First Touch, Free Kick Taking, Heading, Long Shots, Long Throws, Marking, Passing, Penalty Taking, Tackling, Technique
@@ -965,24 +965,24 @@ public class GameState {
 - **1-100 (Q12)**: 사용자 명시 "0~20 → 1~100 으로". FM 1-20 보다 5배 세분화 → 매치 시뮬의 미세한 stat 차이 자연 노출. CA / PA 는 도메인 표준 보존 (CA = 4 카테고리 종합 / Stat = 개별 — 단위 차이가 가독성 ↑).
 - **재밸런싱 필수**: V0.1 1-20 외부화 수치 (statMeanAtCAFloor 등) 전부 1-100 기준 재산정. `algorithms.md` #1 갱신.
 
-**영향 범위:** `Stats.cs` 4 카테고리 신규 7 필드 / `PlayerGenerator` 3단계 / `GameBalanceSO` ~25 stat 필드 / 시드 자산 / UI 표시 / Save Migration X (V0.1 → V1.0 무효, #52).
+**영향 범위:** `Stats.cs` 4 카테고리 신규 7 필드 / `PlayerGenerator` 3단계 / `GameBalanceSO` ~25 stat 필드 / 시드 자산 / UI 표시 / Save Migration X (V0.1 → V0.5 무효, #52).
 
-**V0.1 → V1.0 매핑** (명세상 추적, Save Migration 미적용):
-| V0.1 카테고리 | V0.1 필드 | V1.0 변경 |
+**V0.1 → V0.5 매핑** (명세상 추적, Save Migration 미적용):
+| V0.1 카테고리 | V0.1 필드 | V0.5 변경 |
 | --- | --- | --- |
 | Technical (12) | passing, shooting, tackling, dribbling, heading, crossing, firstTouch, finishing, longShots, freeKickAccuracy, penaltyTaking, corners | + marking, technique, longThrows / shooting 제거 (finishing 대체) / freeKickAccuracy → freeKickTaking 명칭 |
 | Mental (12) | vision, anticipation, composure, concentration, decisions, determination, leadership, offTheBall, positioning, teamwork, workRate, aggression | + bravery, flair |
 | Physical (8) | acceleration, agility, balance, jumping, naturalFitness, pace, stamina, strength | jumping → jumpingReach 명칭 |
 | GK (10) | aerialReach, commandOfArea, communication, eccentricity, handling, kicking, oneOnOnes, reflexes, rushingOut, throwing | + firstTouchGk, passingGk, punchingTendency |
 
-### V1.0+ 보완 포인트 (V1.x 검토)
+### V0.5+ 보완 포인트 (V1.0 검토)
 
-- **stat 별 매치 영향 명세** — Shot 결과 분기에 `finishing × composure`, Save에 GK `reflexes × handling` 등 명시적 매핑. V1.0 매치 엔진 (#44) 작성 시 확정.
+- **stat 별 매치 영향 명세** — Shot 결과 분기에 `finishing × composure`, Save에 GK `reflexes × handling` 등 명시적 매핑. V0.5 매치 엔진 (#44) 작성 시 확정.
 - **stat 카테고리 가중치 위치별 영향** — PositionSO 의 emphasis flags 가 stat 가중치로 진화. ST = finishing emphasis × 1.5, CB = tackling emphasis × 1.5 등.
 
 ---
 
-## 40. Hidden Attributes + Absolute/Relative 분리 (V1.0)
+## 40. Hidden Attributes + Absolute/Relative 분리 (V0.5)
 
 **결정:** `Player` 에 신규 도메인 객체 `hiddenAttrs: HiddenAttributes` 도입 (1-100, 9 필드). 사용자 피드백 "trait 의리·부상빈도 수치형 0-20" 흡수. Trait 자체는 명시적 플레이스타일 마커로 재정의 (#41).
 
@@ -992,7 +992,7 @@ public class GameState {
 - `professionalism` (프로페셔널) — 훈련 효율 / 사기 안정 (변동폭 ×0.7)
 - `pressureHandling` (압박 내성) — 빅매치 평점 가산
 - `temperament` (기질) — 카드 / 라커룸 분위기
-- `controversy` (논란성) — 미디어 사고 확률 (V1.x 미디어 시스템 도입 시)
+- `controversy` (논란성) — 미디어 사고 확률 (V1.0 미디어 시스템 도입 시)
 - `injuryProneness` (부상 빈도) — 부상 발생률 곱셈
 - `consistency` (일관성) — 폼 변동폭
 - `versatility` (다재다능) — 2차 포지션 적응 속도
@@ -1007,16 +1007,16 @@ public class GameState {
 - **노출 정책 (Q4)**: 스카우트 명단 ∈ 정확 / 명단 ∉ 비공개 — 정보 비대칭의 핵심 자산.
 - **Absolute/Relative**: 훈련 / 성장 시스템 (#50 Mentoring 등) 의 변화율 분기에 필수. FM 도 동일 구분.
 
-**영향 범위:** `Player.hiddenAttrs` 신규 / `PlayerGenerator` 단계 추가 (Hidden 추첨) / `MoraleSystem` 의 변동 보정에서 hidden 참조 / `TransferSystem` 협상에서 loyalty/ambition 참조 / Save Migration X (V0.1 → V1.0 무효).
+**영향 범위:** `Player.hiddenAttrs` 신규 / `PlayerGenerator` 단계 추가 (Hidden 추첨) / `MoraleSystem` 의 변동 보정에서 hidden 참조 / `TransferSystem` 협상에서 loyalty/ambition 참조 / Save Migration X (V0.1 → V0.5 무효).
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **Personality 도입** — FM 표준 (Driven / Model Citizen / Professional / Resolute 등 ~30종 마커). Hidden Attributes 조합으로 계산. UI 표시.
-- **Media Handling Style** — FM 표준. Hidden + Personality 조합. V1.x 미디어 시스템과 짝.
+- **Media Handling Style** — FM 표준. Hidden + Personality 조합. V1.0 미디어 시스템과 짝.
 
 ---
 
-## 41. Trait 효과 본격화 + 카테고리화 (V1.0)
+## 41. Trait 효과 본격화 + 카테고리화 (V0.5)
 
 **결정:** TraitSO 에 `effects: List<TraitEffect>` 필드 추가 — 효과 본격 도입. 4 카테고리로 재정의.
 
@@ -1044,41 +1044,41 @@ public class TraitEffect {
 - Group 2 (Durability) — 유리몸 / 철인 (신규)
 - Group 3 (PressureMentality) — 빅매치형 / 멘탈약자 (신규)
 
-**V1.0 카탈로그 (~20 trait)**:
-- V0.1 6개 (조숙형/늦깎이형/부상취약/멘탈강자/빅매치형/만능형) + V1.0 신규 ~14 (클러치 / 무리한패스 / 와이드플레이 / 자국인우대 / 유리몸 / 철인 / 멘탈약자 / 슈퍼유망주 / 멀티포지션 / 골결정력 / 수비형윙백 / 정신적리더 / 페널티스페셜리스트 / 프리킥마이스터).
+**V0.5 카탈로그 (~20 trait)**:
+- V0.1 6개 (조숙형/늦깎이형/부상취약/멘탈강자/빅매치형/만능형) + V0.5 신규 ~14 (클러치 / 무리한패스 / 와이드플레이 / 자국인우대 / 유리몸 / 철인 / 멘탈약자 / 슈퍼유망주 / 멀티포지션 / 골결정력 / 수비형윙백 / 정신적리더 / 페널티스페셜리스트 / 프리킥마이스터).
 
 **이유:**
-- **효과 본격 도입**: V0.1 = 라벨만. V1.0 = 매치 엔진 (#44) 분기 + 성장 시스템 + 부상 시스템 본격 활용.
+- **효과 본격 도입**: V0.1 = 라벨만. V0.5 = 매치 엔진 (#44) 분기 + 성장 시스템 + 부상 시스템 본격 활용.
 - **Hidden Attributes 와 분리**: Hidden = 수치형 인성. Trait = 명시적 플레이스타일 마커. 둘 다 같은 효과 (Morale / 매치) 에 입력되지만 Hidden 은 미세한 수치 곱셈, Trait 은 분기 / 큰 가중치.
 - **데이터로 관리**: TraitSO 추가 / 삭제 = SO asset 변경. 코드 분기 없음.
 
 **영향 범위:** `TraitSO` 필드 추가 / `TraitEffect` 클래스 신규 / 매치 엔진 (#44) trait 효과 통합 / 성장 시스템 / `algorithms.md` #1 Player Generation 의 트레잇 부여 단계.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **트레잇 카탈로그 50+ 확장** — FM 트레잇 (Plays One-Twos / Likes to Beat Offside Trap 등) 본격 도입.
 - **트레잇 변화 (Learn / Lose)** — Mentoring (#50) 으로 베테랑이 mentee 에게 트레잇 전수.
-- **트레잇 노출 정확도** — 스카우트 시설 등급별 트레잇 노출 정도 (현 V1.0 = displayName 일부, V1.x = 효과 정확 / 일부 / 비공개).
+- **트레잇 노출 정확도** — 스카우트 시설 등급별 트레잇 노출 정도 (현 V0.5 = displayName 일부, V1.0 = 효과 정확 / 일부 / 비공개).
 
 ---
 
-## 42. Morale + Happiness 분리 (V1.0)
+## 42. Morale + Happiness 분리 (V0.5)
 
-**결정:** V0.1 의 `PlayerState.morale` (변동 없음) → V1.0 `morale` (단기) + `happiness` (장기) 분리. 변동 트리거 본격 도입.
+**결정:** V0.1 의 `PlayerState.morale` (변동 없음) → V0.5 `morale` (단기) + `happiness` (장기) 분리. 변동 트리거 본격 도입.
 
 **구조:**
 - `Morale` (0-100, 단기) — 매치 / 라커룸 / 코칭 코멘트 기반. 매주 회복 경향.
 - `Happiness` (0-100, 장기 추세) — 약속 / 출전시간 / 구단 성적 / 재계약 기반. 변화 느림.
 - `PlayerState.happiness: int` 신규 필드 (디폴트 50).
 
-**변동 트리거 (전체 매트릭스는 `v1.0-plan.md` §3.4.2 참조):**
+**변동 트리거 (전체 매트릭스는 `v0.5-plan.md` §3.4.2 참조):**
 - Morale: 매치 결과 (±5 ~ ±15) / 코칭 코멘트 / 라커룸 분위기 / 면담
 - Happiness: 약속 이행 / 출전시간 / 강등·우승 / 재계약 / 보드 약속 / 면담 (지속 영향)
 
 **Happiness 임계점 → 행동 분기:**
 - ≥ 80: 만족 (보너스 +)
 - 60-79: 양호 (정상)
-- 40-59: 불만 표시 (인터뷰 사고 V1.x)
+- 40-59: 불만 표시 (인터뷰 사고 V1.0)
 - 20-39: 이적 요청 (`TransferRequestEvent` — Q9 자동 트리거 + 유저 승인 패턴)
 - < 20: 반항 (훈련 거부 / 평점 -)
 
@@ -1087,28 +1087,28 @@ public class TraitEffect {
 - `ambition` 높을수록 강등 / 출전시간 미달 시 하락폭 ↑
 - `professionalism` 높을수록 변동폭 전체 ×0.7
 
-**라커룸 분위기 (V1.0 단순):**
+**라커룸 분위기 (V0.5 단순):**
 - `Club.season.dressingRoomMood: int` — 1군 Happiness 평균 + 캡틴 leadership 가산점.
 - < 30 → 시즌 폼 전체 -5 보정.
 
 **이유:**
 - **사용자 피드백 2.6**: "강등 시 불만 / 약속된 출전시간 미달 / 충성도·의리로 누그러뜨림" 직역.
 - **Morale vs Happiness 분리**: 단기 변동 (매치 직후 사기) vs 장기 추세 (시즌 만족도) 가 자연스럽게 다른 트리거.
-- **Q7 핵심만 V1.0**: 핵심 트리거 + 임계점 분기 + Hidden 연동 + 라커룸 분위기. 멘토링 / 멘트 세분화 등 정교화는 V1.x.
+- **Q7 핵심만 V0.5**: 핵심 트리거 + 임계점 분기 + Hidden 연동 + 라커룸 분위기. 멘토링 / 멘트 세분화 등 정교화는 V1.0.
 
-**영향 범위:** `PlayerState` 신규 필드 / `MatchPostProcessor` 사기 갱신 단계 (V0.1 미구현 → V1.0 본격) / `DailyProcessor` Morale 회복 단계 / 신규 `MoraleSystem.cs` (Application) / `algorithms.md` #8 신규 작성.
+**영향 범위:** `PlayerState` 신규 필드 / `MatchPostProcessor` 사기 갱신 단계 (V0.1 미구현 → V0.5 본격) / `DailyProcessor` Morale 회복 단계 / 신규 `MoraleSystem.cs` (Application) / `algorithms.md` #8 신규 작성.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **인터뷰 사고** — Happiness 40-59 + Hidden controversy 높음 → 미디어 인터뷰에서 부정 발언 자동 생성. V1.x 미디어 시스템과 짝.
-- **선수 면담 멘트 세분화** — V1.0 = 4-6 옵션. V1.x = ~20 옵션 + 효과 분기 정교화.
-- **그룹 사기 (Cliques)** — 라커룸 파벌 / 같은 국적 / 같은 연령대 그룹 영향. V1.x.
+- **인터뷰 사고** — Happiness 40-59 + Hidden controversy 높음 → 미디어 인터뷰에서 부정 발언 자동 생성. V1.0 미디어 시스템과 짝.
+- **선수 면담 멘트 세분화** — V0.5 = 4-6 옵션. V1.0 = ~20 옵션 + 효과 분기 정교화.
+- **그룹 사기 (Cliques)** — 라커룸 파벌 / 같은 국적 / 같은 연령대 그룹 영향. V1.0.
 
 ---
 
-## 43. Promise 시스템 + 면담 (V1.0)
+## 43. Promise 시스템 + 면담 (V0.5)
 
-**결정:** FM 표준 약속 시스템 4종 V1.0 도입. 면담 시스템 단순 도입 (4-6 옵션).
+**결정:** FM 표준 약속 시스템 4종 V0.5 도입. 면담 시스템 단순 도입 (4-6 옵션).
 
 **Promise 4종:**
 | 종류 | 설명 | 측정 |
@@ -1138,7 +1138,7 @@ public class Promise {
 - deadline 도달 시 status 확정 (Fulfilled / Broken). Broken → Happiness -20 (#42 변동 트리거).
 - 마감 임박 (deadline - 30일) 알림 이벤트.
 
-**면담 시스템 (V1.0 단순):**
+**면담 시스템 (V0.5 단순):**
 - 유저 → PlayerProfile → [면담] 버튼 → 4-6 사전 정의 멘트:
   - "출전시간 보장하겠다" (PlaytimeAgreement Promise 생성)
   - "다음 시즌 새 계약 협상하자" (Renewal Promise)
@@ -1149,11 +1149,11 @@ public class Promise {
 **이유:**
 - **사용자 피드백 2.6**: "약속된 출전시간에 비해 적게 출전하면 불만" 직역. Promise 의 PlaytimeAgreement 가 핵심.
 - **FM 표준**: Promise 시스템이 FM 메인 시스템 중 하나. 게임플레이 핵심 의사결정 추가.
-- **Q7 핵심만**: 4종 Promise + 면담 4-6 멘트로 단순화. V1.x 멘트 세분화 / 더 많은 Promise 종류.
+- **Q7 핵심만**: 4종 Promise + 면담 4-6 멘트로 단순화. V1.0 멘트 세분화 / 더 많은 Promise 종류.
 
 **영향 범위:** `Promise.cs` 신규 / `PromiseSystem.cs` (Application) 신규 / `GameState.activePromises / nextPromiseId` / `DailyProcessor` 통합 / `event-bus-catalog.md` `PromiseCreatedEvent / PromiseFulfilledEvent / PromiseBrokenEvent` 신규 / UI `PromiseInboxScene` 또는 Dashboard 인박스.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **Promise 종류 확장** — FM 표준 약속들 (구장 확장 / 컵 우승 / 유럽 진출 / 슈퍼스타 영입 등). 보드 약속과 묶음.
 - **면담 멘트 ~20 + 사전 시뮬레이션** — 멘트 선택 전 효과 예상 표시.
@@ -1161,16 +1161,16 @@ public class Promise {
 
 ---
 
-## 44. 매치 엔진 V1.0 — 5-Zone Markov 이벤트 시퀀스 (#34 실현)
+## 44. 매치 엔진 V0.5 — 5-Zone Markov 이벤트 시퀀스 (#34 실현)
 
-**결정:** `#34` V1.0+ 진화 경로 실현. **초안 "분 단위 양 팀 독립 추첨" → openfootmanager(OFM) 5-zone Markov 상태 전이 모델로 전면 재설계** (2026-05-27). 인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지 / 내부 상태 머신 교체.
+**결정:** `#34` V0.5+ 진화 경로 실현. **초안 "분 단위 양 팀 독립 추첨" → openfootmanager(OFM) 5-zone Markov 상태 전이 모델로 전면 재설계** (2026-05-27). 인터페이스 (`Simulate(match, state, balance) → MatchResult`) 유지 / 내부 상태 머신 교체.
 
 **왜 재설계했나 (초안의 한계):**
 - 초안 (I.1/I.2 머지본 — PR #316/#318) 은 "매 분 양 팀이 동시에 독립적으로 이벤트 추첨" — 축구 흐름(앞 상황이 뒤에 영향)이 없음. 양 팀이 매 분 동시에 계속 슛 시도하는 비현실적 구조.
-- #34 가 V1.0 진화 이유로 "앞 이벤트가 뒤에 영향" 을 들었으나, 초안 구현은 누적 score/card 가 다음 분 _확률_ 에 영향 X (assist 추적만).
+- #34 가 V0.5 진화 이유로 "앞 이벤트가 뒤에 영향" 을 들었으나, 초안 구현은 누적 score/card 가 다음 분 _확률_ 에 영향 X (assist 추적만).
 - OFM 코드 분석 → ball 위치(zone) + 점유(possession) 상태 전이가 자연 흐름 생성. 점유 우세 → 공격 기회 ↑ / 슛 후 점유 전환 / 수적 우위 등.
 
-**5-zone Markov 구조 (`algorithms.md` V1.0-2 상세):**
+**5-zone Markov 구조 (`algorithms.md` V0.5-2 상세):**
 ```
 상태: ballZone {HomeBox/HomeDefense/Midfield/AwayDefense/AwayBox} + possession {Home/Away}
 매 분: possessionTicks++ → fatigue 증가 → 1~3 ResolveAction(zone 분기) → possession contest
@@ -1186,28 +1186,28 @@ success = attEff / (attEff + defEff)
 5. **부상 / 카드 / 페널티** — Tackle → maybeFoul → box면 penalty(`penaltyProbability`) / 2옐로 퇴장 / Injury + `PlayerInjuredEvent`.
 6. **세트피스 별도 (I.10)** — Corner/FreeKick/Penalty 는 트리거만, `SetPieceResolver` 가 `corners`/`freeKickTaking`/`penaltyTaking`/`longThrows` 반영.
 7. **연장 / 승부차기 (I.11, #56)** — MatchPhase 확장. 컵 매치 동점 → ExtraTime → PenaltyShootout. 컵 대회 자체는 Stage Q 신규.
-8. **strengthExponent 폐기 (I.9)** — SimulateLite 도 Markov 라 V1.0 어디에도 미사용.
+8. **strengthExponent 폐기 (I.9)** — SimulateLite 도 Markov 라 V0.5 어디에도 미사용.
 9. **Mentality (J.3) + Trait (C.1) 합류** — OFM `play_style_modifier` / `trait_bonus` 자리에 우리 Mentality 7단계 + TraitSO.effects.
 
 **이유:**
 - 사용자 통찰 "앞 상황 영향 = Markov 우월" + "기왕 하는 거 컵/연장까지" (2026-05-27). OFM 코드 분석으로 검증 (`engine/live_match/`).
 - I.3~I.9 진입 _전_ 이 구조 교체 적기 — 후속 task (부상누적/평점/텍스트/교체/외부영향) 가 모두 이 매 분 구조 위에 쌓임.
 
-**영향 범위:** `MatchSimulator` 5-zone 재작성 (I.1/I.2 코드 교체 — 이벤트종류/stat공식/외부화 분모는 재활용) / `MatchEvent` 종류 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) / `SetPieceResolver` (I.10) 신규 / 연장·승부차기 (I.11) / `SubstitutionAI` (I.6) / Stage Q 컵 대회 신규 / `algorithms.md` V1.0-2 재작성 / `v1.0-tasks.md` Stage I 재구성.
+**영향 범위:** `MatchSimulator` 5-zone 재작성 (I.1/I.2 코드 교체 — 이벤트종류/stat공식/외부화 분모는 재활용) / `MatchEvent` 종류 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) / `SetPieceResolver` (I.10) 신규 / 연장·승부차기 (I.11) / `SubstitutionAI` (I.6) / Stage Q 컵 대회 신규 / `algorithms.md` V0.5-2 재작성 / `v0.5-tasks.md` Stage I 재구성.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **15-zone 정밀화** — OFM legacy 처럼 zone 세분화 + transition matrix (현 5-zone → 15-zone).
-- **Team Instructions** (#45 V1.x) — Tempo / Pressing / Line / Width 이벤트 가중.
+- **Team Instructions** (#45 V1.0) — Tempo / Pressing / Line / Width 이벤트 가중.
 - **유저 코칭 인터럽트** — 전반 종료 / 중요 이벤트 시 외침 / 교체 (OFM `MatchCommand` 패턴).
 - **xG / heatmap / 슈팅 위치** — 매치 통계 풍부화.
 - **날씨 / 잔디 상태** — strength 보정 추가.
 
 ---
 
-## 45. Tactic 시스템 V1.0 — 중간 스코프 (Q10)
+## 45. Tactic 시스템 V0.5 — 중간 스코프 (Q10)
 
-**결정:** Formation + Mentality + 간단 Role (3-4/포지션) + Duty(A/S/D) + Set Pieces 담당자. Team Instructions 는 V1.x.
+**결정:** Formation + Mentality + 간단 Role (3-4/포지션) + Duty(A/S/D) + Set Pieces 담당자. Team Instructions 는 V1.0.
 
 **Formation:**
 - `FormationConfig` nested → `FormationSO` 추출 (`design-decisions.md` #32 실현).
@@ -1215,7 +1215,7 @@ success = attEff / (attEff + defEff)
 - `Club.tactic: Tactic` 신규 필드.
 
 **Player Role + Duty:**
-- 포지션별 3-4 Role 카탈로그 (총 ~40 Role) — 명세는 `v1.0-plan.md` §3.6.2.
+- 포지션별 3-4 Role 카탈로그 (총 ~40 Role) — 명세는 `v0.5-plan.md` §3.6.2.
 - Duty: Attack / Support / Defend.
 - `PlayerRoleSO` 신규 — id / name / 호환 포지션 / 디폴트 duty / 매치 이벤트 가중치 modifier.
 
@@ -1237,22 +1237,22 @@ success = attEff / (attEff + defEff)
 - 빅클럽 = 화려 포메이션 (4-3-3 / 4-2-3-1) ↑ / 약체 = 견고 (4-4-2 / 5-3-2) ↑.
 
 **이유:**
-- **Q10 중간 스코프**: 풀 FM (Role + Duty + Mentality + Team Instructions 모두) 은 매치 엔진 (#44) 작성 부담 ↑↑. Team Instructions 빼고 V1.0 → V1.x 정교화.
+- **Q10 중간 스코프**: 풀 FM (Role + Duty + Mentality + Team Instructions 모두) 은 매치 엔진 (#44) 작성 부담 ↑↑. Team Instructions 빼고 V0.5 → V1.0 정교화.
 - **Role + Duty 핵심**: 같은 포지션 = 같은 행동이 단조. Poacher vs Target Forward 차이가 의사결정 재미.
 - **Set Pieces 담당자**: 골 결정자 / 어시 통계에 영향. FM 표준.
 
 **영향 범위:** `Tactic / TacticSlot / PlayerRoleSO / FormationSO / MentalitySO` 신규 / `Club.tactic` / 매치 엔진 (#44) Role 가중치 입력 / UI `LineupScene / TacticScene` 신규 / 가챠 (`StartingSquadGacha`) 포메이션 추첨 / `algorithms.md` #6 갱신.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **Team Instructions** — Tempo / Passing / Pressing / Defensive Line / Width 5 옵션. 매치 엔진 가중치 입력.
 - **다중 전술 슬롯** — 클럽별 3 전술 (기본 / 강팀 상대 / 약팀 상대) 슬롯. 매치 직전 자동 선택.
 - **유저 수동 라인업 정교화** — 드래그앤드롭 UI.
-- **Role 카탈로그 확장** — FM 표준 ~80 Role (현 V1.0 ~40).
+- **Role 카탈로그 확장** — FM 표준 ~80 Role (현 V0.5 ~40).
 
 ---
 
-## 46. 스카우트 시스템 V1.0 — 이분법 + 정성적 라벨 (Q4)
+## 46. 스카우트 시스템 V0.5 — 이분법 + 정성적 라벨 (Q4)
 
 **결정:** 스카우트 명단 ∈ / ∉ 이분법. 명단 밖 선수도 **조회는 가능** — 정확 수치만 가림.
 
@@ -1280,7 +1280,7 @@ public class ScoutReport {
 - 자기 구단 → 자동 (scoutLevel 100 고정)
 - 자기 리그 → 시설 Lv2 이상 자동 추가
 - 타 리그 → 시설 + 시간 (시즌 시작 후 N일 경과)
-- 유저 수동 [스카우트 추가] — V1.x
+- 유저 수동 [스카우트 추가] — V1.0
 
 **검색 결과 가시성 (Q4 이분법):**
 - 명단 ∈: 정확 CA/PA + 정확 stats + 모든 트레잇 + Hidden Attributes 노출
@@ -1295,16 +1295,16 @@ public class ScoutReport {
 
 **영향 범위:** `ScoutReport / CaPaEstimate / HiddenAttributesPartial` 신규 / `Club.scoutingKnowledge` / `TransferSystem.SearchPlayers` 가시성 분기 / 신규 `ScoutingSystem.cs` (명단 자동 추가 / 정확도 누적) / `FacilityLevelSO(Scout)` 필드 추가 / UI Transfer 검색 결과 표시 (자물쇠 아이콘 / 회색조).
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **개별 스카우트 인사 (Staff)** — `Staff.cs` 도메인 + 개별 스카우트 (국가 / 영역 전문성). 현 V1.0 = 시설 추상화.
-- **스카우트 임무 (Assignment)** — 특정 국가 / 리그 / 포지션 스카우트 발주. V1.x.
+- **개별 스카우트 인사 (Staff)** — `Staff.cs` 도메인 + 개별 스카우트 (국가 / 영역 전문성). 현 V0.5 = 시설 추상화.
+- **스카우트 임무 (Assignment)** — 특정 국가 / 리그 / 포지션 스카우트 발주. V1.0.
 - **유저 수동 스카우트 추가** — 검색 화면에서 명단에 직접 추가.
 - **트레잇 노출 정확도** — 시설 등급별 트레잇 효과 정확 / 부정확.
 
 ---
 
-## 47. CpuTransferAi V1.0 — 필요 기반 트리거 (Q3)
+## 47. CpuTransferAi V0.5 — 필요 기반 트리거 (Q3)
 
 **결정:** 횟수 / 빈도 X. **각 구단의 영입 필요 상황 발생 시점에 오퍼**. 트리거 5종.
 
@@ -1336,24 +1336,24 @@ public class ScoutReport {
 
 **영향 범위:** `CpuTransferAi.cs` (Application) 신규 / `EventScheduler` 매주 호출 / `algorithms.md` #7 신규 작성 (Stage F).
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **AI 협상 응답 의지** — 역제안 / 다중 라운드 (#48 V1.0 도입과 짝).
+- **AI 협상 응답 의지** — 역제안 / 다중 라운드 (#48 V0.5 도입과 짝).
 - **AI 매각 의향** — 약점 포지션 외 잉여 선수 매각. transferListed 자동 등록.
 - **AI 임대 활용** — 영입 가능한 자금 X 시 임대로 대안 (#48 임대 시스템과 짝).
 - **AI 클럽별 성향** — 명성 / 자금 / 보드 야망 따라 보수적 / 공격적 영입 차이. 신규 도메인 (`Club.aiPersonality`).
-- **구단별 비동기 영입 타이밍** — 현재 V1.0 = "매주 월요일 모든 AI 구단 동시 호출" → V1.x = 각 구단 독립 cooldown (`club.lastTransferAttemptDate` + `aiAttemptCooldownDays`). 클럽 성향·자금·약점 강도에 따라 다음 시도 시점 자체가 다름. `aiPersonality` 와 짝 (공격적 클럽 = 짧은 cooldown). 결정성 유지: 시드 = `randomSeed ^ club.id ^ lastAttemptDate.Ticks` (currentDate 대신 lastAttempt → 비동기에도 재현성). `DailyProcessor` 매일 호출하되 클럽별 cooldown 체크로 실제 처리 클럽 선별.
-- **다중 오퍼 동시 지정** — 현재 V1.0 `DetectTrigger` = 우선순위 1개만 리턴 → 클럽당 주 1오퍼. **여름 윈도우 대규모 리빌딩 (신임 감독 / 강등 후 재건) 시나리오 X**. V1.x = `DetectTriggers` (복수) — 우선순위 정렬된 트리거 리스트 + 자금 안에서 가능한 만큼 동시 오퍼. 자금 분산 정책: `affordableMax = money × aiBudgetRatio` 를 트리거별 분배 (예: 균등 / 우선순위 가중 / 시장가 비례). 위 비동기 타이밍과 함께 도입 — 두 기능 결합 시 FM 식 자연스러운 시장 움직임 (동시 다발 협상 + 클럽별 페이스).
+- **구단별 비동기 영입 타이밍** — 현재 V0.5 = "매주 월요일 모든 AI 구단 동시 호출" → V1.0 = 각 구단 독립 cooldown (`club.lastTransferAttemptDate` + `aiAttemptCooldownDays`). 클럽 성향·자금·약점 강도에 따라 다음 시도 시점 자체가 다름. `aiPersonality` 와 짝 (공격적 클럽 = 짧은 cooldown). 결정성 유지: 시드 = `randomSeed ^ club.id ^ lastAttemptDate.Ticks` (currentDate 대신 lastAttempt → 비동기에도 재현성). `DailyProcessor` 매일 호출하되 클럽별 cooldown 체크로 실제 처리 클럽 선별.
+- **다중 오퍼 동시 지정** — 현재 V0.5 `DetectTrigger` = 우선순위 1개만 리턴 → 클럽당 주 1오퍼. **여름 윈도우 대규모 리빌딩 (신임 감독 / 강등 후 재건) 시나리오 X**. V1.0 = `DetectTriggers` (복수) — 우선순위 정렬된 트리거 리스트 + 자금 안에서 가능한 만큼 동시 오퍼. 자금 분산 정책: `affordableMax = money × aiBudgetRatio` 를 트리거별 분배 (예: 균등 / 우선순위 가중 / 시장가 비례). 위 비동기 타이밍과 함께 도입 — 두 기능 결합 시 FM 식 자연스러운 시장 움직임 (동시 다발 협상 + 클럽별 페이스).
 
 ---
 
-## 48. 협상 V1.0 — CounterOffer + 선수 협상 + 임대 (Q7 핵심)
+## 48. 협상 V0.5 — CounterOffer + 선수 협상 + 임대 (Q7 핵심)
 
-**결정:** V0.1 단일 라운드 → V1.0 다중 라운드 + 선수 개인 협상 + 임대 시스템 + release clause 활성화.
+**결정:** V0.1 단일 라운드 → V0.5 다중 라운드 + 선수 개인 협상 + 임대 시스템 + release clause 활성화.
 
 **CounterOffer (역제안):**
 - `OfferStatus.CounterOffer` 신규 enum 값.
-- AI 응답 분기 (V0.1 2 → V1.0 4):
+- AI 응답 분기 (V0.1 2 → V0.5 4):
   - ratio ≥ 1.30 → Accepted
   - 1.10 ≤ ratio < 1.30 → CounterOffer (시장가 ×1.30 역제안)
   - 0.85 ≤ ratio < 1.10 → Rejected
@@ -1361,7 +1361,7 @@ public class ScoutReport {
 - 유저 응답: 수락 / 거절 / 재역제안 (최대 3 라운드 — `maxNegotiationRounds`).
 
 **선수 개인 협상 (Negotiating):**
-- AI 판매 구단 Accepted → `OfferStatus.Negotiating` (V0.1 자동 통과 → V1.0 단계).
+- AI 판매 구단 Accepted → `OfferStatus.Negotiating` (V0.1 자동 통과 → V0.5 단계).
 - 선수 측 평가:
   - 주급 ≥ 시장가 기반 추정 주급 × 1.10 → 수락
   - + `loyalty` (현 구단 충성도) 가산 (loyalty 80+ = 거의 거절)
@@ -1389,25 +1389,25 @@ public class ScoutReport {
 - 잔여 6개월 이내 → 타 구단 `SubmitFreeAgentContract` 가능 (보스만 룰).
 
 **이유:**
-- **사용자 피드백 2.5 + Q7**: 상시 재계약 + 사기 연동. 협상 V1.0 정교화는 사용자 피드백에 명시는 없으나 FM 표준 / 시장 메커닉 필수.
+- **사용자 피드백 2.5 + Q7**: 상시 재계약 + 사기 연동. 협상 V0.5 정교화는 사용자 피드백에 명시는 없으나 FM 표준 / 시장 메커닉 필수.
 - **Hidden 연동 (#40)**: loyalty / ambition 가 선수 협상 핵심 입력.
 - **Promise 자동 생성**: 출전시간 약속 옵션 → 사기 안정. PromiseSystem (#43) 연동.
 
-**영향 범위:** `OfferStatus.CounterOffer / Negotiating` enum / `TransferOffer` 신규 필드 (isLoan / loan* / parentClubId) / `TransferSystem` 메서드 확장 (RenewContract / SubmitFreeAgentContract) / `algorithms.md` #3 V1.0 갱신 / UI `NegotiationScene` 신규.
+**영향 범위:** `OfferStatus.CounterOffer / Negotiating` enum / `TransferOffer` 신규 필드 (isLoan / loan* / parentClubId) / `TransferSystem` 메서드 확장 (RenewContract / SubmitFreeAgentContract) / `algorithms.md` #3 V0.5 갱신 / UI `NegotiationScene` 신규.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **에이전트 / 사이닝 보너스 / 충성 보너스 / 출전 보너스 / 골 보너스** — Contract 확장. V1.x.
-- **다중 오퍼 경쟁 (Interest System)** — 같은 선수에 여러 클럽 관심. V1.x.
-- **트랜스퍼 리스트 자동 거래** — 시장가 ×0.7 자동 할인. V1.0 활성화, V1.x 정교화.
+- **에이전트 / 사이닝 보너스 / 충성 보너스 / 출전 보너스 / 골 보너스** — Contract 확장. V1.0.
+- **다중 오퍼 경쟁 (Interest System)** — 같은 선수에 여러 클럽 관심. V1.0.
+- **트랜스퍼 리스트 자동 거래** — 시장가 ×0.7 자동 할인. V0.5 활성화, V1.0 정교화.
 
 ---
 
-## 49. 시설 시스템 V1.0 — 8종 × 10단계 + 병렬 + 비용 인상 (사용자 피드백 2.1)
+## 49. 시설 시스템 V0.5 — 8종 × 10단계 + 병렬 + 비용 인상 (사용자 피드백 2.1)
 
 **결정:** 시설 8종 확장 + 등급 1-10 세분화 + 병렬 업그레이드 + 비용 인상 + 효과 본격 도입.
 
-**8종 (V0.1 3종 → V1.0 8종):**
+**8종 (V0.1 3종 → V0.5 8종):**
 | FacilityType | 효과 |
 | --- | --- |
 | **Scout** | 스카우트 명단 크기 / 정확도 (#46) |
@@ -1419,7 +1419,7 @@ public class ScoutReport {
 | **Stadium** | 입장료 수입 + 명성 가산 |
 | **Gym** | 피지컬 스탯 성장률 + 부상 회복 일부 |
 
-**등급 1-10 세분화 (V0.1 1-5 → V1.0 1-10):**
+**등급 1-10 세분화 (V0.1 1-5 → V0.5 1-10):**
 - 각 등급 효과 + 비용 비선형 (Lv1→2 저비용, Lv9→10 고비용).
 - `FacilityLevelSO` 카탈로그 = 8 type × 10 level = 80 asset.
 
@@ -1436,30 +1436,30 @@ public class ScoutReport {
 - Training Lv N → 매주 stat 성장 `growthRate × (1 + N × 0.1)`.
 - Medical Lv N → 부상 회복 일수 `÷ (1 + N × 0.05)` + 부상 발생률 `× (1 - N × 0.05)`.
 - Stadium Lv N → 시즌 입장료 `baseStadiumIncome × N × clubReputation`.
-- 등 (`v1.0-plan.md` §3.10.5).
+- 등 (`v0.5-plan.md` §3.10.5).
 
 **이유:**
 - **사용자 피드백 2.1**: "시설 세분화 / 병렬 / 비용 인상 / 핵심 게임플레이 포인트" 직역.
-- **유스 시설 분리 (`#35` V1.0+ + #50)**: 사용자 피드백 "청소년 코치 / 모집 시스템 분리" 직역 → 3분리 (YouthCoach / YouthRecruitment / YouthFacility).
+- **유스 시설 분리 (`#35` V0.5+ + #50)**: 사용자 피드백 "청소년 코치 / 모집 시스템 분리" 직역 → 3분리 (YouthCoach / YouthRecruitment / YouthFacility).
 - **시설 = 핵심 자원 의사결정**: 자금 → 어느 시설에 투자할지 = 시즌 운영 핵심 결정. FM 표준.
 
 **영향 범위:** `FacilityType` enum 5 추가 / `Facilities` 도메인 8 필드 / `FacilitySystem` 병렬 업그레이드 / `FacilityLevelSO` 80 asset 신규 / 각 시설 효과 적용 (Training → 성장 시스템 / Medical → MatchPostProcessor 부상 회복 / 등) / UI `FacilityScene` 갱신.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **시설 → Staff 도입** — Coach / Doctor / Scout 개별 인사. V1.x.
+- **시설 → Staff 도입** — Coach / Doctor / Scout 개별 인사. V1.0.
 - **시설 등급 효과 곡선 다양화** — 일부는 선형, 일부는 임계점 (Lv5 = 1.5배, Lv10 = 2배).
-- **시설 부작용** — 큰 업그레이드 = 시즌 중 매치 X (Stadium 공사 시 홈 어드밴티지 손실). V1.x+.
+- **시설 부작용** — 큰 업그레이드 = 시즌 중 매치 X (Stadium 공사 시 홈 어드밴티지 손실). V1.0+.
 
 ---
 
-## 50. 유스 시스템 V1.0 — CA 캡 + 시설 분리 + 풀 전체 영입 + Mentoring (사용자 피드백 2.2)
+## 50. 유스 시스템 V0.5 — CA 캡 + 시설 분리 + 풀 전체 영입 + Mentoring (사용자 피드백 2.2)
 
 **결정:** 사용자 피드백 3개 + Mentoring 신규.
 
 **유스 CA 캡 ~100 (사용자 피드백):**
 - V0.1: PlayerGenerator 호출 → CA 50-200 (명성 기반).
-- V1.0: 유스 전용 분포 — `youthMinCa = 30 / youthMaxCa = 95`.
+- V0.5: 유스 전용 분포 — `youthMinCa = 30 / youthMaxCa = 95`.
 - PA 는 그대로 (PA 진실값 모델 #35) — 100-180.
 - 16-18세 = CA 낮은 게 현실적. V0.1 너무 높은 CA 발생은 σ 과대 + 시드 충돌.
 
@@ -1468,13 +1468,13 @@ public class ScoutReport {
 - 변경: UI 디폴트 "전체 영입" + 개별 선택 옵션.
 - 영입 인원 제한 = `YouthRecruitment` 시설 등급. Lv1 → 풀 사이즈 ÷ 3, Lv10 → 풀 전체.
 
-**유스 시설 분리 (사용자 피드백 + `#35` V1.0+):**
-- V0.1 `Facilities.youthLevel: int` 단일 → V1.0 3분리 (#49).
+**유스 시설 분리 (사용자 피드백 + `#35` V0.5+):**
+- V0.1 `Facilities.youthLevel: int` 단일 → V0.5 3분리 (#49).
 - `youthCoachLevel` — 평균 PA + 트레잇 가중치.
 - `youthRecruitmentLevel` — 풀 사이즈 + 인스펙션 빈도 (Lv7+ = 보조 인스펙션 추가).
 - `youthFacilityLevel` — 유스 선수 성장률 + 1군 콜업 적응.
 
-**Mentoring 시스템 (FM 표준 — V1.0 신규):**
+**Mentoring 시스템 (FM 표준 — V0.5 신규):**
 - `Club.season.mentoringGroups: List<MentoringGroup>`.
 - `MentoringGroup.cs`:
   ```csharp
@@ -1491,11 +1491,11 @@ public class ScoutReport {
 - 외부화: `mentoringRateModifier`.
 - UI: Squad → [Mentoring] 탭.
 
-**라운드별 포지션 가중치 (`algorithms.md` #4 V1.0+):**
+**라운드별 포지션 가중치 (`algorithms.md` #4 V0.5+):**
 - 균등 → 가중치 변동. 어떤 인스펙션은 GK 0, AT 다수.
 - 외부화: `youthPositionWeightVolatility = 0.5`.
 
-**미영입 후보 → AI 다른 구단 영입 (`algorithms.md` #4 V1.0+):**
+**미영입 후보 → AI 다른 구단 영입 (`algorithms.md` #4 V0.5+):**
 - 일정 확률 (`youthRejectedToOtherClubRatio = 0.3`) 로 다른 구단 영입.
 - `YouthSignedByOtherEvent` 발행.
 
@@ -1508,21 +1508,21 @@ public class ScoutReport {
 - **Mentoring**: FM 표준 + 사용자 피드백 "충성도·의리 같은 수치로 누그러뜨림" 의 long-term 변화 메커닉. Hidden Attributes 의 동적 변화.
 - **자동 + 승인 (Q9)**: 유저 관리 부담 ↓ + 통제 보존.
 
-**영향 범위:** `Facilities` 8 필드 / `MentoringGroup.cs` 신규 / `Club.season.mentoringGroups` / `YouthSystem.cs` 갱신 (CA 캡 / 풀 전체) / `MentoringSystem.cs` 신규 / `algorithms.md` #4 V1.0 갱신 / UI `MentoringScene` 신규 / `YouthPromotionSuggestedEvent / YouthSignedByOtherEvent` 신규.
+**영향 범위:** `Facilities` 8 필드 / `MentoringGroup.cs` 신규 / `Club.season.mentoringGroups` / `YouthSystem.cs` 갱신 (CA 캡 / 풀 전체) / `MentoringSystem.cs` 신규 / `algorithms.md` #4 V0.5 갱신 / UI `MentoringScene` 신규 / `YouthPromotionSuggestedEvent / YouthSignedByOtherEvent` 신규.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **추가 스카우트 (data-flows #4 [3-c])** — 비용 차감 + 정보 정확도 ↑. V1.x.
-- **계약 기간 차등** — 시설 / 나이 / PA 기반. V1.0 균등 → V1.x 차등.
-- **AI 클럽 인스펙션** — V1.0 = 유저 클럽만. V1.x 다른 클럽도 인스펙션 + 영입 결정.
+- **추가 스카우트 (data-flows #4 [3-c])** — 비용 차감 + 정보 정확도 ↑. V1.0.
+- **계약 기간 차등** — 시설 / 나이 / PA 기반. V0.5 균등 → V1.0 차등.
+- **AI 클럽 인스펙션** — V0.5 = 유저 클럽만. V1.0 다른 클럽도 인스펙션 + 영입 결정.
 
 ---
 
-## 51. 시즌 시스템 V1.0 — 시상 + 보드 평가 + 재정 결산 + 매니저 평판 (`#38` V1.0+ 실현)
+## 51. 시즌 시스템 V0.5 — 시상 + 보드 평가 + 재정 결산 + 매니저 평판 (`#38` V0.5+ 실현)
 
 **결정:** V0.1 미구현 5종 본격 도입.
 
-**시상 (V1.0 신규):**
+**시상 (V0.5 신규):**
 - `SeasonAward.cs` + `AwardType` enum 7종: LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / ManagerOfSeason.
 - `SeasonEndProcessor` 계산 단계 추가.
 - 수상 선수 morale +10 / happiness +10.
@@ -1533,11 +1533,11 @@ public class ScoutReport {
 - Player of the Month — 평점 + 골/어시 기반 / 사기 +10.
 
 **보드 평가 / 경질:**
-- `Club.season.boardConfidence` 변동 (V0.1 50 고정 → V1.0 본격):
+- `Club.season.boardConfidence` 변동 (V0.1 50 고정 → V0.5 본격):
   - 매월: (실제 순위 vs 목표 순위) × multiplier
   - 매치: 패배 -2, 빅매치 패배 -5, 승리 +1
   - 보드 약속 미이행 -20
-- < 30 → 경질 경고. < 10 → 경질 (V1.0 = Game Over).
+- < 30 → 경질 경고. < 10 → 경질 (V0.5 = Game Over).
 
 **보드 약속 (시즌 시작):**
 - 시즌 목표 순위 / 영입 예산 / 매각 예산.
@@ -1554,7 +1554,7 @@ public class ScoutReport {
 **매니저 평판 (단순):**
 - `GameState.managerReputation: int` 신규 (0-100).
 - 변동: 우승 +20 / 승격 +15 / 보드 약속 이행 +5 / 경질 -30 / 월간 매니저 +5.
-- V1.0: 효과 = boardConfidence 가산. V1.x 다른 구단 부임 / 미디어 / 국대.
+- V0.5: 효과 = boardConfidence 가산. V1.0 다른 구단 부임 / 미디어 / 국대.
 
 **시즌 통계 저장 (사용자 피드백 2.8):**
 - `Player.career: List<SeasonStat>` (V0.1 정의됨, 미사용) 채움.
@@ -1565,24 +1565,24 @@ public class ScoutReport {
 - 시즌 종료 시 직전 시즌 외 Match `events / playerStats` 비움. 우승 / 강등 / 시상만 보존.
 
 **이유:**
-- **`#38` V1.0+ 실현**: 시즌 시스템의 의사결정 깊이 = 시상 / 보드 / 재정 정산.
+- **`#38` V0.5+ 실현**: 시즌 시스템의 의사결정 깊이 = 시상 / 보드 / 재정 정산.
 - **사용자 피드백 2.8**: 리그 시즌 통계 저장 직역.
 - **보드 평가**: FM 매니저 게임 핵심 — 시즌 운영의 동기 (경질 회피 / 보드 신뢰 ↑).
 
 **영향 범위:** `SeasonAward / BoardPromise / SeasonHistory` 신규 / `Club.season.boardConfidence / boardPromises / captainPlayerId` / `GameState.managerReputation / activeAwards` / `SeasonEndProcessor` 단계 추가 (5종) / `DailyProcessor` 월간 어워드 단계 / UI `SeasonSummaryScene` 신규 / `algorithms.md` #11 시상 알고리즘 / event-bus `AwardWonEvent / BoardConfidenceChangedEvent / ManagerSackedEvent` 신규.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **다른 구단 부임 (경질 후)** — Game Over 대신 다른 구단 오퍼. V1.x.
-- **재정 정교화** — 스폰서십 / 광고 보드 / 부채 / 대출. V1.x.
-- **사기 / 모랄 정산** — 우승팀 +, 강등팀 -, 약속 출전시간 미달자. V1.x.
-- **보드 본격 인터랙션** — 예산 요청 / 비전 / 야망. V1.x.
+- **다른 구단 부임 (경질 후)** — Game Over 대신 다른 구단 오퍼. V1.0.
+- **재정 정교화** — 스폰서십 / 광고 보드 / 부채 / 대출. V1.0.
+- **사기 / 모랄 정산** — 우승팀 +, 강등팀 -, 약속 출전시간 미달자. V1.0.
+- **보드 본격 인터랙션** — 예산 요청 / 비전 / 야망. V1.0.
 
 ---
 
-## 52. 인프라 V1.0 — String Table + Localization + Save Migration (사용자 피드백 2.11)
+## 52. 인프라 V0.5 — String Table + Localization + Save Migration (사용자 피드백 2.11)
 
-**결정:** 3종 인프라 V1.0 도입.
+**결정:** 3종 인프라 V0.5 도입.
 
 **String Table (사용자 피드백):**
 - 현재: UI 한글 직박 ("리롤" / "확정" / "다음 경기").
@@ -1593,14 +1593,14 @@ public class ScoutReport {
 - 마이그레이션: 기존 UI 코드 한글 → key 추출 (Stage A.3).
 
 **Localization (사용자 피드백):**
-- 영어 + 한국어 (V1.0 2 언어).
+- 영어 + 한국어 (V0.5 2 언어).
 - `LocalizationSystem.CurrentLanguage: Language` enum.
 - 게임 시작 시 시스템 언어 감지 / 옵션 변경.
 - 폰트 — NotoSansKR 유지 (한·영 둘 다).
-- V1.x: 일본어 / 중국어 / 스페인어.
+- V1.0: 일본어 / 중국어 / 스페인어.
 
 **Save Migration (사용자 피드백 + Q8):**
-- `GameState.saveVersion: int` 신규 (디폴트 2 = V1.0, V0.1 = 1).
+- `GameState.saveVersion: int` 신규 (디폴트 2 = V0.5, V0.1 = 1).
 - `SaveSystem.Load` deserialize 후 `saveVersion < currentVersion` → 마이그레이션.
 - `SaveMigration.cs`:
   ```csharp
@@ -1614,7 +1614,7 @@ public class ScoutReport {
       }
   }
   ```
-- **V0.1 → V1.0 마이그레이션 = Q8 결정: 미지원** (V1.0 신규게임만). 단 인프라는 도입 (V1.0 → V1.1 등 후속 대비).
+- **V0.1 → V0.5 마이그레이션 = Q8 결정: 미지원** (V0.5 신규게임만). 단 인프라는 도입 (V0.5 → V1.0 등 후속 대비).
 
 **자동 저장 (`data-flows.md` TBD):**
 - 시즌 종료 시 자동 — `SeasonEndProcessor` 가 `SaveSystem.Save(state, "autosave_season_{year}")` 호출.
@@ -1623,24 +1623,24 @@ public class ScoutReport {
 
 **이유:**
 - **사용자 피드백 2.11 직역**: String Table + 영/한 + Save Migration.
-- **Q8 결정**: V1.0 = 큰 재구조화. 마이그레이션 가치 < 비용. 단 SaveMigration 인프라는 V1.x+ 대비 필수.
+- **Q8 결정**: V0.5 = 큰 재구조화. 마이그레이션 가치 < 비용. 단 SaveMigration 인프라는 V1.0+ 대비 필수.
 
 **영향 범위:** `LocalizationSystem.cs / LocalizationSO` 신규 / 기존 UI 코드 ~11 씬 전수 한글 → key 추출 / `SaveSystem.Save / Load` 에 saveVersion 처리 / `SaveMigration.cs` 골격 / `GameState.saveVersion` 필드 / `coding-conventions.md` Localization 패턴 추가.
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
-- **추가 언어** — 일본어 / 중국어 / 스페인어. V1.x.
-- **Save 파일 압축 (gzip)** — 크기 ↓ ~50%. V1.x.
-- **자동 저장 정교화** — 매일 / 시간별 / 매치 후 옵션. V1.x.
-- **클라우드 동기화** — Steam Cloud 등. V1.x+.
+- **추가 언어** — 일본어 / 중국어 / 스페인어. V1.0.
+- **Save 파일 압축 (gzip)** — 크기 ↓ ~50%. V1.0.
+- **자동 저장 정교화** — 매일 / 시간별 / 매치 후 옵션. V1.0.
+- **클라우드 동기화** — Steam Cloud 등. V1.0+.
 
 ---
 
-## 53. 시설 효과 본격 적용 — Training + Medical + Gym (V1.0 D.4)
+## 53. 시설 효과 본격 적용 — Training + Medical + Gym (V0.5 D.4)
 
-**결정:** V1.0 D.4 에서 3 시설 효과 본격 도입 (`algorithms.md` V1.0-10 + V1.0-11). Stadium / Scout / Youth* 은 후속 Stage (M.6 / E.2 / L.1-3) 의존.
+**결정:** V0.5 D.4 에서 3 시설 효과 본격 도입 (`algorithms.md` V0.5-10 + V0.5-11). Stadium / Scout / Youth* 은 후속 Stage (M.6 / E.2 / L.1-3) 의존.
 
-**Training — Player Growth System (V1.0-10):**
+**Training — Player Growth System (V0.5-10):**
 - 매월 1일 `GrowthSystem.Tick(state, balance)` 호출 (V0.1 ProcessSchedule 패턴 일관).
 - 1군 선수 대상 — Relative stats 만 변동 (Absolute = ×0.10 페널티).
 - **2단계 모델**: (a) 발생 확률 = `growthBaseChance (0.01) × ageFactor × absoluteFactor × trainingBonus × gymBonus(피지컬) × paFactor`. (b) 발생 시 size 추첨 = `[+1, +2, +3]` 분포 `[75, 20, 5]` (peak youth = `[60, 30, 10]`).
@@ -1648,7 +1648,7 @@ public class ScoutReport {
 - decline (ageFactor < 0) 대칭 — `-1 / -2 / -3` 같은 분포.
 - 결정성 — 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`.
 
-**Medical — Injury Recovery + Rate (V1.0-11):**
+**Medical — Injury Recovery + Rate (V0.5-11):**
 - 회복 일수 = `InjuryTypeSO.recoveryDays / (1 + medicalLevel × 0.05 + gymLevel × 0.02)`.
 - 부상 발생률 = `injuryBaseRate × max(0.5, 1 - medicalLevel × 0.05)` — floor 0.5 (게임플레이 유지).
 - `DailyProcessor.ProcessRecovery` 매일 호출 — `expectedReturn` 도래 시 부상 해제.
@@ -1667,11 +1667,11 @@ public class ScoutReport {
 
 **CA-PA 캡:**
 - V0.1 #35 PA 진실값 모델 정신 — PA = 캡. CA = PA 도달 시 성장 정지 (단 decline 은 가능, ageFactor < 0 일 때).
-- CA = static field (generation 시점 고정). V1.x = derived from stats 검토 (`#24` V1.0+ 보완 포인트).
+- CA = static field (generation 시점 고정). V1.0 = derived from stats 검토 (`#24` V0.5+ 보완 포인트).
 
 **임대 선수 (Stage K.3 Loan):**
 - 현재 소속 (`currentClubId`) 클럽의 시설 영향. 원 소속 (`parentClubId`) X.
-- 부상 회복 도중 임대 이동 — `expectedReturn` 고정 (V1.0). V1.x 재계산.
+- 부상 회복 도중 임대 이동 — `expectedReturn` 고정 (V0.5). V1.0 재계산.
 
 **Stadium / Scout / Youth* — D.4 책임 X:**
 - **Stadium** → Stage M.6 (SeasonEndProcessor 재정 결산 시 `baseStadiumIncome × stadiumLevel × clubReputation × homeMatches`)
@@ -1680,7 +1680,7 @@ public class ScoutReport {
 
 **이유:**
 - **D.4 스코프 한정 — 직접 효과 3 시설**: Stadium / Scout / Youth* 은 시즌 / 검색 / 유스 시스템의 일부라 해당 Stage 가 책임. D.4 에서 다 처리하면 후속 Stage 와 중복 + PR 사이즈 폭증.
-- **성장 시스템 = 신규 시스템**: V0.1 = 선수 stat 시즌 내내 고정. V1.0 = 매월 변동 도입 (V1.0 의 핵심 시뮬레이션 깊이 추가).
+- **성장 시스템 = 신규 시스템**: V0.1 = 선수 stat 시즌 내내 고정. V0.5 = 매월 변동 도입 (V0.5 의 핵심 시뮬레이션 깊이 추가).
 - **결정성 보존**: V0.1 #17 시드 모델 일관 — 같은 시드 = 같은 성장 시퀀스.
 
 **영향 범위:**
@@ -1689,21 +1689,21 @@ public class ScoutReport {
 - `DailyProcessor` 통합 — 매월 1일 `GrowthSystem.Tick` + 매일 `InjurySystem.ProcessRecovery`
 - `GameBalanceSO` 신규 ~10 필드 (`growthBaseChance / growthAbsoluteFactor / growthTrainingCoeff / growthGymCoeff / growthPaGapNormalizer / growthYouthFactor / growthYouthPeakAge / growthPrimePeakAge / growthDeclineStartAge / injuryMedicalRecoveryCoeff / injuryGymRecoveryCoeff / injuryMedicalRateCoeff`)
 - `Utils/StatMetadata.cs` — `IsPhysical(stat)` 메서드 추가 (피지컬 8 stat 판별, B.4 와 짝)
-- `event-bus-catalog.md` — `PlayerStatChangedEvent` (V1.x UI 알림 용도, V1.0 = 도메인 이벤트만) / `PlayerInjuryRecoveredEvent` 신규 등록
+- `event-bus-catalog.md` — `PlayerStatChangedEvent` (V1.0 UI 알림 용도, V0.5 = 도메인 이벤트만) / `PlayerInjuryRecoveredEvent` 신규 등록
 
-### V1.0+ 보완 포인트 (V1.x)
+### V0.5+ 보완 포인트 (V1.0)
 
 - **개인 훈련 (Individual Training)** — 유저가 특정 선수 / stat 집중 훈련 (FM 표준).
-- **시즌 외 프리시즌 캠프** — 6/1~8/15 추가 성장 (현 V1.0 = 매월 동일).
+- **시즌 외 프리시즌 캠프** — 6/1~8/15 추가 성장 (현 V0.5 = 매월 동일).
 - **부상 중 성장** — 영향 X → ×0.5 검토.
-- **Mentoring stat 영향** — Stage L.4 = Hidden 만. V1.x = stat 도 일부.
+- **Mentoring stat 영향** — Stage L.4 = Hidden 만. V1.0 = stat 도 일부.
 - **부상 multi-phase** — 회복 / 재활 / 컨디션 회복 단계.
-- **CA derived from stats** — V0.1 #24 V1.0+ 보완 포인트 일관.
-- **시설 → Staff 도입** (`#49` V1.x) 시 코치 quality 추가 입력.
+- **CA derived from stats** — V0.1 #24 V0.5+ 보완 포인트 일관.
+- **시설 → Staff 도입** (`#49` V1.0) 시 코치 quality 추가 입력.
 
 ---
 
-## 54. 매치 fatigue 임계 모델 (V1.0 — OFM 선형 대체)
+## 54. 매치 fatigue 임계 모델 (V0.5 — OFM 선형 대체)
 
 **결정:** OFM 의 선형 `effective_overall = overall × (condition/100)` 대신 **임계 기반** fatigue 영향. 사용자 결정 (2026-05-27).
 
@@ -1721,13 +1721,13 @@ fatigue > 40             → 부상 발생률 × 1.5
 - **임계 분리** — 부상(fatigue>40)과 경기력(fatigue>50)을 다른 임계로 — "조금 피곤하면 부상 위험만, 많이 피곤하면 경기력까지" 자연스러운 단계.
 - form / morale / dressingRoomMood / homeAdvantage 와 함께 곱셈 합류 (I.8).
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 - **회복 곡선** — 시설(Medical/Gym) + 나이 + Natural Fitness 에 따라 fatigue 회복 속도 차등 (현재 `fatigueRecoveryPerDay` 균등).
 - **부상 multi-phase** — fatigue 누적이 장기 부상(`fitness`)으로 전이 (#53 / OFM `fitness` 필드).
 
 ---
 
-## 55. 매치 엔진 5-Zone 모델 + Background 동일 엔진 (V1.0)
+## 55. 매치 엔진 5-Zone 모델 + Background 동일 엔진 (V0.5)
 
 **결정:** 매치 엔진은 OFM 5-zone Markov 채택 (#44). **활성 / 비활성(background) 매치 동일 엔진** 사용 — `collectEvents` 플래그로 텍스트 로그만 분기. 통계는 양쪽 수집. 사용자 결정 (2026-05-27).
 
@@ -1739,19 +1739,19 @@ fatigue > 40             → 부상 발생률 × 1.5
 - `MatchPostProcessor.Process(..., publishEvent: false)` — UI 갱신 비용 ↓.
 
 **이유:**
-- **연산 부담 0** (검증) — 매치 ~9K 산술, 1 라운드 10매치 < 1ms. 단일 리그 V1.0 에서 full Markov 도 문제 없음. 다중 리그 V2.0 도 ~수 ms.
+- **연산 부담 0** (검증) — 매치 ~9K 산술, 1 라운드 10매치 < 1ms. 단일 리그 V0.5 에서 full Markov 도 문제 없음. 다중 리그 V1.0 도 ~수 ms.
 - **코드 일관성** — 한 엔진, 플래그 분기. 두 코드 경로 유지보수 부담 제거. OFM 도 instant/live 모드가 동일 core resolution 공유.
 - **통계 완전 정확** — 비활성 매치도 점유율/슛 등 정확 (Poisson 근사보다 우월).
 
-### V1.0+ 보완 포인트
-- **다중 리그 대규모** (V2.0) — 라운드당 매치 수 ↑ 시 경량 모드 (action 1개 고정) 옵션 검토.
+### V0.5+ 보완 포인트
+- **다중 리그 대규모** (V1.0) — 라운드당 매치 수 ↑ 시 경량 모드 (action 1개 고정) 옵션 검토.
 - **15-zone 정밀화** — zone 세분화 + transition matrix.
 
 ---
 
-## 56. 컵 대회 + 연장 / 승부차기 (V1.0 — 스코프 확대)
+## 56. 컵 대회 + 연장 / 승부차기 (V0.5 — 스코프 확대)
 
-**결정:** 원래 V2.0 였던 컵 대회 + 연장전 + 승부차기를 V1.0 으로 끌어옴. 사용자 결정 (2026-05-27, "기왕 하는 거 추가").
+**결정:** 원래 V1.0 였던 컵 대회 + 연장전 + 승부차기를 V0.5 으로 끌어옴. 사용자 결정 (2026-05-27, "기왕 하는 거 추가").
 
 **분리:**
 - **연장 / 승부차기 (I.11)** — 매치 엔진(#44) 내부. `MatchPhase` 확장 (ExtraTimeFirstHalf/HalfTime/SecondHalf/End + PenaltyShootout). 컵 매치 동점 시 발동 (`match.type` 분기 + `allowsExtraTime`).
@@ -1759,20 +1759,20 @@ fatigue > 40             → 부상 발생률 × 1.5
 
 **연장:** 91~105 + 106~120 (각 stoppage). 여전히 동점 → 승부차기 (`penaltyShootoutRounds(5)` 교대 → sudden death). 각 킥 `penaltyTaking vs GK reflexes×handling`.
 
-**리그 매치:** `allowsExtraTime = false` → FullTime 종료 (무승부 허용). 기존 V1.0 리그 영향 없음.
+**리그 매치:** `allowsExtraTime = false` → FullTime 종료 (무승부 허용). 기존 V0.5 리그 영향 없음.
 
 **이유:**
 - 사용자: 탄탄한 게임 지향 — 컵 대회는 시즌 깊이 + 회고 가치 (FA컵 우승 등).
 - 매치 엔진 5-zone 재작성 _하는 김에_ MatchPhase 확장 = 한계비용 낮음.
 
-### V1.0+ 보완 포인트
-- **다중 컵** (리그컵 + FA컵) — V1.0 단일 컵 → 여러 대회.
-- **유럽 대회** (챔피언스리그 류) — V2.0 다중 리그와 짝.
-- **2-leg 녹아웃** (홈 앤 어웨이 합산) — V1.0 단판 → 합산 방식.
+### V0.5+ 보완 포인트
+- **다중 컵** (리그컵 + FA컵) — V0.5 단일 컵 → 여러 대회.
+- **유럽 대회** (챔피언스리그 류) — V1.0 다중 리그와 짝.
+- **2-leg 녹아웃** (홈 앤 어웨이 합산) — V0.5 단판 → 합산 방식.
 
 ---
 
-## 57. TacticImpact — 이벤트 "주체 선택" 가중치 (V1.0 J.4)
+## 57. TacticImpact — 이벤트 "주체 선택" 가중치 (V0.5 J.4)
 
 **결정:** `TacticImpact.ComputeEventWeight` 는 매치 이벤트의 **주체 선수 선택** (`MatchSimulator.SnapPlayer`) 에서 같은 팀 같은 라인 후보 간 **상대 가중치** 만 산출한다. `roleWeight × dutyWeight × statWeight` 3요소. Mentality / 외부 영향 (form·morale·fatigue·mood) 은 **미포함**.
 
@@ -1791,11 +1791,11 @@ fatigue > 40             → 부상 발생률 × 1.5
 
 **검증 — 가중치 비율 (unit) vs emergent 카운트:** ComputeEventWeight 가중치 비율은 정확히 role×duty 비율 (T1 2.0 / T4 3.0). 그러나 5-zone 매치의 emergent 슛 *카운트* 비율은 점유/zone 동학으로 증폭됨 (실측 ~3.3 / ~5.7). 따라서 T1/T4 는 **가중치 비율** 을 정밀 검증 (스펙의 "~2×/~3×" 의 실체) + 별도 통합 테스트는 **방향성** (Poacher 슛 > Target Man) 만 검증. emergent 정확 비율은 비검증 (엔진 동학 특성).
 
-**영향 범위:** `Application/TacticImpact.cs` 신규 / `MatchSimulator.SnapPlayer` 가중 추첨 + `HasLineup` (ResolveShot 슈터·ResolveMidfield/AttackingThird 공격수·수비수에 eventType 전달) / `GameBalanceSO` tacticDuty* 4필드 / `MatchSimulatorTests` T1+T4+통합 / `algorithms.md` V1.0-7.
+**영향 범위:** `Application/TacticImpact.cs` 신규 / `MatchSimulator.SnapPlayer` 가중 추첨 + `HasLineup` (ResolveShot 슈터·ResolveMidfield/AttackingThird 공격수·수비수에 eventType 전달) / `GameBalanceSO` tacticDuty* 4필드 / `MatchSimulatorTests` T1+T4+통합 / `algorithms.md` V0.5-7.
 
-### V1.0+ 보완 포인트
+### V0.5+ 보완 포인트
 - **자동 라인업 (J.5)** — Role 호환 + top CA + 폼/사기 가산 + 부상/정지 제외 자동 배정. 그 후 TacticImpact 가 모든 매치에서 활성.
-- **cross 카테고리** — 윙어 `cross` 보정 (시드에 이미 존재) 은 5-zone 에 독립 cross resolution 단계 부재로 V1.0 휴면. zone 세분화 시 활성.
+- **cross 카테고리** — 윙어 `cross` 보정 (시드에 이미 존재) 은 5-zone 에 독립 cross resolution 단계 부재로 V0.5 휴면. zone 세분화 시 활성.
 - **Mentality 단일 파이프라인** — zone 전이(J.3) 와 선택(J.4) 으로 분산된 Tactic 영향을 단일 가중치 경로로 통합 검토.
 
 ---
@@ -1808,18 +1808,18 @@ fatigue > 40             → 부상 발생률 × 1.5
 | 2026-05-18 | #22 Malgun Gothic → NotoSansKR | Task 1.3 진행 중 라이선스/플랫폼 사유로 변경 |
 | 2026-05-18 | #23 GameTime 자체 상태 보유 추가 | Task 2.2 작업 시 결정 |
 | 2026-05-18 | #24~#26 추가 | algorithms.md #1 Player Generation 명세 작성 시 결정 (CA-Stats 분리 / 트레잇 충돌 그룹 / 2차 포지션 affinity) |
-| 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V1.0+ 보완 포인트 각 결정에 별도 명시. |
+| 2026-05-19 | #27, #28 추가 | algorithms.md #5 Club Generation 명세 작성 시 결정. ratio 화로 가변 clubCount/playersPerClub 대응. V0.5+ 보완 포인트 각 결정에 별도 명시. |
 | 2026-05-19 | #29 추가 | Task 2.3 마무리 (#76) 작업 중 GameManager 레이어 결정. `Core → Domain` 정통 의존 방향 복원 (`Domain.asmdef` 미사용 Core 참조 제거 + `Core.asmdef` 에 Domain 추가). 세 문서 (project-context / class-diagram / coding-conventions) Core 로 통일. |
-| 2026-05-19 | #28 갱신 + #30~32 추가 | algorithms.md #6 Starting Squad Gacha 명세 작성 시 결정. 분배표 정책 `FormationConfig` 단위로 갱신 (필수 23 + 랜덤 2). Gacha 평가 정책 (4라인 + 명성 대비 + ACE). Reroll 재생성 + 새 id (`GameState.nextPlayerId` 신규). V0.1 단일 포메이션 → V1.0 가챠 랜덤화 확장 경로 명시. 출전 시간 시스템은 V1.0+ 보완 포인트로만 기록. |
-| 2026-05-19 | #33, #34 추가 | algorithms.md #2 Match Simulation 명세 작성 (Task 9.1 Sub-A, #109) 시 결정. #33 V0.1 정책 (단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자). #34 V1.0+ 이벤트 시퀀스 진화 경로 — 옐로 2장/부상→교체/외침 등 누적 처리 가능 구조. 인터페이스 유지로 V0.1 호출자 영향 없이 내부 교체 가능. |
-| 2026-05-19 | #33 보강 | Sub-C 본 구현 검증 시 (#113) 단순 선형 ratio 의 결정력 부족 발견 — 강팀 원정 승률 51% 로 디자인 의도 부족. `strengthExponent` (k=1.5 기본) 비선형화 도입. V0.1 임시 변통으로 명시 — V1.0+ 매치 엔진 재작성 (#34) 시 폐기 예정. |
-| 2026-05-20 | #35, #36 추가 | algorithms.md #4 Youth Pool Generation 명세 작성 (Task 10 Sub-A, #123). #35 V0.1 정책 (PA 진실값 + CA derived 역방향 / 스타 픽 5% PA bonus / 시드=`currentDate.Ticks`+`userActionHash` 결합으로 외부 마이닝+직플 영상 공유 둘 다 방어 / 시설 통합 등급 / 미영입 단순 제거 / 나이 가중치 / 자국 78%). #36 `GameState.nextIntakeId` 단조증가 카운터 (PlayerGen `nextPlayerId` 패턴). V1.0+ 보완 포인트 9개 정리 (시설 분리 / 포지션 가중치 / AI 영입 / CA-Stats 정합성 / 시드 강화 / 추가 스카우트 / 계약 차등 등). |
-| 2026-05-20 | #37 추가 | algorithms.md #3 Market Value + Transfer Flow 명세 작성 (Stage 11 Sub-A, #130). 이적시장 (상시) / 이적시장 활성화 기간 (체결만, 6/1~8/31 + 1/1~1/31) 분리 — 미리 협상 가능 + 체결만 시기 제약. Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury) — 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도). V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. AI 응답 ±10% noise. 용어 정정 ("이적창" → "이적시장 활성화 기간"). V1.0+ 보완 포인트 7+ 항목. |
-| 2026-05-20 | #38 추가 | Stage 12 시즌 사이클 명세 작성 (Sub-A, #135). 5/15 종료 / 6/1 회계연도 / 8/15 매치 개막 3 시점 변수명 분리 (혼동 회피). V0.1 도입 — FA 전환 + 33+ 확률적 은퇴 + NewSeasonProcessor (토큰/일정/리셋). V0.1 미구현 — 시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 (모두 V1.0+ 별도 시스템과 짝). 캘린더/요일 dynamic 계산은 V1.0+ ("5월 마지막 토요일" 같은 — 매년 가변 일정). V1.0+ 보완 포인트 10 항목. |
+| 2026-05-19 | #28 갱신 + #30~32 추가 | algorithms.md #6 Starting Squad Gacha 명세 작성 시 결정. 분배표 정책 `FormationConfig` 단위로 갱신 (필수 23 + 랜덤 2). Gacha 평가 정책 (4라인 + 명성 대비 + ACE). Reroll 재생성 + 새 id (`GameState.nextPlayerId` 신규). V0.1 단일 포메이션 → V0.5 가챠 랜덤화 확장 경로 명시. 출전 시간 시스템은 V0.5+ 보완 포인트로만 기록. |
+| 2026-05-19 | #33, #34 추가 | algorithms.md #2 Match Simulation 명세 작성 (Task 9.1 Sub-A, #109) 시 결정. #33 V0.1 정책 (단순 CA 합 + Poisson + 홈 어드밴티지 + 포지션 라인 가중 득점자). #34 V0.5+ 이벤트 시퀀스 진화 경로 — 옐로 2장/부상→교체/외침 등 누적 처리 가능 구조. 인터페이스 유지로 V0.1 호출자 영향 없이 내부 교체 가능. |
+| 2026-05-19 | #33 보강 | Sub-C 본 구현 검증 시 (#113) 단순 선형 ratio 의 결정력 부족 발견 — 강팀 원정 승률 51% 로 디자인 의도 부족. `strengthExponent` (k=1.5 기본) 비선형화 도입. V0.1 임시 변통으로 명시 — V0.5+ 매치 엔진 재작성 (#34) 시 폐기 예정. |
+| 2026-05-20 | #35, #36 추가 | algorithms.md #4 Youth Pool Generation 명세 작성 (Task 10 Sub-A, #123). #35 V0.1 정책 (PA 진실값 + CA derived 역방향 / 스타 픽 5% PA bonus / 시드=`currentDate.Ticks`+`userActionHash` 결합으로 외부 마이닝+직플 영상 공유 둘 다 방어 / 시설 통합 등급 / 미영입 단순 제거 / 나이 가중치 / 자국 78%). #36 `GameState.nextIntakeId` 단조증가 카운터 (PlayerGen `nextPlayerId` 패턴). V0.5+ 보완 포인트 9개 정리 (시설 분리 / 포지션 가중치 / AI 영입 / CA-Stats 정합성 / 시드 강화 / 추가 스카우트 / 계약 차등 등). |
+| 2026-05-20 | #37 추가 | algorithms.md #3 Market Value + Transfer Flow 명세 작성 (Stage 11 Sub-A, #130). 이적시장 (상시) / 이적시장 활성화 기간 (체결만, 6/1~8/31 + 1/1~1/31) 분리 — 미리 협상 가능 + 체결만 시기 제약. Market Value 6 요소 곱셈 공식 (CA pow 4 + PA gap + age + contract + position + injury) — 슈퍼스타 vs 평범 15.7배 차이 (사용자 의도). V0.1 단일 라운드 / 선수 자동 통과 / AI 영입 미구현. AI 응답 ±10% noise. 용어 정정 ("이적창" → "이적시장 활성화 기간"). V0.5+ 보완 포인트 7+ 항목. |
+| 2026-05-20 | #38 추가 | Stage 12 시즌 사이클 명세 작성 (Sub-A, #135). 5/15 종료 / 6/1 회계연도 / 8/15 매치 개막 3 시점 변수명 분리 (혼동 회피). V0.1 도입 — FA 전환 + 33+ 확률적 은퇴 + NewSeasonProcessor (토큰/일정/리셋). V0.1 미구현 — 시상 / 보드 평가 / 재정 결산 / 사기 정산 / Match 압축 (모두 V0.5+ 별도 시스템과 짝). 캘린더/요일 dynamic 계산은 V0.5+ ("5월 마지막 토요일" 같은 — 매년 가변 일정). V0.5+ 보완 포인트 10 항목. |
 | 2026-05-20 | #38 보강 | Stage 15 통합 테스트 (#59) 작성 시 GameInitializer 가 첫 매치를 seasonStart 당일에 배치 → GameLoop.AdvanceDay 가 시간 진행 후 처리하므로 영원히 미처리 발견. **프리시즌 컨셉 도입**: `seasonStart` = 프리시즌 시작일 (state.currentDate 초기값). 첫 매치 = `newSeasonOpening` (8/15) 부터. GameInitializer.NewGame 이 `firstMatchDate = seasonStart 이후 가장 가까운 newSeasonOpening` 계산 후 ScheduleGenerator 호출. 사용자 합의: "원래 FM 도 프리시즌부터 시작해서 팀 뽑고 전술 / 스탭 만지고 첫 경기 시작할 시간을 줘야 한다". NewSeasonProcessor 는 이미 동일 패턴 (`ComputeNewSeasonOpeningDate` 사용) — 일관성 확보. |
-| 2026-05-22 | #39~#52 추가 | V0.1 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 작성). 사용자 플레이테스트 피드백 11 카테고리 + 기존 V1.0+ 보완 포인트 + FM 표준 통합. 12 Open Questions 모두 결정 후 본 결정사항 #39~#52 추가. **§ 매핑**: #39 Stats 1-100 + FM 49 (Q1, Q12) / #40 Hidden Attributes (Q4) / #41 Trait 효과 본격화 / #42 Morale + Happiness 분리 (Q7) / #43 Promise + 면담 (Q7) / #44 매치 엔진 V1.0 분 단위 (#34 실현, Q5) / #45 Tactic 중간 스코프 (Q10) / #46 스카우트 이분법 (Q4) / #47 CpuTransferAi 필요 기반 (Q3) / #48 협상 V1.0 + 임대 / #49 시설 8종 × 10단계 + 병렬 / #50 유스 V1.0 (CA 캡 + 시설 분리 + Mentoring) / #51 시즌 V1.0 (시상 + 보드 + 재정) / #52 인프라 (String Table + Localization + Save Migration, Q8). 일정 정책 (Q11) = 마감 없음. |
-| 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V1.0-10 + V1.0-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / 2단계 모델 (발생 확률 + size 분포 +1/+2/+3) / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.x derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
-| 2026-05-26 | #53 보강 | 성장 size 분포 도입. V1.0-10 의 초안 (`+1` 단위만) → 사용자 지적 ("특정 스탯 +2 가능") 반영. **2단계 모델**: (1) 발생 확률 `growthBaseChance = 0.01` (월 1% — 초안 0.05 너무 빈번해서 1/5 로 낮춤. 49 stat × 1% = 평범 선수 1년 ~6 stat 변동). (2) 발생 시 size 추첨 `[+1, +2, +3]` 분포 `[75, 20, 5]`. peak youth (ageFactor ≥ 1.3, 16-18세) 는 큰 점프 분포 `[60, 30, 10]`. decline 대칭. 18세 wonderkid 1년 stat 합산 ~12 (peak 추정), 평범 25세 ~5. FM 표준 (15-20 wonderkid / 5-10 평범) 와 일치. |
-| 2026-05-26 | #47 V1.0+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V1.0 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.x 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V1.0 본문 정책 (매주 호출) 은 그대로 유지 — V1.x 스코프. |
-| 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V1.0-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
-| 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V1.0 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V1.0 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V1.0-2 재작성 + `v1.0-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
+| 2026-05-22 | #39~#52 추가 | V0.1 빌드 마무리 후 V0.5 계획 수립 (`docs/v0.5-plan.md` 작성). 사용자 플레이테스트 피드백 11 카테고리 + 기존 V0.5+ 보완 포인트 + FM 표준 통합. 12 Open Questions 모두 결정 후 본 결정사항 #39~#52 추가. **§ 매핑**: #39 Stats 1-100 + FM 49 (Q1, Q12) / #40 Hidden Attributes (Q4) / #41 Trait 효과 본격화 / #42 Morale + Happiness 분리 (Q7) / #43 Promise + 면담 (Q7) / #44 매치 엔진 V0.5 분 단위 (#34 실현, Q5) / #45 Tactic 중간 스코프 (Q10) / #46 스카우트 이분법 (Q4) / #47 CpuTransferAi 필요 기반 (Q3) / #48 협상 V0.5 + 임대 / #49 시설 8종 × 10단계 + 병렬 / #50 유스 V0.5 (CA 캡 + 시설 분리 + Mentoring) / #51 시즌 V0.5 (시상 + 보드 + 재정) / #52 인프라 (String Table + Localization + Save Migration, Q8). 일정 정책 (Q11) = 마감 없음. |
+| 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V0.5-10 + V0.5-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / 2단계 모델 (발생 확률 + size 분포 +1/+2/+3) / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.0 derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
+| 2026-05-26 | #53 보강 | 성장 size 분포 도입. V0.5-10 의 초안 (`+1` 단위만) → 사용자 지적 ("특정 스탯 +2 가능") 반영. **2단계 모델**: (1) 발생 확률 `growthBaseChance = 0.01` (월 1% — 초안 0.05 너무 빈번해서 1/5 로 낮춤. 49 stat × 1% = 평범 선수 1년 ~6 stat 변동). (2) 발생 시 size 추첨 `[+1, +2, +3]` 분포 `[75, 20, 5]`. peak youth (ageFactor ≥ 1.3, 16-18세) 는 큰 점프 분포 `[60, 30, 10]`. decline 대칭. 18세 wonderkid 1년 stat 합산 ~12 (peak 추정), 평범 25세 ~5. FM 표준 (15-20 wonderkid / 5-10 평범) 와 일치. |
+| 2026-05-26 | #47 V0.5+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V0.5 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.0 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V0.5 본문 정책 (매주 호출) 은 그대로 유지 — V1.0 스코프. |
+| 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V0.5-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
+| 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V0.5 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V0.5 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V0.5-2 재작성 + `v0.5-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |

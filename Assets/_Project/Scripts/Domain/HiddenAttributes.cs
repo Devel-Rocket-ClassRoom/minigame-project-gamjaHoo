@@ -13,7 +13,7 @@ namespace FMLite.Domain
         public int professionalism; // 훈련 효율 / 사기 안정 (변동폭 ×0.7)
         public int pressureHandling; // 빅매치 평점 가산
         public int temperament; // 카드 / 라커룸 분위기
-        public int controversy; // 미디어 사고 확률 (V1.x)
+        public int controversy; // 미디어 사고 확률 (V1.0)
         public int injuryProneness; // 부상 발생률 곱셈
         public int consistency; // 폼 변동폭
         public int versatility; // 2차 포지션 적응 속도

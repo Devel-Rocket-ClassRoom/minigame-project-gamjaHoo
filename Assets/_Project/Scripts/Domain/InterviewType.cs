@@ -1,6 +1,6 @@
 // InterviewType.cs
-// 면담 종류 (design-decisions.md #43 / algorithms.md V1.0-6 OnInterview).
-// V1.0 G.1: Praise / Criticize 만 본격 처리. PromisePlaytime / PromiseRenewal 은 G.2 Promise 시스템 도입 시 본격 활용 (스텁).
+// 면담 종류 (design-decisions.md #43 / algorithms.md V0.5-6 OnInterview).
+// V0.5 G.1: Praise / Criticize 만 본격 처리. PromisePlaytime / PromiseRenewal 은 G.2 Promise 시스템 도입 시 본격 활용 (스텁).
 
 namespace FMLite.Domain
 {

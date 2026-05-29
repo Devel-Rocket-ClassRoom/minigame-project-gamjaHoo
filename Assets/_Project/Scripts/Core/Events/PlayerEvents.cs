@@ -1,6 +1,6 @@
 // PlayerEvents.cs
-// V1.0 D.4 신규 이벤트.
-// algorithms.md V1.0-10 (PlayerStatChangedEvent) + V1.0-11 (PlayerInjuryRecoveredEvent).
+// V0.5 D.4 신규 이벤트.
+// algorithms.md V0.5-10 (PlayerStatChangedEvent) + V0.5-11 (PlayerInjuryRecoveredEvent).
 
 namespace FMLite.Core
 {

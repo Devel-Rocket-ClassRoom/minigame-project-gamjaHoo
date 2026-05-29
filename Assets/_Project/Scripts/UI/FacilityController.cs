@@ -1,6 +1,6 @@
 // FacilityController.cs
-// V1.0 D.5 — 동적 row 생성. 8 시설 × FacilityRowPrefab 인스턴스화.
-// (V0.1 = 3 시설 SerializeField 폐기, design-decisions.md #49 / v1.0-plan.md §3.10.6)
+// V0.5 D.5 — 동적 row 생성. 8 시설 × FacilityRowPrefab 인스턴스화.
+// (V0.1 = 3 시설 SerializeField 폐기, design-decisions.md #49 / v0.5-plan.md §3.10.6)
 
 using System;
 using System.Collections.Generic;

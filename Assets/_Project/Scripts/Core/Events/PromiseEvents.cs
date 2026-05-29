@@ -1,5 +1,5 @@
 // PromiseEvents.cs
-// V1.0 G.2 — Promise 라이프사이클 이벤트.
+// V0.5 G.2 — Promise 라이프사이클 이벤트.
 // event-bus-catalog.md / design-decisions.md #43.
 
 namespace FMLite.Core
@@ -22,7 +22,7 @@ namespace FMLite.Core
         public int promiseId;
     }
 
-    // V1.0 G.2 Sub-B — 마감 30일 이내 진입 시 1회 발행. Promise.deadlineNotified 플래그로 중복 차단.
+    // V0.5 G.2 Sub-B — 마감 30일 이내 진입 시 1회 발행. Promise.deadlineNotified 플래그로 중복 차단.
     public class PromiseDeadlineApproachingEvent
     {
         public int promiseId;

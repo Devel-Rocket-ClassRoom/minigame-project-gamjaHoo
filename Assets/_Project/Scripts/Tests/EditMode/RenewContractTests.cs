@@ -1,7 +1,7 @@
 // RenewContractTests.cs
-// V1.0 H.1 — TransferSystem.RenewContract DoD 검증.
+// V0.5 H.1 — TransferSystem.RenewContract DoD 검증.
 // DoD: 주급 ×1.5 재계약 → 거의 무조건 수락 / morale +15 / happiness +25.
-// algorithms.md V1.0-3.1 / design-decisions.md #48.
+// algorithms.md V0.5-3.1 / design-decisions.md #48.
 
 using System;
 using System.Collections.Generic;

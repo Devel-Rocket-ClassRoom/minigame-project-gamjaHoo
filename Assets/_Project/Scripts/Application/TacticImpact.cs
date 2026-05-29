@@ -1,5 +1,5 @@
 // TacticImpact.cs
-// J.4 — algorithms.md V1.0-7. Tactic (Role × Duty × Stat) 이 매치 이벤트 "주체 선택" 에 미치는 가중치.
+// J.4 — algorithms.md V0.5-7. Tactic (Role × Duty × Stat) 이 매치 이벤트 "주체 선택" 에 미치는 가중치.
 // 호출 시점: MatchSimulator.SnapPlayer (이벤트 주체 선수 추첨) — 같은 팀 같은 라인 후보 간 상대 비교용.
 // 단일 책임: Tactic + 선수 stats 입력 → 선택 가중치 산출 (Stateless, design-decisions.md #3 / #57).
 //

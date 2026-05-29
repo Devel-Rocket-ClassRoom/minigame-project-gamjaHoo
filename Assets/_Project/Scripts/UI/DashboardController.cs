@@ -4,7 +4,7 @@
 // DayAdvancedEvent 구독으로 날짜 실시간 갱신.
 // Issue #165: 저장 슬롯 리스트 + 메인 메뉴 복귀 버튼 추가
 // (Save→MainMenu→LoadGame V0.1 테스트 흐름 활성화).
-// V1.0 G.2 Sub-B (#300): 인박스 패널 — Promise* / TransferRequest 5 이벤트 구독, in-memory 메시지 리스트.
+// V0.5 G.2 Sub-B (#300): 인박스 패널 — Promise* / TransferRequest 5 이벤트 구독, in-memory 메시지 리스트.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -67,7 +67,7 @@ namespace FMLite.UI
         [SerializeField]
         private GameBalanceSO balance;
 
-        [Header("인박스 (V1.0 G.2 Sub-B)")]
+        [Header("인박스 (V0.5 G.2 Sub-B)")]
         [SerializeField]
         private Transform inboxListParent;
 
@@ -77,11 +77,11 @@ namespace FMLite.UI
         [SerializeField]
         private int inboxMaxItems = 10;
 
-        [Header("이적 요청 다이얼로그 (V1.0 G.4)")]
+        [Header("이적 요청 다이얼로그 (V0.5 G.4)")]
         [SerializeField]
         private TransferRequestDialogController transferRequestDialog;
 
-        [Header("보드 약속 모달 (V1.0 M.5)")]
+        [Header("보드 약속 모달 (V0.5 M.5)")]
         [SerializeField]
         private BoardMeetingController boardMeetingPanel;
 
@@ -307,7 +307,7 @@ namespace FMLite.UI
             }
         }
 
-        // ── 인박스 (V1.0 G.2 Sub-B) ──────────────────────────────────
+        // ── 인박스 (V0.5 G.2 Sub-B) ──────────────────────────────────
 
         private void OnPromiseCreated(PromiseCreatedEvent e) =>
             PushInbox(FormatPromise("inbox_promise_created_fmt", e.promiseId));
@@ -331,7 +331,7 @@ namespace FMLite.UI
                     : $"id={e.playerId}";
             PushInbox(Localization.Get("inbox_transfer_request_fmt", playerName));
 
-            // V1.0 G.4 — Q9 자동 트리거 + 유저 승인 패턴. 자기 구단 선수만 dialog 표시.
+            // V0.5 G.4 — Q9 자동 트리거 + 유저 승인 패턴. 자기 구단 선수만 dialog 표시.
             if (
                 transferRequestDialog != null
                 && player != null

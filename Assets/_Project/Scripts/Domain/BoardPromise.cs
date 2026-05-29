@@ -1,6 +1,6 @@
 // BoardPromise.cs
 // 보드와의 약속. SeasonState.boardPromises 에서 관리.
-// V1.0 M.5: TransferIn (특정 포지션 영입 요구).
+// V0.5 M.5: TransferIn (특정 포지션 영입 요구).
 
 using System;
 

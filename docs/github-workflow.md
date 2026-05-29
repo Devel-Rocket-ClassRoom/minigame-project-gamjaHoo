@@ -82,7 +82,7 @@ Closes #이슈번호
 | 항목 | 값 |
 | --- | --- |
 | **Labels** | 이슈와 동일한 `area:*` 라벨 (1개 이상) |
-| **Milestone** | `V0.1` / `V1.0` / `V1.x` |
+| **Milestone** | `V0.1` / `V0.5` / `V1.0` |
 | **Assignee** | 본인 (`@me`) |
 | **Projects** | `FM-Lite` 보드 (#50) 추가 |
 
@@ -190,7 +190,7 @@ gh api graphql -f query=$mut
 | **Title** | `[영역] 동사형 작업명` 예: `[Domain] Player 클래스 정의` |
 | **Type** | GitHub Issue Type 필드 — `Feature` / `Task` / `Bug` 중 하나 (라벨 아님, 사이드바 `Type` 섹션) |
 | **Labels** | `area:*` (1개 이상) — 아래 라벨 가이드 참조. Type 은 라벨이 아니다. |
-| **Milestone** | `V0.1` / `V1.0` / `V1.x` 중 하나 |
+| **Milestone** | `V0.1` / `V0.5` / `V1.0` 중 하나 |
 | **Priority** | Projects 보드 `Priority` 필드 — `P0` / `P1` / `P2` (라벨 아님) |
 | **Size** | Projects 보드 `Size` 필드 — `XS` / `S` / `M` / `L` / `XL` (라벨 아님) |
 | **Projects** | **`FM-Lite` 보드 (#50, owner: `Devel-Rocket-ClassRoom`)** 추가 → `Status` 자동 분류. 이슈/PR 둘 다 `gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <url>` 로 별도 추가 (생성 명령에서 자동 안 됨). |
@@ -450,7 +450,7 @@ PlayerGenerator 만들기
    - Title: [영역] 동사형 작업명
    - Type 필드 (사이드바, 라벨 X) — Feature / Task / Bug
    - Area 라벨 1개 이상
-   - Milestone (V0.1/V1.0/V1.x)
+   - Milestone (V0.1/V0.5/V1.0)
    - Projects 보드 #50 (FM-Lite) 추가 → Priority, Size 설정
    - 본문 템플릿 채우기
 3. 이슈에서 브랜치 생성 (feature/123-xxx)

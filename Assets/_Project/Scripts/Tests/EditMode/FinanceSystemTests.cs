@@ -1,5 +1,5 @@
 // FinanceSystemTests.cs
-// DoD: v1.0-tasks.md M.6 — 재정 결산 (입장료 + TV 중계권 + 상금)
+// DoD: v0.5-tasks.md M.6 — 재정 결산 (입장료 + TV 중계권 + 상금)
 
 using System;
 using System.Collections.Generic;

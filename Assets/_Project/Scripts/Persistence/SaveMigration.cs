@@ -1,8 +1,8 @@
 // SaveMigration.cs
-// 세이브 파일 버전 마이그레이션 인프라. design-decisions.md #52 / algorithms.md V1.0-8.
+// 세이브 파일 버전 마이그레이션 인프라. design-decisions.md #52 / algorithms.md V0.5-8.
 //
-// V0.1 → V1.0 마이그레이션은 미지원 (Q8 결정). 인프라만 구축해 V1.0 → V1.1+ 후속 대비.
-// 현재 버전: V1.0 = saveVersion 2.
+// V0.1 → V0.5 마이그레이션은 미지원 (Q8 결정). 인프라만 구축해 V0.5 → V1.0 후속 대비.
+// 현재 버전: V0.5 = saveVersion 2.
 // V0.1 세이브 (saveVersion 0 또는 1) 로드 시도 → NotSupportedException.
 
 using System;
@@ -18,7 +18,7 @@ namespace FMLite.Persistence
 
     public static class SaveMigration
     {
-        public const int CurrentVersion = 2; // V1.0
+        public const int CurrentVersion = 2; // V0.5
 
         private static readonly Dictionary<int, IMigrator> Migrators = new Dictionary<
             int,
@@ -73,14 +73,14 @@ namespace FMLite.Persistence
     }
 
     // -----------------------------------------------------------------------
-    // V0.1 → V1.0 마이그레이터 (Q8: 미지원, 예외만 던짐)
+    // V0.1 → V0.5 마이그레이터 (Q8: 미지원, 예외만 던짐)
 
     public class MigratorV1_0 : IMigrator
     {
         public GameState Apply(GameState state)
         {
             throw new NotSupportedException(
-                "V0.1 save files are not compatible with V1.0. Please start a new game."
+                "V0.1 save files are not compatible with V0.5. Please start a new game."
             );
         }
     }

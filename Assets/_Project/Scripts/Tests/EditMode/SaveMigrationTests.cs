@@ -1,6 +1,6 @@
 // SaveMigrationTests.cs
-// DoD 검증: v1.0-tasks.md Stage A / Task A.1 — SaveMigration 인프라.
-// algorithms.md V1.0-8 Test Scenarios T1~T3.
+// DoD 검증: v0.5-tasks.md Stage A / Task A.1 — SaveMigration 인프라.
+// algorithms.md V0.5-8 Test Scenarios T1~T3.
 
 using System;
 using FMLite.Domain;
@@ -11,7 +11,7 @@ namespace FMLite.Tests
 {
     public class SaveMigrationTests
     {
-        // T1: V1.0 신규 세이브 로드 — saveVersion=2 이면 마이그레이션 없이 그대로 반환.
+        // T1: V0.5 신규 세이브 로드 — saveVersion=2 이면 마이그레이션 없이 그대로 반환.
         [Test]
         public void Migrate_V10State_ReturnsSameState()
         {

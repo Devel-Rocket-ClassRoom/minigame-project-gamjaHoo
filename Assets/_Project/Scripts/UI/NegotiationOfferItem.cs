@@ -1,5 +1,5 @@
 // NegotiationOfferItem.cs
-// V1.0 K.5 — 협상 오퍼 목록 아이템. NegotiationController 가 Setup 호출.
+// V0.5 K.5 — 협상 오퍼 목록 아이템. NegotiationController 가 Setup 호출.
 
 using System;
 using FMLite.Domain;

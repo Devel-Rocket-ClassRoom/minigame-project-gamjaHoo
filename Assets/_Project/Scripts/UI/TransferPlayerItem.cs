@@ -1,6 +1,6 @@
 // TransferPlayerItem.cs
 // 이적 검색 결과 목록 아이템 프리팹 컨트롤러.
-// V1.0 E.4 — 가시성 분기: 명단 ∈ 정확 / ∉ 정성적 라벨 (회색조/자물쇠는 V1.x).
+// V0.5 E.4 — 가시성 분기: 명단 ∈ 정확 / ∉ 정성적 라벨 (회색조/자물쇠는 V1.0).
 
 using System;
 using FMLite.Application;

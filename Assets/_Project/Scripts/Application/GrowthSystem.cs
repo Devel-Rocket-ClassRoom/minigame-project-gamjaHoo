@@ -1,5 +1,5 @@
 // GrowthSystem.cs
-// V1.0 D.4 Sub-B — Player Growth System (algorithms.md V1.0-10).
+// V0.5 D.4 Sub-B — Player Growth System (algorithms.md V0.5-10).
 // Stateless 시스템 (design-decisions.md #3) — state 입력받아 변경.
 // 매월 1일 DailyProcessor.Run 이 Tick 호출.
 //

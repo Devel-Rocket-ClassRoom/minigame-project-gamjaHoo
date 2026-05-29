@@ -1,5 +1,5 @@
 // SeedV10Data.cs
-// V1.0 SO 인스턴스 일괄 시드. FM-Lite > Seed > Generate V1.0 Data 에서 실행.
+// V0.5 SO 인스턴스 일괄 시드. FM-Lite > Seed > Generate V0.5 Data 에서 실행.
 // 기존 에셋은 GUID 유지하며 필드만 덮어씀.
 
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace FMLite.Editor
         private const string DataRoot = "Assets/_Project/Data";
         private const string Res = DataRoot + "/Resources";
 
-        [MenuItem("FM-Lite/Seed/Generate V1.0 Data")]
+        [MenuItem("FM-Lite/Seed/Generate V0.5 Data")]
         public static void GenerateAll()
         {
             EnsureFolders();
@@ -25,7 +25,7 @@ namespace FMLite.Editor
             GenerateTraitsV10();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("[SeedV10Data] V1.0 seed data generated.");
+            Debug.Log("[SeedV10Data] V0.5 seed data generated.");
         }
 
         // ── Folder helpers ────────────────────────────────────────────────
@@ -253,7 +253,7 @@ namespace FMLite.Editor
                 (40, "False Nine", Duty.Support, new[] { Position.CF, Position.AM }),
             };
 
-            // J.2 — algorithms.md V1.0-7 TacticImpact 에서 사용할 이벤트 가중치 (1.0 기준 편차만 기재).
+            // J.2 — algorithms.md V0.5-7 TacticImpact 에서 사용할 이벤트 가중치 (1.0 기준 편차만 기재).
             var modifiers = new Dictionary<int, (string et, float mult)[]>
             {
                 [5] = new[] { ("keyPass", 1.2f) }, // Ball-Playing Defender
@@ -326,7 +326,7 @@ namespace FMLite.Editor
             }
         }
 
-        // ── Facility Levels V1.0 (8 types × 10 levels = 80) ──────────────
+        // ── Facility Levels V0.5 (8 types × 10 levels = 80) ──────────────
 
         private static void GenerateeFacilityLevelsV10Impl()
         {
@@ -526,10 +526,10 @@ namespace FMLite.Editor
         private static void GenerateFacilityLevelsV10() =>
             GenerateeFacilityLevelsV10Impl();
 
-        // ── Traits V1.0 (C.2 + C.3) ──────────────────────────────────────
+        // ── Traits V0.5 (C.2 + C.3) ──────────────────────────────────────
         // exclusionGroupId: 0=없음 / 1=DevelopmentSpeed / 2=Durability / 3=PressureMentality
 
-        [MenuItem("FM-Lite/Seed/Generate V1.0 Traits")]
+        [MenuItem("FM-Lite/Seed/Generate V0.5 Traits")]
         public static void GenerateTraitsV10()
         {
             EnsureFolder(Res, "Traits");

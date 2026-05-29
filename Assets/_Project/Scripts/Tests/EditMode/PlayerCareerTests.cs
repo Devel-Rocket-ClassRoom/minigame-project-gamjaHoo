@@ -1,5 +1,5 @@
 // PlayerCareerTests.cs
-// DoD: v1.0-tasks.md M.1 — SeasonEndProcessor.Run → Player.career.Add
+// DoD: v0.5-tasks.md M.1 — SeasonEndProcessor.Run → Player.career.Add
 
 using System;
 using System.Collections.Generic;

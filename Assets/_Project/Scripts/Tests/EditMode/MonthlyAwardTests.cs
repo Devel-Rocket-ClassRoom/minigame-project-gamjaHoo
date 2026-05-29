@@ -1,5 +1,5 @@
 // MonthlyAwardTests.cs
-// DoD: v1.0-tasks.md M.3 — 월 1회 어워드 발행 + 효과 적용 (algorithms.md V1.0-9 T5)
+// DoD: v0.5-tasks.md M.3 — 월 1회 어워드 발행 + 효과 적용 (algorithms.md V0.5-9 T5)
 
 using System;
 using System.Collections.Generic;

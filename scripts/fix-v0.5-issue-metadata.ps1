@@ -1,7 +1,7 @@
-﻿# V1.0 이슈 누락 메타데이터 보정 스크립트
+# V0.5 이슈 누락 메타데이터 보정 스크립트
 # rate limit 으로 Priority/Size 설정 실패한 이슈들을 보정.
 #
-# 사용법: .\scripts\fix-v1.0-issue-metadata.ps1
+# 사용법: .\scripts\fix-v0.5-issue-metadata.ps1
 # 의존: gh CLI 인증, Rate limit 회복 후 실행.
 
 $ErrorActionPreference = 'Continue'

@@ -1,6 +1,6 @@
 // PromiseSystem.cs
-// V1.0 G.2 — 매니저-선수 약속 4종 라이프사이클.
-// algorithms.md V1.0-6 PromiseSystem.CheckProgress / design-decisions.md #43.
+// V0.5 G.2 — 매니저-선수 약속 4종 라이프사이클.
+// algorithms.md V0.5-6 PromiseSystem.CheckProgress / design-decisions.md #43.
 // Stateless (design-decisions.md #3). 모든 상태는 GameState.activePromises.
 //
 // 호출 시점:
@@ -48,7 +48,7 @@ namespace FMLite.Application
                 if (promise.status != PromiseStatus.Active)
                     continue;
 
-                // (V1.0 G.2 Sub-B) 마감 임박 알림 — deadline 전 N일 이내 진입 시 1회 발행.
+                // (V0.5 G.2 Sub-B) 마감 임박 알림 — deadline 전 N일 이내 진입 시 1회 발행.
                 if (
                     !promise.deadlineNotified
                     && state.currentDate < promise.deadline

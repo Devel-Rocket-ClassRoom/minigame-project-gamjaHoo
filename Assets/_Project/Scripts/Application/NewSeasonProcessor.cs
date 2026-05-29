@@ -9,7 +9,7 @@
 //   - 새 시즌 매치 일정 생성 (ScheduleGenerator)
 //   - 클럽 season 갱신 (targetLeaguePosition / boardConfidence)
 //   - SeasonStartedEvent 발행
-// V1.0+ 미구현: 재정 결산 (이적/임금 예산 재배정) / 보드 목표 동적화.
+// V0.5+ 미구현: 재정 결산 (이적/임금 예산 재배정) / 보드 목표 동적화.
 
 using System;
 using System.Collections.Generic;
@@ -33,8 +33,8 @@ namespace FMLite.Application
                 state.rerollTokens = balance.maxRerollStockpile;
 
             // b. 모든 선수 fatigue / form / seasonAppearances / 카드 정지 리셋
-            // (seasonAppearances V1.0 G.2 — PlaytimeAgreement Promise 평가 시즌 단위)
-            // (seasonYellowCards / suspendedMatches V1.0 I.3 — 시즌 넘어가면 카드 누적 / 정지 해제)
+            // (seasonAppearances V0.5 G.2 — PlaytimeAgreement Promise 평가 시즌 단위)
+            // (seasonYellowCards / suspendedMatches V0.5 I.3 — 시즌 넘어가면 카드 누적 / 정지 해제)
             foreach (var player in state.allPlayers)
             {
                 if (player?.state == null)

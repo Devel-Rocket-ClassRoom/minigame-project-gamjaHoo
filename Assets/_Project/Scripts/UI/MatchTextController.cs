@@ -1,5 +1,5 @@
 // MatchTextController.cs
-// V1.0 N.3 — 매치 텍스트 이벤트 화면.
+// V0.5 N.3 — 매치 텍스트 이벤트 화면.
 // PlayerPrefs("SelectedMatchId") 로 매치 ID 수신.
 // collectEvents=true 로 시뮬된 이벤트를 분 단위로 표시.
 

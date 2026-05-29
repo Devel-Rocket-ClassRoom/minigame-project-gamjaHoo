@@ -16,6 +16,6 @@ namespace FMLite.Domain
         public bool transferListed;
         public int seasonAppearances;
         public int suspendedMatches; // 출전 정지 잔여 경기 수 (카드 누적)
-        public int seasonYellowCards; // 시즌 누적 옐로 (5/10/15 → 정지). NewSeasonProcessor 리셋. (V1.0 I.3)
+        public int seasonYellowCards; // 시즌 누적 옐로 (5/10/15 → 정지). NewSeasonProcessor 리셋. (V0.5 I.3)
     }
 }

@@ -1,5 +1,5 @@
 // YouthSignedByOtherTests.cs
-// DoD: algorithms.md V1.0 L.6 — 미영입 후보 일부 AI 다른 구단 영입.
+// DoD: algorithms.md V0.5 L.6 — 미영입 후보 일부 AI 다른 구단 영입.
 
 using System;
 using System.Collections.Generic;

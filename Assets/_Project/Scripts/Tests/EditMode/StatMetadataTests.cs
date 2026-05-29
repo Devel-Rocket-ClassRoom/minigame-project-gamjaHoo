@@ -41,7 +41,7 @@ namespace FMLite.Tests
             Assert.AreEqual(10, AllAbsolute.Length);
         }
 
-        // ── IsPhysical (V1.0 D.4 / design-decisions.md #53) ──
+        // ── IsPhysical (V0.5 D.4 / design-decisions.md #53) ──
 
         private static readonly string[] AllPhysical =
         {

@@ -26,28 +26,28 @@ namespace FMLite.Core
         public int amount;
     }
 
-    // V1.0 G.1 — MoraleSystem.OnPromiseBroken 이 happiness < transferRequestThreshold 시 발행.
-    // algorithms.md V1.0-6 / design-decisions.md #42 (Q9 자동 트리거 + 유저 승인 패턴).
+    // V0.5 G.1 — MoraleSystem.OnPromiseBroken 이 happiness < transferRequestThreshold 시 발행.
+    // algorithms.md V0.5-6 / design-decisions.md #42 (Q9 자동 트리거 + 유저 승인 패턴).
     public class TransferRequestEvent
     {
         public int playerId;
     }
 
-    // V1.0 H.1 — TransferSystem.RenewContract 가 선수 수락 시 발행.
-    // algorithms.md V1.0-3.1 RenewContract / design-decisions.md #48.
+    // V0.5 H.1 — TransferSystem.RenewContract 가 선수 수락 시 발행.
+    // algorithms.md V0.5-3.1 RenewContract / design-decisions.md #48.
     public class ContractRenewedEvent
     {
         public int playerId;
     }
 
-    // V1.0 H.1 — TransferSystem.RenewContract 가 선수 거절 시 발행.
+    // V0.5 H.1 — TransferSystem.RenewContract 가 선수 거절 시 발행.
     public class ContractRenewalRejectedEvent
     {
         public int playerId;
     }
 
-    // V1.0 K.3 — DailyProcessor 가 loanEndDate 도래 시 자동 복귀 처리 후 발행.
-    // algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리.
+    // V0.5 K.3 — DailyProcessor 가 loanEndDate 도래 시 자동 복귀 처리 후 발행.
+    // algorithms.md V0.5-3.1 DailyProcessor 임대 복귀 처리.
     public class LoanReturnedEvent
     {
         public int playerId;

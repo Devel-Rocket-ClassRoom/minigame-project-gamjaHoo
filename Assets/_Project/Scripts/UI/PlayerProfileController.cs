@@ -2,7 +2,7 @@
 // PlayerPrefs("SelectedPlayerId")로 선수 ID 수신.
 // 능력치는 5단계 티어로 표시 (design-decisions #14).
 // GameBalanceSO.isDebugMode 활성 시 정확한 수치 추가 노출 (Task 14.2 연동).
-// V1.0 G.2 Sub-B (#300): [면담] 버튼 + InterviewDialogController 연동 (own-club 선수만 활성화).
+// V0.5 G.2 Sub-B (#300): [면담] 버튼 + InterviewDialogController 연동 (own-club 선수만 활성화).
 
 using System.Text;
 using FMLite.Application;
@@ -59,14 +59,14 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text careerText;
 
-        [Header("면담 (V1.0 G.2 Sub-B)")]
+        [Header("면담 (V0.5 G.2 Sub-B)")]
         [SerializeField]
         private Button interviewButton;
 
         [SerializeField]
         private InterviewDialogController interviewDialog;
 
-        [Header("1군 승격 (V1.0 L.5)")]
+        [Header("1군 승격 (V0.5 L.5)")]
         [SerializeField]
         private Button promoteButton;
 
@@ -150,7 +150,7 @@ namespace FMLite.UI
             SceneManager.LoadScene(prev);
         }
 
-        // ── 면담 (V1.0 G.2 Sub-B) ──────────────────────────────────────
+        // ── 면담 (V0.5 G.2 Sub-B) ──────────────────────────────────────
 
         public void OnInterviewClicked()
         {
@@ -170,7 +170,7 @@ namespace FMLite.UI
             interviewButton.onClick.AddListener(OnInterviewClicked);
         }
 
-        // ── 1군 승격 (V1.0 L.5) ────────────────────────────────────────────
+        // ── 1군 승격 (V0.5 L.5) ────────────────────────────────────────────
 
         public void OnPromoteClicked()
         {

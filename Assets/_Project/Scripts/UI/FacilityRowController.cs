@@ -1,6 +1,6 @@
 // FacilityRowController.cs
 // 시설 1종을 표시하는 row 컨트롤러. FacilityController 가 8 시설마다 인스턴스화.
-// V1.0 D.5 — 동적 생성 모델.
+// V0.5 D.5 — 동적 생성 모델.
 
 using System;
 using FMLite.Domain;

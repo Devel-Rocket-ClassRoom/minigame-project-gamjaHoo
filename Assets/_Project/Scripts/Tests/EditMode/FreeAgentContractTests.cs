@@ -1,7 +1,7 @@
 // FreeAgentContractTests.cs
-// V1.0 H.3 — TransferSystem.SubmitFreeAgentContract DoD 검증.
+// V0.5 H.3 — TransferSystem.SubmitFreeAgentContract DoD 검증.
 // DoD: FA 영입 시나리오 — 잔여 6개월 이내 선수 → 이적료 0 + 즉시 Accepted.
-// algorithms.md V1.0-3.1 / design-decisions.md #48.
+// algorithms.md V0.5-3.1 / design-decisions.md #48.
 
 using System;
 using FMLite.Application;

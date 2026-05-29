@@ -1,6 +1,6 @@
 // SeedV10LocalizationData.cs
-// V1.0 LocalizationSO 인스턴스 생성 + 모든 UI 키 일괄 시드.
-// FM-Lite > Seed > Generate V1.0 Localization 에서 실행.
+// V0.5 LocalizationSO 인스턴스 생성 + 모든 UI 키 일괄 시드.
+// FM-Lite > Seed > Generate V0.5 Localization 에서 실행.
 // 기존 asset 재실행 시 entries 를 덮어쓰되 GUID 는 유지.
 
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace FMLite.Editor
         private const string AssetPath =
             "Assets/_Project/Data/Resources/Localization/LocalizationData.asset";
 
-        [MenuItem("FM-Lite/Seed/Generate V1.0 Localization")]
+        [MenuItem("FM-Lite/Seed/Generate V0.5 Localization")]
         public static void Generate()
         {
             EnsureFolder("Assets/_Project/Data/Resources", "Localization");
@@ -88,7 +88,7 @@ namespace FMLite.Editor
                     "업그레이드 £{0}M ({1}일)",
                     "Upgrade £{0}M ({1} days)"
                 ),
-                // ── Facility (V1.0 D.5 — 8 시설 이름 + 효과 fmt) ────────────
+                // ── Facility (V0.5 D.5 — 8 시설 이름 + 효과 fmt) ────────────
                 E("facility_name_scout", "스카우트", "Scouting"),
                 E("facility_name_training", "훈련 시설", "Training"),
                 E("facility_name_youth_coach", "유스 코치", "Youth Coaching"),
@@ -137,7 +137,7 @@ namespace FMLite.Editor
                     "피지컬 성장 ×{0}",
                     "Physical ×{0}"
                 ),
-                // ── Scouting Tier (V1.0 E.3 — 정성적 라벨 5단계) ─────────────
+                // ── Scouting Tier (V0.5 E.3 — 정성적 라벨 5단계) ─────────────
                 E("scout_tier_very_high", "매우 높음", "Very High"),
                 E("scout_tier_high", "높음", "High"),
                 E("scout_tier_average", "중간", "Average"),
@@ -245,7 +245,7 @@ namespace FMLite.Editor
                     "{0}-{1}  {2}  {3}경기 {4}골 {5}도움",
                     "{0}-{1}  {2}  {3} apps {4} goals {5} assists"
                 ),
-                // ── V1.0 G.2 Sub-B 면담 + 인박스 ──────────────────────────
+                // ── V0.5 G.2 Sub-B 면담 + 인박스 ──────────────────────────
                 E("interview_button", "면담", "Interview"),
                 E("interview_dialog_title", "선수 면담", "Player Interview"),
                 E("interview_close", "닫기", "Close"),
@@ -299,7 +299,7 @@ namespace FMLite.Editor
                 ),
                 E("profile_promote_to_senior", "1군 승격", "Promote to Senior"),
                 E("profile_decline_promotion", "거절", "Decline"),
-                // ── V1.0 G.4 이적 요청 다이얼로그 ─────────────────────────
+                // ── V0.5 G.4 이적 요청 다이얼로그 ─────────────────────────
                 E("transfer_request_dialog_title", "이적 요청", "Transfer Request"),
                 E(
                     "transfer_request_dialog_message_fmt",
@@ -314,7 +314,7 @@ namespace FMLite.Editor
                 E("transfer_request_reject", "거절", "Reject"),
                 E("transfer_request_interview", "면담", "Interview"),
                 E("transfer_request_close", "나중에", "Later"),
-                // ── V1.0 I.5 매치 텍스트 이벤트 ──────────────────────────
+                // ── V0.5 I.5 매치 텍스트 이벤트 ──────────────────────────
                 // 시스템 이벤트
                 E("match_kickoff", "킥오프", "Kick-off"),
                 E("match_halftime", "전반전 종료", "Half time"),
@@ -478,7 +478,7 @@ namespace FMLite.Editor
                     "유효슛: 홈 {homeOnTarget} 원정 {awayOnTarget}",
                     "Shots on Target: Home {homeOnTarget} Away {awayOnTarget}"
                 ),
-                // ── V1.0 M.5 보드 약속 ────────────────────────────────────
+                // ── V0.5 M.5 보드 약속 ────────────────────────────────────
                 E(
                     "board_promise_transfer_in_desc",
                     "이사회에서 {0} 포지션 선수 영입을 요구합니다.\n수락하면 여름 이적 시장 종료까지 이행해야 합니다.",

@@ -25,6 +25,6 @@ Closes #
 ---
 **메타데이터 체크리스트** (PR 생성 후 확인 — github-workflow.md §2)
 - [ ] Area 라벨 추가 (이슈와 동일하게 1+)
-- [ ] Milestone 설정 (V0.1 / V1.0 / V1.x)
+- [ ] Milestone 설정 (V0.1 / V0.5 / V1.0)
 - [ ] Assignee 설정 (`@me`)
 - [ ] Projects 보드 #50 (FM-Lite) 추가 — `gh project item-add 50 --owner Devel-Rocket-ClassRoom --url <PR url>` 별도 호출 (자동 안 됨)

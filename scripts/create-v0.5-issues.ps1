@@ -1,9 +1,9 @@
-﻿# V1.0 이슈 일괄 생성 스크립트
-# v1.0-tasks.md Stage A~P 모든 Task → GitHub Issue + 메타데이터 (Type / Area / Milestone / Priority / Size / 보드 #50)
+# V0.5 이슈 일괄 생성 스크립트
+# v0.5-tasks.md Stage A~P 모든 Task → GitHub Issue + 메타데이터 (Type / Area / Milestone / Priority / Size / 보드 #50)
 #
 # 사용법:
-#   .\scripts\create-v1.0-issues.ps1                # 전체 실행
-#   .\scripts\create-v1.0-issues.ps1 -StartFrom A.2 # 특정 Task 부터 실행
+#   .\scripts\create-v0.5-issues.ps1                # 전체 실행
+#   .\scripts\create-v0.5-issues.ps1 -StartFrom A.2 # 특정 Task 부터 실행
 #
 # 의존: gh CLI 인증, repo: Devel-Rocket-ClassRoom/minigame-project-gamjaHoo
 
@@ -32,7 +32,7 @@ $SizeOpts        = @{ XS = "e2f4dac2"; S = "ba56ccb2"; M = "0ce57aba"; L = "a6ed
 $Repo  = "Devel-Rocket-ClassRoom/minigame-project-gamjaHoo"
 $Owner = "Devel-Rocket-ClassRoom"
 
-# Task 정의 — v1.0-tasks.md 기반
+# Task 정의 — v0.5-tasks.md 기반
 # Stage A (A.1~A.5) 는 이미 #179~#183 으로 생성됨 (시범).
 # 본 스크립트는 Stage B~P 의 77 Task 를 일괄 생성.
 $Tasks = @(
@@ -43,9 +43,9 @@ $Tasks = @(
 ``Stats.cs`` 4 카테고리 = FM26 표준 49 필드 (Technical 14 / Mental 14 / Physical 8 / Goalkeeping 13).
 
 ## 명세
-- v1.0-tasks.md Stage B / Task B.1
+- v0.5-tasks.md Stage B / Task B.1
 - design-decisions.md #39
-- algorithms.md V1.0-1
+- algorithms.md V0.5-1
 
 ## 작업 내용
 - [ ] ``TechnicalStats`` 14 필드 (기존 12 + Marking, Technique, LongThrows 신규 / shooting → finishing 통일 / freeKickAccuracy → freeKickTaking)
@@ -65,9 +65,9 @@ $Tasks = @(
 스탯 스케일 1-20 → 1-100 으로 변경. 외부화 수치 ~25 필드 재산정.
 
 ## 명세
-- v1.0-tasks.md Stage B / Task B.2
+- v0.5-tasks.md Stage B / Task B.2
 - design-decisions.md #39
-- algorithms.md V1.0-1
+- algorithms.md V0.5-1
 
 ## 작업 내용
 - [ ] ``statMeanAtCAFloor`` 5→25 / ``statMeanAtCACeil`` 17→85 / ``statStdDev`` 2→10
@@ -87,9 +87,9 @@ $Tasks = @(
 ``Player.hiddenAttrs`` 도입 + PlayerGenerator 5단계 Hidden 추첨 통합.
 
 ## 명세
-- v1.0-tasks.md Stage B / Task B.3
+- v0.5-tasks.md Stage B / Task B.3
 - design-decisions.md #40
-- algorithms.md V1.0-1 (5단계)
+- algorithms.md V0.5-1 (5단계)
 
 ## 작업 내용
 - [ ] Task A.4 의 ``HiddenAttributes`` 본격 활용
@@ -109,7 +109,7 @@ $Tasks = @(
 FM 표준 Absolute (인성 기반, 훈련 거의 X) vs Relative (훈련 성장) 분리.
 
 ## 명세
-- v1.0-tasks.md Stage B / Task B.4
+- v0.5-tasks.md Stage B / Task B.4
 - design-decisions.md #40
 
 ## 작업 내용
@@ -127,8 +127,8 @@ FM 표준 Absolute (인성 기반, 훈련 거의 X) vs Relative (훈련 성장) 
 ``isDebugMode`` 무관 자기 구단 선수 stats 정확 수치 노출. 가챠 화면만 5단계 티어 유지.
 
 ## 명세
-- v1.0-tasks.md Stage B / Task B.5
-- design-decisions.md #39 / v1.0-plan.md §3.14.2
+- v0.5-tasks.md Stage B / Task B.5
+- design-decisions.md #39 / v0.5-plan.md §3.14.2
 
 ## 작업 내용
 - [ ] ``PlayerProfileController.cs`` 갱신 — 자기 구단 정확 수치
@@ -147,7 +147,7 @@ FM 표준 Absolute (인성 기반, 훈련 거의 X) vs Relative (훈련 성장) 
 TraitSO 에 ``effects: List<TraitEffect>`` 추가. 라벨만 부여하던 V0.1 → 본격 효과.
 
 ## 명세
-- v1.0-tasks.md Stage C / Task C.1
+- v0.5-tasks.md Stage C / Task C.1
 - design-decisions.md #41
 
 ## 작업 내용
@@ -158,17 +158,17 @@ TraitSO 에 ``effects: List<TraitEffect>`` 추가. 라벨만 부여하던 V0.1 �
 - [ ] TraitSO 인스펙터에서 effects 편집 가능
 "@ }
 
-    @{ Key="C.2"; Title="[Data] V1.0 신규 트레잇 ~14 정의"; Type="Task"; Labels="area:data"; Priority="P1"; Size="S";
+    @{ Key="C.2"; Title="[Data] V0.5 신규 트레잇 ~14 정의"; Type="Task"; Labels="area:data"; Priority="P1"; Size="S";
        Body=@"
 ## 목표
-V0.1 6 트레잇 + V1.0 ~14 신규 = ~20 카탈로그.
+V0.1 6 트레잇 + V0.5 ~14 신규 = ~20 카탈로그.
 
 ## 명세
-- v1.0-tasks.md Stage C / Task C.2
+- v0.5-tasks.md Stage C / Task C.2
 - design-decisions.md #41
 
 ## 작업 내용
-- [ ] V1.0 신규 트레잇 ~14 (클러치 / 무리한패스 / 와이드플레이 / 자국인우대 / 유리몸 / 철인 / 멘탈약자 / 슈퍼유망주 / 멀티포지션 / 골결정력 / 수비형윙백 / 정신적리더 / 페널티스페셜리스트 / 프리킥마이스터)
+- [ ] V0.5 신규 트레잇 ~14 (클러치 / 무리한패스 / 와이드플레이 / 자국인우대 / 유리몸 / 철인 / 멘탈약자 / 슈퍼유망주 / 멀티포지션 / 골결정력 / 수비형윙백 / 정신적리더 / 페널티스페셜리스트 / 프리킥마이스터)
 - [ ] 각 trait effects 매핑
 - [ ] SeedV10Data 시드 스크립트 추가
 
@@ -179,10 +179,10 @@ V0.1 6 트레잇 + V1.0 ~14 신규 = ~20 카탈로그.
     @{ Key="C.3"; Title="[Data] 트레잇 충돌 그룹 확장 (Group 2, 3)"; Type="Task"; Labels="area:data"; Priority="P1"; Size="XS";
        Body=@"
 ## 목표
-충돌 그룹 V0.1 1개 → V1.0 3개.
+충돌 그룹 V0.1 1개 → V0.5 3개.
 
 ## 명세
-- v1.0-tasks.md Stage C / Task C.3
+- v0.5-tasks.md Stage C / Task C.3
 - design-decisions.md #41
 
 ## 작업 내용
@@ -198,10 +198,10 @@ V0.1 6 트레잇 + V1.0 ~14 신규 = ~20 카탈로그.
     @{ Key="D.1"; Title="[Data] FacilityType 8종 + FacilityLevelSO 80 asset"; Type="Feature"; Labels="area:data"; Priority="P0"; Size="M";
        Body=@"
 ## 목표
-FacilityType V0.1 3종 → V1.0 8종 확장. FacilityLevelSO 80 asset (8 × 10).
+FacilityType V0.1 3종 → V0.5 8종 확장. FacilityLevelSO 80 asset (8 × 10).
 
 ## 명세
-- v1.0-tasks.md Stage D / Task D.1
+- v0.5-tasks.md Stage D / Task D.1
 - design-decisions.md #49
 
 ## 작업 내용
@@ -218,10 +218,10 @@ FacilityType V0.1 3종 → V1.0 8종 확장. FacilityLevelSO 80 asset (8 × 10).
     @{ Key="D.2"; Title="[Domain] Facilities 8 필드 분리"; Type="Task"; Labels="area:domain"; Priority="P0"; Size="S";
        Body=@"
 ## 목표
-V0.1 ``scoutLevel / trainingLevel / youthLevel`` → V1.0 8 필드.
+V0.1 ``scoutLevel / trainingLevel / youthLevel`` → V0.5 8 필드.
 
 ## 명세
-- v1.0-tasks.md Stage D / Task D.2 / design-decisions.md #49
+- v0.5-tasks.md Stage D / Task D.2 / design-decisions.md #49
 
 ## 작업 내용
 - [ ] ``Facilities`` 8 필드 (모두 디폴트 1)
@@ -237,7 +237,7 @@ V0.1 ``scoutLevel / trainingLevel / youthLevel`` → V1.0 8 필드.
 자금만 있으면 N개 시설 동시 업그레이드. 같은 시설은 한 번에 1단계.
 
 ## 명세
-- v1.0-tasks.md Stage D / Task D.3 / design-decisions.md #49
+- v0.5-tasks.md Stage D / Task D.3 / design-decisions.md #49
 
 ## 작업 내용
 - [ ] ``FacilitySystem.UpgradeFacility`` — 차단 로직 제거
@@ -251,10 +251,10 @@ V0.1 ``scoutLevel / trainingLevel / youthLevel`` → V1.0 8 필드.
     @{ Key="D.4"; Title="[Feature] 시설 효과 본격 도입 (V0.1 미구현)"; Type="Feature"; Labels="area:domain"; Priority="P0"; Size="L";
        Body=@"
 ## 목표
-V0.1 = 효과 없음. V1.0 = 각 시설 본격 효과.
+V0.1 = 효과 없음. V0.5 = 각 시설 본격 효과.
 
 ## 명세
-- v1.0-tasks.md Stage D / Task D.4 / design-decisions.md #49
+- v0.5-tasks.md Stage D / Task D.4 / design-decisions.md #49
 
 ## 작업 내용
 - [ ] Training → 성장 시스템 (별도 또는 PlayerGenerator 확장)
@@ -268,13 +268,13 @@ V0.1 = 효과 없음. V1.0 = 각 시설 본격 효과.
 - [ ] 각 시설 효과 해당 시스템 정상 적용 (T별 검증)
 "@ }
 
-    @{ Key="D.5"; Title="[UI] FacilityScene V1.0 갱신"; Type="Feature"; Labels="area:ui"; Priority="P1"; Size="M";
+    @{ Key="D.5"; Title="[UI] FacilityScene V0.5 갱신"; Type="Feature"; Labels="area:ui"; Priority="P1"; Size="M";
        Body=@"
 ## 목표
 FacilityScene UI 8 시설 + 1-10 등급 + 진행 중 목록 표시.
 
 ## 명세
-- v1.0-tasks.md Stage D / Task D.5
+- v0.5-tasks.md Stage D / Task D.5
 
 ## 작업 내용
 - [ ] 8 시설 표시
@@ -292,7 +292,7 @@ FacilityScene UI 8 시설 + 1-10 등급 + 진행 중 목록 표시.
 Task A.4 의 ScoutReport / CaPaEstimate / HiddenAttributesPartial 본격 활용.
 
 ## 명세
-- v1.0-tasks.md Stage E / Task E.1
+- v0.5-tasks.md Stage E / Task E.1
 - design-decisions.md #46
 
 ## 작업 내용
@@ -309,7 +309,7 @@ Task A.4 의 ScoutReport / CaPaEstimate / HiddenAttributesPartial 본격 활용.
 시설 등급별 명단 크기 / 정확도 / 자동 추가.
 
 ## 명세
-- v1.0-tasks.md Stage E / Task E.2
+- v0.5-tasks.md Stage E / Task E.2
 - design-decisions.md #46
 
 ## 작업 내용
@@ -329,7 +329,7 @@ Task A.4 의 ScoutReport / CaPaEstimate / HiddenAttributesPartial 본격 활용.
 명단 ∈ → 정확 / 명단 ∉ → 정성적 라벨 5단계 (Q4 확정).
 
 ## 명세
-- v1.0-tasks.md Stage E / Task E.3
+- v0.5-tasks.md Stage E / Task E.3
 - design-decisions.md #46
 
 ## 작업 내용
@@ -348,7 +348,7 @@ Task A.4 의 ScoutReport / CaPaEstimate / HiddenAttributesPartial 본격 활용.
 검색 결과 명단 진입 여부 시각적 표시.
 
 ## 명세
-- v1.0-tasks.md Stage E / Task E.4
+- v0.5-tasks.md Stage E / Task E.4
 
 ## 작업 내용
 - [ ] 명단 ∈ = 배경 강조 / 명단 ∉ = 회색조 + 자물쇠 아이콘
@@ -365,8 +365,8 @@ Task A.4 의 ScoutReport / CaPaEstimate / HiddenAttributesPartial 본격 활용.
 AI 구단 능동 영입 의사결정. 필요 기반 트리거 5종 (Q3).
 
 ## 명세
-- v1.0-tasks.md Stage F / Task F.1
-- algorithms.md V1.0-5
+- v0.5-tasks.md Stage F / Task F.1
+- algorithms.md V0.5-5
 - design-decisions.md #47
 
 ## 작업 내용
@@ -376,7 +376,7 @@ AI 구단 능동 영입 의사결정. 필요 기반 트리거 5종 (Q3).
 - [ ] 외부화 ~6 필드 (aiWeaknessRatioThreshold / aiCoreInjuryWeeksThreshold / aiSavingsThreshold 등)
 
 ## DoD
-- [ ] EditMode T1~T7 (algorithms.md V1.0-5)
+- [ ] EditMode T1~T7 (algorithms.md V0.5-5)
 "@ }
 
     @{ Key="F.2"; Title="[Infra] EventScheduler 매주 CpuTransferAi 호출"; Type="Task"; Labels="area:simulation"; Priority="P0"; Size="XS";
@@ -385,7 +385,7 @@ AI 구단 능동 영입 의사결정. 필요 기반 트리거 5종 (Q3).
 EventScheduler 가 매주 (월요일) ``CpuTransferAi.Run`` 호출.
 
 ## 명세
-- v1.0-tasks.md Stage F / Task F.2
+- v0.5-tasks.md Stage F / Task F.2
 
 ## DoD
 - [ ] 시즌 진행 시 AI 구단 오퍼 자연 발생 (state.activeOffers 갱신)
@@ -398,18 +398,18 @@ EventScheduler 가 매주 (월요일) ``CpuTransferAi.Run`` 호출.
 Morale + Happiness 분리 + 변동 트리거 본격 도입. Hidden 보정 (loyalty / ambition / professionalism).
 
 ## 명세
-- v1.0-tasks.md Stage G / Task G.1
-- algorithms.md V1.0-6
+- v0.5-tasks.md Stage G / Task G.1
+- algorithms.md V0.5-6
 - design-decisions.md #42
 
 ## 작업 내용
 - [ ] ``Application/MoraleSystem.cs`` 신규 (Tick / OnMatchFinished / OnTransferCompleted / OnContractRenewed / OnPromiseFulfilled / OnPromiseBroken / OnInterview)
-- [ ] 변동 매트릭스 (algorithms.md V1.0-6)
-- [ ] MatchPostProcessor 통합 (V0.1 미구현 → V1.0 본격)
+- [ ] 변동 매트릭스 (algorithms.md V0.5-6)
+- [ ] MatchPostProcessor 통합 (V0.1 미구현 → V0.5 본격)
 - [ ] DailyProcessor Tick 호출
 
 ## DoD
-- [ ] T1~T8 통과 (algorithms.md V1.0-6)
+- [ ] T1~T8 통과 (algorithms.md V0.5-6)
 "@ }
 
     @{ Key="G.2"; Title="[Simulation] PromiseSystem 4종 + 면담 UI"; Type="Feature"; Labels="area:simulation,area:ui"; Priority="P0"; Size="L";
@@ -418,7 +418,7 @@ Morale + Happiness 분리 + 변동 트리거 본격 도입. Hidden 보정 (loyal
 Promise 4종 (PlaytimeAgreement / TransferIn / Renewal / TransferOut) + 면담 4-6 멘트.
 
 ## 명세
-- v1.0-tasks.md Stage G / Task G.2
+- v0.5-tasks.md Stage G / Task G.2
 - design-decisions.md #43
 
 ## 작업 내용
@@ -438,7 +438,7 @@ Promise 4종 (PlaytimeAgreement / TransferIn / Renewal / TransferOut) + 면담 4
 ``Club.season.dressingRoomMood`` 갱신 + 매치 영향.
 
 ## 명세
-- v1.0-tasks.md Stage G / Task G.3
+- v0.5-tasks.md Stage G / Task G.3
 - design-decisions.md #42
 
 ## 작업 내용
@@ -455,7 +455,7 @@ Promise 4종 (PlaytimeAgreement / TransferIn / Renewal / TransferOut) + 면담 4
 Happiness < 20 → 자동 ``TransferRequestEvent`` + Dashboard 인박스 + 유저 응답.
 
 ## 명세
-- v1.0-tasks.md Stage G / Task G.4 (Q9 자동 + 승인 패턴)
+- v0.5-tasks.md Stage G / Task G.4 (Q9 자동 + 승인 패턴)
 
 ## 작업 내용
 - [ ] Happiness < 20 → TransferRequestEvent 발행
@@ -473,8 +473,8 @@ Happiness < 20 → 자동 ``TransferRequestEvent`` + Dashboard 인박스 + 유�
 ``TransferSystem.RenewContract`` 신규. 시점 제약 X. 사용자 피드백 2.5.
 
 ## 명세
-- v1.0-tasks.md Stage H / Task H.1
-- algorithms.md V1.0-3.1
+- v0.5-tasks.md Stage H / Task H.1
+- algorithms.md V0.5-3.1
 
 ## 작업 내용
 - [ ] ``RenewContract`` 메서드 신규
@@ -493,7 +493,7 @@ Happiness < 20 → 자동 ``TransferRequestEvent`` + Dashboard 인박스 + 유�
 Contract 보너스 필드 확장 + release clause 활성화.
 
 ## 명세
-- v1.0-tasks.md Stage H / Task H.2
+- v0.5-tasks.md Stage H / Task H.2
 
 ## 작업 내용
 - [ ] ``signingBonus / loyaltyBonus / appearanceBonus / goalBonus`` (Task A.4 와 짝)
@@ -510,7 +510,7 @@ Contract 보너스 필드 확장 + release clause 활성화.
 잔여 6개월 이내 선수 → 타 구단 직접 계약 제안 가능 (보스만 룰).
 
 ## 명세
-- v1.0-tasks.md Stage H / Task H.3
+- v0.5-tasks.md Stage H / Task H.3
 
 ## 작업 내용
 - [ ] ``TransferSystem.SubmitFreeAgentContract`` 신규
@@ -520,21 +520,21 @@ Contract 보너스 필드 확장 + release clause 활성화.
 - [ ] FA 영입 시나리오 검증
 "@ }
 
-    # ─── Stage I: 매치 엔진 재작성 (9, V1.0 최대) ─────────────
+    # ─── Stage I: 매치 엔진 재작성 (9, V0.5 최대) ─────────────
     @{ Key="I.1"; Title="[Simulation] 매치 엔진 분 단위 골격 (인터페이스 유지)"; Type="Feature"; Labels="area:simulation"; Priority="P0"; Size="L";
        Body=@"
 ## 목표
 MatchSimulator 인터페이스 유지 / 내부 분 단위 step 루프 재작성.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.1
-- algorithms.md V1.0-2
+- v0.5-tasks.md Stage I / Task I.1
+- algorithms.md V0.5-2
 - design-decisions.md #44
 
 ## 작업 내용
 - [ ] ``Simulate(match, state, balance) → MatchResult`` 시그니처 유지
 - [ ] 분 단위 step 루프 (1~90)
-- [ ] 시드 결정성 (algorithms.md V1.0-2 1단계)
+- [ ] 시드 결정성 (algorithms.md V0.5-2 1단계)
 
 ## DoD
 - [ ] T1 결정성 통과
@@ -546,8 +546,8 @@ MatchSimulator 인터페이스 유지 / 내부 분 단위 step 루프 재작성.
 Shot / Save / Foul / Card / Injury / Substitution / Pass / Cross / KeyPass / OffsidesCalled / Goal / Assist. stat 직접 참조 (finishing × composure 등).
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.2
-- algorithms.md V1.0-2 이벤트 표
+- v0.5-tasks.md Stage I / Task I.2
+- algorithms.md V0.5-2 이벤트 표
 
 ## DoD
 - [ ] EditMode 시뮬 시 이벤트 분포 명세 범위
@@ -559,7 +559,7 @@ Shot / Save / Foul / Card / Injury / Substitution / Pass / Cross / KeyPass / Off
 InjuryTypeSO ~15 카탈로그 활용. 옐로 5장 정지. 레드 1-3경기.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.3
+- v0.5-tasks.md Stage I / Task I.3
 
 ## 작업 내용
 - [ ] 부상 발생 → InjuryInfo + PlayerInjuredEvent
@@ -577,7 +577,7 @@ InjuryTypeSO ~15 카탈로그 활용. 옐로 5장 정지. 레드 1-3경기.
 이벤트별 가산점 (골 +1.0 / 어시 +0.5 / 옐로 -0.3 / 레드 -1.5). 기본 6.5.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.4 / algorithms.md V1.0-2 평점 표
+- v0.5-tasks.md Stage I / Task I.4 / algorithms.md V0.5-2 평점 표
 
 ## DoD
 - [ ] T5 평점 계산 정확
@@ -589,7 +589,7 @@ InjuryTypeSO ~15 카탈로그 활용. 옐로 5장 정지. 레드 1-3경기.
 유저 구단 매치 한정 텍스트 이벤트 ~15-20 (Q5 핵심만).
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.5
+- v0.5-tasks.md Stage I / Task I.5
 
 ## 작업 내용
 - [ ] Match.events 본격 채움 (유저 매치)
@@ -607,7 +607,7 @@ InjuryTypeSO ~15 카탈로그 활용. 옐로 5장 정지. 레드 1-3경기.
 fatigue 70+ / Injury / 스코어 상황 기반 자동 교체.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.6
+- v0.5-tasks.md Stage I / Task I.6
 
 ## 작업 내용
 - [ ] ``Application/SubstitutionAI.cs`` 신규 — DecideSubstitution
@@ -623,7 +623,7 @@ fatigue 70+ / Injury / 스코어 상황 기반 자동 교체.
 비활성 구단 매치 = V0.1 단순 Poisson + 라인 가중 재활용. events 비움.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.7
+- v0.5-tasks.md Stage I / Task I.7
 
 ## 작업 내용
 - [ ] ``MatchSimulator.SimulateLite`` 분리
@@ -640,7 +640,7 @@ fatigue 70+ / Injury / 스코어 상황 기반 자동 교체.
 effectiveCA 곱셈 보정 적용.
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.8 / algorithms.md V1.0-2 외부 영향
+- v0.5-tasks.md Stage I / Task I.8 / algorithms.md V0.5-2 외부 영향
 
 ## 작업 내용
 - [ ] effectiveCA = CA × (1+form-50/200) × (1+morale-50/200) × max(0.5, 1-fatigue/200)
@@ -656,7 +656,7 @@ effectiveCA 곱셈 보정 적용.
 V0.1 임시 변통 폐기 (design-decisions.md #33 보강).
 
 ## 명세
-- v1.0-tasks.md Stage I / Task I.9
+- v0.5-tasks.md Stage I / Task I.9
 
 ## 작업 내용
 - [ ] ``GameBalanceSO.strengthExponent`` 제거
@@ -675,7 +675,7 @@ V0.1 임시 변통 폐기 (design-decisions.md #33 보강).
 ``GameBalanceSO.formation`` nested → ``FormationSO`` 추출. 5-6 카탈로그.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.1
+- v0.5-tasks.md Stage J / Task J.1
 - design-decisions.md #45
 
 ## 작업 내용
@@ -693,7 +693,7 @@ V0.1 임시 변통 폐기 (design-decisions.md #33 보강).
 PlayerRoleSO ~40 + Club.tactic 본격 활용.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.2
+- v0.5-tasks.md Stage J / Task J.2
 - design-decisions.md #45
 
 ## 작업 내용
@@ -709,15 +709,15 @@ PlayerRoleSO ~40 + Club.tactic 본격 활용.
     @{ Key="J.3"; Title="[Simulation] Mentality 7단계 + 외부화"; Type="Feature"; Labels="area:simulation"; Priority="P0"; Size="S";
        Body=@"
 ## 목표
-``enum Mentality`` 7단계 + 매치 시뮬 곱셈 보정. Team Instructions 는 V1.x.
+``enum Mentality`` 7단계 + 매치 시뮬 곱셈 보정. Team Instructions 는 V1.0.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.3
+- v0.5-tasks.md Stage J / Task J.3
 
 ## 작업 내용
 - [ ] enum 7단계 (VeryDefensive ~ VeryAttacking)
 - [ ] ``GameBalanceSO.mentalityModifiers[7]``
-- [ ] Team Instructions 는 V1.x placeholder 만
+- [ ] Team Instructions 는 V1.0 placeholder 만
 
 ## DoD
 - [ ] Mentality 7단계 매치 시뮬 입력 정상
@@ -729,8 +729,8 @@ PlayerRoleSO ~40 + Club.tactic 본격 활용.
 ``Application/TacticImpact.cs`` — Tactic + Stats → 이벤트 가중치.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.4
-- algorithms.md V1.0-7
+- v0.5-tasks.md Stage J / Task J.4
+- algorithms.md V0.5-7
 
 ## 작업 내용
 - [ ] ``ComputeEventWeight(tactic, playerId, state, eventType, balance)``
@@ -738,7 +738,7 @@ PlayerRoleSO ~40 + Club.tactic 본격 활용.
 - [ ] MatchSimulator 통합 — 이벤트 주체 선수 추첨 시 호출
 
 ## DoD
-- [ ] T1~T4 (algorithms.md V1.0-7)
+- [ ] T1~T4 (algorithms.md V0.5-7)
 "@ }
 
     @{ Key="J.5"; Title="[UI] LineupScene + TacticScene 신규"; Type="Feature"; Labels="area:ui"; Priority="P0"; Size="L";
@@ -747,7 +747,7 @@ PlayerRoleSO ~40 + Club.tactic 본격 활용.
 Formation / Role / Duty / Mentality / Set Pieces UI.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.5
+- v0.5-tasks.md Stage J / Task J.5
 
 ## 작업 내용
 - [ ] TacticScene — Formation + 11 슬롯 Role/Duty + Mentality
@@ -765,7 +765,7 @@ Formation / Role / Duty / Mentality / Set Pieces UI.
 캡틴 / 부캡틴 자동 + 수동 변경 + 라커룸 효과.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.6
+- v0.5-tasks.md Stage J / Task J.6
 - design-decisions.md #45
 
 ## 작업 내용
@@ -784,7 +784,7 @@ Formation / Role / Duty / Mentality / Set Pieces UI.
 ClubGenerator 또는 StartingSquadGacha 가 포메이션 추첨.
 
 ## 명세
-- v1.0-tasks.md Stage J / Task J.7
+- v0.5-tasks.md Stage J / Task J.7
 - design-decisions.md #32, #45
 
 ## 작업 내용
@@ -802,8 +802,8 @@ ClubGenerator 또는 StartingSquadGacha 가 포메이션 추첨.
 AI 응답 4분기 (Accepted / CounterOffer / Rejected / Mocking) + 다중 라운드 (최대 3).
 
 ## 명세
-- v1.0-tasks.md Stage K / Task K.1
-- algorithms.md V1.0-3.1
+- v0.5-tasks.md Stage K / Task K.1
+- algorithms.md V0.5-3.1
 
 ## 작업 내용
 - [ ] ``OfferStatus.CounterOffer`` 활성화
@@ -818,10 +818,10 @@ AI 응답 4분기 (Accepted / CounterOffer / Rejected / Mocking) + 다중 라운
     @{ Key="K.2"; Title="[Transfer] 선수 개인 협상 (Negotiating)"; Type="Feature"; Labels="area:transfer"; Priority="P0"; Size="M";
        Body=@"
 ## 목표
-AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 통과 → V1.0 단계).
+AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 통과 → V0.5 단계).
 
 ## 명세
-- v1.0-tasks.md Stage K / Task K.2
+- v0.5-tasks.md Stage K / Task K.2
 
 ## 작업 내용
 - [ ] 선수 응답 (loyalty / ambition / 주급 / 출전시간 약속)
@@ -837,8 +837,8 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 임대 영입 / 종료 / 자동 복귀.
 
 ## 명세
-- v1.0-tasks.md Stage K / Task K.3
-- algorithms.md V1.0-3.1
+- v0.5-tasks.md Stage K / Task K.3
+- algorithms.md V0.5-3.1
 - design-decisions.md #48
 
 ## 작업 내용
@@ -859,7 +859,7 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 ``Player.state.transferListed`` 본격 활용 + 시장가 ×0.7 + CpuTransferAi 우선순위 ↑.
 
 ## 명세
-- v1.0-tasks.md Stage K / Task K.4
+- v0.5-tasks.md Stage K / Task K.4
 
 ## DoD
 - [ ] TransferRequest → 유저 수락 → transferListed → AI 영입 가시화
@@ -871,7 +871,7 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 협상 진행 + 라운드 / amount / status 표시 + CounterOffer 응답.
 
 ## 명세
-- v1.0-tasks.md Stage K / Task K.5
+- v0.5-tasks.md Stage K / Task K.5
 
 ## 작업 내용
 - [ ] 협상 진행 화면
@@ -889,8 +889,8 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 유스 CA 캡 ~95. 사용자 피드백 2.2 "아무리 높아도 100 정도".
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.1
-- algorithms.md V1.0-4
+- v0.5-tasks.md Stage L / Task L.1
+- algorithms.md V0.5-4
 - design-decisions.md #50
 
 ## 작업 내용
@@ -908,7 +908,7 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 풀 전체 영입 가능. 인원 제한 = 시설 등급 비례. 사용자 피드백 2.2.
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.2
+- v0.5-tasks.md Stage L / Task L.2
 
 ## 작업 내용
 - [ ] ``YouthSystem.SignPlayers`` — maxSign 검증
@@ -924,7 +924,7 @@ AI 판매 Accepted → ``OfferStatus.Negotiating`` 단계 도입 (V0.1 자동 �
 Task A.5 / D.1 의 분리된 시설을 YouthSystem 에서 각각 활용.
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.3
+- v0.5-tasks.md Stage L / Task L.3
 - design-decisions.md #50
 
 ## 작업 내용
@@ -942,8 +942,8 @@ Task A.5 / D.1 의 분리된 시설을 YouthSystem 에서 각각 활용.
 베테랑 ↔ 유스 묶음 → Hidden Attributes 수렴.
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.4
-- algorithms.md V1.0-4 Mentoring
+- v0.5-tasks.md Stage L / Task L.4
+- algorithms.md V0.5-4 Mentoring
 - design-decisions.md #50
 
 ## 작업 내용
@@ -963,7 +963,7 @@ Task A.5 / D.1 의 분리된 시설을 YouthSystem 에서 각각 활용.
 18세 + CA ≥ 클럽 평균 70% → 자동 알림 + 유저 응답 (Q9).
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.5
+- v0.5-tasks.md Stage L / Task L.5
 
 ## 작업 내용
 - [ ] ``YouthSystem.CheckPromotionCandidates``
@@ -980,7 +980,7 @@ Task A.5 / D.1 의 분리된 시설을 YouthSystem 에서 각각 활용.
 ``youthRejectedToOtherClubRatio = 0.3`` 확률로 AI 영입.
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.6 / algorithms.md V1.0-4
+- v0.5-tasks.md Stage L / Task L.6 / algorithms.md V0.5-4
 
 ## 작업 내용
 - [ ] ``YouthSignedByOtherEvent`` 신규
@@ -993,10 +993,10 @@ Task A.5 / D.1 의 분리된 시설을 YouthSystem 에서 각각 활용.
     @{ Key="L.7"; Title="[Youth] 라운드별 포지션 가중치"; Type="Feature"; Labels="area:youth"; Priority="P1"; Size="S";
        Body=@"
 ## 목표
-V0.1 균등 → V1.0 라운드별 변동.
+V0.1 균등 → V0.5 라운드별 변동.
 
 ## 명세
-- v1.0-tasks.md Stage L / Task L.7
+- v0.5-tasks.md Stage L / Task L.7
 
 ## 작업 내용
 - [ ] ``youthPositionWeightVolatility = 0.5`` 외부화
@@ -1013,7 +1013,7 @@ V0.1 균등 → V1.0 라운드별 변동.
 사용자 피드백 2.8 — 시즌 통계 저장.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.1
+- v0.5-tasks.md Stage M / Task M.1
 
 ## 작업 내용
 - [ ] ``SeasonEndProcessor.Run`` 신규 단계 — 시즌 통계 → Player.career.Add
@@ -1030,8 +1030,8 @@ V0.1 균등 → V1.0 라운드별 변동.
 LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / ManagerOfSeason.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.2
-- algorithms.md V1.0-9
+- v0.5-tasks.md Stage M / Task M.2
+- algorithms.md V0.5-9
 - design-decisions.md #51
 
 ## 작업 내용
@@ -1043,7 +1043,7 @@ LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / Man
 - [ ] ``AwardWonEvent`` 신규
 
 ## DoD
-- [ ] EditMode T1~T6 (algorithms.md V1.0-9)
+- [ ] EditMode T1~T6 (algorithms.md V0.5-9)
 "@ }
 
     @{ Key="M.3"; Title="[Season] 월간 어워드 (Manager / Player of the Month)"; Type="Feature"; Labels="area:season"; Priority="P1"; Size="M";
@@ -1052,7 +1052,7 @@ LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / Man
 매월 1일 직전 월 통계 → 어워드.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.3
+- v0.5-tasks.md Stage M / Task M.3
 
 ## 작업 내용
 - [ ] ``SeasonAwardSystem.ComputeMonthlyAwards``
@@ -1069,14 +1069,14 @@ LeagueMVP / TopScorer / TopAssist / YoungPlayer / BestEleven / GoldenGlove / Man
 boardConfidence 본격 변동. < 10 → Game Over.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.4
+- v0.5-tasks.md Stage M / Task M.4
 - design-decisions.md #51
 
 ## 작업 내용
 - [ ] ``Club.season.boardConfidence`` 변동 트리거
 - [ ] 매월 평가 / 매치 평가 / 약속 미이행
 - [ ] < 30 → ``BoardWarningEvent`` / < 10 → ``ManagerSackedEvent``
-- [ ] V1.0 = Game Over
+- [ ] V0.5 = Game Over
 
 ## DoD
 - [ ] 강제 < 10 → Game Over 화면
@@ -1088,7 +1088,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 시즌 목표 순위 / 영입 예산 / 매각 예산.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.5
+- v0.5-tasks.md Stage M / Task M.5
 
 ## 작업 내용
 - [ ] ``BoardPromise`` 도메인 / ``BoardPromiseType`` enum
@@ -1106,7 +1106,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 시즌 종료 재정 결산. 시설 효과 연동 (Stadium).
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.6
+- v0.5-tasks.md Stage M / Task M.6
 
 ## 작업 내용
 - [ ] SeasonEndProcessor 신규 단계
@@ -1125,7 +1125,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 직전 시즌 외 Match events / playerStats 비움.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.7 / design-decisions.md #8
+- v0.5-tasks.md Stage M / Task M.7 / design-decisions.md #8
 
 ## 작업 내용
 - [ ] SeasonEndProcessor 신규 단계
@@ -1141,7 +1141,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 ``GameState.managerReputation`` 단순 도입. boardConfidence 가산.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.8 / design-decisions.md #51
+- v0.5-tasks.md Stage M / Task M.8 / design-decisions.md #51
 
 ## 작업 내용
 - [ ] managerReputation 0-100
@@ -1158,7 +1158,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 시즌 종료 시 자동 표시 — 시상 / 보드 평가 / 재정 결산 / 다음 목표.
 
 ## 명세
-- v1.0-tasks.md Stage M / Task M.9
+- v0.5-tasks.md Stage M / Task M.9
 
 ## DoD
 - [ ] 5/15 도래 시 자동 표시
@@ -1171,7 +1171,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 사용자 피드백 2.10 — 어디서든 선수 이름 클릭 → PlayerProfile 점프.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.1
+- v0.5-tasks.md Stage N / Task N.1
 
 ## 작업 내용
 - [ ] ``UI/PlayerNameLinkController.cs`` 신규
@@ -1188,7 +1188,7 @@ boardConfidence 본격 변동. < 10 → Game Over.
 Dashboard 종합 정보 표시.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.2
+- v0.5-tasks.md Stage N / Task N.2
 
 ## 작업 내용
 - [ ] 인박스 (Promise / Board / 매치 알림 / TransferRequest / YouthPromotion)
@@ -1206,7 +1206,7 @@ Dashboard 종합 정보 표시.
 유저 매치 시 자동 진입 + 가속 ×1 / ×2 / ×4 / 스킵 (Q6).
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.3
+- v0.5-tasks.md Stage N / Task N.3
 
 ## 작업 내용
 - [ ] MatchTextScene 신규
@@ -1224,7 +1224,7 @@ Dashboard 종합 정보 표시.
 Stage K.5 의 NegotiationScene 과 Dashboard 인박스 / Transfer 검색 화면 연동.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.4 (K.5 와 짝)
+- v0.5-tasks.md Stage N / Task N.4 (K.5 와 짝)
 
 ## DoD
 - [ ] Stage K 통합 검증
@@ -1236,7 +1236,7 @@ Stage K.5 의 NegotiationScene 과 Dashboard 인박스 / Transfer 검색 화면 
 active promises 목록 + 진행률 표시.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.5
+- v0.5-tasks.md Stage N / Task N.5
 
 ## 작업 내용
 - [ ] PromiseInboxScene 또는 Dashboard 패널
@@ -1252,7 +1252,7 @@ active promises 목록 + 진행률 표시.
 포지션 / CA 범위 → + 연령 / 국적 / 트레잇 / 시장가 / 계약 잔여.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.6
+- v0.5-tasks.md Stage N / Task N.6
 
 ## DoD
 - [ ] 7-8 필터 옵션 동작
@@ -1261,42 +1261,42 @@ active promises 목록 + 진행률 표시.
     @{ Key="N.7"; Title="[UI] 신규 씬 EditorBuildSettings 등록"; Type="Task"; Labels="area:ui"; Priority="P1"; Size="XS";
        Body=@"
 ## 목표
-V1.0 신규 씬 (Lineup / Tactic / MatchText / Negotiation / Mentoring / SeasonSummary / PromiseInbox) 빌드 포함.
+V0.5 신규 씬 (Lineup / Tactic / MatchText / Negotiation / Mentoring / SeasonSummary / PromiseInbox) 빌드 포함.
 
 ## 명세
-- v1.0-tasks.md Stage N / Task N.7
+- v0.5-tasks.md Stage N / Task N.7
 
 ## DoD
 - [ ] 모든 씬 빌드 포함
 "@ }
 
     # ─── Stage O: 통합 테스트 (4) ────────────────────────────
-    @{ Key="O.1"; Title="[Simulation] IntegrationTests V1.0 갱신"; Type="Task"; Labels="area:simulation"; Priority="P0"; Size="M";
+    @{ Key="O.1"; Title="[Simulation] IntegrationTests V0.5 갱신"; Type="Task"; Labels="area:simulation"; Priority="P0"; Size="M";
        Body=@"
 ## 목표
-V1.0 시스템 통합 시나리오 — 한 시즌 + 사기 + Promise + 매치 텍스트 + 시상.
+V0.5 시스템 통합 시나리오 — 한 시즌 + 사기 + Promise + 매치 텍스트 + 시상.
 
 ## 명세
-- v1.0-tasks.md Stage O / Task O.1
+- v0.5-tasks.md Stage O / Task O.1
 
 ## 작업 내용
 - [ ] V0.1 T1~T3 보강
-- [ ] 신규 V1.0 통합 시나리오
+- [ ] 신규 V0.5 통합 시나리오
 
 ## DoD
-- [ ] 한 시즌 V1.0 전체 시스템 통합 동작
+- [ ] 한 시즌 V0.5 전체 시스템 통합 동작
 "@ }
 
     @{ Key="O.2"; Title="[Save] SaveMigration 라운드트립 테스트"; Type="Task"; Labels="area:save"; Priority="P0"; Size="S";
        Body=@"
 ## 목표
-V1.0 라운드트립 + V0.1 무효 메시지.
+V0.5 라운드트립 + V0.1 무효 메시지.
 
 ## 명세
-- v1.0-tasks.md Stage O / Task O.2
+- v0.5-tasks.md Stage O / Task O.2
 
 ## DoD
-- [ ] V1.0 신규 필드 라운드트립 정확
+- [ ] V0.5 신규 필드 라운드트립 정확
 - [ ] V0.1 세이브 로드 → NotSupportedException
 "@ }
 
@@ -1306,7 +1306,7 @@ V1.0 라운드트립 + V0.1 무효 메시지.
 같은 시드 매치 → 같은 텍스트 시퀀스.
 
 ## 명세
-- v1.0-tasks.md Stage O / Task O.3
+- v0.5-tasks.md Stage O / Task O.3
 
 ## DoD
 - [ ] 결정성 검증
@@ -1318,48 +1318,48 @@ V1.0 라운드트립 + V0.1 무효 메시지.
 PlaytimeAgreement 미달 → Happiness 변동 → TransferRequest.
 
 ## 명세
-- v1.0-tasks.md Stage O / Task O.4
+- v0.5-tasks.md Stage O / Task O.4
 
 ## DoD
 - [ ] EditMode T 통과
 - [ ] loyalty 80 vs 20 변동폭 차이
 "@ }
 
-    # ─── Stage P: V1.0 빌드 (3) ─────────────────────────────
-    @{ Key="P.1"; Title="[Docs] V1.0 빌드 노트 작성"; Type="Task"; Labels="area:docs"; Priority="P1"; Size="S";
+    # ─── Stage P: V0.5 빌드 (3) ─────────────────────────────
+    @{ Key="P.1"; Title="[Docs] V0.5 빌드 노트 작성"; Type="Task"; Labels="area:docs"; Priority="P1"; Size="S";
        Body=@"
 ## 목표
-``docs/v1.0-build-notes.md`` (V0.1 패턴).
+``docs/v0.5-build-notes.md`` (V0.1 패턴).
 
 ## 명세
-- v1.0-tasks.md Stage P / Task P.1
+- v0.5-tasks.md Stage P / Task P.1
 
 ## DoD
-- [ ] V1.0 빌드 노트 작성
+- [ ] V0.5 빌드 노트 작성
 "@ }
 
-    @{ Key="P.2"; Title="[Docs] V1.0 빌드 결과 보고서"; Type="Task"; Labels="area:docs"; Priority="P1"; Size="S";
+    @{ Key="P.2"; Title="[Docs] V0.5 빌드 결과 보고서"; Type="Task"; Labels="area:docs"; Priority="P1"; Size="S";
        Body=@"
 ## 목표
-``docs/v1.0-build-report.md`` — 빌드 환경 / 산출물 / 테스트 / 발견 이슈.
+``docs/v0.5-build-report.md`` — 빌드 환경 / 산출물 / 테스트 / 발견 이슈.
 
 ## 명세
-- v1.0-tasks.md Stage P / Task P.2
+- v0.5-tasks.md Stage P / Task P.2
 
 ## DoD
-- [ ] V1.0 빌드 보고서 작성
+- [ ] V0.5 빌드 보고서 작성
 "@ }
 
     @{ Key="P.3"; Title="[Docs] README + 스크린샷 갱신"; Type="Task"; Labels="area:docs"; Priority="P1"; Size="S";
        Body=@"
 ## 목표
-포트폴리오 준비. README V1.0 + 스크린샷.
+포트폴리오 준비. README V0.5 + 스크린샷.
 
 ## 명세
-- v1.0-tasks.md Stage P / Task P.3
+- v0.5-tasks.md Stage P / Task P.3
 
 ## DoD
-- [ ] README V1.0 + 스크린샷 (메인 / 매치 텍스트 / 시즌 시상)
+- [ ] README V0.5 + 스크린샷 (메인 / 매치 텍스트 / 시즌 시상)
 "@ }
 )
 
@@ -1382,7 +1382,7 @@ function Process-Task {
     $url = gh issue create `
         --title $Task.Title `
         --label $Task.Labels `
-        --milestone "V1.0" `
+        --milestone "V0.5" `
         --assignee "@me" `
         --body-file $tmpBody
 

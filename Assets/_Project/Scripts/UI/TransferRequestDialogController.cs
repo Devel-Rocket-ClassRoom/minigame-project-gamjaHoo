@@ -1,10 +1,10 @@
 // TransferRequestDialogController.cs
-// V1.0 G.4 — Happiness < transferRequestThreshold (20) → TransferRequestEvent 발행 → 본 dialog 자동 노출.
+// V0.5 G.4 — Happiness < transferRequestThreshold (20) → TransferRequestEvent 발행 → 본 dialog 자동 노출.
 // design-decisions.md #42 (Q9 자동 트리거 + 유저 승인 패턴).
 //
 // 3 버튼:
-//   - 수락 → player.state.transferListed = true (V1.0 단순. 가격 할인 등 K.4 후속)
-//   - 거절 → dismiss + 로그 (V1.0 단순. happiness 추가 페널티 V1.x)
+//   - 수락 → player.state.transferListed = true (V0.5 단순. 가격 할인 등 K.4 후속)
+//   - 거절 → dismiss + 로그 (V0.5 단순. happiness 추가 페널티 V1.0)
 //   - 면담 → PlayerProfileScene 진입 (유저가 [면담] 버튼 직접 클릭)
 
 using FMLite.Application;
@@ -111,7 +111,7 @@ namespace FMLite.UI
                 Hide();
                 return;
             }
-            // 유저가 PlayerProfile 의 [면담] 버튼 직접 클릭하는 패턴 (V1.0 단순).
+            // 유저가 PlayerProfile 의 [면담] 버튼 직접 클릭하는 패턴 (V0.5 단순).
             PlayerPrefs.SetInt(SquadController.SelectedPlayerIdKey, _playerId);
             Hide();
             SceneManager.LoadScene(PlayerProfileScene);

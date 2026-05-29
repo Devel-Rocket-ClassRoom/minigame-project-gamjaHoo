@@ -1,5 +1,5 @@
 // BoardPromiseTests.cs
-// DoD: v1.0-tasks.md M.5 — 보드 약속 생성 + 거절 패널티
+// DoD: v0.5-tasks.md M.5 — 보드 약속 생성 + 거절 패널티
 
 using System;
 using System.Linq;

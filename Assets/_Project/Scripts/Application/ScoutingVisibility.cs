@@ -1,6 +1,6 @@
 // ScoutingVisibility.cs
-// V1.0 E.3 — 검색 결과 가시성 판정 + 정성적 라벨 5단계.
-// 명세: design-decisions.md #46 (이분법 + 정성적 라벨) / v1.0-plan.md §3.7.4.
+// V0.5 E.3 — 검색 결과 가시성 판정 + 정성적 라벨 5단계.
+// 명세: design-decisions.md #46 (이분법 + 정성적 라벨) / v0.5-plan.md §3.7.4.
 //
 // 책임:
 //   - IsScouted(userClub, playerId, isDebugMode) → 정확 노출 여부 판정

@@ -32,7 +32,7 @@ namespace FMLite.Domain
         public PromiseStatus status;
         public Dictionary<string, int> targets = new Dictionary<string, int>();
 
-        // V1.0 G.2 Sub-B — PromiseDeadlineApproachingEvent 중복 발행 방지.
+        // V0.5 G.2 Sub-B — PromiseDeadlineApproachingEvent 중복 발행 방지.
         // CheckProgress 가 (deadline - 30일) 도래 시 한 번만 알림.
         public bool deadlineNotified;
     }

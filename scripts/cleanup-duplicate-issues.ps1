@@ -1,4 +1,4 @@
-﻿# V1.0 중복 이슈 정리 — 일회성 스크립트.
+# V0.5 중복 이슈 정리 — 일회성 스크립트.
 # 새 이슈 (중복) 에 duplicate comment 추가.
 # 기존 일괄 생성 이슈 (실제 작업 완료) 에 completed comment + close.
 
@@ -22,7 +22,7 @@ foreach ($p in $Pairs) {
     Write-Host "[$($p.Key)] 새=#$($p.New) → 기존=#$($p.Original)" -ForegroundColor Cyan
 
     # 1. 새 이슈에 duplicate comment 추가
-    $newComment = "Duplicate of #$($p.Original) — V1.0 일괄 생성 이슈 (#$($p.Original)) 가 정식. 본 이슈는 실수로 별도 생성된 것."
+    $newComment = "Duplicate of #$($p.Original) — V0.5 일괄 생성 이슈 (#$($p.Original)) 가 정식. 본 이슈는 실수로 별도 생성된 것."
     gh issue comment $p.New --body $newComment 2>&1 | Out-Null
     Write-Host "  [#$($p.New)] duplicate comment OK" -ForegroundColor DarkGray
 

@@ -1,5 +1,5 @@
 // YouthPromotionTests.cs
-// DoD: algorithms.md V1.0 L.5 CheckPromotionCandidates / PromotePlayer / DeclinePromotion.
+// DoD: algorithms.md V0.5 L.5 CheckPromotionCandidates / PromotePlayer / DeclinePromotion.
 
 using System;
 using System.Collections.Generic;

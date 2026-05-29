@@ -1,5 +1,5 @@
 // ScoutingVisibilityTests.cs
-// V1.0 E.3 — 가시성 판정 + 5단계 라벨 검증.
+// V0.5 E.3 — 가시성 판정 + 5단계 라벨 검증.
 
 using System.Collections.Generic;
 using FMLite.Application;

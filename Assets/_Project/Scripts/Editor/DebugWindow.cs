@@ -15,7 +15,7 @@
 //     → Console 로그. 정상 매치 처리 흐름 시각화 (Application 코어에 Debug.Log 미주입).
 //   - 리그 standings 패널.
 //
-// V1.0+ 확장 — Stage 14 Task 14.2 (#58 isDebugMode 토글) 연결 후
+// V0.5+ 확장 — Stage 14 Task 14.2 (#58 isDebugMode 토글) 연결 후
 // 능력치 노출 / 시드 표시 / 매치 강제 결과 등 추가.
 
 using System;

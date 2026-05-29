@@ -1,5 +1,5 @@
 // FacilityLevelSO.cs
-// 시설 유형 × 등급별 효과 정의. V1.0: 8 type × Lv1~10 = 80 인스턴스.
+// 시설 유형 × 등급별 효과 정의. V0.5: 8 type × Lv1~10 = 80 인스턴스.
 
 using UnityEngine;
 

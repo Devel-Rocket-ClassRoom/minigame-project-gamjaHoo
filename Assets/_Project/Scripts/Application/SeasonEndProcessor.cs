@@ -6,7 +6,7 @@
 //   - 계약 만료 → FA 전환 (currentClubId = -1, squad 제거)
 //   - 33+ 확률적 은퇴 (GameState 제거)
 //   - SeasonEndedEvent 발행
-// V1.0 M.1: SaveCareerStats — 리그 매치 결과 집계 → Player.career.Add
+// V0.5 M.1: SaveCareerStats — 리그 매치 결과 집계 → Player.career.Add
 
 using System;
 using System.Collections.Generic;
@@ -26,19 +26,19 @@ namespace FMLite.Application
             if (balance == null)
                 throw new ArgumentNullException(nameof(balance));
 
-            // a. 시즌 통계 career 저장 (V1.0 M.1) — 은퇴/계약만료 전에 실행
+            // a. 시즌 통계 career 저장 (V0.5 M.1) — 은퇴/계약만료 전에 실행
             SaveCareerStats(state);
 
-            // a2. Match 데이터 압축 (V1.0 M.7) — career 저장 후 events/playerStats 비우기
+            // a2. Match 데이터 압축 (V0.5 M.7) — career 저장 후 events/playerStats 비우기
             CompressMatchData(state);
 
-            // b. 시즌 어워드 계산 (V1.0 M.2)
+            // b. 시즌 어워드 계산 (V0.5 M.2)
             SeasonAwardSystem.ComputeSeasonAwards(state, balance);
 
-            // b2. 매니저 평판 — 리그 우승 트리거 (V1.0 M.8)
+            // b2. 매니저 평판 — 리그 우승 트리거 (V0.5 M.8)
             ManagerReputationSystem.OnLeagueWin(state, balance);
 
-            // c. 재정 결산 (V1.0 M.6)
+            // c. 재정 결산 (V0.5 M.6)
             FinanceSystem.ProcessSeasonFinance(state, balance);
 
             // d. 계약 만료 → FA 전환

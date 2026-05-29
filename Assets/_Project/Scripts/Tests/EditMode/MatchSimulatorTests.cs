@@ -1,5 +1,5 @@
 // MatchSimulatorTests.cs
-// DoD: algorithms.md V1.0-2 Test Scenarios — Stage I.1' (5-zone 상태 머신) + I.2' (zone resolution).
+// DoD: algorithms.md V0.5-2 Test Scenarios — Stage I.1' (5-zone 상태 머신) + I.2' (zone resolution).
 // 후속: Foul/Card/Injury = I.3 / 평점 = I.4 / 텍스트 = I.5 / SubstitutionAI = I.6 / background = I.7 / fatigue·form·morale = I.8 / 연장 = I.11.
 
 using System.Collections.Generic;

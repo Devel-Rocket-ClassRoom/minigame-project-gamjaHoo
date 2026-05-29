@@ -1,6 +1,6 @@
 // BoardSystem.cs
-// V1.0 M.4 — 보드 평가 + 경질.
-// V1.0 M.5 — GenerateSeasonPromises (TransferIn) + RejectPromise.
+// V0.5 M.4 — 보드 평가 + 경질.
+// V0.5 M.5 — GenerateSeasonPromises (TransferIn) + RejectPromise.
 // ProcessMatchResult: 매치 결과 반영 (패배/빅매치패배/승리).
 // EvaluateMonthly: 매월 1일 순위 기반 보드 평가.
 // Stateless (design-decisions.md #3).

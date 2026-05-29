@@ -30,10 +30,10 @@
 | 스타팅 가챠 | 게임 시작 시 구단 스쿼드를 명성 기반으로 랜덤 생성하는 시스템 |
 | 5단계 티어 | Elite / Strong / Average / Weak / Poor — 스쿼드 평가 표시 단위 |
 | 시드 | Random Seed. 같은 시드는 같은 초기 상태 생성 |
-| 비활성 구단 | `isActiveSimulation == false`인 구단. V0.1 은 활성과 동일 알고리즘, 이벤트 발행만 생략 (V1.0+ 이벤트 시퀀스 도입 후 경량 분기 검토) |
+| 비활성 구단 | `isActiveSimulation == false`인 구단. V0.1 은 활성과 동일 알고리즘, 이벤트 발행만 생략 (V0.5+ 이벤트 시퀀스 도입 후 경량 분기 검토) |
 | 활성 시뮬 | 유저 구단 + 같은 리그 + 주요 컴페티터의 풀 시뮬레이션 |
 | 인스펙션 풀 | Youth Intake Pool. 유스 영입 시점에 떠오르는 후보 선수 집합 |
-| 베스트 일레븐 | Starting 11. 경기 출전 11명. V0.1 은 `MatchSimulator` 가 top-11 by CA (부상자 제외) 자동 선정. 라인업 결정 UI 는 V1.0+. |
+| 베스트 일레븐 | Starting 11. 경기 출전 11명. V0.1 은 `MatchSimulator` 가 top-11 by CA (부상자 제외) 자동 선정. 라인업 결정 UI 는 V0.5+. |
 | 홈 어드밴티지 | Home Advantage. 홈 경기 시 홈팀 골 기대값 (λ) 에 가산 보너스. V0.1 은 `balance.homeAdvantageGoalBonus = 0.3`. |
 
 ## Statistics / Math Terms
