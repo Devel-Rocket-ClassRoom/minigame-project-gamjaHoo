@@ -11,9 +11,9 @@ namespace FMLite.Domain
     [Serializable]
     public class GameState
     {
-        // 세이브 버전 (design-decisions.md #52 / algorithms.md V1.0-8).
+        // 세이브 버전 (design-decisions.md #52 / algorithms.md V0.5-8).
         // 0 = V0.1 구형 세이브 (필드 없음 → JSON 역직렬화 시 0으로 수신).
-        // 2 = V1.0. SaveSystem.Save 가 직렬화 직전 CurrentVersion 으로 스탬프.
+        // 2 = V0.5. SaveSystem.Save 가 직렬화 직전 CurrentVersion 으로 스탬프.
         public int saveVersion;
 
         // 메타 필드
@@ -44,7 +44,7 @@ namespace FMLite.Domain
         public List<League> leagues = new List<League>();
         public List<TransferOffer> activeOffers = new List<TransferOffer>();
 
-        // V1.0 신규 (design-decisions.md #43, #51)
+        // V0.5 신규 (design-decisions.md #43, #51)
         public List<Promise> activePromises = new List<Promise>();
         public List<SeasonAward> activeAwards = new List<SeasonAward>();
         public int managerReputation = 50; // 0-100

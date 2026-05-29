@@ -15,8 +15,8 @@ namespace FMLite.Domain
         BestEleven,
         GoldenGlove,
         ManagerOfSeason,
-        MonthlyManagerOfMonth, // V1.0 M.3
-        MonthlyPlayerOfMonth, // V1.0 M.3
+        MonthlyManagerOfMonth, // V0.5 M.3
+        MonthlyPlayerOfMonth, // V0.5 M.3
     }
 
     [Serializable]

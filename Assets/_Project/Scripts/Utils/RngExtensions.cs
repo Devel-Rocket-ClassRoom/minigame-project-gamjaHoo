@@ -69,7 +69,7 @@ namespace FMLite.Utils
 
         // 포아송 분포 추출 — Knuth 알고리즘 (algorithms.md #2 4단계 골 분포 모델).
         // λ < 30 범위에서 효율적. V0.1 매치 평균 λ ≈ 1.5~3.5 라 충분.
-        // 큰 λ (>30) 는 exp(-λ) underflow 위험 — V1.0+ 에서 정규분포 근사 확장 검토.
+        // 큰 λ (>30) 는 exp(-λ) underflow 위험 — V0.5+ 에서 정규분포 근사 확장 검토.
         public static int NextPoisson(this Random rng, double lambda)
         {
             if (rng == null)

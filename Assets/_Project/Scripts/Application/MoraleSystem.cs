@@ -1,6 +1,6 @@
 // MoraleSystem.cs
-// V1.0 G.1 — 사기 (단기) + 행복도 (장기) 변동 트리거 일괄 적용.
-// algorithms.md V1.0-6 / design-decisions.md #42.
+// V0.5 G.1 — 사기 (단기) + 행복도 (장기) 변동 트리거 일괄 적용.
+// algorithms.md V0.5-6 / design-decisions.md #42.
 // Stateless (design-decisions.md #3). state 입력받아 변경.
 //
 // 호출 시점:
@@ -43,7 +43,7 @@ namespace FMLite.Application
 
             // 매주 월요일 Promise 체크는 G.2 PromiseSystem.CheckProgress (DailyProcessor 직접 호출) 로 이관.
 
-            // 매월 1일 — 라커룸 분위기 갱신 (V1.0 G.3)
+            // 매월 1일 — 라커룸 분위기 갱신 (V0.5 G.3)
             if (state.currentDate.Day == 1)
             {
                 foreach (var club in state.allClubs)
@@ -51,7 +51,7 @@ namespace FMLite.Application
             }
         }
 
-        // ── DressingRoomMood (V1.0 G.3) ──────────────────────────────
+        // ── DressingRoomMood (V0.5 G.3) ──────────────────────────────
 
         // 1군 선수 happiness 평균 + 캡틴 leadership 가산. NewSeasonProcessor / 월 1회 호출.
         public static void UpdateDressingRoomMood(

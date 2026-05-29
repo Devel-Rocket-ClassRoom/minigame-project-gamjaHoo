@@ -1,5 +1,5 @@
 // NegotiationController.cs
-// V1.0 K.5 — 협상 진행 화면.
+// V0.5 K.5 — 협상 진행 화면.
 // CounterOffer 상태 오퍼 목록 + 응답 패널 (수락 / 거절 / 재역제안).
 // 씬 배치 / 프리팹 와이어링은 Unity AI Assistant. 코드만 Claude Code.
 

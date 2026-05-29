@@ -1,5 +1,5 @@
 // ScoutingSystem.cs
-// V1.0 E.2 — 스카우트 명단 관리. Stateless (design-decisions.md #3 + #46).
+// V0.5 E.2 — 스카우트 명단 관리. Stateless (design-decisions.md #3 + #46).
 // 매주 (월요일) DailyProcessor 가 UpdateKnowledge 호출.
 //
 // 책임:
@@ -7,9 +7,9 @@
 //   2. Scout 시설 등급에 따라 명단 확장 (자기 리그 외 클럽 선수 무작위)
 //   3. 기존 명단의 scoutLevel 누적 (매주 +growthRate, max 100) + accuracy margin ↓
 //
-// 명세: design-decisions.md #46 / v1.0-plan.md §3.7.1-3.
-// V1.0 단일 리그라 "자기 리그 vs 타 리그" 분기 단순화 — 자기 클럽 외 모든 클럽 = 후보.
-//   다중 리그 V2.0+ 도입 시 분기 추가.
+// 명세: design-decisions.md #46 / v0.5-plan.md §3.7.1-3.
+// V0.5 단일 리그라 "자기 리그 vs 타 리그" 분기 단순화 — 자기 클럽 외 모든 클럽 = 후보.
+//   다중 리그 V1.0 도입 시 분기 추가.
 
 using System;
 using System.Collections.Generic;

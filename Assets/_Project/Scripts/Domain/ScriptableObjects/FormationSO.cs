@@ -1,6 +1,6 @@
 // FormationSO.cs
 // 팀 포메이션 카탈로그 에셋 (design-decisions.md #32 / #45).
-// V0.1 GameBalanceSO.FormationConfig → V1.0 FormationSO 추출.
+// V0.1 GameBalanceSO.FormationConfig → V0.5 FormationSO 추출.
 // J.7: formationStyle (0=Solid/1=Balanced/2=Flamboyant) + squadConfig 추가.
 
 using UnityEngine;

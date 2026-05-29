@@ -1,5 +1,5 @@
 // LocalizationTests.cs
-// DoD 검증: v1.0-tasks.md Stage A / Task A.2 — Localization 시스템.
+// DoD 검증: v0.5-tasks.md Stage A / Task A.2 — Localization 시스템.
 // algorithms.md #52: Get / SetLanguage / args interpolation / fallback.
 
 using FMLite.Application;

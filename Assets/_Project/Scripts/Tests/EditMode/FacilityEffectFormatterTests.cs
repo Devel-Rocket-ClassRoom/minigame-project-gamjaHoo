@@ -1,5 +1,5 @@
 // FacilityEffectFormatterTests.cs
-// V1.0 D.5 — 시설별 효과 문자열 변환 단위 검증.
+// V0.5 D.5 — 시설별 효과 문자열 변환 단위 검증.
 // Localization 의존이므로 SetUp 에서 LocalizationSystem.Initialize.
 
 using FMLite.Application;

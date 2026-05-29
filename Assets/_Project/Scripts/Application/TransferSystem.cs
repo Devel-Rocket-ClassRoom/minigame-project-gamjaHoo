@@ -7,8 +7,8 @@
 //   - 이적시장 활성화 기간 (체결) 6/1~8/31 + 1/1~1/31 — 체결만 시기 제약
 //   - 단일 라운드 AI 응답 (Accept/Reject) / 선수 자동 통과 / AI 영입 미구현 (사용자 클럽만)
 //
-// V1.0 H.1 (design-decisions.md #48):
-//   - RenewContract — 상시 재계약. 시점 제약 X. algorithms.md V1.0-3.1.
+// V0.5 H.1 (design-decisions.md #48):
+//   - RenewContract — 상시 재계약. 시점 제약 X. algorithms.md V0.5-3.1.
 
 using System;
 using System.Collections.Generic;
@@ -202,7 +202,7 @@ namespace FMLite.Application
             double aiPerceivedValue = marketValue * noise;
             double ratio = aiPerceivedValue > 0 ? offer.amount / aiPerceivedValue : 0;
 
-            // V1.0 K.1/K.2 4분기 응답 (algorithms.md V1.0-3.1 [3-a])
+            // V0.5 K.1/K.2 4분기 응답 (algorithms.md V0.5-3.1 [3-a])
             // AI 구단 수락 → CounterOffer(counterAmount = amount) 로 저장, 유저 NegotiationScene 대기
             if (ratio >= balance.aiAcceptThreshold)
             {
@@ -238,7 +238,7 @@ namespace FMLite.Application
             );
         }
 
-        // ── PlayerNegotiate (algorithms.md V1.0-3.1 [4] / design-decisions.md #48) ──
+        // ── PlayerNegotiate (algorithms.md V0.5-3.1 [4] / design-decisions.md #48) ──
 
         // AI 구단 수락(Negotiating) 후 선수 측 평가.
         // loyalty ↑ → 거절 / ambition ↑ → 수락 / includesPlaytimeAgreement → +playtimeAgreementBonus.
@@ -290,7 +290,7 @@ namespace FMLite.Application
             );
         }
 
-        // ── RespondToCounterOffer (algorithms.md V1.0-3.1 [3-b]) ─────
+        // ── RespondToCounterOffer (algorithms.md V0.5-3.1 [3-b]) ─────
 
         // 유저가 CounterOffer 에 응답.
         // Accept → offer.amount = counterAmount → Accepted
@@ -407,7 +407,7 @@ namespace FMLite.Application
                 // 영구 이적: parentClubId 초기화 (임대 해지 후 영구 이적 케이스 포함)
                 player.parentClubId = -1;
                 player.loanEndDate = null;
-                // 자금 이동 (V0.1: 자금 부족도 허용 — 적자 가능. V1.0+ 사전 검증)
+                // 자금 이동 (V0.1: 자금 부족도 허용 — 적자 가능. V0.5+ 사전 검증)
                 fromClub.finance.money += offer.amount;
                 toClub.finance.money -= offer.amount;
                 transferredAmount = offer.amount;
@@ -426,7 +426,7 @@ namespace FMLite.Application
             );
         }
 
-        // ── ProcessLoanReturns (algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리) ──
+        // ── ProcessLoanReturns (algorithms.md V0.5-3.1 DailyProcessor 임대 복귀 처리) ──
 
         // DailyProcessor 가 매일 호출 — loanEndDate 도래 선수 자동 원 구단 복귀 + LoanReturnedEvent.
         public static void ProcessLoanReturns(GameState state)
@@ -507,7 +507,7 @@ namespace FMLite.Application
                 || (d >= winterStart.Date && d <= winterEnd.Date);
         }
 
-        // ── RenewContract (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+        // ── RenewContract (algorithms.md V0.5-3.1 / design-decisions.md #48) ──
 
         // 상시 재계약. 시점 제약 X. 잔여 6개월 이내 가산점.
         // 수락 → contract 갱신 + MoraleSystem.OnContractRenewed + ContractRenewedEvent
@@ -561,7 +561,7 @@ namespace FMLite.Application
             }
         }
 
-        // ── SubmitFreeAgentContract (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+        // ── SubmitFreeAgentContract (algorithms.md V0.5-3.1 / design-decisions.md #48) ──
 
         // 보스만 룰: 잔여 6개월 이내 선수 → 이적료 없이 직접 계약 제안.
         // 판매 구단 응답 불필요 (amount=0) → 즉시 Accepted. ProcessOffers 가 창 열리면 CompleteTransfer.
@@ -618,9 +618,9 @@ namespace FMLite.Application
             return offer;
         }
 
-        // ── SubmitLoanOffer (algorithms.md V1.0-3.1 / design-decisions.md #48) ──
+        // ── SubmitLoanOffer (algorithms.md V0.5-3.1 / design-decisions.md #48) ──
 
-        // 임대 오퍼. V1.0: AI 협상 생략 — 즉시 Accepted. ProcessOffers 가 창 열리면 CompleteTransfer.
+        // 임대 오퍼. V0.5: AI 협상 생략 — 즉시 Accepted. ProcessOffers 가 창 열리면 CompleteTransfer.
         // loanFee ≥ 0 허용 (무료 임대 포함).
         public static TransferOffer SubmitLoanOffer(
             int playerId,
@@ -665,7 +665,7 @@ namespace FMLite.Application
                 toClubId = toClubId,
                 amount = term.loanFee,
                 proposed = term.proposed,
-                status = OfferStatus.Accepted, // V1.0: 임대는 즉시 합의
+                status = OfferStatus.Accepted, // V0.5: 임대는 즉시 합의
                 isLoan = true,
                 loanFee = term.loanFee,
                 loanWageShare = term.loanWageShare,

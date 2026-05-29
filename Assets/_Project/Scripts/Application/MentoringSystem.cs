@@ -1,5 +1,5 @@
 // MentoringSystem.cs
-// algorithms.md V1.0-4 Mentoring — Hidden Attributes 수렴 (월 1회).
+// algorithms.md V0.5-4 Mentoring — Hidden Attributes 수렴 (월 1회).
 // Stateless 시스템 (design-decisions.md #3).
 // 대상 Hidden Attrs: professionalism / ambition / loyalty (design-decisions.md #50).
 // 매월 1일 DailyProcessor.Run 이 RunMentoring 호출.

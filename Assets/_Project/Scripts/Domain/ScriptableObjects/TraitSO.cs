@@ -20,7 +20,7 @@ namespace FMLite.Domain
         // 0 = 충돌 없음 (기본). e.g. 늦깎이형/조숙형 → 그룹 1.
         public int exclusionGroupId = 0;
 
-        // V1.0 본격 효과 정의 (design-decisions.md #41)
+        // V0.5 본격 효과 정의 (design-decisions.md #41)
         public List<TraitEffect> effects = new List<TraitEffect>();
     }
 }

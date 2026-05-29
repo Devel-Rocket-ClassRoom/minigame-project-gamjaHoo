@@ -1,5 +1,5 @@
 // PromiseSystemTests.cs
-// V1.0 G.2 — PromiseSystem.CheckProgress 4종 + Create 헬퍼 + MoraleSystem.OnInterview wire-up.
+// V0.5 G.2 — PromiseSystem.CheckProgress 4종 + Create 헬퍼 + MoraleSystem.OnInterview wire-up.
 
 using System;
 using System.Collections.Generic;

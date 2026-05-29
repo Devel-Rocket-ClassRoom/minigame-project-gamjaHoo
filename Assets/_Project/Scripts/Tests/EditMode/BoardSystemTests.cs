@@ -1,5 +1,5 @@
 // BoardSystemTests.cs
-// DoD: v1.0-tasks.md M.4 — 보드 평가 + 경질
+// DoD: v0.5-tasks.md M.4 — 보드 평가 + 경질
 
 using System;
 using System.Collections.Generic;

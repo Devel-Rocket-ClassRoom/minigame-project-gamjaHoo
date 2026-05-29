@@ -1,10 +1,10 @@
 // InjurySystem.cs
-// V1.0 D.4 Sub-B — Injury Recovery + Rate (algorithms.md V1.0-11).
+// V0.5 D.4 Sub-B — Injury Recovery + Rate (algorithms.md V0.5-11).
 // Stateless 시스템 (design-decisions.md #3).
 //
 // 책임:
 //   - ComputeRecoveryDays: 매치 엔진 (Stage I.3) 이 부상 발생 시 expectedReturn 계산에 사용.
-//   - ComputeInjuryRate: 매 분 부상 발생 확률 계산 (V1.0-2 분 단위 이벤트 시퀀스에서 호출).
+//   - ComputeInjuryRate: 매 분 부상 발생 확률 계산 (V0.5-2 분 단위 이벤트 시퀀스에서 호출).
 //   - ProcessRecovery: 매일 DailyProcessor 호출 — expectedReturn 도래 시 부상 해제 + 이벤트.
 //
 // 시설 보정:

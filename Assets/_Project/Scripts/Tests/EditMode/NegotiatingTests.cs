@@ -1,7 +1,7 @@
 // NegotiatingTests.cs
-// V1.0 K.2 — PlayerNegotiate DoD 검증.
+// V0.5 K.2 — PlayerNegotiate DoD 검증.
 // DoD: loyalty 80 vs 20 거절률 차이.
-// algorithms.md V1.0-3.1 [4] / design-decisions.md #48.
+// algorithms.md V0.5-3.1 [4] / design-decisions.md #48.
 
 using System;
 using FMLite.Application;

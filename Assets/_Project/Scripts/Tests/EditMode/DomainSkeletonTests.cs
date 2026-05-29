@@ -1,5 +1,5 @@
 // DomainSkeletonTests.cs
-// DoD 검증: v1.0-tasks.md Stage A / Task A.4 — V1.0 도메인 클래스 스켈레톤.
+// DoD 검증: v0.5-tasks.md Stage A / Task A.4 — V0.5 도메인 클래스 스켈레톤.
 // 클래스 인스턴스 생성 + 필드 할당/읽기 검증.
 
 using System;

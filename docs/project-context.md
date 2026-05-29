@@ -28,7 +28,7 @@
 | UI Asset | Modern UI Pack |
 | Serialization | Newtonsoft.Json |
 | Static Data | ScriptableObject |
-| Animation | DOTween (V1.x onwards) |
+| Animation | DOTween (V1.0 onwards) |
 | Editor Tools | Built-in + Custom Editor (when needed) |
 | Dependencies | Minimized (no Odin) |
 
@@ -105,7 +105,7 @@ Flat: `FMLite.Core`, `FMLite.Domain`, `FMLite.Application`, `FMLite.UI`
 - Simple transfer (offer → negotiate → conclude)
 - Functional UI: main / squad / youth / transfer / schedule
 
-### V1.0 — Playability (5/23 ~ 5/29)
+### V0.5 — Playability (5/23 ~ 5/29)
 
 **Goal:** A season runs entertainingly.
 
@@ -119,7 +119,7 @@ Flat: `FMLite.Core`, `FMLite.Domain`, `FMLite.Application`, `FMLite.UI`
 - UI polish
 - V0.1 refactoring
 
-### V1.x — Polish (5/30 ~ 6/5)
+### V1.0 — Polish (5/30 ~ 6/5)
 
 **Goal:** Portfolio-ready build.
 

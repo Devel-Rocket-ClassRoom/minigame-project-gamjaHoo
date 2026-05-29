@@ -1,5 +1,5 @@
 // InjurySystemTests.cs
-// V1.0 D.4 Sub-B — algorithms.md V1.0-11 Test Scenarios T1~T6.
+// V0.5 D.4 Sub-B — algorithms.md V0.5-11 Test Scenarios T1~T6.
 
 using System;
 using FMLite.Application;

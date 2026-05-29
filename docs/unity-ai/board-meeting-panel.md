@@ -204,7 +204,7 @@
 
 ## Step 11 — Localization 재시드
 
-1. Unity 메뉴: `FM-Lite → Seed → Generate V1.0 Localization` 실행.
+1. Unity 메뉴: `FM-Lite → Seed → Generate V0.5 Localization` 실행.
 2. Console 에 에러 없으면 완료.
 
 ---
@@ -240,7 +240,7 @@
 ### Console
 
 - [ ] 컴파일 에러 0.
-- [ ] `FM-Lite/Seed/Generate V1.0 Localization` 실행 완료.
+- [ ] `FM-Lite/Seed/Generate V0.5 Localization` 실행 완료.
 
 ---
 

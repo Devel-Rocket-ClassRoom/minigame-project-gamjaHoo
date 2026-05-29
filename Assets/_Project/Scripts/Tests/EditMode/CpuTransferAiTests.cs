@@ -1,5 +1,5 @@
 // CpuTransferAiTests.cs
-// V1.0 F.1+F.2 — CpuTransferAi 트리거 + 후보 추첨 + 오퍼 제출 검증.
+// V0.5 F.1+F.2 — CpuTransferAi 트리거 + 후보 추첨 + 오퍼 제출 검증.
 
 using System;
 using System.Collections.Generic;

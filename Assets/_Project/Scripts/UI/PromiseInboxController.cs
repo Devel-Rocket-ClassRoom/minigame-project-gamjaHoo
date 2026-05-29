@@ -1,5 +1,5 @@
 // PromiseInboxController.cs
-// V1.0 N.5 — 약속 진행 현황 화면.
+// V0.5 N.5 — 약속 진행 현황 화면.
 // state.activePromises 에서 유저 클럽 선수 약속만 표시.
 
 using System.Collections.Generic;

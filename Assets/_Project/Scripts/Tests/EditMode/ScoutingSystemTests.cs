@@ -1,5 +1,5 @@
 // ScoutingSystemTests.cs
-// V1.0 E.2 — ScoutingSystem 명단 관리 검증.
+// V0.5 E.2 — ScoutingSystem 명단 관리 검증.
 // 완료 조건: 시설 Lv5 → ~3000명 / Lv1 → ~50명 (단일 리그 모델, 후보 수 제한).
 
 using System;

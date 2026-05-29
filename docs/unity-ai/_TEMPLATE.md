@@ -196,7 +196,7 @@ ScrollView (ScrollRect 컴포넌트)
 ## Localization 재시드
 
 새 키를 코드에서 사용하면 반드시:
-`FM-Lite → Seed → Generate V1.0 Localization` 실행
+`FM-Lite → Seed → Generate V0.5 Localization` 실행
 
 ---
 

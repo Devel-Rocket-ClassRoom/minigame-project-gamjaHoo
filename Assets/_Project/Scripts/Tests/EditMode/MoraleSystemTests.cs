@@ -1,5 +1,5 @@
 // MoraleSystemTests.cs
-// V1.0 G.1 — algorithms.md V1.0-6 Test Scenarios T1~T7.
+// V0.5 G.1 — algorithms.md V0.5-6 Test Scenarios T1~T7.
 // T8 (라커룸 분위기 < 30 → 폼 -5) 는 G.3 책임이라 본 PR 범위 밖.
 
 using System;

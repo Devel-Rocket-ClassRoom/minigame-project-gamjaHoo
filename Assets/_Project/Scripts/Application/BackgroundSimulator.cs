@@ -6,7 +6,7 @@
 //   - isActiveSimulation 무시. 모든 매치 동일 알고리즘 (design-decisions.md #33, SimulateLite 폐기).
 //   - MatchFinishedEvent 모든 매치 발행. UI 없으니 구독자 0 → EventBus.Publish 비용 ~0.
 //
-// V1.0+ 진화 (#34):
+// V0.5+ 진화 (#34):
 //   - publishEvent 옵션 도입 — UI 도입 후 유저 매치만 발행 / 비활성 매치 생략.
 //   - 분 단위 이벤트 시뮬 도입 시 비활성 구단 경량 경로 (SimulateLite) 분리 검토.
 

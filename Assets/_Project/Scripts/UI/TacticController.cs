@@ -1,6 +1,6 @@
 // TacticController.cs
 // J.5 슬라이스 — TacticScene: Formation 선택 + Mentality 선택 + Save/Back.
-// 11 슬롯 Role/Duty 편집 + LineupScene 은 후속 (v1.0-tasks.md J.5).
+// 11 슬롯 Role/Duty 편집 + LineupScene 은 후속 (v0.5-tasks.md J.5).
 // MUIP 첫 도입 화면 (design-decisions.md #45 / #57).
 
 using System.Collections.Generic;

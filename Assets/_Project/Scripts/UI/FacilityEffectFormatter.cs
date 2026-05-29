@@ -1,6 +1,6 @@
 // FacilityEffectFormatter.cs
 // FacilityLevelSO → 효과 문자열 변환. 시설 종류별 분기.
-// V1.0 D.5.
+// V0.5 D.5.
 
 using FMLite.Application;
 using FMLite.Domain;

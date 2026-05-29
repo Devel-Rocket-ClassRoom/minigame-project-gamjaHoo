@@ -3,7 +3,7 @@
 // Stateless (design-decisions.md #3).
 //
 // V0.1 책임: 매치 분기 + 유스 인스펙션 트리거 + 시즌 종료/시작 트리거 (Stage 12).
-// V1.0+: 보드 리뷰 / 이적창 자동 알림.
+// V0.5+: 보드 리뷰 / 이적창 자동 알림.
 
 using System;
 using System.Collections.Generic;
@@ -65,7 +65,7 @@ namespace FMLite.Application
             if (TryTriggerNewSeason(state, today))
                 stopRequested = true;
 
-            // TODO V1.0:    이적창 오픈/마감 / 보드 리뷰일
+            // TODO V0.5:    이적창 오픈/마감 / 보드 리뷰일
 
             return stopRequested;
         }

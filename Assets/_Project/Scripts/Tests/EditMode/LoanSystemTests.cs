@@ -1,6 +1,6 @@
 // LoanSystemTests.cs
-// V1.0 K.3 — Loan System DoD: 임대 → 종료 → 자동 복귀 라운드트립.
-// algorithms.md V1.0-3.1 DailyProcessor 임대 복귀 처리 / design-decisions.md #48.
+// V0.5 K.3 — Loan System DoD: 임대 → 종료 → 자동 복귀 라운드트립.
+// algorithms.md V0.5-3.1 DailyProcessor 임대 복귀 처리 / design-decisions.md #48.
 
 using System;
 using FMLite.Application;

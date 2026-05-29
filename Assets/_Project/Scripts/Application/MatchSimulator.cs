@@ -1,5 +1,5 @@
 // MatchSimulator.cs
-// algorithms.md V1.0-2 Match Simulation V1.0 — 5-Zone Markov (Stage I.1' 상태 머신 + I.2' zone resolution).
+// algorithms.md V0.5-2 Match Simulation V0.5 — 5-Zone Markov (Stage I.1' 상태 머신 + I.2' zone resolution).
 // 인터페이스 (Simulate(match, state, balance) → MatchResult) 유지 (design-decisions.md #44 / #55).
 // 상태: ballZone + possession. 매 분 1~3 ResolveAction(zone 분기) + possession contest. forward simulation (결과 미리 산출 폐기, #17 V0.1).
 // I.3: Foul/Card/Penalty/Injury — Tackle 시 maybeFoul → box penalty / 2옐로 퇴장 / Injury + PlayerInjuredEvent + sentOff.
@@ -96,7 +96,7 @@ namespace FMLite.Application
             // 컵 매치: allowsExtraTime=true 로 설정. League는 무승부 허용.
             // V0.1 경고 제거 — I.11 에서 컵 연장/승부차기 지원.
 
-            // 1단계: 시드 고정 (forward simulation — 결정성은 시드에서만, #17 V1.0)
+            // 1단계: 시드 고정 (forward simulation — 결정성은 시드에서만, #17 V0.5)
             var rng = new Random(match.id ^ state.randomSeed);
 
             // 2단계: starting11 자동 선정 (Tactic = Stage J. 부상/정지 제외)
@@ -833,7 +833,7 @@ namespace FMLite.Application
 
         // ── I.4: 평점 계산 (매치 종료 시) ────────────────────────────
 
-        // 이벤트 누적 통계 → rating (base 6.5, clamp 1.0~10.0). pressureHandling 빅매치 가산 = V1.x.
+        // 이벤트 누적 통계 → rating (base 6.5, clamp 1.0~10.0). pressureHandling 빅매치 가산 = V1.0.
         private static void ComputeRatings(SimState sim)
         {
             var b = sim.balance;
@@ -1074,7 +1074,7 @@ namespace FMLite.Application
             return Eff(avg, s, sim);
         }
 
-        // ── 헬퍼: stat 조합 (49 stat zone별 매핑, algorithms.md V1.0-2) ──
+        // ── 헬퍼: stat 조합 (49 stat zone별 매핑, algorithms.md V0.5-2) ──
 
         private static double BuildupAtt(Player p) =>
             (

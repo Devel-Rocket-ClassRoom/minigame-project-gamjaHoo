@@ -1,7 +1,7 @@
 // CounterOfferTests.cs
-// V1.0 K.1 — AiRespondToOffer 4분기 + RespondToCounterOffer DoD 검증.
+// V0.5 K.1 — AiRespondToOffer 4분기 + RespondToCounterOffer DoD 검증.
 // DoD: CounterOffer 시나리오 검증.
-// algorithms.md V1.0-3.1 [3-a][3-b] / design-decisions.md #48.
+// algorithms.md V0.5-3.1 [3-a][3-b] / design-decisions.md #48.
 
 using System;
 using FMLite.Application;

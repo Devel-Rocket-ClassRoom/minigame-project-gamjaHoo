@@ -433,7 +433,7 @@ public enum CupTarget {
     SemiFinal,
     Final,
     Win
-    // V1.0+ 컵 시스템에서 본격 활용
+    // V0.5+ 컵 시스템에서 본격 활용
 }
 
 public enum FacilityType {
@@ -454,7 +454,7 @@ public enum FacilityType {
 | `PositionSO` | 포지션 + 키 스탯 + 2차 affinity |
 | `LeagueConfigSO` | 리그 규칙 (팀 수, 강등 수, 일정 패턴) |
 | `FacilityLevelSO` | 시설 등급별 효과 |
-| `TacticPresetSO` | 전술 프리셋 (V1.0~) |
+| `TacticPresetSO` | 전술 프리셋 (V0.5~) |
 | `InjuryTypeSO` | 부상 종류 |
 | `CountrySO` | 국가 정보 (코드, 깃발색 등) |
 | `NamePoolSO` | 이름 풀 (국가별) |

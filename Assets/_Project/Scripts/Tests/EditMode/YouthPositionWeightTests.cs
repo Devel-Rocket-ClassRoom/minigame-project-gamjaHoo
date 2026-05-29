@@ -1,5 +1,5 @@
 // YouthPositionWeightTests.cs
-// DoD: algorithms.md V1.0 L.7 — 라운드별 포지션 가중치 다양성.
+// DoD: algorithms.md V0.5 L.7 — 라운드별 포지션 가중치 다양성.
 
 using System;
 using System.Collections.Generic;

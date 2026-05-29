@@ -13,7 +13,7 @@ namespace FMLite.Domain
         public DateTime endDate;
         public int releaseClause;
 
-        // V1.0 신규 보너스 조항 (design-decisions.md #48)
+        // V0.5 신규 보너스 조항 (design-decisions.md #48)
         public int signingBonus; // 계약 서명 보너스
         public int loyaltyBonus; // 만기 잔류 보너스
         public int appearanceBonus; // 시즌당 출전 수 달성 보너스

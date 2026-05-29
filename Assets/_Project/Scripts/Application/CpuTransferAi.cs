@@ -1,12 +1,12 @@
 // CpuTransferAi.cs
-// V1.0 F.1 + F.2 — AI 구단 능동 영입 의사결정. Stateless (design-decisions.md #3 + #47).
+// V0.5 F.1 + F.2 — AI 구단 능동 영입 의사결정. Stateless (design-decisions.md #3 + #47).
 // 매주 월요일 DailyProcessor 가 ScoutingSystem.UpdateKnowledge 다음 호출.
 //
-// 필요 기반 트리거 5종 (algorithms.md V1.0-5):
+// 필요 기반 트리거 5종 (algorithms.md V0.5-5):
 //   1. 약점 포지션 (최우선) — 4라인 평균 CA ratio < aiWeaknessRatioThreshold (0.95)
 //   2. 부상자 발생 — 핵심 (CA 상위 70%) 가 aiCoreInjuryWeeksThreshold (4) 주+ 부상
 //   3. 계약 잔여 6개월 — 핵심 FA 임박
-//   4. 약속 미이행 위험 — 보드 영입 약속 임박 (V1.x 도메인 의존 — 안전 분기)
+//   4. 약속 미이행 위험 — 보드 영입 약속 임박 (V1.0 도메인 의존 — 안전 분기)
 //   5. 명성 대비 자금 여유 — 자금 > clubReputation × aiSavingsThreshold
 //
 // 우선순위: 1 > 2 > 3 > 4 > 5. 같은 주 한 클럽 1 트리거만 (자금 분산 회피).
@@ -104,7 +104,7 @@ namespace FMLite.Application
                     position = faImminent.info.primaryPosition,
                 };
 
-            // 4. 보드 약속 — V1.x 의존 (boardPromises 빈 리스트 시 스킵)
+            // 4. 보드 약속 — V1.0 의존 (boardPromises 빈 리스트 시 스킵)
             // (Club.season.boardPromises 가 Stage M.5 에서 도입 예정)
 
             // 5. 명성 대비 자금 여유
@@ -352,7 +352,7 @@ namespace FMLite.Application
 
         private static Contract ProposeContract(Player target, GameState state)
         {
-            // V1.0 단순화 — 4년 계약 / 기존 주급 ×1.20 / release X
+            // V0.5 단순화 — 4년 계약 / 기존 주급 ×1.20 / release X
             var oldContract = target.contract;
             int newWage = oldContract != null ? (int)(oldContract.weeklyWage * 1.20) : 1000;
             return new Contract

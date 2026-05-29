@@ -1,5 +1,5 @@
 // BoardMeetingController.cs
-// V1.0 M.5 — 보드 약속 수락/거절 모달 (DashboardScene 내 패널).
+// V0.5 M.5 — 보드 약속 수락/거절 모달 (DashboardScene 내 패널).
 // DashboardController.Start 에서 PendingReview 약속 존재 시 Show 호출.
 
 using FMLite.Application;

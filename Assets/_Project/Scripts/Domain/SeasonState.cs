@@ -1,5 +1,5 @@
 // SeasonState.cs
-// 구단별 시즌 목표 / 보드 신뢰도. V0.1: cupTarget 기본 None (컵 시스템은 V1.0+).
+// 구단별 시즌 목표 / 보드 신뢰도. V0.1: cupTarget 기본 None (컵 시스템은 V0.5+).
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace FMLite.Domain
         public CupTarget cupTarget;
         public int boardConfidence;
 
-        // V1.0 신규 (design-decisions.md #50, #51)
+        // V0.5 신규 (design-decisions.md #50, #51)
         public int captainPlayerId = -1;
         public int viceCaptainPlayerId = -1;
         public int dressingRoomMood; // 1군 Happiness 가중 평균

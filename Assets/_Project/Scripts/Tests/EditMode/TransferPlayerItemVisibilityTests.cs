@@ -1,5 +1,5 @@
 // TransferPlayerItemVisibilityTests.cs
-// V1.0 E.4 — TransferPlayerItem 의 가시성 분기 로직 검증.
+// V0.5 E.4 — TransferPlayerItem 의 가시성 분기 로직 검증.
 // Setup 자체는 MonoBehaviour 호출이라 PlayMode 영역.
 // 대신 가시성 판정 + 라벨 산정 (ScoutingVisibility 사용) 의 통합 시나리오 검증.
 

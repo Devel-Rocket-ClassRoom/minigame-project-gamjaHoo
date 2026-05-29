@@ -1,5 +1,5 @@
 // PlayerNameLinkController.cs
-// V1.0 N.1 — 선수 이름 클릭 → PlayerProfileScene.
+// V0.5 N.1 — 선수 이름 클릭 → PlayerProfileScene.
 // Setup(playerId, currentSceneName) 호출 후 버튼 OnClick 연결.
 
 using FMLite.Core;

@@ -121,7 +121,7 @@ namespace FMLite.Application
             if (state == null)
                 throw new ArgumentNullException(nameof(state));
 
-            // 시설 등급 기반 maxSign 검증 (algorithms.md V1.0-4)
+            // 시설 등급 기반 maxSign 검증 (algorithms.md V0.5-4)
             var recruitFacility = GameDatabase.GetFacilityLevel(
                 FacilityType.YouthRecruitment,
                 club.facilities.youthRecruitmentLevel
@@ -161,7 +161,7 @@ namespace FMLite.Application
                 signedSet.Add(id);
             }
 
-            // 미영입 처리 — V1.0 L.6: 일부 AI 다른 구단 영입, 나머지 제거 + ID 보존
+            // 미영입 처리 — V0.5 L.6: 일부 AI 다른 구단 영입, 나머지 제거 + ID 보존
             float aiRatio = balance?.youthRejectedToOtherClubRatio ?? 0f;
             var otherClubs = state.allClubs.Where(c => c.id != club.id).ToList();
             var rng = new Random(state.randomSeed ^ intake.id ^ 0xFEED);
@@ -258,7 +258,7 @@ namespace FMLite.Application
                     ?? GameDatabase.GetFacilityLevel(FacilityType.Youth, 1);
             }
 
-            // 3단계: 후보 N명 생성 (V1.0 L.7: 인스펙션별 포지션 가중치)
+            // 3단계: 후보 N명 생성 (V0.5 L.7: 인스펙션별 포지션 가중치)
             var allPositions = (Position[])Enum.GetValues(typeof(Position));
             double[] posWeights = SamplePositionWeights(rng, balance?.youthPositionWeightVolatility ?? 0f);
             int nextId = state.nextPlayerId;
@@ -289,7 +289,7 @@ namespace FMLite.Application
 
                 player.id = nextId++;
 
-                // V1.0 L.3: YouthCoach 가산 트레잇
+                // V0.5 L.3: YouthCoach 가산 트레잇
                 if (coachFacility != null && coachFacility.traitGrantChance > 0
                     && rng.NextDouble() < coachFacility.traitGrantChance)
                     TryGrantExtraTrait(player, rng);
@@ -352,7 +352,7 @@ namespace FMLite.Application
             return Math.Clamp((int)Math.Round(rawPA), balance.minPA, balance.maxPA);
         }
 
-        // V1.0: 고정 갭 모델 + CA 캡 (algorithms.md V1.0-4).
+        // V0.5: 고정 갭 모델 + CA 캡 (algorithms.md V0.5-4).
         private static int DeriveCaFromPa(Random rng, int pa, GameBalanceSO balance)
         {
             double gap = Math.Max(0, rng.NextNormal(balance.youthCaGapMean, balance.youthPaGapStdDev));

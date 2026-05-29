@@ -1,6 +1,6 @@
 // InterviewDialogController.cs
-// V1.0 G.2 Sub-B — PlayerProfile [면담] 버튼 → 4 멘트 dialog.
-// design-decisions.md #43 (V1.0 단순 4-6 멘트) — 본 PR 4 멘트만, 5-6 옵션은 V1.x.
+// V0.5 G.2 Sub-B — PlayerProfile [면담] 버튼 → 4 멘트 dialog.
+// design-decisions.md #43 (V0.5 단순 4-6 멘트) — 본 PR 4 멘트만, 5-6 옵션은 V1.0.
 //
 // 버튼 → MoraleSystem.OnInterview(state, playerId, type, balance):
 //   - Praise           → Morale +5

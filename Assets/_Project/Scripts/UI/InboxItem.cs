@@ -1,6 +1,6 @@
 // InboxItem.cs
-// V1.0 G.2 Sub-B — Dashboard 인박스 단일 메시지 행.
-// in-memory (V1.0 단순) — V1.x persistent (GameState.inboxItems) 검토.
+// V0.5 G.2 Sub-B — Dashboard 인박스 단일 메시지 행.
+// in-memory (V0.5 단순) — V1.0 persistent (GameState.inboxItems) 검토.
 
 using TMPro;
 using UnityEngine;

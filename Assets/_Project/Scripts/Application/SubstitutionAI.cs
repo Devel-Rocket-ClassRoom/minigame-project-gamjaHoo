@@ -1,5 +1,5 @@
 // SubstitutionAI.cs
-// 자동 교체 판단 + 실행. algorithms.md V1.0-2 (Stage I.6).
+// 자동 교체 판단 + 실행. algorithms.md V0.5-2 (Stage I.6).
 // 트리거 3종: Injury(즉시) / Fatigue > threshold / Tactical(60분+ 스코어 기반).
 // MatchSimulator 내부에서 호출 — SimState 외부화 대신 필요 컨텍스트를 파라미터로 전달.
 
