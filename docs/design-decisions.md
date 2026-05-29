@@ -1800,6 +1800,315 @@ fatigue > 40             → 부상 발생률 × 1.5
 
 ---
 
+## 58. UI 글로벌 네비게이션 — TopBar + SideBar 영구 레이어 (V1.0)
+
+**결정:** 모든 컨텐츠 씬 (Dashboard / Squad / Tactic / ... 11+) 에 **단일 prefab (`GlobalNavPrefab`)** 이 자동 주입. TopBar (80px) + SideBar (200px) 영구 표시. 뒤로가기 / 저장 / 옵션 / 인박스 / 메인 메뉴는 항상 고정 위치.
+
+**이유:**
+- **사용자 핵심 피드백 (2026-05-29)**: "씬이 전환되더라도 저런 기본적인 버튼들 (뒤로가기, 저장, 옵션 등)은 고정된 위치에 있도록 해야해." V0.5 에서 씬마다 버튼 위치/형태 제각각 → V1.0 일관성.
+- **FM 시리즈 표준** — FM26 도 동일 패턴 (TopBar + SideBar). 사용자 친숙.
+- **씬 간 우회 제거** — V0.5 는 저장 → Dashboard → 다른 씬으로 우회. V1.0 은 어디서든 TopBar [저장] 으로 직접.
+- **단일 prefab 관리** — UI 일관성 변경 시 한 곳만 수정.
+
+**구조 (`v1.0-plan.md §3.19` 참조):**
+- TopBar 좌측: [뒤로] [날짜] [자금] [토큰] [인박스 + 배지]
+- TopBar 우측: [옵션] [저장] [홈]
+- SideBar: 9 메인 메뉴 (대시보드 / 스쿼드 / 전술 / 라인업 / 이적 / 일정 / 순위 / 시설 / 유스 / 멘토링)
+- 인박스 클릭 = 우측 슬라이드 패널 (어디서든 동일 동작)
+
+**예외 (GlobalNav 없는 씬):**
+- MainMenu / ClubSelect / Gacha — 게임 시작 흐름. 자체 메뉴.
+- SeasonSummary / MatchText / Options — TopBar 만 (SideBar 없음, 특수 흐름).
+
+**영향 범위:**
+- `UI/GlobalNavController.cs` 신규 (싱글톤, DontDestroyOnLoad)
+- `Assets/Imported/FMLite UI/Prefabs/GlobalNavPrefab.prefab` 신규
+- 11+ 컨텐츠 씬에 prefab 자동 주입 (Awake)
+- 각 씬 컨트롤러의 자체 [뒤로] / [저장] 버튼 제거 (중복 회피)
+- `DashboardController.savePanel` → `GlobalSavePanel` (모달, 한 곳)
+
+### V1.x 보완 포인트
+- **DOTween 슬라이드 애니메이션** (인박스 패널 / 모달 등) — V1.0 정적, V1.x 도입.
+- **테마 토글** — UI Manager 가 다크 ↔ 라이트 전환 (V1.x).
+
+---
+
+## 59. Options 시스템 — PlayerPrefs + AudioMixer + 4 카테고리 (V1.0)
+
+**결정:** OptionsScene 신규. 사운드 / 언어 / 통화 / UI Scale / 자동 저장 / 단축키 안내. 모든 값 PlayerPrefs 저장 (GameState 외부).
+
+**왜 PlayerPrefs:**
+- 게임 진행 (GameState) 과 무관한 사용자 환경 설정 — 세이브 슬롯 X.
+- SaveSystem 영향 0. SaveMigration 영향 0.
+- 한 줄 API (`PlayerPrefs.GetFloat / SetFloat`).
+- 단점 (레지스트리 저장 / 사용자 편집 불편) 은 V1.0 스코프에선 무시.
+
+**옵션 항목 (사용자 합의):**
+
+| 항목 | UI | 저장 키 |
+|---|---|---|
+| Master 볼륨 | MUIP Slider 0-100 | `FMLite.Options.Master` |
+| SFX 볼륨 | Slider | `FMLite.Options.SFX` |
+| BGM 볼륨 | Slider | `FMLite.Options.BGM` |
+| 언어 | HorizontalSelector (KO/EN) | `FMLite.Options.Language` |
+| 통화 | HorizontalSelector (£/$/€/₩) | `FMLite.Options.Currency` |
+| UI Scale | HorizontalSelector (90/100/110/125) | `FMLite.Options.UIScale` |
+| 자동 저장 | Switch (ON/OFF) | `FMLite.Options.AutoSave` |
+| 단축키 안내 | ModalWindow (정적 표) | (저장 X) |
+
+**자동 저장 트리거 (Q10 합의):**
+- 매월 1일 / 시즌 시작 (6/1) / 시즌 종료 (5/15) 시 자동.
+- 슬롯명: `autosave_<클럽>_<YYYY-MM>` 또는 `autosave_<클럽>_<season>_<event>`.
+- 최근 3개 순환, 나머지 자동 삭제.
+
+**디버그 모드 토글은 미포함** — 사용자 합의 (별도 디버그 메뉴 유지).
+
+**영향 범위:**
+- `UI/OptionsController.cs` 신규
+- `Application/OptionsManager.cs` (static, PlayerPrefs 어댑터)
+- `Scenes/OptionsScene.unity` 신규
+- AudioMixer 도입 (Master / SFX / BGM 채널) — #60 과 짝
+- LocalizationSystem.SetLanguage 연동 (기존)
+- GlobalNavController 의 [옵션] 버튼 → OptionsScene 진입 (스택)
+
+### V1.x 보완 포인트
+- **그래픽 옵션** (해상도 / 풀스크린 모드 / VSync) — V1.x 풀빌드 시.
+- **컨트롤 매핑** — 단축키 사용자 수정.
+- **클라우드 동기화** — Steam Cloud 등.
+
+---
+
+## 60. 사운드 시스템 — 무료 라이센스 + AudioMixer + CREDITS.md (V1.0)
+
+**결정:** AudioMixer 기반 (Master → SFX + BGM). 무료 라이센스 (CC0/CC-BY) 에셋 활용. BGM 3곡 + SFX 12종. 출처/라이센스 명시 (`Assets/_Project/Audio/CREDITS.md`).
+
+**이유:**
+- 자체 제작 부담 X (V1.0 마감 일정 우선).
+- CC0 = 재배포 자유 (public repo 안전).
+- CC-BY = 크레딧만 표기. README V1.0 갱신 시 사운드 섹션 추가.
+- AudioMixer = Master/SFX/BGM 별도 슬라이더 (Options) 와 자연 연동.
+
+**카탈로그:**
+- **BGM 3곡**: MainMenu / Dashboard / Match. 각 ~2-3분 loop. crossfade 전환.
+- **SFX 12종**: button_click / button_hover / inbox_received / goal / card_yellow / card_red / injury / substitution / match_kickoff / match_fulltime / save_complete / season_summary.
+
+**소스 후보:**
+- freesound.org (CC0/CC-BY 필터)
+- Pixabay Music (CC0)
+- OpenGameArt.org (다양한 라이센스, 사전 확인 필수)
+
+**구현:**
+- `Application/SoundManager.cs` 신규 (DontDestroyOnLoad, GameManager 패턴).
+- `SoundManager.PlaySFX(SfxId)` / `PlayBGM(BgmId)` API.
+- 씬 전환 시 BGM crossfade.
+
+**영향 범위:**
+- `Application/SoundManager.cs` 신규
+- `Assets/_Project/Audio/` 신규 폴더 + Music + SFX + **CREDITS.md**
+- `Assets/_Project/Audio/MasterMixer.mixer` 신규 (AudioMixer)
+- 모든 UI 버튼 OnClick → `SoundManager.PlaySFX(SfxId.ButtonClick)`
+- MatchSimulator → MatchTextController SFX 트리거 (Goal / Card / Injury / etc)
+- OptionsController → AudioMixer.SetFloat 변환 (Mathf.Log10 × 20)
+
+### V1.x 보완 포인트
+- **자체 제작 BGM** — V1.x 폴리시.
+- **상황별 BGM 변형** — 매치 종반 긴장 / 시즌 마지막 매치 등.
+- **3D 사운드** — V1.x 매치 시각화 도입 시.
+
+---
+
+## 61. 통화 시스템 — GBP base 고정 환율표, 표시 변환만 (V1.0)
+
+**결정:** 도메인은 항상 GBP (£) base 저장. 표시 시점에만 사용자 통화로 변환. 환율 고정 (GameBalanceSO 상수).
+
+```csharp
+public enum Currency { GBP, USD, EUR, KRW }
+
+// GameBalanceSO 상수 (사용자 수정 X)
+public static readonly Dictionary<Currency, float> ExchangeRates = new() {
+    { Currency.GBP, 1.00f },   // base
+    { Currency.USD, 1.27f },
+    { Currency.EUR, 1.16f },
+    { Currency.KRW, 1700f }
+};
+```
+
+**이유:**
+- **EPL 모티브** = GBP 기반 자연.
+- **도메인 영향 0** — GameState 는 항상 GBP int. SaveMigration 영향 X.
+- **환율 고정** = 시즌별 변동 / 사용자 수정 = V1.x 스코프. 단순화 우선.
+- **표시 시점 변환** — `CurrencyFormatter.Format(int gbpAmount)` 헬퍼. 자동 M/K 단위.
+
+**적용 범위:**
+- TopBar 자금 표시 / Transfer 검색·오퍼 / Facility 비용·자금 / SeasonSummaryScene 재정 결산.
+- MatchReport 의 결과 영향 X (이적료는 매치와 무관).
+
+**영향 범위:**
+- `Utils/CurrencyFormatter.cs` 신규
+- `GameBalanceSO.exchangeRates / currencySymbols` 필드 추가 (직렬화 X — readonly)
+- 11+ UI 컨트롤러의 `£X.XM` 직박 → `CurrencyFormatter.Format(amount)` 교체
+
+### V1.x 보완 포인트
+- **사용자 수정 환율** — GameBalanceSO 인스펙터에서.
+- **시즌별 변동 환율** — 거시 경제 변동 (영국 파운드 약세 등).
+- **인플레이션** — 시즌 진행에 따라 시장가 ↑.
+
+---
+
+## 62. 매치 디테일 V1.0 — viewMode 폐기 + 모든 핵심 이벤트 텍스트 + 5-Zone 골 빈도 밸런싱 (V1.0)
+
+**결정:** 3가지 변경.
+
+**(1) viewMode 폐기 (Q7 합의)**:
+- V1.0 초안의 `viewMode (KeyOnly / GoalsOnly / All)` 폐기.
+- **모든 매치는 단일 모드** — 모든 핵심 이벤트 (Goal / KeyPass / Save / Card / Injury / SubstitutionAI / Cross / Foul / Penalty / Free Kick / Corner) 텍스트로 노출.
+- **사소한 이벤트** (성공 패스 / Midfield 점유 갱신) 는 통계만, 텍스트 비기록.
+- `collectEvents` 플래그는 유저 매치 / 비활성 매치 분기에만.
+
+**(2) 5-Zone 골 빈도 재밸런싱 (P0 hotfix)**:
+- V0.5 플레이테스트 발견: 11대 5 같은 비현실적 스코어 빈번. EPL 평균 (2.7) 대비 과다.
+- **목표**: `avgGoalsPerMatch` 2.7 ± 0.3 수렴.
+- **조정 후보** (`algorithms.md` V1.0-2):
+  - Shot success rate 분모 가중 (GK reflexes/handling ↑)
+  - Box 진입 확률 ↓
+  - 매 분 1~3 action 평균값 ↓
+  - homeAdvantage 곱셈 ↓ (1.1 → 1.05)
+- **검증**: 시즌 1회 완주 후 380 매치 평균 골수 측정. 2.4~3.0 진입까지 반복 튜닝.
+
+**(3) 매치 텍스트 생동감 강화**:
+- V0.5 ~40 키 → V1.0 ~150 키 확장.
+- 같은 이벤트 5종 변형 (예: 골 = "환상적 슈팅" / "행운의 굴절" / "PK 침착" / "헤더 결정" / "장거리 폭격").
+- 시드 기반 표현 회전.
+
+**이유:**
+- **사용자 피드백 2026-05-29**: "골이 너무 많이 나옴" + "텍스트 출력 안됨" — V0.5 매치 시뮬의 두 핵심 문제.
+- **viewMode 폐기** = 사용자 인지 부담 ↓. 텍스트 폭주 회피는 사소 이벤트 제외로 해결.
+- **밸런싱 P0**: 매치는 게임의 핵심 — 비현실적 스코어는 몰입감 파괴.
+
+**영향 범위:**
+- `MatchSimulator` 5-zone 파라미터 튜닝
+- `GameBalanceSO` avgGoalsPerMatch 등 재산정
+- `Match.events` collectEvents 분기 명세 갱신
+- LocalizationSO 매치 이벤트 키 ~150 확장
+- MatchTextController viewMode 제거
+
+### V1.x 보완 포인트
+- **xG / heatmap / 슈팅 위치** — V1.0 부분 도입 (§3.23 매치 결과 대시보드). V1.x 정밀화.
+- **유저 코칭 인터럽트** — 전반 종료 / 중요 이벤트 시 외침. V1.x.
+- **15-zone 정밀화** — V1.x.
+
+---
+
+## 63. 훈련 시스템 V1.0 — 개인 + 그룹 + GrowthSystem 통합 (사용자 추가 요청)
+
+**결정:** GrowthSystem (매월 1일 자동 성장) 위에 유저 개입 레이어 추가. 그룹 훈련 (포지션별 강도) + 개인 훈련 (1 stat 4주).
+
+**이유:**
+- **사용자 추가 요청 (2026-05-29)**: "훈련 시스템 (개인 / 그룹 훈련 지시)".
+- **FM 표준** — 훈련 / Mentoring 이 V0.5 design-decisions.md #53 V1.0 보완 포인트로도 기록되어 있음.
+- **유저 영향력 ↑** — V0.5 까지 유저는 시설만 결정. V1.0 은 개별 선수 성장 방향 결정.
+
+**그룹 훈련 (Squad-level):**
+- `Tactic` 화면에 [훈련] 탭 (또는 별도 TrainingScene).
+- 포지션 그룹별 강도: GK / DF / MF / AT 의 Low / Medium / High.
+- 강도 ↑ → 성장률 ×1.2 / fatigue 누적 ↑ / 부상 위험 ↑.
+- 그룹별 stat 집중 (예: AT → Finishing/Off the Ball 가중 / DF → Tackling/Marking 가중).
+
+**개인 훈련 (Player-level):**
+- PlayerProfile [개인 훈련] 버튼 → Modal.
+- 1명당 1 stat 집중 (예: "Marcus Rashford / Crossing / 4주").
+- 효과: 해당 stat 성장률 ×1.5, 기간 4주.
+- 동시 가능 인원 = `Club.facilities.trainingLevel` (Lv1=2명, Lv5=6명, Lv10=10명).
+
+**GrowthSystem 통합:**
+- 매월 1일 호출 시 그룹/개인 modifier 적용.
+- `algorithms.md` V1.0-4 신규 명세.
+
+**영향 범위:**
+- `Application/TrainingSystem.cs` 신규
+- `Domain/Club.trainingDirective: TrainingDirective` 신규
+- `Domain/Player.individualTraining: IndividualTraining?` 신규
+- `GrowthSystem` modifier 입력 추가
+- TacticScene [훈련] 탭 (또는 Squad 별도 탭)
+- PlayerProfile [개인 훈련] Modal
+
+### V1.x 보완 포인트
+- **프리시즌 캠프** — 6/1~8/15 추가 성장.
+- **개인 코치 배정** — FM 표준 Staff 시스템 (V1.x).
+- **훈련 매치 (Friendly)** — V1.x.
+- **Mentoring stat 영향** — V0.5 은 Hidden 만. V1.x stat 도.
+
+---
+
+## 64. V1.0 명세 정책 — Save Migration 무효 + 일정 마감 없음 + DOTween V1.x 미루기
+
+**결정 (V1.0 일괄 정책):**
+
+**(1) Save Migration V0.5 → V1.0 = 무효 (Q-MIG, Q8 V0.5 패턴 일관)**:
+- V0.5 세이브 로드 시 `NotSupportedException`.
+- V1.0 신규게임만.
+- 이유: 도메인 변경 폭 큼 (Player.physical / Inbox / Club.colors / training / 등 신규). 마이그레이션 가치 < 비용.
+
+**(2) 일정 마감 없음 (Q11)**:
+- V0.5 와 동일. Stage 단위 GitHub Issue + 보드 (#50) 추적.
+- 자유도 최대.
+
+**(3) DOTween V1.x 미루기 (Q12)**:
+- V1.0 = 정적 UI 로 마감.
+- project-context.md "DOTween (V1.0 onwards)" 표현은 보강 필요 (V1.0 미적용).
+- V1.x 도입 시 InboxPanel 슬라이드 / Modal Open / 탭 전환 / 등 부드러운 전환.
+
+**이유:**
+- **V0.5 → V1.0 도메인 변경 광범위** — 보존 시도가 부담. 사용자 합의 (Q8 패턴).
+- **마감 없음** = V0.5 패턴 일관. 자유도 우선.
+- **DOTween 미루기** = V1.0 시각 다듬기보다 시스템 (UI 일관성 / Options / 매치 대시보드 / 훈련 / 비교) 우선.
+
+### V1.x 보완 포인트
+- **V1.0 → V1.x Save Migration** 도입 검토 (도메인 안정화 후).
+- **DOTween 일괄 도입** — 모든 모달 / 패널 / 토스트.
+- **부드러운 폰트 폴리시** (Pretendard 등).
+
+---
+
+## 65. Unity MCP — Stage 0 첫 작업 + 4단계 fallback (V1.0)
+
+**결정:** V1.0 의 **첫 작업 (Stage 0)** = Claude Code ↔ Unity Editor 직접 통신 셋업.
+
+```
+[옵션 A] CoplayDev/unity-mcp (커뮤니티 표준)        ← 1순위
+   ↓ 실패 시
+[옵션 B] Unity 공식 MCP (com.unity.ai.assistant)   ← 2순위
+   ↓ 실패 시
+[옵션 C] IvanMurzak/Unity-MCP                       ← 3순위
+   ↓ 실패 시
+[옵션 D] 기존 unity-ai 지시서 패턴 유지              ← Fallback (현 상태 유지)
+```
+
+**이유:**
+- **사용자 명시 우선순위 (2026-05-29)**: "맨 처음 작업으로 Unity MCP 연결을 했으면 좋겠어. 네가 직접 씬을 보고 Unity AI 한테 직접 명령할 수 있게. 전에 시도했는데 잘 안돼서 포기했었거든."
+- **V1.0 의 거의 모든 작업이 UI 폴리시 / 새 씬 생성 / 통합** — 씬 작업 효율이 V1.0 일정 결정.
+- 성공 시: V0.5 대비 2~3배 빠른 작업 (사용자 추정).
+- **실패해도 손실 없음** — 옵션 D 로 V0.5 패턴 유지. 블로킹 X.
+
+**핵심 함정 (Windows 네이티브):**
+- Issue #773 — uvx --from 자동 config 실패. `uv --directory` 수동 우회.
+- Unity 6.3 + Unity 공식 MCP — System.Collections.Immutable DLL 충돌. 수동 fix.
+- WSL2 ↔ Windows 통신 — http transport + portproxy (현재 환경은 네이티브 PowerShell 이라 해당 X).
+
+**상세 셋업 절차 / 트러블슈팅 / 롤백:** `docs/unity-mcp-setup.md` (전용 문서).
+
+**완료 조건:**
+- Smoke Test 통과 (MCPTest GameObject 생성)
+- DashboardScene Hierarchy 읽기 가능
+- 의도하지 않은 .cs / 씬 / prefab 변경 없음
+
+### V1.x 보완 포인트
+- **MCP 도구 자동화** — V1.0 = 수동 호출. V1.x = 일반화된 작업 패턴 (예: "씬 X의 모든 버튼에 SFX 추가") 자동.
+- **자체 MCP 도구 추가** — IvanMurzak/Unity-MCP 패턴 (C# 메서드 → 도구) 으로 우리 시스템 (MoraleSystem.Tick / GrowthSystem.Apply 등) 노출.
+- **EditMode 테스트 자동 실행** — V1.0 = 사용자 수동. V1.x = MCP 자동.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -1823,3 +2132,4 @@ fatigue > 40             → 부상 발생률 × 1.5
 | 2026-05-26 | #47 V0.5+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V0.5 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.0 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V0.5 본문 정책 (매주 호출) 은 그대로 유지 — V1.0 스코프. |
 | 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V0.5-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
 | 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V0.5 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V0.5 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V0.5-2 재작성 + `v0.5-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
+| 2026-05-29 | #58~#65 추가 | V0.5 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 보강). 사용자 V0.5 플레이테스트 피드백 + 추가 요청 (Unity MCP / 매치 결과 대시보드 / 훈련 / 비교 도구 / Options / 통화) 통합. 12 Open Questions 모두 결정 + 추가 결정사항 흡수. **§ 매핑**: #58 글로벌 네비 (TopBar + SideBar 영구 레이어 — 사용자 핵심 피드백 "씬 전환되도 기본 버튼 고정 위치") / #59 Options (PlayerPrefs + AudioMixer + 4 카테고리: 사운드 / 언어 / 통화 / UI Scale / 자동 저장 / 단축키) / #60 사운드 (무료 라이센스 + AudioMixer + CREDITS.md, BGM 3 + SFX 12) / #61 통화 (GBP base 고정 환율, 표시 변환만) / #62 매치 디테일 V1.0 (viewMode 폐기 + 모든 핵심 이벤트 텍스트 + 5-Zone 골 빈도 P0 밸런싱) / #63 훈련 시스템 (개인 + 그룹 + GrowthSystem 통합) / #64 V1.0 정책 (Save Migration 무효 + 일정 마감 없음 + DOTween V1.x 미루기) / #65 Unity MCP (Stage 0 첫 작업 + 4단계 fallback, `unity-mcp-setup.md` 별도 명세). |

@@ -3909,3 +3909,783 @@ scoutWeeklyLevelGain = 5    # 매주 외부 명단 scoutLevel +5 (max 100)
 | 2026-05-22 | V0.5-1 ~ V0.5-9 | Part 2: V0.5 Updates 부록 신규 작성. 9 섹션 (PlayerGen V0.5 변경분 / MatchSim V0.5 분 단위 이벤트 시퀀스 / Market Value V0.5 hidden·form·morale 보정 / Transfer Flow V0.5 다중 라운드 + 임대 + 재계약 / Youth V0.5 CA 캡 + 시설 분리 + Mentoring / CpuTransferAi 필요 기반 트리거 5종 / Morale System 변동 매트릭스 + Promise 통합 / Tactic Impact Role × Duty × Mentality / Save Migration 인프라 / Season Award 시즌·월간 시상). `docs/v0.5-plan.md` §3 + `design-decisions.md` #39~#52 와 연동. 12 Open Questions 결정 결과 통합. |
 | 2026-05-26 | V0.5-10 / V0.5-11 | Stage D.4 Sub-A 명세 — Player Growth System (Training + Gym) + Injury Recovery (Medical + Gym). `design-decisions.md` #53 와 연동. 성장 = 매월 1일 / stat ±1 확률 모델 / Absolute 1/10 / 나이 곡선 / Training Lv N → ×(1+N×0.1) / Gym 피지컬 ×(1+N×0.05) / PA 캡. 부상 회복 = Medical Lv N → 회복 ×(1+N×0.05) + 발생률 ×(1-N×0.05) floor 0.5 / Gym 회복 +×(1+N×0.02). 매치 엔진 (Stage I.3) 호출 인터페이스 정의. |
 | 2026-05-26 | V0.5-12 | Stage E.2 — ScoutingSystem 신규. 매주 월요일 호출 / 자기 구단 자동 (scoutLevel=100) / 외부 명단 시설 등급 (×10 시작) 무작위 확장 / 매주 +scoutWeeklyLevelGain (5) 누적 / margin 곡선 = (100-level) × 30 / 100. 단일 리그 단순화 (V1.0 다중 리그 분기). `design-decisions.md` #46 와 연동. |
+
+---
+
+# Part 3: V1.0 Updates
+
+> V1.0 신규/변경 사항. `docs/v1.0-plan.md` §3.19~§3.27 + `docs/design-decisions.md` #58~#65 와 연동.
+> V0.5 알고리즘 (Part 2) 위에 *변경분 / 신규 시스템* 만 추가. V0.5 명세 자체는 유지.
+
+---
+
+## V1.0-1. 5-Zone Markov 골 빈도 재밸런싱 (P0 hotfix — `#62`)
+
+**문제 (V0.5 플레이테스트, 2026-05-29):**
+- 380 매치 평균 골수 = ~4.5 (EPL 실측 2.7 대비 과다).
+- 11대 5 같은 비현실적 스코어 빈번.
+- 사용자 피드백: "골이 너무 많이 나옴. 야구마냥 11대 5 뭐 이런 경기가 너무 많이나와."
+
+**목표:**
+- `avgGoalsPerMatch` = 2.7 ± 0.3 수렴.
+- 380 매치 (시즌 1회 완주) 평균 골수 측정 → 2.4~3.0 진입.
+
+**조정 후보 파라미터:**
+
+```
+[1] Box 진입 확률 ↓
+    - 현재: AttackingThird → AwayBox 전이 확률
+    - 변경: -15% (튜닝 시작점)
+
+[2] Shot success rate 분모 가중
+    - 현재: shotSuccess = attEff / (attEff + defEff)
+    - 변경: defEff *= 1.2 (GK 강화 — reflexes/handling/positioning 가중치 ↑)
+
+[3] 매 분 1~3 action 평균값 ↓
+    - 현재: 1~3 균등 / 평균 ~2
+    - 변경: 1~2 균등 / 평균 ~1.5 (action 수 자체 감소)
+
+[4] homeAdvantage 곱셈 ↓
+    - 현재: 1.10
+    - 변경: 1.05
+```
+
+**튜닝 절차 (반복):**
+```
+for each candidate parameter set:
+    simulate 380 matches (시즌 1회 완주, 고정 시드)
+    measure avgGoalsPerMatch / stdGoalsPerMatch
+    if 2.4 <= avg <= 3.0 and std < 1.5:
+        accept
+    else:
+        adjust + repeat
+```
+
+**외부화 (`GameBalanceSO`):**
+- 모든 5-zone 파라미터 이미 외부화됨 (V0.5-2). 본 튜닝은 **수치 갱신만**.
+- `Balance/GameBalance.asset` reimport (Sub-C asset chore).
+
+**검증 시드:**
+- `state.randomSeed = 42` (고정).
+- 같은 시드 = 항상 같은 결과 (결정성 #17).
+- 시즌 종료 후 380 매치 결과 dump → 평균 / 표준편차 계산.
+
+**EditMode 테스트 갱신:**
+- `MatchSimulatorTests` 의 통계 임계치 갱신 (V0.5 → V1.0 기준).
+- 분포 테스트 → P5/P95 골수 분포 확인.
+
+---
+
+## V1.0-2. Match 텍스트 이벤트 ~150 키 카탈로그 (`#62`)
+
+**V0.5 동작:** ~40 키. 한 이벤트 = 한 표현.
+
+**V1.0 변경:** ~150 키. 한 이벤트 = 5종 변형 + 시드 기반 회전.
+
+**카탈로그 구조:**
+
+```
+match_event_goal_1    : "{player}의 환상적인 슈팅! 골인!"
+match_event_goal_2    : "행운의 굴절 — {player}의 골!"
+match_event_goal_3    : "{player}가 PK를 침착하게 성공!"
+match_event_goal_4    : "{player}의 헤더 결정타!"
+match_event_goal_5    : "{player}의 장거리 폭격이 골망을 흔든다!"
+
+match_event_save_1    : "{gk}의 슈퍼 세이브!"
+match_event_save_2    : "{gk}가 가까스로 펀칭!"
+match_event_save_3    : "{gk}의 다이빙 캐치!"
+...
+```
+
+**선택 알고리즘:**
+```
+int variantCount = 5;
+int variant = (matchEvent.id ^ state.randomSeed) % variantCount;
+string key = $"match_event_{eventType}_{variant + 1}";
+return Localization.Get(key, playerName, ...);
+```
+
+→ 같은 매치 시드 = 같은 표현 시퀀스 (결정성).
+
+**이벤트 종류 × 변형 (V1.0 카탈로그):**
+
+| 이벤트 | 변형 수 | KO 키 |
+|---|---|---|
+| Goal | 5 | match_event_goal_1~5 |
+| KeyPass / Assist | 5 | match_event_keypass_1~5 |
+| Save | 5 | match_event_save_1~5 |
+| Shot On Target (가까스로 빗나감) | 4 | match_event_shoton_1~4 |
+| Shot Off Target | 3 | match_event_shotoff_1~3 |
+| Yellow Card | 3 | match_event_yellow_1~3 |
+| Red Card | 3 | match_event_red_1~3 |
+| Second Yellow → Red | 2 | match_event_2nd_yellow_1~2 |
+| Foul | 3 | match_event_foul_1~3 |
+| Penalty Won | 3 | match_event_pk_won_1~3 |
+| Penalty Missed | 3 | match_event_pk_miss_1~3 |
+| Penalty Saved | 3 | match_event_pk_saved_1~3 |
+| Injury (경미) | 3 | match_event_injury_minor_1~3 |
+| Injury (중상) | 3 | match_event_injury_major_1~3 |
+| Substitution | 4 | match_event_sub_1~4 |
+| Tackle (성공) | 3 | match_event_tackle_1~3 |
+| Cross | 3 | match_event_cross_1~3 |
+| Corner | 3 | match_event_corner_1~3 |
+| Free Kick (Direct) | 4 | match_event_fk_direct_1~4 |
+| Free Kick (Indirect) | 3 | match_event_fk_indirect_1~3 |
+| Long Throw | 3 | match_event_throw_1~3 |
+| Offside | 3 | match_event_offside_1~3 |
+| Interception | 3 | match_event_interception_1~3 |
+| Kick Off (전반/후반/연장) | 4 | match_event_kickoff_1~4 |
+| Half Time | 3 | match_event_halftime_1~3 |
+| Full Time | 4 | match_event_fulltime_1~4 |
+| Extra Time Start | 2 | match_event_et_start_1~2 |
+| Penalty Shootout | 3 | match_event_pso_1~3 |
+| Match Report (신문기사 헤드라인) | 5 | match_report_*_1~5 (승/패/무 × 점수차) |
+
+**총 (대략)**: 5 + 5 + 5 + 4 + 3 + 3 + 3 + 2 + 3 + 3 + 3 + 3 + 3 + 3 + 4 + 3 + 3 + 3 + 4 + 3 + 3 + 3 + 3 + 4 + 3 + 4 + 2 + 3 + 5 + 양 언어 (KO + EN) = ~150 키 × 2 언어 = **~300 LocalizationSO entry**.
+
+**EN 버전:** 같은 구조. 톤은 EPL 해설 스타일.
+
+**작업 분할 (Stage A.5 / Stage G.6 와 짝):**
+- A.5: Localization 인프라 (키 추가)
+- G.6: 실제 텍스트 작성 (KO 우선 / EN 후속)
+
+---
+
+## V1.0-3. 선수 조합 시너지 카탈로그 (`#62 / Q8`)
+
+**결정:** 10+ 시너지 정의. `SynergySO` 신규 + `Tactic` 평가 시 자동 검출.
+
+**SynergySO 구조:**
+
+```csharp
+[CreateAssetMenu(fileName = "Synergy", menuName = "FM-Lite/Synergy")]
+public class SynergySO : ScriptableObject {
+    public int id;
+    public string nameKey;             // Localization 키
+    public string descriptionKey;
+    public List<SynergyCondition> conditions;
+    public float strengthBonus = 1.05f; // 5% 보너스 (모든 시너지 동일 기준)
+}
+
+[Serializable]
+public class SynergyCondition {
+    public Position position;          // 어느 포지션에 해당?
+    public string statRequirement;     // 예: "height >= 188" / "pace >= 80"
+    public string roleRequirement;     // 예: "TargetMan" / "Poacher" / null = 무관
+}
+```
+
+**V1.0 카탈로그 (10종):**
+
+| ID | 이름 | 조건 | 효과 |
+|---|---|---|---|
+| 1 | 빅앤스몰 (Big & Small) | ST 키 ≥ 188 + LW/RW 키 ≤ 175 | 헤더골 +10% / 크로스 결정 +10% |
+| 2 | 타겟+발마니 (Target & Speedster) | ST = TargetMan + LW/RW Pace ≥ 85 | 카운터 어택 +15% |
+| 3 | 온볼이마이웨이 (Possession) | CM/AM Passing ≥ 80 + Vision ≥ 75 (2명 이상) | 점유율 +5% / 패스 성공률 +5% |
+| 4 | 골니아 (Defensive Wall) | CB Tackling ≥ 80 + Marking ≥ 80 (2명) | 실점 -10% |
+| 5 | 서프-스테파 (Wing-Back Duo) | LB+RB Stamina ≥ 80 + WorkRate ≥ 80 | 크로스 빈도 +20% |
+| 6 | 더블 피보테 (Double Pivot) | DM 2명 + Tackling ≥ 75 + Positioning ≥ 75 | Midfield 점유 +10% / 중원 차단 +10% |
+| 7 | 트레자르테 (Trequartista) | AM Flair ≥ 80 + Vision ≥ 80 + Technique ≥ 80 | KeyPass 빈도 +20% |
+| 8 | 펄스9 (False 9) | ST Off the Ball ≥ 80 + Decisions ≥ 75 + Role = FalseNine | 드리블 box 진입 +15% |
+| 9 | 다이아몬드 미드 (Diamond Midfield) | DM 1 + CM 2 + AM 1 + 모두 Teamwork ≥ 70 | 점유율 +8% / 슛 빈도 +10% |
+| 10 | 자국인 라인 (Homegrown Spine) | GK + CB + DM + ST 모두 자국 nationalityCode | 사기 +5 (영구) / 매치 strength +3% |
+
+**호환 검사 알고리즘 (`TacticImpact.ComputeSynergies`):**
+
+```
+INPUT: tactic, state, allSynergies
+OUTPUT: List<SynergySO> activeSynergies
+
+for each synergy in allSynergies:
+    matched_conditions = 0
+    for each condition in synergy.conditions:
+        for each slot in tactic.slots:
+            if slot.position == condition.position:
+                player = state.GetPlayer(slot.assignedPlayerId)
+                if EvaluateStatRequirement(player, condition.statRequirement) and
+                   (condition.roleRequirement == null or slot.roleId == GetRoleId(condition.roleRequirement)):
+                    matched_conditions += 1
+                    break
+    if matched_conditions == synergy.conditions.Count:
+        activeSynergies.Add(synergy)
+
+return activeSynergies
+```
+
+**MatchSimulator 통합:**
+- 매치 시작 시 `var synergies = TacticImpact.ComputeSynergies(homeTactic, ...)` 호출.
+- 각 synergy 의 `strengthBonus` 곱해 팀 effective strength 보정.
+- 사기 영구 보너스 (#10 자국인 라인) 은 매치 외부 영향 (별도 처리).
+
+**UI 노출 (§3.7 MatchPreviewScene):**
+- pre-match 화면에 활성 시너지 목록 표시.
+- 예: "✅ 빅앤스몰 시너지 (+10% 헤더골)"
+
+**SaveMigration:**
+- 도메인 영향 0 (Tactic 도메인 그대로).
+- SynergySO = 시드 자산 (`Resources/Synergy/*.asset`).
+
+---
+
+## V1.0-4. Training System (`#63`)
+
+**결정:** GrowthSystem (Part 2 V0.5-10) 위에 유저 개입 레이어. 매월 1일 호출 시 modifier 적용.
+
+### V1.0-4.1 그룹 훈련
+
+```csharp
+[Serializable]
+public class TrainingDirective {
+    public TrainingIntensity gk;       // Low / Medium / High
+    public TrainingIntensity df;
+    public TrainingIntensity mf;
+    public TrainingIntensity at;
+}
+
+public enum TrainingIntensity { Low, Medium, High }
+```
+
+**효과 (월 1회 GrowthSystem.Tick 호출 시):**
+
+| 강도 | 성장률 곱셈 | fatigue 추가 | 부상 위험 |
+|---|---|---|---|
+| Low | ×0.9 | +0 | ×1.0 |
+| Medium | ×1.0 | +5 | ×1.0 (기본) |
+| High | ×1.2 | +15 | ×1.3 |
+
+**Stat 가중 (그룹별):**
+
+```
+group -> emphasized stats
+GK: handling, reflexes, kicking
+DF: tackling, marking, positioning, heading
+MF: passing, vision, teamwork, work_rate
+AT: finishing, off_the_ball, dribbling, pace
+```
+
+- 그룹 강조 stat 은 `growthBaseChance × 1.5`.
+- 그 외 stat 은 기본 확률.
+
+### V1.0-4.2 개인 훈련
+
+```csharp
+[Serializable]
+public class IndividualTraining {
+    public string targetStat;          // 예: "crossing"
+    public DateTime startDate;
+    public DateTime endDate;           // startDate + 28일
+}
+```
+
+**효과:**
+- 해당 stat 성장률 `× 1.5`, 기간 4주.
+- 동시 가능 인원 = `Club.facilities.trainingLevel` (Lv1=2명 / Lv5=6명 / Lv10=10명).
+- 인원 초과 시 신규 발주 실패 (UI 차단).
+
+**GrowthSystem 통합:**
+
+```python
+def GrowthSystem.Tick(state, balance):
+    for each player in active_players:
+        for each stat in 49_stats:
+            chance = growthBaseChance × ageFactor × absoluteFactor
+
+            # V1.0 추가
+            chance *= GetGroupModifier(state, player, stat)       # 그룹 훈련
+            if player.individualTraining != null and
+               player.individualTraining.targetStat == stat and
+               state.currentDate in [start, end]:
+                chance *= 1.5                                     # 개인 훈련
+
+            chance *= GetTrainingFacilityBonus(state, player)     # V0.5 시설
+            chance *= GetGymFacilityBonus(state, player, stat)    # V0.5 Gym
+
+            if rng.NextDouble() < chance:
+                size = SampleSize(player)  # +1/+2/+3 분포
+                ApplyStatChange(player, stat, +size)
+```
+
+**검증 시나리오 (EditMode):**
+- T1: 그룹 High → 성장 빈도 ↑ + fatigue ↑ 검증
+- T2: 개인 훈련 중 → 해당 stat 성장률 ×1.5
+- T3: trainingLevel=Lv1 → 동시 인원 2명 제한
+- T4: 시드 결정성 — 같은 month + 같은 player + 같은 directive → 같은 결과
+
+---
+
+## V1.0-5. Currency Formatter (`#61`)
+
+**입력:** GBP int (도메인 저장 값).
+**출력:** 사용자 통화 표시 문자열.
+
+```csharp
+public static class CurrencyFormatter {
+    public static string Format(int gbpAmount) {
+        var cur = OptionsManager.Currency;
+        float rate = GameBalanceSO.ExchangeRates[cur];
+        string sym = GameBalanceSO.Symbols[cur];
+        float converted = gbpAmount * rate;
+
+        // 단위 자동
+        if (Math.Abs(converted) >= 1_000_000)
+            return $"{sym}{converted / 1_000_000:0.0}M";
+        if (Math.Abs(converted) >= 1_000)
+            return $"{sym}{converted / 1_000:0.0}K";
+        return $"{sym}{converted:0}";
+    }
+}
+```
+
+**환율표 (`#61` 합의):**
+
+| Currency | Symbol | Rate (× GBP) |
+|---|---|---|
+| GBP | £ | 1.00 |
+| USD | $ | 1.27 |
+| EUR | € | 1.16 |
+| KRW | ₩ | 1700 |
+
+**예시:**
+```
+gbpAmount = 12_500_000
+Currency.GBP -> "£12.5M"
+Currency.USD -> "$15.9M"  (12.5 * 1.27 = 15.875)
+Currency.EUR -> "€14.5M"
+Currency.KRW -> "₩21.3B" → wait, KRW 1700 × 12.5M = 21,250,000,000 = "₩21.3B"
+```
+
+→ KRW 의 경우 단위 B (Billion) 도 필요. 추가:
+
+```csharp
+if (Math.Abs(converted) >= 1_000_000_000)
+    return $"{sym}{converted / 1_000_000_000:0.0}B";
+```
+
+---
+
+## V1.0-6. PlayerAvatar / ClubBadge — 이니셜 + 색상 (`#26`)
+
+**입력:** Player or Club.
+**출력:** 50px circular badge (UI prefab) + 이니셜 문자 + 색상.
+
+### V1.0-6.1 ClubBadge
+
+```csharp
+public static class ClubBadgeRenderer {
+    public static (string initials, Color bg, Color fg) Render(Club club) {
+        string initials = club.name.Length >= 2
+            ? club.name.Substring(0, 2).ToUpper()
+            : club.name.ToUpper().PadRight(2, '?');
+
+        Color bg = HexToColor(club.primaryColor);
+        Color fg = HexToColor(club.secondaryColor);
+        return (initials, bg, fg);
+    }
+}
+```
+
+### V1.0-6.2 PlayerAvatar
+
+```csharp
+public static class PlayerAvatarRenderer {
+    public static (string initials, Color bg, Color fg) Render(Player p, GameState state) {
+        string first = p.info?.firstName?.Length > 0 ? p.info.firstName.Substring(0, 1) : "?";
+        string last = p.info?.lastName?.Length > 0 ? p.info.lastName.Substring(0, 1) : "?";
+        string initials = (first + last).ToUpper();
+
+        var club = state.GetClub(p.currentClubId);
+        Color bg = club != null
+            ? HexToColor(club.primaryColor)
+            : Color.gray;   // FA = 회색
+        Color fg = club != null
+            ? HexToColor(club.secondaryColor)
+            : Color.white;
+        return (initials, bg, fg);
+    }
+}
+```
+
+### V1.0-6.3 Club 색상 생성 (ClubGenerator 갱신)
+
+V0.5 ClubGenerator (#5) 에 색상 생성 단계 추가:
+
+```python
+def ClubGenerator.GenerateColors(rng, reputation):
+    # primaryColor — 명성 기반 색조 (다양성)
+    # H = rng.NextDouble() * 360
+    # S = 0.60 + rng.NextDouble() * 0.20      (60~80%)
+    # V = 0.40 + (reputation / 100) * 0.30    (40~70%, 빅클럽일수록 진함)
+
+    primaryHsv = (rng.NextDouble() * 360, 0.7, 0.4 + reputation/100 * 0.3)
+    primaryColor = HsvToHex(primaryHsv)
+
+    # secondaryColor — primary 의 명도 반전 (흰색 / 검은색 자동)
+    secondaryColor = primaryHsv.V > 0.5 ? "#FFFFFF" : "#000000"
+
+    return (primaryColor, secondaryColor)
+```
+
+**저장:**
+- `Club.primaryColor: string` (직렬화 hex)
+- `Club.secondaryColor: string`
+
+---
+
+## V1.0-7. Inbox 도메인 + 정책 (`#68 / Q1 / Q2`)
+
+### V1.0-7.1 도메인
+
+```csharp
+[Serializable]
+public class InboxItem {
+    public int id;
+    public InboxCategory category;     // Match / Transfer / Morale / Board / Youth / Cup / Award
+    public InboxPriority priority;     // Low / Medium / High / RequiresAction
+    public DateTime createdAt;
+    public DateTime? deadline;         // null = no deadline
+    public bool isRead;
+    public string titleKey;
+    public Dictionary<string, string> titleArgs;
+    public string bodyKey;
+    public Dictionary<string, string> bodyArgs;
+    public InboxAction action;         // OpenScene / OpenDialog / None
+    public string actionTargetSceneOrDialogId;
+}
+
+public enum InboxCategory { Match, Transfer, Morale, Board, Youth, Cup, Award }
+public enum InboxPriority { Low, Medium, High, RequiresAction }
+public enum InboxAction { None, OpenScene, OpenDialog }
+```
+
+### V1.0-7.2 GameState 확장
+
+```csharp
+public class GameState {
+    // ... 기존 ...
+    public List<InboxItem> inbox = new();
+    public int nextInboxId = 1;
+}
+```
+
+### V1.0-7.3 InboxRouter — V0.5 EventBus 이벤트 → InboxItem 변환
+
+```csharp
+public static class InboxRouter {
+    public static void Wire(GameState state) {
+        EventBus.Subscribe<PromiseCreatedEvent>(e =>
+            AddInbox(state, InboxCategory.Morale, InboxPriority.Medium,
+                "inbox_promise_created_fmt", new() { { "id", e.promiseId.ToString() } }));
+
+        EventBus.Subscribe<TransferRequestEvent>(e =>
+            AddInbox(state, InboxCategory.Morale, InboxPriority.High,
+                "inbox_transfer_request_fmt", new() { { "playerId", e.playerId.ToString() } },
+                action: InboxAction.OpenDialog, target: "TransferRequestDialog"));
+
+        EventBus.Subscribe<YouthPromotionSuggestedEvent>(e =>
+            AddInbox(state, InboxCategory.Youth, InboxPriority.Medium, ...));
+
+        // CounterOffer → 강제 라우팅 폐기, 인박스로
+        EventBus.Subscribe<OfferRespondedEvent>(e => {
+            var offer = state.GetOffer(e.offerId);
+            if (offer.toClubId == state.userClubId && e.newStatus == OfferStatus.CounterOffer) {
+                AddInbox(state, InboxCategory.Transfer, InboxPriority.RequiresAction,
+                    "inbox_counter_offer_fmt", ...,
+                    deadline: state.currentDate.AddDays(7),
+                    action: InboxAction.OpenScene, target: "NegotiationScene");
+            }
+        });
+
+        // ... 그 외 ~10 이벤트 ...
+    }
+}
+```
+
+### V1.0-7.4 정책 (Q1 / Q2 합의)
+
+**Q1 — 기한 만료 시 처리:**
+- 기한 (`deadline`) 도래 + 처리 안 됨 → 자동 거절 / 자동 수락 X
+- **자동 만료 (효과 X)** — 인박스에서 사라지지 않음, 비활성 표시.
+- CounterOffer 기한 만료 시 → status = Rejected 자동 변경 (현재 V0.5 동작 유지).
+
+**Q2 — 시즌 종료 시 정리:**
+- 5/15 (`SeasonEndProcessor`) 호출 시:
+  ```python
+  state.inbox = state.inbox.Where(item => !item.isRead).ToList()
+  ```
+- 안 읽은 항목만 유지. 누적 최대치 없음.
+
+### V1.0-7.5 영향 범위
+
+- `Domain/InboxItem.cs` 신규
+- `GameState.inbox / nextInboxId` 신규
+- `Application/InboxRouter.cs` 신규
+- `SeasonEndProcessor` 시즌 종료 시 inbox 정리
+- 기존 EventBus 구독 (DashboardController.OnPromiseCreated 등) → InboxRouter 가 흡수
+- DashboardController 의 in-memory message 리스트 → state.inbox 활용
+- 신규: InboxPanel UI (TopBar 슬라이드)
+
+---
+
+## V1.0-8. Player.physical + 매치 영향 (`#70 / Q4`)
+
+### V1.0-8.1 도메인
+
+```csharp
+[Serializable]
+public class PhysicalAttributes {
+    public int height;             // cm
+    public int weight;             // kg
+    public Foot preferredFoot;     // Left / Right / Both
+    public int weakFootAbility;    // 1-5 (별점, 약발 정도)
+}
+
+public class Player {
+    // ... 기존 ...
+    public PhysicalAttributes physical;
+}
+```
+
+### V1.0-8.2 PlayerGenerator 갱신
+
+V0.5 PlayerGenerator (Part 2 V0.5-1) 5단계 후 신체 조건 추첨:
+
+```python
+def PlayerGenerator.GeneratePhysical(rng, position):
+    # 포지션별 평균 / 표준편차 (외부화)
+    posAvg = {
+        GK: (188, 84),
+        CB: (188, 84),
+        LB: (178, 75),
+        RB: (178, 75),
+        WB: (176, 73),
+        DM: (180, 76),
+        CM: (178, 75),
+        AM: (175, 73),
+        LM: (175, 73),
+        RM: (175, 73),
+        LW: (175, 73),
+        RW: (175, 73),
+        ST: (184, 80),
+        CF: (180, 76),
+    }
+
+    avgH, avgW = posAvg[position]
+    height = round(NextNormal(rng, avgH, 6))  # σ=6 cm
+    weight = round(NextNormal(rng, avgW, 8))  # σ=8 kg
+    height = Clamp(height, 165, 205)
+    weight = Clamp(weight, 60, 100)
+
+    preferredFoot = rng.NextDouble() < 0.70 ? Right
+                  : rng.NextDouble() < 0.85 ? Left
+                  : Both
+    weakFootAbility = 1 + rng.Next(5)  # 1-5
+
+    return PhysicalAttributes { height, weight, preferredFoot, weakFootAbility }
+```
+
+### V1.0-8.3 매치 영향
+
+**(1) 헤더 (Cross → Goal):**
+```python
+headerSuccess = (heading * jumpingReach * (height / 180.0)) / 10000
+# 키 큰 선수 보너스, 100% 가산이 아닌 곱셈
+```
+
+**(2) 민첩성 (드리블 / 회피):**
+```python
+agilityEff = agility * (180.0 / max(height, 165))
+# 키 작은 선수 보너스 (역상관, 단 최소 165 floor)
+```
+
+**(3) 속도 (스프린트 / 카운터):**
+```python
+sprintEff = pace + weakFootAbility * 0.5
+# 약발 좋을수록 양발 활용 가능 → 미세 보너스
+```
+
+**(4) PK / FK 발 일치:**
+```python
+def IsFootMatch(player, kickType):
+    if player.physical.preferredFoot == Both:
+        return True
+    # PK 는 보통 좋아하는 발로 (PK 키커는 발 일치)
+    # FK 는 위치에 따라 (좌측 = 오른발, 우측 = 왼발 자주)
+    return matches kick direction
+
+footMatchBonus = IsFootMatch(player, kickType) ? 1.0 : 0.85
+finishingEff = finishing * footMatchBonus
+```
+
+### V1.0-8.4 SaveMigration
+
+- V0.5 세이브 무효 (#64). 신규 게임만.
+- 신규 게임은 PlayerGenerator 가 자동 생성 → 별도 마이그레이션 X.
+
+---
+
+## V1.0-9. FormationMatchupSO — 전술 상성 (`#62`)
+
+**결정:** Formation × Formation 매치업 매트릭스. SO 외부화.
+
+```csharp
+[CreateAssetMenu(fileName = "FormationMatchup", menuName = "FM-Lite/FormationMatchup")]
+public class FormationMatchupSO : ScriptableObject {
+    public List<MatchupEntry> matchups;
+}
+
+[Serializable]
+public class MatchupEntry {
+    public int homeFormationId;
+    public int awayFormationId;
+    public float homeBonus;        // 1.05 = 5% strength 보너스
+}
+```
+
+**V1.0 카탈로그 (6 포메이션 × 6 = 36 entry, 다만 일부는 1.0 = 무영향):**
+
+| Home / Away | 4-4-2 | 4-3-3 | 3-5-2 | 4-2-3-1 | 4-4-1-1 | 5-3-2 |
+|---|---|---|---|---|---|---|
+| 4-4-2 | 1.00 | 0.97 | 1.03 | 1.00 | 1.02 | 1.05 |
+| 4-3-3 | 1.03 | 1.00 | 1.02 | 1.05 | 1.00 | 1.07 |
+| 3-5-2 | 0.97 | 0.98 | 1.00 | 1.02 | 1.03 | 1.00 |
+| 4-2-3-1 | 1.00 | 0.95 | 0.98 | 1.00 | 1.03 | 1.05 |
+| 4-4-1-1 | 0.98 | 1.00 | 0.97 | 0.97 | 1.00 | 1.03 |
+| 5-3-2 | 0.95 | 0.93 | 1.00 | 0.95 | 0.97 | 1.00 |
+
+**해석:**
+- 4-3-3 (공격 폭) vs 3-5-2 (수비 + 중원) = 4-3-3 측 우세 (윙어 활용).
+- 5-3-2 vs 4-3-3 = 4-3-3 측 우세 (수비 라인 3 → 윙어 노출).
+- 같은 포메이션 = 1.0 (무영향).
+
+**MatchSimulator 통합:**
+```python
+def Simulate(match, state, balance):
+    # ... 기존 ...
+    matchup = balance.formationMatchup.Get(homeTactic.formationId, awayTactic.formationId)
+    homeStrength *= matchup.homeBonus
+    # awayBonus 는 별도 entry (대칭 X — 홈/원정 자체 영향)
+```
+
+---
+
+## V1.0-10. Cup — FA컵 단판 단일 (`#73 / Q9`)
+
+V0.5 명세 (`Stage Q`) 이월. V1.0 본격 도입.
+
+### V1.0-10.1 도메인
+
+```csharp
+[Serializable]
+public class Cup {
+    public int id;
+    public string name;                    // "FA Cup"
+    public List<int> participatingClubIds;
+    public List<CupRound> rounds;
+    public int currentRoundIndex;          // 0 = 1라운드
+}
+
+[Serializable]
+public class CupRound {
+    public int roundNumber;
+    public DateTime date;
+    public List<CupTie> ties;
+}
+
+[Serializable]
+public class CupTie {
+    public int matchId;                    // 일반 Match 와 연결 (allowsExtraTime=true)
+    public int homeClubId;
+    public int awayClubId;
+}
+```
+
+### V1.0-10.2 대진표 생성 (시드 결정성)
+
+```python
+def Cup.GenerateBracket(state, balance):
+    rng = new Random(state.randomSeed ^ "FACup".GetHashCode())
+
+    clubs = state.allClubs.Where(c => c.isActiveSimulation).ToList()
+    # V1.0 = 20 EPL 구단 + 하위 리그 12 (자동 생성) = 32 클럽 (단판 32강)
+    # 또는: 20 EPL 만 → 16강부터 (단판 16강)
+
+    clubs = clubs.Shuffle(rng)
+    n = clubs.Count
+    nRounds = Log2(n)   # 32 → 5 라운드 (32강/16강/8강/4강/결승)
+
+    cup = new Cup { id, name = "FA Cup", participatingClubIds = clubs.Select(c => c.id) }
+
+    # 1라운드 — 모든 클럽 쌍 짝짓기
+    firstRound = new CupRound { roundNumber = 1, date = ComputeRoundDate(state, 1) }
+    for i in range(0, n, 2):
+        match = CreateMatch(clubs[i].id, clubs[i+1].id, allowsExtraTime=true, type=Cup)
+        firstRound.ties.Add(new CupTie { matchId = match.id, ... })
+    cup.rounds.Add(firstRound)
+
+    # 후속 라운드는 미배정 (진행에 따라 채워짐)
+
+    state.cups.Add(cup)
+    state.leagues[0].schedule.AddRange(firstRound matches)   # ScheduleGenerator 가 통합
+```
+
+### V1.0-10.3 컵 라운드 일정
+
+- ScheduleGenerator 가 리그 일정 사이 컵 라운드 삽입.
+- 라운드별 = 매월 마지막 수요일 (외부화: `cupRoundDayOfWeek = Wednesday`).
+- 32강 (9월 마지막 수) / 16강 (11월) / 8강 (1월) / 4강 (3월) / 결승 (5월 초).
+
+### V1.0-10.4 진행
+
+```python
+def DailyProcessor.Run(state, balance):
+    # ... 기존 ...
+    for cup in state.cups:
+        currentRound = cup.rounds[cup.currentRoundIndex]
+        if currentRound.ties.All(t => MatchIsComplete(t.matchId)):
+            # 라운드 종료
+            winners = currentRound.ties.Select(t => DetermineWinner(t)).ToList()
+
+            if winners.Count == 1:
+                # 우승!
+                ClubWinsCup(winners[0], cup)
+                EventBus.Publish(new CupWonEvent { cupId = cup.id, winnerId = winners[0] })
+            else:
+                # 다음 라운드 진행
+                cup.currentRoundIndex += 1
+                nextRound = GenerateNextRound(cup, winners, state)
+                cup.rounds.Add(nextRound)
+                EventBus.Publish(new CupRoundCompletedEvent { ... })
+```
+
+### V1.0-10.5 우승 효과
+
+```python
+def ClubWinsCup(clubId, cup):
+    club = state.GetClub(clubId)
+
+    # 1. League.history 에 기록
+    League primary = state.leagues[0]
+    primary.history.Last().cupWinnerClubId = clubId  # V0.5 SeasonHistory 확장 필요
+
+    # 2. 매니저 평판 가산
+    if clubId == state.userClubId:
+        state.managerReputation = min(100, state.managerReputation + 10)
+
+    # 3. 사기 / 행복도
+    foreach playerId in club.seniorSquadIds:
+        player = state.GetPlayer(playerId)
+        player.state.morale = min(100, player.state.morale + 15)
+        player.state.happiness = min(100, player.state.happiness + 10)
+
+    # 4. 상금 (재정 결산 시 가산)
+    # cupPrize = balance.cupWinnerPrize (예: £10M)
+    club.finance.money += balance.cupWinnerPrize
+```
+
+---
+
+## Part 3 Change Log
+
+| Date | Section | Change |
+| --- | --- | --- |
+| 2026-05-29 | V1.0-1 ~ V1.0-10 | Part 3: V1.0 Updates 부록 신규 작성. 10 섹션 — 5-Zone 골 빈도 P0 밸런싱 (V0.5 플레이테스트 hotfix) / 매치 텍스트 ~150 키 카탈로그 (5종 변형 × 30 이벤트 종류, 시드 회전) / 선수 조합 시너지 10종 (SynergySO 외부화, ComputeSynergies 알고리즘) / Training System (개인 + 그룹 + GrowthSystem 통합) / CurrencyFormatter (GBP base, 4 통화 환율 고정) / PlayerAvatar + ClubBadge (이니셜 + 색상, ClubGenerator 색상 생성 추가) / Inbox 도메인 + 정책 (자동 만료 + 시즌 종료 시 읽은 것 삭제, InboxRouter EventBus 흡수) / Player.physical + 매치 영향 (헤더/agility/pace/PK 발 일치) / FormationMatchupSO (6×6 행렬) / Cup FA컵 단판 단일 (V0.5 Stage Q 이월). `docs/v1.0-plan.md` §3 + `docs/design-decisions.md` #58~#65 와 연동. |
