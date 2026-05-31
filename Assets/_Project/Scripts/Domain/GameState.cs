@@ -52,6 +52,10 @@ namespace FMLite.Domain
         public int nextAwardId = 1;
         public int nextMentoringGroupId = 1;
 
+        // V1.0 신규 (design-decisions.md #66)
+        public List<InboxItem> inbox = new List<InboxItem>();
+        public int nextInboxId = 1;
+
         // 런타임 인덱스 (직렬화 제외, 로드 후 BuildIndexes 필요)
         [JsonIgnore]
         private Dictionary<int, Player> _playerById;

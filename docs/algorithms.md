@@ -4331,7 +4331,7 @@ def ClubGenerator.GenerateColors(rng, reputation):
 
 ---
 
-## V1.0-7. Inbox 도메인 + 정책 (`#68 / Q1 / Q2`)
+## V1.0-7. Inbox 도메인 + 정책 (`#66 / Q1 / Q2 / Q3`)
 
 ### V1.0-7.1 도메인
 
@@ -4369,38 +4369,98 @@ public class GameState {
 
 ### V1.0-7.3 InboxRouter — V0.5 EventBus 이벤트 → InboxItem 변환
 
+흡수 대상 10 이벤트. `AddInbox` 헬퍼 시그니처:
+```csharp
+static void AddInbox(GameState state, InboxCategory cat, InboxPriority pri,
+    string titleKey, Dictionary<string,string> args = null,
+    DateTime? deadline = null, InboxAction action = InboxAction.None, string target = null)
+```
+
 ```csharp
 public static class InboxRouter {
     public static void Wire(GameState state) {
+        // ── Morale ────────────────────────────────────────────────────
         EventBus.Subscribe<PromiseCreatedEvent>(e =>
             AddInbox(state, InboxCategory.Morale, InboxPriority.Medium,
                 "inbox_promise_created_fmt", new() { { "id", e.promiseId.ToString() } }));
+
+        EventBus.Subscribe<PromiseFulfilledEvent>(e =>
+            AddInbox(state, InboxCategory.Morale, InboxPriority.Low,
+                "inbox_promise_fulfilled_fmt", new() { { "id", e.promiseId.ToString() } }));
+
+        EventBus.Subscribe<PromiseBrokenEvent>(e =>
+            AddInbox(state, InboxCategory.Morale, InboxPriority.High,
+                "inbox_promise_broken_fmt", new() { { "id", e.promiseId.ToString() } }));
+
+        EventBus.Subscribe<PromiseDeadlineApproachingEvent>(e =>
+            AddInbox(state, InboxCategory.Morale, InboxPriority.Medium,
+                "inbox_promise_deadline_fmt",
+                new() { { "id", e.promiseId.ToString() }, { "days", e.daysRemaining.ToString() } }));
 
         EventBus.Subscribe<TransferRequestEvent>(e =>
             AddInbox(state, InboxCategory.Morale, InboxPriority.High,
                 "inbox_transfer_request_fmt", new() { { "playerId", e.playerId.ToString() } },
                 action: InboxAction.OpenDialog, target: "TransferRequestDialog"));
 
-        EventBus.Subscribe<YouthPromotionSuggestedEvent>(e =>
-            AddInbox(state, InboxCategory.Youth, InboxPriority.Medium, ...));
-
-        // CounterOffer → 강제 라우팅 폐기, 인박스로
+        // ── Transfer ──────────────────────────────────────────────────
+        // CounterOffer → 강제 라우팅 폐기, 인박스로 (Q3 관련 B.2)
         EventBus.Subscribe<OfferRespondedEvent>(e => {
             var offer = state.GetOffer(e.offerId);
-            if (offer.toClubId == state.userClubId && e.newStatus == OfferStatus.CounterOffer) {
+            if (offer != null && offer.toClubId == state.userClubId
+                && e.newStatus == OfferStatus.CounterOffer)
+            {
                 AddInbox(state, InboxCategory.Transfer, InboxPriority.RequiresAction,
-                    "inbox_counter_offer_fmt", ...,
+                    "inbox_counter_offer_fmt",
+                    new() { { "offerId", e.offerId.ToString() } },
                     deadline: state.currentDate.AddDays(7),
                     action: InboxAction.OpenScene, target: "NegotiationScene");
             }
         });
 
-        // ... 그 외 ~10 이벤트 ...
+        EventBus.Subscribe<ContractRenewedEvent>(e =>
+            AddInbox(state, InboxCategory.Transfer, InboxPriority.Low,
+                "inbox_contract_renewed_fmt", new() { { "playerId", e.playerId.ToString() } }));
+
+        EventBus.Subscribe<ContractRenewalRejectedEvent>(e =>
+            AddInbox(state, InboxCategory.Transfer, InboxPriority.High,
+                "inbox_contract_rejected_fmt", new() { { "playerId", e.playerId.ToString() } }));
+
+        // ── Youth ─────────────────────────────────────────────────────
+        // YouthIntakeAvailableEvent: 게임 정지 제거 (Q3) → InboxItem 전환
+        EventBus.Subscribe<YouthIntakeAvailableEvent>(e =>
+            AddInbox(state, InboxCategory.Youth, InboxPriority.RequiresAction,
+                "inbox_youth_intake_fmt", new() { { "clubId", e.clubId.ToString() } },
+                action: InboxAction.OpenScene, target: "YouthScene"));
+
+        // YouthPromotionSuggestedEvent: InboxItem 만 (Q9 자동 트리거 + 유저 승인 유지)
+        EventBus.Subscribe<YouthPromotionSuggestedEvent>(e =>
+            AddInbox(state, InboxCategory.Youth, InboxPriority.Medium,
+                "inbox_youth_promotion_fmt",
+                new() { { "playerId", e.playerId.ToString() } },
+                action: InboxAction.OpenScene, target: "SquadScene"));
+    }
+
+    private static void AddInbox(GameState state, InboxCategory cat, InboxPriority pri,
+        string titleKey, Dictionary<string, string> args = null,
+        DateTime? deadline = null, InboxAction action = InboxAction.None, string target = null)
+    {
+        state.inbox.Add(new InboxItem {
+            id           = state.nextInboxId++,
+            category     = cat,
+            priority     = pri,
+            createdAt    = state.currentDate,
+            deadline     = deadline,
+            isRead       = false,
+            titleKey     = titleKey,
+            titleArgs    = args ?? new(),
+            action       = action,
+            actionTargetSceneOrDialogId = target ?? string.Empty,
+        });
     }
 }
 ```
 
-### V1.0-7.4 정책 (Q1 / Q2 합의)
+### V1.0-7.4 정책 (Q1 / Q2 / Q3 합의)
 
 **Q1 — 기한 만료 시 처리:**
 - 기한 (`deadline`) 도래 + 처리 안 됨 → 자동 거절 / 자동 수락 X
@@ -4413,6 +4473,11 @@ public static class InboxRouter {
   state.inbox = state.inbox.Where(item => !item.isRead).ToList()
   ```
 - 안 읽은 항목만 유지. 누적 최대치 없음.
+
+**Q3 — YouthIntakeAvailableEvent 게임 정지 제거:**
+- V0.5 에서 이 이벤트는 GameManager 정지 신호 + 강제 YouthScene 진입을 유발했음.
+- V1.0 에서는 InboxItem(Youth/RequiresAction) 으로 전환 — 정지 신호 제거.
+- 사용자가 원하는 시점에 인박스에서 YouthScene 진입 가능.
 
 ### V1.0-7.5 영향 범위
 

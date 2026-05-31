@@ -2109,6 +2109,77 @@ public static readonly Dictionary<Currency, float> ExchangeRates = new() {
 
 ---
 
+## 66. Inbox 도메인 + 정책 (V1.0 — Task A.1)
+
+**결정:** V1.0 에서 모든 인게임 알림을 `GameState.inbox: List<InboxItem>` 에 영구 저장한다. V0.5 DashboardController 의 in-memory 메시지 목록을 대체.
+
+**도메인 타입:**
+
+```csharp
+[Serializable]
+public class InboxItem {
+    public int id;
+    public InboxCategory category;     // Match / Transfer / Morale / Board / Youth / Cup / Award
+    public InboxPriority priority;     // Low / Medium / High / RequiresAction
+    public DateTime createdAt;
+    public DateTime? deadline;         // null = 기한 없음
+    public bool isRead;
+    public string titleKey;
+    public Dictionary<string, string> titleArgs;
+    public string bodyKey;
+    public Dictionary<string, string> bodyArgs;
+    public InboxAction action;         // None / OpenScene / OpenDialog
+    public string actionTargetSceneOrDialogId;
+}
+
+public enum InboxCategory { Match, Transfer, Morale, Board, Youth, Cup, Award }
+public enum InboxPriority { Low, Medium, High, RequiresAction }
+public enum InboxAction { None, OpenScene, OpenDialog }
+```
+
+**GameState 확장:**
+
+```csharp
+public List<InboxItem> inbox = new();
+public int nextInboxId = 1;
+```
+
+**Q1 — 기한 만료 처리:**
+- `deadline` 도래 + 미처리 → 자동 거절 / 자동 수락 X.
+- 인박스에서 사라지지 않음 (비활성 표시).
+- CounterOffer 기한 만료 시에만 예외 — V0.5 동작 유지 (`status = Rejected` 자동).
+
+**Q2 — 시즌 종료 정리:**
+- 5/15 (`SeasonEndProcessor`) 호출 시 `isRead == true` 항목 삭제. 안 읽은 항목만 유지.
+- 누적 최대치 없음 — 유저가 읽으면 다음 시즌 종료 시 사라짐.
+
+**Q3 — YouthIntakeAvailableEvent 정책 변경 (V1.0):**
+- V0.5: GameManager 정지 신호 + 강제 YouthScene 진입.
+- V1.0: InboxItem(Youth/RequiresAction, OpenScene:YouthScene) 으로 교체. 정지 신호 제거.
+- 이유: 강제 씬 전환 폐기(B.2/B.3) 정책 일관 — 인스펙션은 RequiresAction 표시로 충분.
+
+**InboxRouter (`Application/InboxRouter.cs`):**
+- `static void Wire(GameState state)` — 10 이벤트 구독.
+- `GameInitializer.NewGame` + `SaveSystem.Load` 직후 `InboxRouter.Wire(state)` 호출.
+- 전체 이벤트 목록 / 우선순위 / action 은 `algorithms.md` V1.0-7.3.
+
+**이유:**
+- **세션 간 영속** — V0.5 in-memory 알림은 씬 재진입 시 소멸. V1.0 GameState 에 저장해 세이브/로드 후에도 미처리 항목 보존.
+- **우선순위 정렬** — RequiresAction → High → Medium → Low 정렬 가능.
+- **카테고리 탭 분리** — InboxPanel UI (Stage B.1) 에서 탭별 필터링.
+- **강제 씬 전환 폐기** — 정지 신호 없이도 RequiresAction 배지로 사용자 주의 유도.
+
+**명명 충돌 주의 (비블로킹):**
+- `FMLite.UI.InboxItem` (MonoBehaviour, Dashboard row, V0.5 잔재) 와 `FMLite.Domain.InboxItem` (data class, V1.0 신규) 가 공존.
+- 다른 네임스페이스라 컴파일 충돌 없음. Stage B.1 에서 UI 클래스 `InboxItemRow` 로 rename 권장.
+
+### V1.x 보완 포인트
+- **읽음 처리 자동화** — InboxPanel 에서 항목 클릭 시 `isRead = true` 자동.
+- **body 필드 활용** — 현재 `bodyKey` 는 비어 있음. 확장 시 팝업 상세 내용.
+- **Award 카테고리** — 시상(SeasonAward) 이벤트 InboxRouter 흡수 (V1.x).
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2133,3 +2204,4 @@ public static readonly Dictionary<Currency, float> ExchangeRates = new() {
 | 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V0.5-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
 | 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V0.5 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V0.5 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V0.5-2 재작성 + `v0.5-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
 | 2026-05-29 | #58~#65 추가 | V0.5 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 보강). 사용자 V0.5 플레이테스트 피드백 + 추가 요청 (Unity MCP / 매치 결과 대시보드 / 훈련 / 비교 도구 / Options / 통화) 통합. 12 Open Questions 모두 결정 + 추가 결정사항 흡수. **§ 매핑**: #58 글로벌 네비 (TopBar + SideBar 영구 레이어 — 사용자 핵심 피드백 "씬 전환되도 기본 버튼 고정 위치") / #59 Options (PlayerPrefs + AudioMixer + 4 카테고리: 사운드 / 언어 / 통화 / UI Scale / 자동 저장 / 단축키) / #60 사운드 (무료 라이센스 + AudioMixer + CREDITS.md, BGM 3 + SFX 12) / #61 통화 (GBP base 고정 환율, 표시 변환만) / #62 매치 디테일 V1.0 (viewMode 폐기 + 모든 핵심 이벤트 텍스트 + 5-Zone 골 빈도 P0 밸런싱) / #63 훈련 시스템 (개인 + 그룹 + GrowthSystem 통합) / #64 V1.0 정책 (Save Migration 무효 + 일정 마감 없음 + DOTween V1.x 미루기) / #65 Unity MCP (Stage 0 첫 작업 + 4단계 fallback, `unity-mcp-setup.md` 별도 명세). |
+| 2026-05-31 | #66 추가 | Task A.1 Sub-A — Inbox 도메인 + 정책 (V1.0). InboxItem 도메인 클래스 / GameState 확장 / InboxRouter (10 이벤트 흡수) / 정책 Q1(기한 만료 비효과) + Q2(시즌 종료 정리) + Q3(YouthIntakeAvailableEvent 정지 제거). `algorithms.md` V1.0-7 참조 번호 #68 → #66 정정. |

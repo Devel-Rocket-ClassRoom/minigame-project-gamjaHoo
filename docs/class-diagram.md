@@ -50,6 +50,20 @@ public class GameState {
     public List<League> leagues;
     public List<TransferOffer> activeOffers;
     
+    // V0.5 신규
+    public List<Promise> activePromises;
+    public List<SeasonAward> activeAwards;
+    public int managerReputation;
+    public int nextPlayerId;
+    public int nextIntakeId;
+    public int nextOfferId;
+    public int nextPromiseId;
+    public int nextAwardId;
+
+    // V1.0 신규 (design-decisions.md #66)
+    public List<InboxItem> inbox;
+    public int nextInboxId;
+    
     // 런타임 인덱스 (직렬화 제외)
     [JsonIgnore] private Dictionary<int, Player> _playerById;
     [JsonIgnore] private Dictionary<int, Club> _clubById;
@@ -165,6 +179,32 @@ public class YouthIntake {
     public List<int> rejectedPlayerIds;
     public int rerollsUsed;
 }
+```
+
+### InboxItem (V1.0, design-decisions.md #66)
+
+GameState.inbox 에 영구 저장되는 인게임 알림 단위.
+
+```csharp
+[Serializable]
+public class InboxItem {
+    public int id;
+    public InboxCategory category;     // Match / Transfer / Morale / Board / Youth / Cup / Award
+    public InboxPriority priority;     // Low / Medium / High / RequiresAction
+    public DateTime createdAt;
+    public DateTime? deadline;         // null = 기한 없음
+    public bool isRead;
+    public string titleKey;
+    public Dictionary<string, string> titleArgs;
+    public string bodyKey;
+    public Dictionary<string, string> bodyArgs;
+    public InboxAction action;         // None / OpenScene / OpenDialog
+    public string actionTargetSceneOrDialogId;
+}
+
+public enum InboxCategory { Match, Transfer, Morale, Board, Youth, Cup, Award }
+public enum InboxPriority { Low, Medium, High, RequiresAction }
+public enum InboxAction { None, OpenScene, OpenDialog }
 ```
 
 ### GameDatabase

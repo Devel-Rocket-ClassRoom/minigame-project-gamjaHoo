@@ -29,6 +29,9 @@ namespace FMLite.Application
             // a. 시즌 통계 career 저장 (V0.5 M.1) — 은퇴/계약만료 전에 실행
             SaveCareerStats(state);
 
+            // a0. inbox 정리 — 읽은 항목만 삭제 (design-decisions.md #66 Q2)
+            CleanInbox(state);
+
             // a2. Match 데이터 압축 (V0.5 M.7) — career 저장 후 events/playerStats 비우기
             CompressMatchData(state);
 
@@ -50,6 +53,11 @@ namespace FMLite.Application
             // f. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
             int seasonYear = state.leagues.FirstOrDefault()?.seasonYear ?? 0;
             EventBus.Publish(new SeasonEndedEvent { seasonYear = seasonYear });
+        }
+
+        private static void CleanInbox(GameState state)
+        {
+            state.inbox.RemoveAll(item => item.isRead);
         }
 
         private static void ProcessExpiredContracts(GameState state)
