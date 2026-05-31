@@ -133,6 +133,7 @@ namespace FMLite.UI
                 GameLog.Log(LogCategory.System, $"슬롯 로드 실패: {slotName}");
                 return;
             }
+            InboxRouter.Wire(state); // V1.0 #66 — 로드 후 새 state 로 핸들러 갱신
             GameManager.Instance.SetState(state);
             var target = state.userClubId == -1 ? ClubSelectScene : DashboardScene;
             SceneManager.LoadScene(target);

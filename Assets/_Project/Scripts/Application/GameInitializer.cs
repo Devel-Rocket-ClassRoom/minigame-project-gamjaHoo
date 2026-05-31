@@ -103,6 +103,9 @@ namespace FMLite.Application
             foreach (var club in state.allClubs)
                 CaptainSystem.AssignAuto(club, state, balance);
 
+            // (h) InboxRouter wire (V1.0 #66 / design-decisions.md). 멱등.
+            InboxRouter.Wire(state);
+
             return state;
         }
     }

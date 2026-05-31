@@ -81,6 +81,8 @@ namespace FMLite.Persistence
                 EventBus.Publish(new GameLoadedEvent());
             }
 
+            // 주의: 호출자가 Load 직후 InboxRouter.Wire(state) 호출 책임 (V1.0 #66).
+            // Persistence → Application 의존 회피 위해 SaveSystem 자체는 미호출.
             return state;
         }
 
