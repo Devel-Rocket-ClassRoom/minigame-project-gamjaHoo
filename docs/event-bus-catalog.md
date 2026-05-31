@@ -214,7 +214,7 @@ public class TransferRequestEvent {
 
 #### ContractRenewedEvent
 - **Publisher:** `TransferSystem.RenewContract` (선수 수락 시)
-- **Subscribers:** Dashboard 인박스 (V1.0 — 현재 없음) / MoraleSystem (OnContractRenewed 직접 호출 후 발행)
+- **Subscribers:** InboxRouter → InboxItem(Transfer/Low) [V1.0] / MoraleSystem (OnContractRenewed 직접 호출 후 발행)
 - **Payload:** 선수 ID
 - **Trigger:** 재계약 제안에 선수가 수락 → `player.contract` 갱신 + morale/happiness 회복 후 발행
 
@@ -226,7 +226,7 @@ public class ContractRenewedEvent {
 
 #### ContractRenewalRejectedEvent
 - **Publisher:** `TransferSystem.RenewContract` (선수 거절 시)
-- **Subscribers:** Dashboard 인박스 (V1.0 — 현재 없음)
+- **Subscribers:** InboxRouter → InboxItem(Transfer/High) [V1.0]
 - **Payload:** 선수 ID
 - **Trigger:** 재계약 제안에 선수가 거절
 
@@ -295,7 +295,7 @@ public class PromiseDeadlineApproachingEvent {
 
 #### YouthIntakeAvailableEvent
 - **Publisher:** YouthSystem.GenerateIntake
-- **Subscribers:** UI (유스 풀 화면 자동 띄움), GameManager (정지 신호)
+- **Subscribers:** InboxRouter → InboxItem(Youth/RequiresAction, OpenScene:YouthScene) [V1.0]  ~~GameManager (정지 신호)~~ [V0.5 → V1.0 제거, design-decisions.md #66 Q3]
 - **Payload:** YouthIntake 객체
 - **Trigger:** 유스 인스펙션일 도래 + 풀 생성 완료
 
@@ -316,6 +316,19 @@ public class YouthIntakeAvailableEvent {
 public class YouthRerolledEvent {
     public int intakeId;
     public int remainingTokens;
+}
+```
+
+#### YouthPromotionSuggestedEvent
+- **Publisher:** `YouthSystem` (매일 18세+ + CA 70%+ 유스 선수 감지 시)
+- **Subscribers:** InboxRouter → InboxItem(Youth/Medium, OpenScene:SquadScene)
+- **Payload:** 선수 ID, 구단 ID
+- **Trigger:** 자동 트리거 (daily). 유저 승인 패턴 — InboxItem 통해 SquadScene 에서 콜업 확정. (B.2 Q9)
+
+```csharp
+public class YouthPromotionSuggestedEvent {
+    public int playerId;
+    public int clubId;
 }
 ```
 
@@ -539,3 +552,4 @@ public class PlayerUpdatedEvent {
 | 2026-05-26 | V0.5 H.1 — ContractRenewedEvent / ContractRenewalRejectedEvent 신규 섹션. TransferSystem.RenewContract 가 수락/거절 시 발행. 수락 시 MoraleSystem.OnContractRenewed 직접 호출 후 발행. Future 섹션 ContractRenewed 완료 처리. |
 | 2026-05-27 | V0.5 I.2 — PlayerInjuredEvent 본격 도입. MatchSimulator 분 단위 step 에서 부상 발생 시 즉시 발행. 기존 "V0.5+ MatchPostProcessor" placeholder → MatchSimulator 발행으로 정정 (구조적으로 분 단위 이벤트 발생 위치가 자연). MatchEvents.cs 에 코드 추가 (이전엔 catalog 만 있고 코드 없었음). |
 | 2026-05-27 | Stage I 5-zone Markov 재설계 (이슈 #319 Sub-A) — Future 섹션에 CupRoundCompletedEvent / CupWonEvent (Stage Q.3) 추가. MatchEvent (Match.events 내부 로그, ≠ EventBus) 와 EventBus 이벤트 구분 노트 추가 — 5-zone type enum 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) 은 MatchEvents.cs 코드 (Sub-B), collectEvents 플래그 분기. |
+| 2026-05-31 | Task A.1 Sub-A — YouthPromotionSuggestedEvent 누락 항목 추가 (Youth Events 섹션). YouthIntakeAvailableEvent subscriber 갱신 — V0.5 GameManager 정지 신호 제거 / V1.0 InboxRouter 흡수 (#66 Q3). ContractRenewedEvent / ContractRenewalRejectedEvent subscriber 갱신 — "V1.0 현재 없음" → InboxRouter(Transfer/Low|High). |
