@@ -1,6 +1,5 @@
 // SaveMigrationTests.cs
-// DoD 검증: v0.5-tasks.md Stage A / Task A.1 — SaveMigration 인프라.
-// algorithms.md V0.5-8 Test Scenarios T1~T3.
+// V0.5-8 Test Scenarios + V1.0 A.4 (saveVersion=3 / V0.5 차단).
 
 using System;
 using FMLite.Domain;
@@ -11,7 +10,7 @@ namespace FMLite.Tests
 {
     public class SaveMigrationTests
     {
-        // T1: V0.5 신규 세이브 로드 — saveVersion=2 이면 마이그레이션 없이 그대로 반환.
+        // T1: V1.0 신규 세이브 — saveVersion=3 이면 마이그레이션 없이 그대로 반환.
         [Test]
         public void Migrate_V10State_ReturnsSameState()
         {
@@ -34,7 +33,7 @@ namespace FMLite.Tests
             );
         }
 
-        // T2-b: V0.1 구형 세이브 (saveVersion=0, JSON 에 필드 없던 경우) → NotSupportedException.
+        // T2-b: V0.1 구형 세이브 (saveVersion=0) → NotSupportedException.
         [Test]
         public void Migrate_V01SaveVersion0_ThrowsNotSupported()
         {
@@ -45,16 +44,28 @@ namespace FMLite.Tests
             );
         }
 
-        // T3: 인프라 라운드트립 — 가상 V2→V3 마이그레이터 등록 후 정상 마이그레이션 + saveVersion 갱신.
+        // T2-c: V0.5 세이브 (saveVersion=2) → NotSupportedException (V1.0 A.4 / Q-MIG).
+        [Test]
+        public void Migrate_V05Save_ThrowsNotSupported()
+        {
+            var state = new GameState { saveVersion = 2 };
+
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SaveMigration.Migrate(state, SaveMigration.CurrentVersion)
+            );
+            StringAssert.Contains("V0.5", ex.Message, "T2-c: 에러 메시지에 V0.5 포함");
+        }
+
+        // T3: 인프라 라운드트립 — 가상 V3→V4 마이그레이터 등록 후 saveVersion 갱신.
         [Test]
         public void Migrate_CustomMigrator_UpdatesSaveVersion()
         {
-            const int targetVersion = 3;
+            const int targetVersion = 4; // 현재 버전(3)보다 높은 임의 버전
             SaveMigration.RegisterMigrator(targetVersion, new PassThroughMigrator());
 
             try
             {
-                var state = new GameState { saveVersion = SaveMigration.CurrentVersion };
+                var state = new GameState { saveVersion = SaveMigration.CurrentVersion }; // 3
 
                 var result = SaveMigration.Migrate(state, targetVersion);
 
@@ -74,18 +85,15 @@ namespace FMLite.Tests
         [Test]
         public void Migrate_MissingMigratorVersion_ThrowsInvalidOperation()
         {
-            var state = new GameState { saveVersion = 1 };
-
-            // version 1 → 2 는 MigratorV1_0 (NotSupported). version 3 은 등록 안 됨.
-            // saveVersion=2 → target=3 인 경우 마이그레이터 없어서 InvalidOperationException.
             const int missingTarget = 99;
-            var state2 = new GameState { saveVersion = 98 };
+            var state = new GameState { saveVersion = 98 };
+
             Assert.Throws<InvalidOperationException>(() =>
-                SaveMigration.Migrate(state2, missingTarget)
+                SaveMigration.Migrate(state, missingTarget)
             );
         }
 
-        // 테스트용 통과 마이그레이터 (아무 변환 없이 그대로 반환)
+        // 테스트용 통과 마이그레이터
         private class PassThroughMigrator : IMigrator
         {
             public GameState Apply(GameState state) => state;
