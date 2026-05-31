@@ -1,7 +1,10 @@
 // SeedV10LocalizationData.cs
-// V0.5 LocalizationSO 인스턴스 생성 + 모든 UI 키 일괄 시드.
-// FM-Lite > Seed > Generate V0.5 Localization 에서 실행.
+// V0.5 + V1.0 LocalizationSO 인스턴스 생성 + 모든 UI 키 일괄 시드.
+// FM-Lite > Seed > Generate V1.0 Localization 에서 실행 (V1.0 기준).
 // 기존 asset 재실행 시 entries 를 덮어쓰되 GUID 는 유지.
+//
+// V1.0 신규 entries 는 BuildV10Entries() 메서드들에 분리 (매치 이벤트 ~100, Options, Inbox, Currency,
+// Synergy, FA Cup, 훈련 시스템). algorithms.md V1.0-2 ~ V1.0-4 카탈로그.
 
 using System.Collections.Generic;
 using FMLite.Domain;
@@ -15,7 +18,7 @@ namespace FMLite.Editor
         private const string AssetPath =
             "Assets/_Project/Data/Resources/Localization/LocalizationData.asset";
 
-        [MenuItem("FM-Lite/Seed/Generate V0.5 Localization")]
+        [MenuItem("FM-Lite/Seed/Generate V1.0 Localization")]
         public static void Generate()
         {
             EnsureFolder("Assets/_Project/Data/Resources", "Localization");
@@ -44,7 +47,16 @@ namespace FMLite.Editor
                 AssetDatabase.CreateFolder(parent, child);
         }
 
-        private static List<LocalizationEntry> BuildEntries() =>
+        public static List<LocalizationEntry> BuildEntries()
+        {
+            var entries = BuildV05Entries();
+            entries.AddRange(BuildV10MatchEvents());
+            entries.AddRange(BuildV10OptionsAndInbox());
+            entries.AddRange(BuildV10CurrencySynergyCupTraining());
+            return entries;
+        }
+
+        private static List<LocalizationEntry> BuildV05Entries() =>
             new List<LocalizationEntry>
             {
                 // ── Dashboard ──────────────────────────────────────────────
@@ -486,6 +498,469 @@ namespace FMLite.Editor
                 ),
                 E("board_promise_accept", "수락", "Accept"),
                 E("board_promise_reject", "거절 (-10 신뢰도)", "Reject (-10 confidence)"),
+            };
+
+        // ─────────────────────────────────────────────────────────────
+        // V1.0 — Match Event Texts (~100 keys, algorithms.md V1.0-2)
+        // 1차 텍스트. G.6 (Stage G.6) 에서 다듬기.
+        // ─────────────────────────────────────────────────────────────
+
+        private static List<LocalizationEntry> BuildV10MatchEvents() =>
+            new List<LocalizationEntry>
+            {
+                // ── Goal (5) ─────────────────────────────────────────
+                E("match_event_goal_1", "{player}의 환상적인 슈팅! 골인!",
+                    "{player} unleashes a stunning strike — and it's in!"),
+                E("match_event_goal_2", "행운의 굴절 — {player}의 골!",
+                    "A lucky deflection — and {player} gets the goal!"),
+                E("match_event_goal_3", "{player}가 PK를 침착하게 성공!",
+                    "{player} keeps his composure from the spot!"),
+                E("match_event_goal_4", "{player}의 헤더 결정타!",
+                    "{player} powers in the header!"),
+                E("match_event_goal_5", "{player}의 장거리 폭격이 골망을 흔든다!",
+                    "{player} unleashes a thunderbolt from distance!"),
+
+                // ── KeyPass / Assist (5) ─────────────────────────────
+                E("match_event_keypass_1", "{player}의 절묘한 스루패스!",
+                    "A defence-splitting pass from {player}!"),
+                E("match_event_keypass_2", "{player}가 박스 안으로 정확한 크로스!",
+                    "{player} whips in a perfect cross!"),
+                E("match_event_keypass_3", "{player}의 환상적인 어시스트!",
+                    "A sublime assist from {player}!"),
+                E("match_event_keypass_4", "{player}의 백힐로 찬스 메이킹!",
+                    "{player} backheels it into space!"),
+                E("match_event_keypass_5", "{player}의 노룩 패스가 찬스를 만든다!",
+                    "{player} with a no-look pass to create the chance!"),
+
+                // ── Save (5) ─────────────────────────────────────────
+                E("match_event_save_1", "{gk}의 슈퍼 세이브!",
+                    "Brilliant save by {gk}!"),
+                E("match_event_save_2", "{gk}가 가까스로 펀칭!",
+                    "{gk} punches it clear at full stretch!"),
+                E("match_event_save_3", "{gk}의 다이빙 캐치!",
+                    "{gk} dives to gather it safely!"),
+                E("match_event_save_4", "{gk}가 발로 막아냈다!",
+                    "{gk} sticks out a foot to deny the strike!"),
+                E("match_event_save_5", "{gk}의 반사신경이 빛난다!",
+                    "Lightning reflexes from {gk}!"),
+
+                // ── Shot On Target (4) ───────────────────────────────
+                E("match_event_shoton_1", "{player}의 슛이 골키퍼 정면!",
+                    "{player}'s shot is straight at the keeper."),
+                E("match_event_shoton_2", "{player}의 슛, 골대 맞고 튕겨나온다!",
+                    "{player} hits the woodwork!"),
+                E("match_event_shoton_3", "{player}의 강슛, 골키퍼가 쳐낸다!",
+                    "{player}'s fierce strike — pushed away!"),
+                E("match_event_shoton_4", "{player}의 슛이 골라인 위에서 클리어!",
+                    "Cleared off the line from {player}'s effort!"),
+
+                // ── Shot Off Target (3) ──────────────────────────────
+                E("match_event_shotoff_1", "{player}의 슛이 크로스바를 살짝 넘긴다!",
+                    "{player}'s shot flies just over the bar!"),
+                E("match_event_shotoff_2", "{player}의 슛이 옆그물!",
+                    "{player} sends it wide of the post!"),
+                E("match_event_shotoff_3", "{player}의 위협적인 슛이 빗나간다!",
+                    "{player}'s effort goes narrowly wide!"),
+
+                // ── Yellow Card (3) ──────────────────────────────────
+                E("match_event_yellow_1", "{player}, 거친 태클로 경고!",
+                    "{player} is booked for a reckless challenge!"),
+                E("match_event_yellow_2", "{player}, 항의로 옐로카드!",
+                    "{player} sees yellow for dissent."),
+                E("match_event_yellow_3", "{player}, 시간 지연으로 경고!",
+                    "{player} is cautioned for time-wasting."),
+
+                // ── Red Card (3) ─────────────────────────────────────
+                E("match_event_red_1", "{player}, 폭력 행위로 퇴장!",
+                    "{player} is sent off for violent conduct!"),
+                E("match_event_red_2", "{player}, 명백한 득점 기회 저지로 퇴장!",
+                    "{player} is shown red — a clear goal-scoring opportunity denied."),
+                E("match_event_red_3", "{player}, 심각한 반칙으로 퇴장!",
+                    "{player} is dismissed for a serious foul!"),
+
+                // ── Second Yellow → Red (2) ──────────────────────────
+                E("match_event_2nd_yellow_1", "{player}, 두 번째 경고 — 퇴장!",
+                    "Two yellows — {player} is off!"),
+                E("match_event_2nd_yellow_2", "{player}가 어리석은 반칙으로 두 번째 옐로!",
+                    "A foolish foul earns {player} a second yellow!"),
+
+                // ── Foul (3) ─────────────────────────────────────────
+                E("match_event_foul_1", "{player}가 반칙을 범한다.",
+                    "{player} concedes a foul."),
+                E("match_event_foul_2", "{player}의 격한 태클로 휘슬!",
+                    "Whistle blows — {player} with a robust tackle."),
+                E("match_event_foul_3", "{player}, 위험 지역에서 반칙!",
+                    "{player} fouls in a dangerous area!"),
+
+                // ── Penalty Won (3) ──────────────────────────────────
+                E("match_event_pk_won_1", "{player}가 박스 안에서 넘어진다 — PK!",
+                    "{player} goes down in the box — penalty!"),
+                E("match_event_pk_won_2", "심판이 가리킨 곳은 페널티 스폿! {player} 가 얻어냈다.",
+                    "The referee points to the spot — {player} has won the penalty!"),
+                E("match_event_pk_won_3", "VAR 확인 결과 PK 판정! {player}.",
+                    "After a VAR check, a penalty is awarded to {player}!"),
+
+                // ── Penalty Missed (3) ───────────────────────────────
+                E("match_event_pk_miss_1", "{player}의 PK가 골대를 맞춘다!",
+                    "{player} smashes the penalty against the post!"),
+                E("match_event_pk_miss_2", "{player}의 PK가 크로스바를 넘긴다!",
+                    "{player} skies the penalty over the bar!"),
+                E("match_event_pk_miss_3", "{player}의 PK가 옆그물로 빗나간다!",
+                    "{player} drags the penalty wide!"),
+
+                // ── Penalty Saved (3) ────────────────────────────────
+                E("match_event_pk_saved_1", "{gk}의 환상적인 PK 선방!",
+                    "{gk} makes a stunning penalty save!"),
+                E("match_event_pk_saved_2", "{gk}가 정확히 방향을 읽었다 — 선방!",
+                    "{gk} guesses right and saves the penalty!"),
+                E("match_event_pk_saved_3", "{gk}가 발로 PK를 막아낸다!",
+                    "{gk} blocks the spot-kick with his legs!"),
+
+                // ── Injury Minor (3) ─────────────────────────────────
+                E("match_event_injury_minor_1", "{player}, 가벼운 부상 — 자가 치료 가능.",
+                    "{player} picks up a knock — should be fine to continue."),
+                E("match_event_injury_minor_2", "{player}, 잠시 그라운드에 누웠지만 곧 일어선다.",
+                    "{player} is down briefly but back on his feet."),
+                E("match_event_injury_minor_3", "{player}, 경미한 부상으로 치료 받는다.",
+                    "{player} receives some quick treatment on the pitch."),
+
+                // ── Injury Major (3) ─────────────────────────────────
+                E("match_event_injury_major_1", "{player}, 심각한 부상으로 들것에 실려나간다.",
+                    "{player} is stretchered off with a serious injury."),
+                E("match_event_injury_major_2", "{player}, 출전 불가 — 즉시 교체!",
+                    "{player} can't continue — immediate substitution!"),
+                E("match_event_injury_major_3", "{player}, 무릎을 잡고 쓰러진다 — 심각한 모습.",
+                    "{player} clutches his knee — this looks serious."),
+
+                // ── Substitution (4) ─────────────────────────────────
+                E("match_event_sub_1", "교체: {playerOut} → {playerIn}",
+                    "Substitution: {playerIn} replaces {playerOut}."),
+                E("match_event_sub_2", "{playerOut}가 벤치로, {playerIn}가 투입된다.",
+                    "{playerOut} comes off, {playerIn} comes on."),
+                E("match_event_sub_3", "전술 변화 — {playerIn} 투입!",
+                    "Tactical change — {playerIn} is brought on!"),
+                E("match_event_sub_4", "{playerOut}가 박수를 받으며 교체된다. {playerIn} 등장.",
+                    "{playerOut} receives an ovation as he is replaced by {playerIn}."),
+
+                // ── Tackle (3) ───────────────────────────────────────
+                E("match_event_tackle_1", "{player}의 강력한 태클로 공 탈취!",
+                    "{player} wins the ball with a strong tackle!"),
+                E("match_event_tackle_2", "{player}, 슬라이딩 태클 성공!",
+                    "{player} slides in to win the ball!"),
+                E("match_event_tackle_3", "{player}의 깔끔한 태클로 공격 차단!",
+                    "{player} dispossesses the attacker cleanly!"),
+
+                // ── Cross (3) ────────────────────────────────────────
+                E("match_event_cross_1", "{player}의 크로스가 박스를 가른다!",
+                    "{player} whips in a dangerous cross!"),
+                E("match_event_cross_2", "{player}의 얼리 크로스!",
+                    "An early cross from {player}!"),
+                E("match_event_cross_3", "{player}의 크로스, 수비수에게 차단!",
+                    "{player}'s cross is cleared by the defender."),
+
+                // ── Corner (3) ───────────────────────────────────────
+                E("match_event_corner_1", "코너킥 — {player} 가 준비한다.",
+                    "Corner — {player} steps up to take it."),
+                E("match_event_corner_2", "짧은 코너 — 박스 외곽으로 빠진다.",
+                    "Short corner — played back to the edge of the area."),
+                E("match_event_corner_3", "코너에서 헤더 시도!",
+                    "Header attempt from the corner!"),
+
+                // ── Free Kick Direct (4) ─────────────────────────────
+                E("match_event_fk_direct_1", "직접 프리킥 — {player} 가 준비.",
+                    "Direct free kick — {player} stands over it."),
+                E("match_event_fk_direct_2", "{player}의 프리킥이 벽을 넘긴다!",
+                    "{player}'s free kick clears the wall!"),
+                E("match_event_fk_direct_3", "{player}의 프리킥이 벽에 막힌다.",
+                    "{player}'s free kick is blocked by the wall."),
+                E("match_event_fk_direct_4", "{player}의 환상적인 감아차기 프리킥!",
+                    "A beautiful curling free kick from {player}!"),
+
+                // ── Free Kick Indirect (3) ───────────────────────────
+                E("match_event_fk_indirect_1", "간접 프리킥 — 짧게 연결.",
+                    "Indirect free kick — played short."),
+                E("match_event_fk_indirect_2", "{player}가 박스 안으로 띄운다.",
+                    "{player} lofts it into the box."),
+                E("match_event_fk_indirect_3", "간접 프리킥에서 헤더 찬스!",
+                    "Header chance from the indirect free kick!"),
+
+                // ── Long Throw (3) ───────────────────────────────────
+                E("match_event_throw_1", "{player}의 롱 스로인이 박스로!",
+                    "{player} hurls in a long throw!"),
+                E("match_event_throw_2", "{player}의 스로인에서 혼전 발생!",
+                    "Scramble in the box from {player}'s long throw!"),
+                E("match_event_throw_3", "{player}의 스로인, 수비수가 헤더로 처리.",
+                    "{player}'s throw is headed clear by the defender."),
+
+                // ── Offside (3) ──────────────────────────────────────
+                E("match_event_offside_1", "오프사이드 깃발이 올라간다 — {player}.",
+                    "Flag is up — offside on {player}."),
+                E("match_event_offside_2", "{player}가 아슬아슬하게 오프사이드!",
+                    "{player} caught marginally offside!"),
+                E("match_event_offside_3", "라인을 너무 일찍 깬 {player}.",
+                    "{player} times his run too early."),
+
+                // ── Interception (3) ─────────────────────────────────
+                E("match_event_interception_1", "{player}의 정확한 인터셉트!",
+                    "Brilliant interception from {player}!"),
+                E("match_event_interception_2", "{player}가 패스 길을 읽어낸다!",
+                    "{player} reads the pass perfectly!"),
+                E("match_event_interception_3", "{player}, 공을 가로채 역습!",
+                    "{player} picks it off and launches a counter!"),
+
+                // ── Kick Off (4) ─────────────────────────────────────
+                E("match_event_kickoff_1", "킥오프! 경기가 시작된다.",
+                    "Kick-off! The match is underway."),
+                E("match_event_kickoff_2", "후반전 시작!",
+                    "Second half is underway!"),
+                E("match_event_kickoff_3", "연장 전반전 시작!",
+                    "First half of extra time begins!"),
+                E("match_event_kickoff_4", "연장 후반전 시작!",
+                    "Second half of extra time begins!"),
+
+                // ── Half Time (3) ────────────────────────────────────
+                E("match_event_halftime_1", "전반 종료 휘슬.",
+                    "Whistle blows for half-time."),
+                E("match_event_halftime_2", "휘슬 — 라커룸으로 향한다.",
+                    "Half-time — teams head to the dressing room."),
+                E("match_event_halftime_3", "전반 종료 — 점수는 {homeScore}-{awayScore}.",
+                    "Half-time — score is {homeScore}-{awayScore}."),
+
+                // ── Full Time (4) ────────────────────────────────────
+                E("match_event_fulltime_1", "경기 종료!",
+                    "Full time!"),
+                E("match_event_fulltime_2", "최종 휘슬 — {homeScore}-{awayScore}.",
+                    "Final whistle — {homeScore}-{awayScore}."),
+                E("match_event_fulltime_3", "경기 종료 — 결과 확정.",
+                    "It's all over — the result is final."),
+                E("match_event_fulltime_4", "마지막 휘슬이 울린다.",
+                    "The final whistle blows."),
+
+                // ── Extra Time Start (2) ─────────────────────────────
+                E("match_event_et_start_1", "연장전 돌입!",
+                    "Heading to extra time!"),
+                E("match_event_et_start_2", "정규 시간 무승부 — 연장전 시작.",
+                    "Level after 90 — extra time it is."),
+
+                // ── Penalty Shootout (3) ─────────────────────────────
+                E("match_event_pso_1", "승부차기 — 운명의 순간.",
+                    "Penalty shootout — the moment of truth."),
+                E("match_event_pso_2", "승부차기 시작!",
+                    "The shootout begins!"),
+                E("match_event_pso_3", "{player}가 페널티 스폿으로 향한다.",
+                    "{player} walks up to the spot."),
+
+                // ── Match Report — Win (5) ───────────────────────────
+                E("match_report_win_1", "{home}, {away} 상대로 {homeScore}-{awayScore} 완승!",
+                    "{home} cruise past {away} {homeScore}-{awayScore}!"),
+                E("match_report_win_2", "{home}의 압도적 승리, {away} 상대 {homeScore}-{awayScore}.",
+                    "Dominant {home} win {homeScore}-{awayScore} against {away}."),
+                E("match_report_win_3", "{home}, {away}에 {homeScore}-{awayScore} 승.",
+                    "{home} beat {away} {homeScore}-{awayScore}."),
+                E("match_report_win_4", "치열한 접전 끝에 {home}이 {away}를 꺾었다.",
+                    "{home} edge {away} in a tight contest."),
+                E("match_report_win_5", "{home}의 결정적인 골들이 {away}를 침몰시켰다.",
+                    "Clinical finishing from {home} sinks {away}."),
+
+                // ── Match Report — Loss (5) ──────────────────────────
+                E("match_report_loss_1", "{home}, {away}에 {homeScore}-{awayScore} 패.",
+                    "{home} fall {homeScore}-{awayScore} to {away}."),
+                E("match_report_loss_2", "{away}의 일격에 {home}이 무릎 꿇었다.",
+                    "{home} undone by a sharp {away} performance."),
+                E("match_report_loss_3", "{home}의 마무리 부족이 {away}에 점수를 내줬다.",
+                    "Profligate finishing costs {home} the points against {away}."),
+                E("match_report_loss_4", "{home}, 안방에서 {away}에 무릎 꿇다.",
+                    "{home} stunned at home by {away}."),
+                E("match_report_loss_5", "{away}의 효율적인 경기 운영이 {home}을 압도했다.",
+                    "Efficient {away} prove too much for {home}."),
+
+                // ── Match Report — Draw (5) ──────────────────────────
+                E("match_report_draw_1", "{home}과 {away}, {homeScore}-{awayScore} 무승부.",
+                    "{home} and {away} share the spoils {homeScore}-{awayScore}."),
+                E("match_report_draw_2", "{home} vs {away}, 점수만큼 치열한 무승부.",
+                    "An evenly-matched draw between {home} and {away}."),
+                E("match_report_draw_3", "양 팀 모두 결정타 부족 — 무승부로 마무리.",
+                    "Neither side could find the winner — a stalemate."),
+                E("match_report_draw_4", "{home} vs {away}, 박빙의 무승부.",
+                    "{home} and {away} cancel each other out."),
+                E("match_report_draw_5", "한 점도 양보 없는 끝장 무승부.",
+                    "A back-and-forth draw with both sides giving nothing."),
+            };
+
+        // ─────────────────────────────────────────────────────────────
+        // V1.0 — Options + Inbox keys
+        // ─────────────────────────────────────────────────────────────
+
+        private static List<LocalizationEntry> BuildV10OptionsAndInbox() =>
+            new List<LocalizationEntry>
+            {
+                // ── Options (라벨) ───────────────────────────────────
+                E("options_title", "옵션", "Options"),
+                E("options_master_volume", "마스터 볼륨", "Master Volume"),
+                E("options_sfx_volume", "효과음 볼륨", "SFX Volume"),
+                E("options_bgm_volume", "배경음악 볼륨", "BGM Volume"),
+                E("options_language", "언어", "Language"),
+                E("options_language_ko", "한국어", "Korean"),
+                E("options_language_en", "English", "English"),
+                E("options_currency", "통화", "Currency"),
+                E("options_ui_scale", "UI 크기", "UI Scale"),
+                E("options_auto_save", "자동 저장", "Auto Save"),
+                E("options_shortcuts", "단축키 안내", "Shortcuts"),
+                E("options_on", "켜기", "On"),
+                E("options_off", "끄기", "Off"),
+                E("options_save_apply", "저장", "Save"),
+
+                // ── Inbox 카테고리 (7) ───────────────────────────────
+                E("inbox_category_match", "경기", "Match"),
+                E("inbox_category_transfer", "이적", "Transfer"),
+                E("inbox_category_morale", "사기", "Morale"),
+                E("inbox_category_board", "이사회", "Board"),
+                E("inbox_category_youth", "유스", "Youth"),
+                E("inbox_category_cup", "컵", "Cup"),
+                E("inbox_category_award", "시상", "Award"),
+
+                // ── Inbox 우선순위 (4) ───────────────────────────────
+                E("inbox_priority_low", "낮음", "Low"),
+                E("inbox_priority_medium", "보통", "Medium"),
+                E("inbox_priority_high", "높음", "High"),
+                E("inbox_priority_requires_action", "처리 필요", "Requires Action"),
+
+                // ── Inbox 알림 fmt (V1.0 신규 — V0.5 기존 5개는 중복 회피 위해 제외) ─
+                // V0.5 기존 (positional placeholder 유지, DashboardController 호환):
+                //   inbox_promise_created_fmt / _fulfilled_fmt / _broken_fmt
+                //   inbox_transfer_request_fmt / inbox_youth_promotion_fmt
+                // V1.0 InboxRouter 는 Dictionary<string,string> titleArgs 만 저장,
+                // string.Format 은 InboxPanel UI (Stage B.1) 책임 — 텍스트 형식 호환성 분리.
+                E(
+                    "inbox_promise_deadline_fmt",
+                    "약속 #{id} 마감 {days}일 남음",
+                    "Promise #{id} due in {days} days"
+                ),
+                E(
+                    "inbox_counter_offer_fmt",
+                    "역제안 도착 (오퍼 #{offerId})",
+                    "Counter-offer received (Offer #{offerId})"
+                ),
+                E(
+                    "inbox_contract_renewed_fmt",
+                    "선수 #{playerId} 재계약 체결",
+                    "Player #{playerId} has signed a new contract"
+                ),
+                E(
+                    "inbox_contract_rejected_fmt",
+                    "선수 #{playerId} 재계약 거절",
+                    "Player #{playerId} rejected the contract offer"
+                ),
+                E(
+                    "inbox_youth_intake_fmt",
+                    "구단 #{clubId} 유스 인스펙션 가능",
+                    "Youth intake available for club #{clubId}"
+                ),
+
+                // ── Inbox UI ─────────────────────────────────────────
+                E("inbox_title", "인박스", "Inbox"),
+                E("inbox_empty", "받은 알림이 없습니다.", "No notifications."),
+                E("inbox_mark_all_read", "모두 읽음 처리", "Mark all as read"),
+                E("inbox_open", "열기", "Open"),
+            };
+
+        // ─────────────────────────────────────────────────────────────
+        // V1.0 — Currency / Synergy / FA Cup / Training keys
+        // ─────────────────────────────────────────────────────────────
+
+        private static List<LocalizationEntry> BuildV10CurrencySynergyCupTraining() =>
+            new List<LocalizationEntry>
+            {
+                // ── Currency 심볼 + 단위 ─────────────────────────────
+                E("currency_gbp_symbol", "£", "£"),
+                E("currency_usd_symbol", "$", "$"),
+                E("currency_eur_symbol", "€", "€"),
+                E("currency_krw_symbol", "₩", "₩"),
+                E("currency_unit_thousand", "K", "K"),
+                E("currency_unit_million", "M", "M"),
+                E("currency_unit_billion", "B", "B"),
+                E("currency_label_gbp", "파운드 (GBP)", "Pound (GBP)"),
+                E("currency_label_usd", "달러 (USD)", "Dollar (USD)"),
+                E("currency_label_eur", "유로 (EUR)", "Euro (EUR)"),
+                E("currency_label_krw", "원 (KRW)", "Won (KRW)"),
+
+                // ── 시너지 카탈로그 (10종, algorithms.md V1.0-3) ──
+                E("synergy_big_and_small_name", "빅앤스몰", "Big & Small"),
+                E("synergy_big_and_small_desc", "장신 스트라이커 + 단신 윙어 조합. 헤더골 +10% / 크로스 결정 +10%.",
+                    "Tall striker paired with short wingers. +10% headed goals / +10% cross finishing."),
+
+                E("synergy_target_speedster_name", "타겟+발마니", "Target & Speedster"),
+                E("synergy_target_speedster_desc", "타겟맨 스트라이커 + 빠른 윙어. 카운터 어택 +15%.",
+                    "Target Man with pacy wingers. +15% counter attacks."),
+
+                E("synergy_possession_name", "온볼이마이웨이", "Possession"),
+                E("synergy_possession_desc", "패스 + 비전 좋은 미드필더 2명. 점유율 +5% / 패스 성공 +5%.",
+                    "Two midfielders with elite passing and vision. +5% possession / +5% pass success."),
+
+                E("synergy_defensive_wall_name", "골니아", "Defensive Wall"),
+                E("synergy_defensive_wall_desc", "센터백 2명의 강력한 태클·마킹. 실점 -10%.",
+                    "Two centre-backs locking down the area. -10% goals conceded."),
+
+                E("synergy_wingback_duo_name", "서프-스테파", "Wing-Back Duo"),
+                E("synergy_wingback_duo_desc", "스태미나·근면성 좋은 양쪽 풀백. 크로스 빈도 +20%.",
+                    "High-stamina and hard-working full-backs. +20% cross frequency."),
+
+                E("synergy_double_pivot_name", "더블 피보테", "Double Pivot"),
+                E("synergy_double_pivot_desc", "수비형 미드필더 2명. 중원 점유 +10% / 차단 +10%.",
+                    "Two defensive midfielders. +10% midfield control / +10% interceptions."),
+
+                E("synergy_trequartista_name", "트레자르테", "Trequartista"),
+                E("synergy_trequartista_desc", "공격형 미드필더의 창의성. 키패스 빈도 +20%.",
+                    "Creative attacking midfielder. +20% key pass frequency."),
+
+                E("synergy_false_nine_name", "펄스9", "False 9"),
+                E("synergy_false_nine_desc", "거짓 9번의 박스 침투. 드리블 박스 진입 +15%.",
+                    "False 9 dropping deep and arriving late. +15% dribble box entries."),
+
+                E("synergy_diamond_midfield_name", "다이아몬드 미드", "Diamond Midfield"),
+                E("synergy_diamond_midfield_desc", "DM + CM 2 + AM 다이아몬드 형태. 점유 +8% / 슛 +10%.",
+                    "DM + 2 CM + AM diamond shape. +8% possession / +10% shots."),
+
+                E("synergy_homegrown_spine_name", "자국인 라인", "Homegrown Spine"),
+                E("synergy_homegrown_spine_desc", "GK + CB + DM + ST 자국 선수. 사기 +5 영구 / 매치 +3%.",
+                    "GK + CB + DM + ST all homegrown. +5 permanent morale / +3% match strength."),
+
+                E("synergy_active_label", "활성 시너지", "Active Synergies"),
+                E("synergy_none_active", "활성 시너지 없음", "No active synergies"),
+
+                // ── FA Cup ──────────────────────────────────────────
+                E("cup_facup_name", "FA컵", "FA Cup"),
+                E("cup_round_32", "32강", "Round of 32"),
+                E("cup_round_16", "16강", "Round of 16"),
+                E("cup_quarter", "8강", "Quarter-finals"),
+                E("cup_semi", "4강", "Semi-finals"),
+                E("cup_final", "결승", "Final"),
+                E("cup_winner_fmt", "{club}이(가) {season} 시즌 FA컵 우승!",
+                    "{club} win the {season} FA Cup!"),
+                E("cup_match_label_fmt", "FA컵 {round}", "FA Cup {round}"),
+                E("cup_eliminated_fmt", "{club}, FA컵 {round} 탈락",
+                    "{club} eliminated in FA Cup {round}"),
+
+                // ── 훈련 시스템 (V1.0-4) ─────────────────────────────
+                E("training_title", "훈련", "Training"),
+                E("training_group", "그룹 훈련", "Group Training"),
+                E("training_individual", "개인 훈련", "Individual Training"),
+                E("training_intensity_low", "낮음", "Low"),
+                E("training_intensity_medium", "보통", "Medium"),
+                E("training_intensity_high", "높음", "High"),
+                E("training_group_gk", "GK", "GK"),
+                E("training_group_df", "수비", "Defence"),
+                E("training_group_mf", "미드필드", "Midfield"),
+                E("training_group_at", "공격", "Attack"),
+                E("training_individual_target", "타겟 스탯", "Target Stat"),
+                E("training_individual_start", "시작일", "Start Date"),
+                E("training_individual_end", "종료일", "End Date"),
+                E("training_individual_capacity_fmt", "동시 인원 {used}/{cap}",
+                    "Active trainees: {used}/{cap}"),
+                E("training_individual_full", "훈련 인원 초과 — 시설 업그레이드 필요",
+                    "Training capacity full — upgrade facility"),
+                E("training_button_start", "훈련 시작", "Start Training"),
+                E("training_button_cancel", "취소", "Cancel"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>
