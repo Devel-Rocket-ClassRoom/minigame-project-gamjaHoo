@@ -4749,8 +4749,74 @@ def ClubWinsCup(clubId, cup):
 
 ---
 
+---
+
+## V1.0-11. Player.growthHistory + GrowthSystem 월별 스냅샷 (`#68`)
+
+### V1.0-11.1 도메인
+
+```csharp
+[Serializable]
+public class StatSnapshot {
+    public int year;
+    public int month;
+    public Stats stats;   // 해당 월 Tick 시작 직전 stats 딥카피 (Stats.Clone())
+}
+
+public class Player {
+    // ... 기존 ...
+    public List<StatSnapshot> growthHistory = new();
+}
+```
+
+### V1.0-11.2 GrowthSystem.Tick 갱신
+
+매월 1일 `GrowthSystem.Tick` 시작 시 스냅샷을 먼저 저장 후 성장/쇠퇴 처리.
+
+```
+def GrowthSystem.Tick(state, balance):
+    year = state.currentDate.Year
+    month = state.currentDate.Month
+
+    for each player in squads:
+        # V1.0 신규: Tick 시작 시 스냅샷 저장 (성장 전 상태)
+        player.growthHistory.Add(new StatSnapshot {
+            year = year, month = month,
+            stats = player.stats.Clone()
+        })
+
+        # 기존 V0.5 성장/쇠퇴 처리 ...
+        ProcessCategory(player, player.stats.technical, ...)
+        ProcessCategory(player, player.stats.mental, ...)
+        ProcessCategory(player, player.stats.physical, ...)
+        ProcessCategory(player, player.stats.gk, ...)
+```
+
+### V1.0-11.3 직전 N개월 변화량 헬퍼
+
+```csharp
+// Application/GrowthSystem.cs 에 추가
+public static int GetStatChange(Player player, string statFieldPath, int monthsBack = 3)
+```
+
+- `statFieldPath`: `"technical.passing"` / `"mental.vision"` / `"physical.pace"` 등
+- `growthHistory.Count < monthsBack` 이면 0 반환
+- Reflection 으로 `Stats` 서브오브젝트 + 필드 조회
+- 반환: `현재값 - monthsBack 개월 전 스냅샷 값`
+
+### V1.0-11.4 영향 범위
+
+- `Domain/StatSnapshot.cs` 신규
+- `Domain/Stats.cs` — `Clone()` 메서드 추가 (순수 필드 복사, 의존성 없음)
+- `Domain/Player.cs` — `growthHistory: List<StatSnapshot>` 신규
+- `Application/GrowthSystem.cs` — 스냅샷 단계 + `GetStatChange` 헬퍼 추가
+- 소비자: Stage C.4 (PlayerProfile 성장 화살표) / Stage D.2 (Squad 성장 열)
+
+---
+
 ## Part 3 Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-29 | V1.0-1 ~ V1.0-10 | Part 3: V1.0 Updates 부록 신규 작성. 10 섹션 — 5-Zone 골 빈도 P0 밸런싱 (V0.5 플레이테스트 hotfix) / 매치 텍스트 ~150 키 카탈로그 (5종 변형 × 30 이벤트 종류, 시드 회전) / 선수 조합 시너지 10종 (SynergySO 외부화, ComputeSynergies 알고리즘) / Training System (개인 + 그룹 + GrowthSystem 통합) / CurrencyFormatter (GBP base, 4 통화 환율 고정) / PlayerAvatar + ClubBadge (이니셜 + 색상, ClubGenerator 색상 생성 추가) / Inbox 도메인 + 정책 (자동 만료 + 시즌 종료 시 읽은 것 삭제, InboxRouter EventBus 흡수) / Player.physical + 매치 영향 (헤더/agility/pace/PK 발 일치) / FormationMatchupSO (6×6 행렬) / Cup FA컵 단판 단일 (V0.5 Stage Q 이월). `docs/v1.0-plan.md` §3 + `docs/design-decisions.md` #58~#65 와 연동. |
+| 2026-05-31 | V1.0-11 신규 | Task A.3 — growthHistory + GrowthSystem 월별 스냅샷. StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 / GetStatChange 헬퍼. design-decisions.md #68 연동. |

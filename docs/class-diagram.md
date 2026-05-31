@@ -102,6 +102,9 @@ public class Player {
 
     // V1.0 신규 (design-decisions.md #67)
     public PhysicalAttributes physical;
+
+    // V1.0 신규 (design-decisions.md #68)
+    public List<StatSnapshot> growthHistory;
 }
 
 [Serializable]
@@ -110,6 +113,13 @@ public class PhysicalAttributes {
     public int weight;           // kg [60, 100]
     public Foot preferredFoot;   // Left / Right / Both
     public int weakFootAbility;  // 1-5
+}
+
+[Serializable]
+public class StatSnapshot {
+    public int year;
+    public int month;
+    public Stats stats;          // Stats.Clone() — Tick 시작 시 캡처
 }
 ```
 

@@ -2214,6 +2214,37 @@ public class PhysicalAttributes {
 
 ---
 
+## 68. Player.growthHistory + GrowthSystem 월별 스냅샷 (V1.0 — Task A.3)
+
+**결정:** GrowthSystem.Tick (매월 1일) 시작 시 각 선수의 현재 stats 스냅샷을 `Player.growthHistory` 에 저장한다.
+
+```csharp
+[Serializable]
+public class StatSnapshot {
+    public int year;
+    public int month;
+    public Stats stats;   // Stats.Clone() — 성장 처리 전 상태
+}
+```
+
+**스냅샷 타이밍:** Tick **시작 시** (성장 처리 전). 이렇게 해야 "이 달 시작 시점의 stats" 를 기록 → 3개월 전 시작 시점과 현재(처리 후) 비교로 변화량 계산.
+
+**변화량 헬퍼:** `GrowthSystem.GetStatChange(player, "technical.passing", 3)` 형태.
+- `growthHistory.Count < monthsBack` → 0 반환
+- Reflection: `Stats` 서브오브젝트 이름 + 필드 이름으로 조회
+- 소비자: PlayerProfile 성장 화살표 (C.4) / Squad 성장 열 (D.2)
+
+**이유:**
+- **성장 추세 시각화**: UI 에서 "+2 ↑ / 0 → / -1 ↘" 같은 화살표 표시.
+- **순수 도메인 클론**: `Stats.Clone()` 은 외부 의존성 없이 필드 직접 복사.
+- **메모리**: 49 int × player 수 × 히스토리 길이. 12개월 × 500명 = ~300K int ≈ 1.2MB. 허용 범위.
+
+### V1.x 보완 포인트
+- **히스토리 상한** — 현재 무제한. V1.x 에서 최근 12개월만 유지 (trimming) 검토.
+- **CA 변화 추적** — 현재는 stats 49개만. `currentAbility` 도 스냅샷에 포함 시 "CA 성장 곡선" 표시 가능.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2240,3 +2271,4 @@ public class PhysicalAttributes {
 | 2026-05-29 | #58~#65 추가 | V0.5 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 보강). 사용자 V0.5 플레이테스트 피드백 + 추가 요청 (Unity MCP / 매치 결과 대시보드 / 훈련 / 비교 도구 / Options / 통화) 통합. 12 Open Questions 모두 결정 + 추가 결정사항 흡수. **§ 매핑**: #58 글로벌 네비 (TopBar + SideBar 영구 레이어 — 사용자 핵심 피드백 "씬 전환되도 기본 버튼 고정 위치") / #59 Options (PlayerPrefs + AudioMixer + 4 카테고리: 사운드 / 언어 / 통화 / UI Scale / 자동 저장 / 단축키) / #60 사운드 (무료 라이센스 + AudioMixer + CREDITS.md, BGM 3 + SFX 12) / #61 통화 (GBP base 고정 환율, 표시 변환만) / #62 매치 디테일 V1.0 (viewMode 폐기 + 모든 핵심 이벤트 텍스트 + 5-Zone 골 빈도 P0 밸런싱) / #63 훈련 시스템 (개인 + 그룹 + GrowthSystem 통합) / #64 V1.0 정책 (Save Migration 무효 + 일정 마감 없음 + DOTween V1.x 미루기) / #65 Unity MCP (Stage 0 첫 작업 + 4단계 fallback, `unity-mcp-setup.md` 별도 명세). |
 | 2026-05-31 | #66 추가 | Task A.1 Sub-A — Inbox 도메인 + 정책 (V1.0). InboxItem 도메인 클래스 / GameState 확장 / InboxRouter (10 이벤트 흡수) / 정책 Q1(기한 만료 비효과) + Q2(시즌 종료 정리) + Q3(YouthIntakeAvailableEvent 정지 제거). `algorithms.md` V1.0-7 참조 번호 #68 → #66 정정. |
 | 2026-05-31 | #67 추가 | Task A.2 Sub-A — Player.physical 신체 조건 도메인 (V1.0). PhysicalAttributes 클래스 + PlayerGenerator GeneratePhysical 단계. `algorithms.md` V1.0-8 참조 번호 #70 → #67 정정. 명명 혼동 주의 (`stats.physical` vs `Player.physical`). |
+| 2026-05-31 | #68 추가 | Task A.3 Sub-A — Player.growthHistory + GrowthSystem 월별 스냅샷 (V1.0). StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 + GetStatChange 헬퍼. `algorithms.md` V1.0-11 신규. |
