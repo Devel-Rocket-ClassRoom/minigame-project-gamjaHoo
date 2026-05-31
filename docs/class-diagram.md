@@ -94,6 +94,22 @@ public class Player {
     public PlayerState state;
     public List<SeasonStat> career;
     public int faceSeed;
+
+    // V0.5 신규
+    public HiddenAttributes hiddenAttrs;
+    public int parentClubId;
+    public DateTime? loanEndDate;
+
+    // V1.0 신규 (design-decisions.md #67)
+    public PhysicalAttributes physical;
+}
+
+[Serializable]
+public class PhysicalAttributes {
+    public int height;           // cm [165, 205]
+    public int weight;           // kg [60, 100]
+    public Foot preferredFoot;   // Left / Right / Both
+    public int weakFootAbility;  // 1-5
 }
 ```
 

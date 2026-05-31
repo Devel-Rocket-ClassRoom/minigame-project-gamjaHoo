@@ -54,6 +54,7 @@ namespace FMLite.Application
             var state = BuildState();
 
             var hiddenAttrs = GenerateHiddenAttributes(rng, traitIds, balance);
+            var physical = GeneratePhysical(rng, targetPosition);
 
             return new Player
             {
@@ -63,6 +64,7 @@ namespace FMLite.Application
                 potentialAbility = pa,
                 traitIds = traitIds,
                 hiddenAttrs = hiddenAttrs,
+                physical = physical,
                 currentClubId = clubId,
                 youthClubId = youthClubId,
                 origin = origin,
@@ -70,6 +72,52 @@ namespace FMLite.Application
                 state = state,
                 career = new List<SeasonStat>(),
                 faceSeed = faceSeed,
+            };
+        }
+
+        // ── 신체 조건 추첨 (V1.0 — algorithms.md V1.0-8.2) ───────────
+
+        // 포지션별 (평균키cm, 평균몸무게kg). V1.x 에서 PositionSO 외부화 예정 (#67).
+        private static readonly (int H, int W)[] PosPhysical =
+        {
+            (188, 84), // GK
+            (188, 84), // CB
+            (178, 75), // LB
+            (178, 75), // RB
+            (176, 73), // WB
+            (180, 76), // DM
+            (178, 75), // CM
+            (175, 73), // AM
+            (175, 73), // LM
+            (175, 73), // RM
+            (175, 73), // LW
+            (175, 73), // RW
+            (184, 80), // ST
+            (180, 76), // CF
+        };
+
+        private static PhysicalAttributes GeneratePhysical(Random rng, Position pos)
+        {
+            var (avgH, avgW) = PosPhysical[(int)pos];
+
+            int height = Math.Clamp((int)Math.Round(rng.NextNormal(avgH, 6)), 165, 205);
+            int weight = Math.Clamp((int)Math.Round(rng.NextNormal(avgW, 8)), 60, 100);
+
+            // Right 70% / Left ~22.5% / Both ~7.5% (두 번 RNG 호출 — 명세 그대로)
+            Foot foot;
+            if (rng.NextDouble() < 0.70)
+                foot = Foot.Right;
+            else
+                foot = rng.NextDouble() < 0.85 ? Foot.Left : Foot.Both;
+
+            int weakFoot = 1 + rng.Next(5);
+
+            return new PhysicalAttributes
+            {
+                height = height,
+                weight = weight,
+                preferredFoot = foot,
+                weakFootAbility = weakFoot,
             };
         }
 
