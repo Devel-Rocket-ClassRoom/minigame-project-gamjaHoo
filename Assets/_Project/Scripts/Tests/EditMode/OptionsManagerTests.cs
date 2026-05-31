@@ -9,6 +9,7 @@
 
 using FMLite.Application;
 using FMLite.Domain;
+using FMLite.Utils;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -81,15 +82,15 @@ namespace FMLite.Tests
         {
             OptionsManager.Initialize();
             OptionsManager.Language = Language.Korean;
-            OptionsManager.Currency = "KRW";
+            OptionsManager.Currency = Currency.KRW;
             OptionsManager.Save();
 
             OptionsManager.Language = Language.English;
-            OptionsManager.Currency = "GBP";
+            OptionsManager.Currency = Currency.GBP;
             OptionsManager.Initialize();
 
             Assert.AreEqual(Language.Korean, OptionsManager.Language, "T3: Language");
-            Assert.AreEqual("KRW", OptionsManager.Currency, "T3: Currency");
+            Assert.AreEqual(Currency.KRW, OptionsManager.Currency, "T3: Currency");
         }
 
         // ── T4. AutoSave 라운드트립 (bool) ───────────────────────────
@@ -133,7 +134,7 @@ namespace FMLite.Tests
         {
             OptionsManager.Initialize();
             OptionsManager.MasterVolume = 10f;
-            OptionsManager.Currency = "KRW";
+            OptionsManager.Currency = Currency.KRW;
             OptionsManager.AutoSave = false;
             OptionsManager.Save();
 

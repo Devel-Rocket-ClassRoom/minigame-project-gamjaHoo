@@ -6,7 +6,9 @@
 //
 // Stateless 원칙 (design-decisions.md #3) 의 인프라성 예외 — PlayerPrefs 어댑터.
 
+using System;
 using FMLite.Domain;
+using FMLite.Utils;
 using UnityEngine;
 
 namespace FMLite.Application
@@ -25,7 +27,7 @@ namespace FMLite.Application
         // ── 기본값 ──────────────────────────────────────────────────
         public const float DefaultVolume = 80f; // 0-100 슬라이더 단위
         public const float DefaultUiScale = 100f; // %
-        public const string DefaultCurrency = "GBP"; // £
+        public const Currency DefaultCurrency = Utils.Currency.GBP; // £
         public const bool DefaultAutoSave = true;
 
         // ── 값 (Get/Set) ─────────────────────────────────────────────
@@ -33,7 +35,7 @@ namespace FMLite.Application
         public static float SfxVolume { get; set; }
         public static float BgmVolume { get; set; }
         public static Language Language { get; set; }
-        public static string Currency { get; set; } // "GBP" / "USD" / "EUR" / "KRW"
+        public static Currency Currency { get; set; }
         public static float UiScale { get; set; }
         public static bool AutoSave { get; set; }
 
@@ -48,7 +50,9 @@ namespace FMLite.Application
                 ? ParseLanguage(PlayerPrefs.GetString(LanguageKey))
                 : DetectSystemLanguage();
 
-            Currency = PlayerPrefs.GetString(CurrencyKey, DefaultCurrency);
+            Currency = ParseCurrency(
+                PlayerPrefs.GetString(CurrencyKey, DefaultCurrency.ToString())
+            );
             UiScale = PlayerPrefs.GetFloat(UiScaleKey, DefaultUiScale);
             AutoSave = PlayerPrefs.GetInt(AutoSaveKey, DefaultAutoSave ? 1 : 0) == 1;
         }
@@ -60,7 +64,7 @@ namespace FMLite.Application
             PlayerPrefs.SetFloat(SfxKey, SfxVolume);
             PlayerPrefs.SetFloat(BgmKey, BgmVolume);
             PlayerPrefs.SetString(LanguageKey, Language.ToString());
-            PlayerPrefs.SetString(CurrencyKey, Currency);
+            PlayerPrefs.SetString(CurrencyKey, Currency.ToString());
             PlayerPrefs.SetFloat(UiScaleKey, UiScale);
             PlayerPrefs.SetInt(AutoSaveKey, AutoSave ? 1 : 0);
             PlayerPrefs.Save();
@@ -86,5 +90,8 @@ namespace FMLite.Application
 
         private static Language ParseLanguage(string s) =>
             s == nameof(Language.Korean) ? Language.Korean : Language.English;
+
+        private static Currency ParseCurrency(string s) =>
+            Enum.TryParse<Currency>(s, ignoreCase: false, out var c) ? c : DefaultCurrency;
     }
 }
