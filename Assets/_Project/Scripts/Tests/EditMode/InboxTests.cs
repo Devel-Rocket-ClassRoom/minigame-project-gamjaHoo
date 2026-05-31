@@ -31,10 +31,15 @@ namespace FMLite.Tests
         {
             _balance = ScriptableObject.CreateInstance<GameBalanceSO>();
             EventBus.Clear();
+            InboxRouter.Unwire(); // 이전 테스트 잔재 정리
         }
 
         [TearDown]
-        public void TearDown() => EventBus.Clear();
+        public void TearDown()
+        {
+            InboxRouter.Unwire();
+            EventBus.Clear();
+        }
 
         // ── T1. 직렬화 라운드트립 ─────────────────────────────────────
 
@@ -229,6 +234,51 @@ namespace FMLite.Tests
             Assert.AreEqual(2, state.inbox[1].id, "T9: id=2");
             Assert.AreEqual(3, state.inbox[2].id, "T9: id=3");
             Assert.AreEqual(4, state.nextInboxId, "T9: nextInboxId=4");
+        }
+
+        // ── T10. Wire 멱등성 — 두 번 호출 시 핸들러 중복 X ──────────
+
+        [Test]
+        public void T10_Wire_Idempotent_NoDuplicateHandlers()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+            InboxRouter.Wire(state); // 두 번째 호출 — 기존 핸들러 정리 후 새로 구독
+
+            EventBus.Publish(new PromiseCreatedEvent { promiseId = 1 });
+
+            Assert.AreEqual(1, state.inbox.Count, "T10: 중복 없이 1개만 생성");
+        }
+
+        // ── T11. Wire(state2) 후 state1 영향 없음 ────────────────────
+
+        [Test]
+        public void T11_Wire_NewState_OldStateNotAffected()
+        {
+            var state1 = NewState();
+            InboxRouter.Wire(state1);
+
+            var state2 = NewState();
+            InboxRouter.Wire(state2); // state2 로 갱신
+
+            EventBus.Publish(new PromiseCreatedEvent { promiseId = 99 });
+
+            Assert.AreEqual(0, state1.inbox.Count, "T11: state1 미영향");
+            Assert.AreEqual(1, state2.inbox.Count, "T11: state2 만 추가");
+        }
+
+        // ── T12. Unwire 후 이벤트 발화 시 추가 안 됨 ─────────────────
+
+        [Test]
+        public void T12_Unwire_NoNewInboxItems()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+            InboxRouter.Unwire();
+
+            EventBus.Publish(new PromiseCreatedEvent { promiseId = 1 });
+
+            Assert.AreEqual(0, state.inbox.Count, "T12: Unwire 후 미생성");
         }
 
         // ── 헬퍼 ─────────────────────────────────────────────────────
