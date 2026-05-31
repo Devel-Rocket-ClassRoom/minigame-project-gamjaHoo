@@ -4491,7 +4491,7 @@ public static class InboxRouter {
 
 ---
 
-## V1.0-8. Player.physical + 매치 영향 (`#70 / Q4`)
+## V1.0-8. Player.physical + 매치 영향 (`#67 / Q4`)
 
 ### V1.0-8.1 도메인
 

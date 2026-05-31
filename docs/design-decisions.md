@@ -2180,6 +2180,40 @@ public int nextInboxId = 1;
 
 ---
 
+## 67. Player.physical — 신체 조건 도메인 + PlayerGenerator 추첨 (V1.0 — Task A.2)
+
+**결정:** `Player` 에 `PhysicalAttributes` 컴포지션 필드 추가. 포지션별 실세계 평균으로 생성.
+
+```csharp
+[Serializable]
+public class PhysicalAttributes {
+    public int height;           // cm, Clamp [165, 205]
+    public int weight;           // kg, Clamp [60, 100]
+    public Foot preferredFoot;   // Left / Right / Both
+    public int weakFootAbility;  // 1-5 (별점, 약발 능숙도)
+}
+```
+
+**생성 규칙 (V1.0-8.2):**
+- 포지션별 평균 키/몸무게 (hardcoded 실세계 근사값) + NextNormal(σ=6 cm, σ=8 kg)
+- `preferredFoot`: Right 70% / Left ~22.5% / Both ~7.5% (두 번 RNG 호출)
+- `weakFootAbility`: 1~5 균등 추첨
+
+**이유:**
+- **매치 영향 (V1.0-8.3)**: 헤더(키×점프)/민첩(역키)/발 일치(FK/PK) 등 신체 정보를 매치 시뮬레이션에 반영.
+- **플레이어 정체성**: 프로필 화면에 신장/체중/선호발 표시로 캐릭터 다양성.
+- **SaveMigration**: V0.5 세이브 무효 (#64). 신규 게임 PlayerGenerator 자동 생성 → 별도 마이그레이션 없음.
+
+**주의 — 명명 혼동 방지:**
+- `Player.stats.physical` = `PhysicalStats` (pace, agility 등 능력치 숫자)
+- `Player.physical` = `PhysicalAttributes` (신체 치수 데이터)
+
+### V1.x 보완 포인트
+- **포지션 평균값 GameBalanceSO 외부화** — 현재 PlayerGenerator static readonly 상수. V1.x 에서 `PositionSO.avgHeight / avgWeight` 로 이전.
+- **V1.0-8.3 매치 통합** — Task G.2 에서 신체 조건을 매치 시뮬레이션에 반영. A.2 는 도메인/생성만.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2205,3 +2239,4 @@ public int nextInboxId = 1;
 | 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V0.5 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V0.5 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V0.5-2 재작성 + `v0.5-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |
 | 2026-05-29 | #58~#65 추가 | V0.5 빌드 마무리 후 V1.0 계획 수립 (`docs/v1.0-plan.md` 보강). 사용자 V0.5 플레이테스트 피드백 + 추가 요청 (Unity MCP / 매치 결과 대시보드 / 훈련 / 비교 도구 / Options / 통화) 통합. 12 Open Questions 모두 결정 + 추가 결정사항 흡수. **§ 매핑**: #58 글로벌 네비 (TopBar + SideBar 영구 레이어 — 사용자 핵심 피드백 "씬 전환되도 기본 버튼 고정 위치") / #59 Options (PlayerPrefs + AudioMixer + 4 카테고리: 사운드 / 언어 / 통화 / UI Scale / 자동 저장 / 단축키) / #60 사운드 (무료 라이센스 + AudioMixer + CREDITS.md, BGM 3 + SFX 12) / #61 통화 (GBP base 고정 환율, 표시 변환만) / #62 매치 디테일 V1.0 (viewMode 폐기 + 모든 핵심 이벤트 텍스트 + 5-Zone 골 빈도 P0 밸런싱) / #63 훈련 시스템 (개인 + 그룹 + GrowthSystem 통합) / #64 V1.0 정책 (Save Migration 무효 + 일정 마감 없음 + DOTween V1.x 미루기) / #65 Unity MCP (Stage 0 첫 작업 + 4단계 fallback, `unity-mcp-setup.md` 별도 명세). |
 | 2026-05-31 | #66 추가 | Task A.1 Sub-A — Inbox 도메인 + 정책 (V1.0). InboxItem 도메인 클래스 / GameState 확장 / InboxRouter (10 이벤트 흡수) / 정책 Q1(기한 만료 비효과) + Q2(시즌 종료 정리) + Q3(YouthIntakeAvailableEvent 정지 제거). `algorithms.md` V1.0-7 참조 번호 #68 → #66 정정. |
+| 2026-05-31 | #67 추가 | Task A.2 Sub-A — Player.physical 신체 조건 도메인 (V1.0). PhysicalAttributes 클래스 + PlayerGenerator GeneratePhysical 단계. `algorithms.md` V1.0-8 참조 번호 #70 → #67 정정. 명명 혼동 주의 (`stats.physical` vs `Player.physical`). |

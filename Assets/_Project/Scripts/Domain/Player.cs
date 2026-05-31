@@ -29,5 +29,8 @@ namespace FMLite.Domain
         public HiddenAttributes hiddenAttrs;
         public int parentClubId = -1; // 임대 시 원 소속 구단 (-1 = 임대 아님)
         public DateTime? loanEndDate; // 임대 종료일 (null = 임대 아님)
+
+        // V1.0 신규 (design-decisions.md #67)
+        public PhysicalAttributes physical;
     }
 }
