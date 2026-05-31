@@ -13,6 +13,73 @@ namespace FMLite.Domain
         public MentalStats mental = new MentalStats();
         public PhysicalStats physical = new PhysicalStats();
         public GoalkeepingStats gk = new GoalkeepingStats();
+
+        // V1.0 — StatSnapshot 용 딥카피 (외부 의존성 없음, design-decisions.md #68)
+        public Stats Clone() =>
+            new Stats
+            {
+                technical = new TechnicalStats
+                {
+                    passing = technical.passing,
+                    tackling = technical.tackling,
+                    dribbling = technical.dribbling,
+                    heading = technical.heading,
+                    crossing = technical.crossing,
+                    firstTouch = technical.firstTouch,
+                    finishing = technical.finishing,
+                    longShots = technical.longShots,
+                    freeKickTaking = technical.freeKickTaking,
+                    penaltyTaking = technical.penaltyTaking,
+                    corners = technical.corners,
+                    marking = technical.marking,
+                    technique = technical.technique,
+                    longThrows = technical.longThrows,
+                },
+                mental = new MentalStats
+                {
+                    vision = mental.vision,
+                    anticipation = mental.anticipation,
+                    composure = mental.composure,
+                    concentration = mental.concentration,
+                    decisions = mental.decisions,
+                    determination = mental.determination,
+                    leadership = mental.leadership,
+                    offTheBall = mental.offTheBall,
+                    positioning = mental.positioning,
+                    teamwork = mental.teamwork,
+                    workRate = mental.workRate,
+                    aggression = mental.aggression,
+                    bravery = mental.bravery,
+                    flair = mental.flair,
+                },
+                physical = new PhysicalStats
+                {
+                    acceleration = physical.acceleration,
+                    agility = physical.agility,
+                    balance = physical.balance,
+                    jumpingReach = physical.jumpingReach,
+                    naturalFitness = physical.naturalFitness,
+                    pace = physical.pace,
+                    stamina = physical.stamina,
+                    strength = physical.strength,
+                },
+                gk = new GoalkeepingStats
+                {
+                    aerialReach = gk.aerialReach,
+                    commandOfArea = gk.commandOfArea,
+                    communication = gk.communication,
+                    eccentricity = gk.eccentricity,
+                    handling = gk.handling,
+                    kicking = gk.kicking,
+                    oneOnOnes = gk.oneOnOnes,
+                    reflexes = gk.reflexes,
+                    rushingOut = gk.rushingOut,
+                    throwing = gk.throwing,
+                    firstTouchGk = gk.firstTouchGk,
+                    passingGk = gk.passingGk,
+                    punchingTendency = gk.punchingTendency,
+                },
+            };
     }
 
     [Serializable]

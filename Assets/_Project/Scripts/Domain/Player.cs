@@ -32,5 +32,8 @@ namespace FMLite.Domain
 
         // V1.0 신규 (design-decisions.md #67)
         public PhysicalAttributes physical;
+
+        // V1.0 신규 (design-decisions.md #68)
+        public List<StatSnapshot> growthHistory = new List<StatSnapshot>();
     }
 }

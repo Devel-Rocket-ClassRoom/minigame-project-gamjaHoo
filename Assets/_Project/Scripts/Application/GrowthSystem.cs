@@ -48,6 +48,16 @@ namespace FMLite.Application
                     if (player?.stats == null || player.info == null)
                         continue;
 
+                    // V1.0 #68: 성장 처리 전 스냅샷 저장
+                    player.growthHistory.Add(
+                        new StatSnapshot
+                        {
+                            year = year,
+                            month = month,
+                            stats = player.stats.Clone(),
+                        }
+                    );
+
                     int seed = state.randomSeed ^ player.id ^ (year * 12 + month);
                     var rng = new Random(seed);
 
@@ -119,6 +129,16 @@ namespace FMLite.Application
                     var player = state.GetPlayer(pid);
                     if (player?.stats == null || player.info == null)
                         continue;
+
+                    // V1.0 #68: 성장 처리 전 스냅샷 저장
+                    player.growthHistory.Add(
+                        new StatSnapshot
+                        {
+                            year = year,
+                            month = month,
+                            stats = player.stats.Clone(),
+                        }
+                    );
 
                     int seed = state.randomSeed ^ player.id ^ (year * 12 + month);
                     var rng = new Random(seed);
@@ -310,6 +330,45 @@ namespace FMLite.Application
             )
                 age--;
             return age;
+        }
+
+        // ── V1.0 #68: 직전 N개월 stat 변화량 헬퍼 ────────────────────
+        // statFieldPath = "technical.passing" / "mental.vision" / "physical.pace" / "gk.reflexes"
+        // growthHistory 가 monthsBack 미만이면 0 반환.
+        public static int GetStatChange(Player player, string statFieldPath, int monthsBack = 3)
+        {
+            if (player?.growthHistory == null || player.growthHistory.Count < monthsBack)
+                return 0;
+
+            var oldSnapshot = player.growthHistory[player.growthHistory.Count - monthsBack];
+            int oldVal = ReadStatField(oldSnapshot.stats, statFieldPath);
+            int curVal = ReadStatField(player.stats, statFieldPath);
+            return curVal - oldVal;
+        }
+
+        private static int ReadStatField(Stats stats, string fieldPath)
+        {
+            if (stats == null)
+                return 0;
+
+            var parts = fieldPath.Split('.');
+            if (parts.Length != 2)
+                return 0;
+
+            object sub = parts[0] switch
+            {
+                "technical" => stats.technical,
+                "mental" => stats.mental,
+                "physical" => stats.physical,
+                "gk" => stats.gk,
+                _ => null,
+            };
+
+            if (sub == null)
+                return 0;
+
+            var field = sub.GetType().GetField(parts[1]);
+            return field != null ? (int)field.GetValue(sub) : 0;
         }
     }
 }
