@@ -132,7 +132,10 @@ namespace FMLite.UI
             if (moneyText != null)
                 moneyText.text = Localization.Get(
                     "facility_money_fmt",
-                    (_userClub.finance.money / 1000000.0).ToString("0.0")
+                    FMLite.Utils.CurrencyFormatter.Format(
+                        _userClub.finance.money,
+                        FMLite.Application.OptionsManager.Currency
+                    )
                 );
 
             int maxLevel = balance != null ? balance.maxFacilityLevel : 10;
@@ -166,7 +169,10 @@ namespace FMLite.UI
             else
                 costLabel = Localization.Get(
                     "facility_upgrade_cost_fmt",
-                    (nextSo.upgradeCost / 1000000.0).ToString("0.0"),
+                    FMLite.Utils.CurrencyFormatter.Format(
+                        nextSo.upgradeCost,
+                        FMLite.Application.OptionsManager.Currency
+                    ),
                     nextSo.upgradeDurationDays
                 );
 
