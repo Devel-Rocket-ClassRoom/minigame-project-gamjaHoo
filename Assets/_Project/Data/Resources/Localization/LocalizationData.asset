@@ -1044,6 +1044,12 @@ MonoBehaviour:
   - key: inbox_open
     korean: "\uC5F4\uAE30"
     english: Open
+  - key: inbox_deadline_days_fmt
+    korean: "\uAE30\uD55C D-{0}"
+    english: Due D-{0}
+  - key: inbox_deadline_expired
+    korean: "\uAE30\uD55C \uB9CC\uB8CC"
+    english: Expired
   - key: currency_gbp_symbol
     korean: "\xA3"
     english: "\xA3"
