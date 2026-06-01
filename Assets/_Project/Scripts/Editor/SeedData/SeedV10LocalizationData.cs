@@ -833,28 +833,28 @@ namespace FMLite.Editor
                 // string.Format 은 InboxPanel UI (Stage B.1) 책임 — 텍스트 형식 호환성 분리.
                 E(
                     "inbox_promise_deadline_fmt",
-                    "약속 #{id} 마감 {days}일 남음",
-                    "Promise #{id} due in {days} days"
+                    "[약속] {0} — {1} 마감 {2}일 남음",
+                    "[Promise] {0} — {1} due in {2} days"
                 ),
                 E(
                     "inbox_counter_offer_fmt",
-                    "역제안 도착 (오퍼 #{offerId})",
-                    "Counter-offer received (Offer #{offerId})"
+                    "[역제안] {0} 영입 — 역제안 도착",
+                    "[Counter-offer] {0} — counter-offer received"
                 ),
                 E(
                     "inbox_contract_renewed_fmt",
-                    "선수 #{playerId} 재계약 체결",
-                    "Player #{playerId} has signed a new contract"
+                    "[재계약] {0} 재계약 체결",
+                    "[Renewal] {0} has signed a new contract"
                 ),
                 E(
                     "inbox_contract_rejected_fmt",
-                    "선수 #{playerId} 재계약 거절",
-                    "Player #{playerId} rejected the contract offer"
+                    "[재계약 거절] {0} 재계약 거절",
+                    "[Rejected] {0} rejected the contract offer"
                 ),
                 E(
                     "inbox_youth_intake_fmt",
-                    "구단 #{clubId} 유스 인스펙션 가능",
-                    "Youth intake available for club #{clubId}"
+                    "[유스] {0} 유스 인스펙션 가능",
+                    "[Youth] {0} youth intake available"
                 ),
 
                 // ── Inbox UI ─────────────────────────────────────────
