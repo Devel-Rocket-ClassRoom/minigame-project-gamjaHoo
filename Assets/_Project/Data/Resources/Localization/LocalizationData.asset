@@ -1018,20 +1018,20 @@ MonoBehaviour:
     korean: "\uCC98\uB9AC \uD544\uC694"
     english: Requires Action
   - key: inbox_promise_deadline_fmt
-    korean: "\uC57D\uC18D #{id} \uB9C8\uAC10 {days}\uC77C \uB0A8\uC74C"
-    english: Promise #{id} due in {days} days
+    korean: "[\uC57D\uC18D] {0} \u2014 {1} \uB9C8\uAC10 {2}\uC77C \uB0A8\uC74C"
+    english: "[Promise] {0} \u2014 {1} due in {2} days"
   - key: inbox_counter_offer_fmt
-    korean: "\uC5ED\uC81C\uC548 \uB3C4\uCC29 (\uC624\uD37C #{offerId})"
-    english: Counter-offer received (Offer #{offerId})
+    korean: "[\uC5ED\uC81C\uC548] {0} \uC601\uC785 \u2014 \uC5ED\uC81C\uC548 \uB3C4\uCC29"
+    english: "[Counter-offer] {0} \u2014 counter-offer received"
   - key: inbox_contract_renewed_fmt
-    korean: "\uC120\uC218 #{playerId} \uC7AC\uACC4\uC57D \uCCB4\uACB0"
-    english: Player #{playerId} has signed a new contract
+    korean: "[\uC7AC\uACC4\uC57D] {0} \uC7AC\uACC4\uC57D \uCCB4\uACB0"
+    english: '[Renewal] {0} has signed a new contract'
   - key: inbox_contract_rejected_fmt
-    korean: "\uC120\uC218 #{playerId} \uC7AC\uACC4\uC57D \uAC70\uC808"
-    english: Player #{playerId} rejected the contract offer
+    korean: "[\uC7AC\uACC4\uC57D \uAC70\uC808] {0} \uC7AC\uACC4\uC57D \uAC70\uC808"
+    english: '[Rejected] {0} rejected the contract offer'
   - key: inbox_youth_intake_fmt
-    korean: "\uAD6C\uB2E8 #{clubId} \uC720\uC2A4 \uC778\uC2A4\uD399\uC158 \uAC00\uB2A5"
-    english: Youth intake available for club #{clubId}
+    korean: "[\uC720\uC2A4] {0} \uC720\uC2A4 \uC778\uC2A4\uD399\uC158 \uAC00\uB2A5"
+    english: '[Youth] {0} youth intake available'
   - key: inbox_title
     korean: "\uC778\uBC15\uC2A4"
     english: Inbox
