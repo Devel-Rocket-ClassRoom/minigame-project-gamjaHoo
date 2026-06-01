@@ -862,6 +862,9 @@ namespace FMLite.Editor
                 E("inbox_empty", "받은 알림이 없습니다.", "No notifications."),
                 E("inbox_mark_all_read", "모두 읽음 처리", "Mark all as read"),
                 E("inbox_open", "열기", "Open"),
+                // 행 기한 표시 (InboxEntryView, Stage B.1) — 전체 탭은 filter_all 재사용
+                E("inbox_deadline_days_fmt", "기한 D-{0}", "Due D-{0}"),
+                E("inbox_deadline_expired", "기한 만료", "Expired"),
             };
 
         // ─────────────────────────────────────────────────────────────

@@ -274,11 +274,15 @@ namespace FMLite.UI
             SceneManager.LoadScene(prev);
         }
 
-        /// <summary>인박스 우측 슬라이드 패널 토글 (V1.0 정적, 즉시 표시).</summary>
+        /// <summary>인박스 우측 슬라이드 패널 토글 (V1.0 정적, 즉시 표시). 열 때 Refresh.</summary>
         public void ToggleInboxPanel()
         {
-            if (inboxPanel != null)
-                inboxPanel.SetActive(!inboxPanel.activeSelf);
+            if (inboxPanel == null)
+                return;
+            bool show = !inboxPanel.activeSelf;
+            inboxPanel.SetActive(show);
+            if (show)
+                inboxPanel.GetComponent<InboxPanelController>()?.Refresh();
         }
 
         private void OnOptionsClicked()
