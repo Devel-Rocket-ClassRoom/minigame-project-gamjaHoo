@@ -133,3 +133,7 @@ Imported
 # Unity AI Assistant 임시 파일
 Assets/AI Toolkit/Temp/
 Assets/AI Toolkit/Temp.meta
+
+# Unity MCP 스크린샷 캡처 (디버그 산출물)
+Assets/Screenshots/
+Assets/Screenshots.meta
