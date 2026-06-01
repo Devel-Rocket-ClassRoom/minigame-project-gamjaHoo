@@ -56,6 +56,7 @@ namespace FMLite.Application
                 MentoringSystem.RunMentoring(state, balance);
                 SeasonAwardSystem.ComputeMonthlyAwards(state, balance);
                 BoardSystem.EvaluateMonthly(state, balance);
+                AutoSaveSystem.MonthlyAutoSave(state); // X.7 — AutoSave ON 시 월간 자동 저장
             }
 
             // 매주 월요일 — 스카우트 명단 갱신 + AI 영입 + Promise 진행 체크

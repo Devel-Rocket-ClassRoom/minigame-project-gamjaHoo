@@ -53,6 +53,9 @@ namespace FMLite.Application
             // f. SeasonEndedEvent 발행 (V0.1 단순 페이로드)
             int seasonYear = state.leagues.FirstOrDefault()?.seasonYear ?? 0;
             EventBus.Publish(new SeasonEndedEvent { seasonYear = seasonYear });
+
+            // g. 자동 저장 (X.7) — AutoSave ON 시 시즌 종료 자동 저장
+            AutoSaveSystem.EventAutoSave(state, "season_end");
         }
 
         private static void CleanInbox(GameState state)

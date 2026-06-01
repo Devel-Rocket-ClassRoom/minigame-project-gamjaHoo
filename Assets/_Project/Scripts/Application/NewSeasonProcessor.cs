@@ -94,6 +94,9 @@ namespace FMLite.Application
             // f. SeasonStartedEvent 발행
             int seasonYear = state.leagues.Count > 0 ? state.leagues[0].seasonYear : 0;
             EventBus.Publish(new SeasonStartedEvent { seasonYear = seasonYear });
+
+            // g. 자동 저장 (X.7) — AutoSave ON 시 새 시즌 시작 자동 저장
+            AutoSaveSystem.EventAutoSave(state, "new_season");
         }
 
         private static DateTime ComputeNewSeasonOpeningDate(
