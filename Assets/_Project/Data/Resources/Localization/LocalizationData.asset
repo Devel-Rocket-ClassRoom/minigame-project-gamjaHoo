@@ -16,27 +16,6 @@ MonoBehaviour:
   - key: reroll_token_fmt
     korean: "\uB9AC\uB864 \uD1A0\uD070 {0}"
     english: 'Reroll Tokens: {0}'
-  - key: dashboard_form_fmt
-    korean: "\uC0C1\uB300 \uD3FC: {0}"
-    english: "Opp. Form: {0}"
-  - key: dashboard_last_result_fmt
-    korean: "\uC9C1\uC804 \uB300\uACB0: {0}"
-    english: "Last vs: {0}"
-  - key: dashboard_h2h_fmt
-    korean: "\uC0C1\uD638 \uC804\uC801: {0}"
-    english: "H2H: {0}"
-  - key: dashboard_morale_warning_fmt
-    korean: "\uBD88\uB9CC: {0}"
-    english: "Unhappy: {0}"
-  - key: dashboard_injury_fmt
-    korean: "\uBD80\uC0C1/\uC815\uC9C0: {0}"
-    english: "Out: {0}"
-  - key: dashboard_no_record
-    korean: "\uAE30\uB85D \uC5C6\uC74C"
-    english: No record
-  - key: dashboard_count_fmt
-    korean: "{0}\uBA85"
-    english: "{0} players"
   - key: no_next_match
     korean: "\uB2E4\uC74C \uACBD\uAE30 \uC5C6\uC74C"
     english: No upcoming match
@@ -65,8 +44,8 @@ MonoBehaviour:
     korean: "\uC804\uCCB4"
     english: All
   - key: market_value_fmt
-    korean: "\uC2DC\uC7A5\uAC00 \xA3{0}M"
-    english: "Market Value \xA3{0}M"
+    korean: "\uC2DC\uC7A5\uAC00 {0}"
+    english: Market Value {0}
   - key: transfer_window_open
     korean: "\uC774\uC801 \uCC3D \uC5F4\uB9BC (\uCCB4\uACB0 \uAC00\uB2A5)"
     english: Transfer Window Open
@@ -80,8 +59,8 @@ MonoBehaviour:
     korean: "[\uD65C\uC131 \uC624\uD37C]"
     english: '[Active Offers]'
   - key: facility_money_fmt
-    korean: "\uC794\uACE0: \xA3{0}M"
-    english: "Balance: \xA3{0}M"
+    korean: "\uC794\uACE0: {0}"
+    english: 'Balance: {0}'
   - key: facility_upgrade_progress_fmt
     korean: "{0} \uC5C5\uADF8\uB808\uC774\uB4DC \uC911 (\uC644\uB8CC: {1})"
     english: '{0} upgrading (done: {1})'
@@ -92,8 +71,8 @@ MonoBehaviour:
     korean: "\uCD5C\uACE0 \uB4F1\uAE09"
     english: Max Level
   - key: facility_upgrade_cost_fmt
-    korean: "\uC5C5\uADF8\uB808\uC774\uB4DC \xA3{0}M ({1}\uC77C)"
-    english: "Upgrade \xA3{0}M ({1} days)"
+    korean: "\uC5C5\uADF8\uB808\uC774\uB4DC {0} ({1}\uC77C)"
+    english: Upgrade {0} ({1} days)
   - key: facility_name_scout
     korean: "\uC2A4\uCE74\uC6B0\uD2B8"
     english: Scouting
@@ -365,14 +344,14 @@ MonoBehaviour:
     korean: "\uC815\uBCF4 \uC5C6\uC74C"
     english: No Info
   - key: contract_wage_fmt
-    korean: "\uC8FC\uAE09: \xA3{0}"
-    english: "Weekly Wage: \xA3{0}"
+    korean: "\uC8FC\uAE09: {0}"
+    english: 'Weekly Wage: {0}'
   - key: contract_end_fmt
     korean: "\uACC4\uC57D \uB9CC\uB8CC: {0}"
     english: 'Contract End: {0}'
   - key: contract_release_debug_fmt
-    korean: "\uBC14\uC774\uC544\uC6C3: \xA3{0}"
-    english: "Release Clause: \xA3{0}"
+    korean: "\uBC14\uC774\uC544\uC6C3: {0}"
+    english: 'Release Clause: {0}'
   - key: contract_release
     korean: "\uBC14\uC774\uC544\uC6C3: \uC788\uC74C"
     english: 'Release Clause: Yes'
@@ -618,141 +597,640 @@ MonoBehaviour:
   - key: board_promise_reject
     korean: "\uAC70\uC808 (-10 \uC2E0\uB8B0\uB3C4)"
     english: Reject (-10 confidence)
-  - key: season_summary_title
-    korean: "{0} \uC2DC\uC98C \uC885\uB8CC"
-    english: Season {0} Summary
-  - key: season_summary_position_fmt
-    korean: "\uCD5C\uC885 \uC21C\uC704: {0}\uC704 (\uBAA9\uD45C: {1}\uC704)"
-    english: "Final Position: {0} (Target: {1})"
-  - key: season_summary_award_fmt
-    korean: "{0} \u2014 {1}"
-    english: "{0} \u2014 {1}"
-  - key: season_summary_award_manager_fmt
-    korean: "{0} \u2014 \uB2F9\uC2E0"
-    english: "{0} \u2014 You"
-  - key: season_summary_award_best11_fmt
-    korean: "{0} \u2014 {1}\uBA85 \uC120\uC815"
-    english: "{0} \u2014 {1} selected"
-  - key: season_summary_no_awards
-    korean: "\uC218\uC0C1 \uC5C6\uC74C"
-    english: No awards
-  - key: season_summary_finance_fmt
-    korean: "\uC790\uAE08: {0} / \uC774\uC801 \uC608\uC0B0: {1} / \uC8FC\uAE09 \uC608\uC0B0: {2}"
-    english: "Money: {0} / Transfer: {1} / Wages: {2}"
-  - key: season_summary_board_fmt
-    korean: "\uBCF4\uB4DC \uC2E0\uB8B0\uB3C4: {0} / \uD3C9\uD310: {1}"
-    english: "Board Confidence: {0} / Reputation: {1}"
-  - key: season_summary_next_season_btn
-    korean: "\uB2E4\uC74C \uC2DC\uC98C"
-    english: Next Season
-  - key: award_type_mvp
-    korean: "\uB9AC\uADF8 MVP"
-    english: League MVP
-  - key: award_type_top_scorer
-    korean: "\uD1B1 \uC2A4\uCF54\uB7EC"
-    english: Top Scorer
-  - key: award_type_top_assist
-    korean: "\uD1B1 \uC5B4\uC2DC\uC2A4\uD2B8"
-    english: Top Assist
-  - key: award_type_young_player
-    korean: "\uC601\uAD6C\uC120\uC218\uC0C1"
-    english: Young Player of the Year
-  - key: award_type_best_eleven
-    korean: "\uBCA0\uC2A4\uD2B8 \uC77C\uB808\uBE10"
-    english: Best Eleven
-  - key: award_type_golden_glove
-    korean: "\uACE8\uB4E0 \uAE00\uB7EC\uBE0C"
-    english: Golden Glove
-  - key: award_type_manager_of_season
-    korean: "\uC2DC\uC98C \uCD5C\uC6B0\uC218 \uAC10\uB3C5\uC0C1"
-    english: Manager of the Season
-  - key: negotiation_title
-    korean: "\uD611\uC0C1"
-    english: Negotiation
-  - key: negotiation_counter_title_fmt
-    korean: "{0} \u2014 \uC5ED\uC81C\uC548 \uB3C4\uCC29"
-    english: "{0} \u2014 Counter Offer"
-  - key: negotiation_counter_detail_fmt
-    korean: "\uC81C\uC548: {0} / \uC5ED\uC81C\uC548: {1} (\uB77C\uC6B4\uB4DC {2})"
-    english: "Offer: {0} / Counter: {1} (Round {2})"
-  - key: negotiation_accepted_title_fmt
-    korean: "{0} \u2014 \uC774\uC801 \uC218\uB77D"
-    english: "{0} \u2014 Transfer Accepted"
-  - key: negotiation_accepted_detail_fmt
-    korean: "\uC0C1\uB300 \uAD6C\uB2E8\uC774 {0} \uC5D0 \uC218\uB77D\uD588\uC2B5\uB2C8\uB2E4. \uC9C4\uD589\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
-    english: "The club accepted {0}. Proceed with the transfer?"
-  - key: negotiation_status_ai_accepted
-    korean: "\uC218\uB77D \uB300\uAE30"
-    english: Awaiting Confirm
-  - key: negotiation_status_counter
-    korean: "\uC5ED\uC81C\uC548"
-    english: Counter
-  - key: negotiation_status_pending
-    korean: "\uB300\uAE30\uC911"
-    english: Pending
-  - key: negotiation_status_negotiating
-    korean: "\uD611\uC0C1 \uC911"
-    english: Negotiating
-  - key: negotiation_status_accepted
-    korean: "\uC218\uB77D"
-    english: Accepted
-  - key: negotiation_accept_btn
-    korean: "\uC218\uB77D"
-    english: Accept
-  - key: negotiation_reject_btn
-    korean: "\uAC70\uC808"
-    english: Reject
-  - key: negotiation_recounter_btn
-    korean: "\uC7AC\uC5ED\uC81C\uC548"
-    english: Re-counter
-  - key: negotiation_no_offers
-    korean: "\uC9C4\uD589 \uC911\uC778 \uD611\uC0C1 \uC5C6\uC74C"
-    english: No active negotiations
-  - key: match_text_title
-    korean: "\uB9E4\uCE58 \uC911\uACC4"
+  - key: match_event_goal_1
+    korean: "{player}\uC758 \uD658\uC0C1\uC801\uC778 \uC288\uD305! \uACE8\uC778!"
+    english: "{player} unleashes a stunning strike \u2014 and it's in!"
+  - key: match_event_goal_2
+    korean: "\uD589\uC6B4\uC758 \uAD74\uC808 \u2014 {player}\uC758 \uACE8!"
+    english: "A lucky deflection \u2014 and {player} gets the goal!"
+  - key: match_event_goal_3
+    korean: "{player}\uAC00 PK\uB97C \uCE68\uCC29\uD558\uAC8C \uC131\uACF5!"
+    english: '{player} keeps his composure from the spot!'
+  - key: match_event_goal_4
+    korean: "{player}\uC758 \uD5E4\uB354 \uACB0\uC815\uD0C0!"
+    english: '{player} powers in the header!'
+  - key: match_event_goal_5
+    korean: "{player}\uC758 \uC7A5\uAC70\uB9AC \uD3ED\uACA9\uC774 \uACE8\uB9DD\uC744
+      \uD754\uB4E0\uB2E4!"
+    english: '{player} unleashes a thunderbolt from distance!'
+  - key: match_event_keypass_1
+    korean: "{player}\uC758 \uC808\uBB18\uD55C \uC2A4\uB8E8\uD328\uC2A4!"
+    english: A defence-splitting pass from {player}!
+  - key: match_event_keypass_2
+    korean: "{player}\uAC00 \uBC15\uC2A4 \uC548\uC73C\uB85C \uC815\uD655\uD55C \uD06C\uB85C\uC2A4!"
+    english: '{player} whips in a perfect cross!'
+  - key: match_event_keypass_3
+    korean: "{player}\uC758 \uD658\uC0C1\uC801\uC778 \uC5B4\uC2DC\uC2A4\uD2B8!"
+    english: A sublime assist from {player}!
+  - key: match_event_keypass_4
+    korean: "{player}\uC758 \uBC31\uD790\uB85C \uCC2C\uC2A4 \uBA54\uC774\uD0B9!"
+    english: '{player} backheels it into space!'
+  - key: match_event_keypass_5
+    korean: "{player}\uC758 \uB178\uB8E9 \uD328\uC2A4\uAC00 \uCC2C\uC2A4\uB97C \uB9CC\uB4E0\uB2E4!"
+    english: '{player} with a no-look pass to create the chance!'
+  - key: match_event_save_1
+    korean: "{gk}\uC758 \uC288\uD37C \uC138\uC774\uBE0C!"
+    english: Brilliant save by {gk}!
+  - key: match_event_save_2
+    korean: "{gk}\uAC00 \uAC00\uAE4C\uC2A4\uB85C \uD380\uCE6D!"
+    english: '{gk} punches it clear at full stretch!'
+  - key: match_event_save_3
+    korean: "{gk}\uC758 \uB2E4\uC774\uBE59 \uCE90\uCE58!"
+    english: '{gk} dives to gather it safely!'
+  - key: match_event_save_4
+    korean: "{gk}\uAC00 \uBC1C\uB85C \uB9C9\uC544\uB0C8\uB2E4!"
+    english: '{gk} sticks out a foot to deny the strike!'
+  - key: match_event_save_5
+    korean: "{gk}\uC758 \uBC18\uC0AC\uC2E0\uACBD\uC774 \uBE5B\uB09C\uB2E4!"
+    english: Lightning reflexes from {gk}!
+  - key: match_event_shoton_1
+    korean: "{player}\uC758 \uC29B\uC774 \uACE8\uD0A4\uD37C \uC815\uBA74!"
+    english: '{player}''s shot is straight at the keeper.'
+  - key: match_event_shoton_2
+    korean: "{player}\uC758 \uC29B, \uACE8\uB300 \uB9DE\uACE0 \uD295\uACA8\uB098\uC628\uB2E4!"
+    english: '{player} hits the woodwork!'
+  - key: match_event_shoton_3
+    korean: "{player}\uC758 \uAC15\uC29B, \uACE8\uD0A4\uD37C\uAC00 \uCCD0\uB0B8\uB2E4!"
+    english: "{player}'s fierce strike \u2014 pushed away!"
+  - key: match_event_shoton_4
+    korean: "{player}\uC758 \uC29B\uC774 \uACE8\uB77C\uC778 \uC704\uC5D0\uC11C \uD074\uB9AC\uC5B4!"
+    english: Cleared off the line from {player}'s effort!
+  - key: match_event_shotoff_1
+    korean: "{player}\uC758 \uC29B\uC774 \uD06C\uB85C\uC2A4\uBC14\uB97C \uC0B4\uC9DD
+      \uB118\uAE34\uB2E4!"
+    english: '{player}''s shot flies just over the bar!'
+  - key: match_event_shotoff_2
+    korean: "{player}\uC758 \uC29B\uC774 \uC606\uADF8\uBB3C!"
+    english: '{player} sends it wide of the post!'
+  - key: match_event_shotoff_3
+    korean: "{player}\uC758 \uC704\uD611\uC801\uC778 \uC29B\uC774 \uBE57\uB098\uAC04\uB2E4!"
+    english: '{player}''s effort goes narrowly wide!'
+  - key: match_event_yellow_1
+    korean: "{player}, \uAC70\uCE5C \uD0DC\uD074\uB85C \uACBD\uACE0!"
+    english: '{player} is booked for a reckless challenge!'
+  - key: match_event_yellow_2
+    korean: "{player}, \uD56D\uC758\uB85C \uC610\uB85C\uCE74\uB4DC!"
+    english: '{player} sees yellow for dissent.'
+  - key: match_event_yellow_3
+    korean: "{player}, \uC2DC\uAC04 \uC9C0\uC5F0\uC73C\uB85C \uACBD\uACE0!"
+    english: '{player} is cautioned for time-wasting.'
+  - key: match_event_red_1
+    korean: "{player}, \uD3ED\uB825 \uD589\uC704\uB85C \uD1F4\uC7A5!"
+    english: '{player} is sent off for violent conduct!'
+  - key: match_event_red_2
+    korean: "{player}, \uBA85\uBC31\uD55C \uB4DD\uC810 \uAE30\uD68C \uC800\uC9C0\uB85C
+      \uD1F4\uC7A5!"
+    english: "{player} is shown red \u2014 a clear goal-scoring opportunity denied."
+  - key: match_event_red_3
+    korean: "{player}, \uC2EC\uAC01\uD55C \uBC18\uCE59\uC73C\uB85C \uD1F4\uC7A5!"
+    english: '{player} is dismissed for a serious foul!'
+  - key: match_event_2nd_yellow_1
+    korean: "{player}, \uB450 \uBC88\uC9F8 \uACBD\uACE0 \u2014 \uD1F4\uC7A5!"
+    english: "Two yellows \u2014 {player} is off!"
+  - key: match_event_2nd_yellow_2
+    korean: "{player}\uAC00 \uC5B4\uB9AC\uC11D\uC740 \uBC18\uCE59\uC73C\uB85C \uB450
+      \uBC88\uC9F8 \uC610\uB85C!"
+    english: A foolish foul earns {player} a second yellow!
+  - key: match_event_foul_1
+    korean: "{player}\uAC00 \uBC18\uCE59\uC744 \uBC94\uD55C\uB2E4."
+    english: '{player} concedes a foul.'
+  - key: match_event_foul_2
+    korean: "{player}\uC758 \uACA9\uD55C \uD0DC\uD074\uB85C \uD718\uC2AC!"
+    english: "Whistle blows \u2014 {player} with a robust tackle."
+  - key: match_event_foul_3
+    korean: "{player}, \uC704\uD5D8 \uC9C0\uC5ED\uC5D0\uC11C \uBC18\uCE59!"
+    english: '{player} fouls in a dangerous area!'
+  - key: match_event_pk_won_1
+    korean: "{player}\uAC00 \uBC15\uC2A4 \uC548\uC5D0\uC11C \uB118\uC5B4\uC9C4\uB2E4
+      \u2014 PK!"
+    english: "{player} goes down in the box \u2014 penalty!"
+  - key: match_event_pk_won_2
+    korean: "\uC2EC\uD310\uC774 \uAC00\uB9AC\uD0A8 \uACF3\uC740 \uD398\uB110\uD2F0
+      \uC2A4\uD3FF! {player} \uAC00 \uC5BB\uC5B4\uB0C8\uB2E4."
+    english: "The referee points to the spot \u2014 {player} has won the penalty!"
+  - key: match_event_pk_won_3
+    korean: "VAR \uD655\uC778 \uACB0\uACFC PK \uD310\uC815! {player}."
+    english: After a VAR check, a penalty is awarded to {player}!
+  - key: match_event_pk_miss_1
+    korean: "{player}\uC758 PK\uAC00 \uACE8\uB300\uB97C \uB9DE\uCD98\uB2E4!"
+    english: '{player} smashes the penalty against the post!'
+  - key: match_event_pk_miss_2
+    korean: "{player}\uC758 PK\uAC00 \uD06C\uB85C\uC2A4\uBC14\uB97C \uB118\uAE34\uB2E4!"
+    english: '{player} skies the penalty over the bar!'
+  - key: match_event_pk_miss_3
+    korean: "{player}\uC758 PK\uAC00 \uC606\uADF8\uBB3C\uB85C \uBE57\uB098\uAC04\uB2E4!"
+    english: '{player} drags the penalty wide!'
+  - key: match_event_pk_saved_1
+    korean: "{gk}\uC758 \uD658\uC0C1\uC801\uC778 PK \uC120\uBC29!"
+    english: '{gk} makes a stunning penalty save!'
+  - key: match_event_pk_saved_2
+    korean: "{gk}\uAC00 \uC815\uD655\uD788 \uBC29\uD5A5\uC744 \uC77D\uC5C8\uB2E4
+      \u2014 \uC120\uBC29!"
+    english: '{gk} guesses right and saves the penalty!'
+  - key: match_event_pk_saved_3
+    korean: "{gk}\uAC00 \uBC1C\uB85C PK\uB97C \uB9C9\uC544\uB0B8\uB2E4!"
+    english: '{gk} blocks the spot-kick with his legs!'
+  - key: match_event_injury_minor_1
+    korean: "{player}, \uAC00\uBCBC\uC6B4 \uBD80\uC0C1 \u2014 \uC790\uAC00 \uCE58\uB8CC
+      \uAC00\uB2A5."
+    english: "{player} picks up a knock \u2014 should be fine to continue."
+  - key: match_event_injury_minor_2
+    korean: "{player}, \uC7A0\uC2DC \uADF8\uB77C\uC6B4\uB4DC\uC5D0 \uB204\uC6E0\uC9C0\uB9CC
+      \uACE7 \uC77C\uC5B4\uC120\uB2E4."
+    english: '{player} is down briefly but back on his feet.'
+  - key: match_event_injury_minor_3
+    korean: "{player}, \uACBD\uBBF8\uD55C \uBD80\uC0C1\uC73C\uB85C \uCE58\uB8CC \uBC1B\uB294\uB2E4."
+    english: '{player} receives some quick treatment on the pitch.'
+  - key: match_event_injury_major_1
+    korean: "{player}, \uC2EC\uAC01\uD55C \uBD80\uC0C1\uC73C\uB85C \uB4E4\uAC83\uC5D0
+      \uC2E4\uB824\uB098\uAC04\uB2E4."
+    english: '{player} is stretchered off with a serious injury.'
+  - key: match_event_injury_major_2
+    korean: "{player}, \uCD9C\uC804 \uBD88\uAC00 \u2014 \uC989\uC2DC \uAD50\uCCB4!"
+    english: "{player} can't continue \u2014 immediate substitution!"
+  - key: match_event_injury_major_3
+    korean: "{player}, \uBB34\uB98E\uC744 \uC7A1\uACE0 \uC4F0\uB7EC\uC9C4\uB2E4 \u2014
+      \uC2EC\uAC01\uD55C \uBAA8\uC2B5."
+    english: "{player} clutches his knee \u2014 this looks serious."
+  - key: match_event_sub_1
+    korean: "\uAD50\uCCB4: {playerOut} \u2192 {playerIn}"
+    english: 'Substitution: {playerIn} replaces {playerOut}.'
+  - key: match_event_sub_2
+    korean: "{playerOut}\uAC00 \uBCA4\uCE58\uB85C, {playerIn}\uAC00 \uD22C\uC785\uB41C\uB2E4."
+    english: '{playerOut} comes off, {playerIn} comes on.'
+  - key: match_event_sub_3
+    korean: "\uC804\uC220 \uBCC0\uD654 \u2014 {playerIn} \uD22C\uC785!"
+    english: "Tactical change \u2014 {playerIn} is brought on!"
+  - key: match_event_sub_4
+    korean: "{playerOut}\uAC00 \uBC15\uC218\uB97C \uBC1B\uC73C\uBA70 \uAD50\uCCB4\uB41C\uB2E4.
+      {playerIn} \uB4F1\uC7A5."
+    english: '{playerOut} receives an ovation as he is replaced by {playerIn}.'
+  - key: match_event_tackle_1
+    korean: "{player}\uC758 \uAC15\uB825\uD55C \uD0DC\uD074\uB85C \uACF5 \uD0C8\uCDE8!"
+    english: '{player} wins the ball with a strong tackle!'
+  - key: match_event_tackle_2
+    korean: "{player}, \uC2AC\uB77C\uC774\uB529 \uD0DC\uD074 \uC131\uACF5!"
+    english: '{player} slides in to win the ball!'
+  - key: match_event_tackle_3
+    korean: "{player}\uC758 \uAE54\uB054\uD55C \uD0DC\uD074\uB85C \uACF5\uACA9 \uCC28\uB2E8!"
+    english: '{player} dispossesses the attacker cleanly!'
+  - key: match_event_cross_1
+    korean: "{player}\uC758 \uD06C\uB85C\uC2A4\uAC00 \uBC15\uC2A4\uB97C \uAC00\uB978\uB2E4!"
+    english: '{player} whips in a dangerous cross!'
+  - key: match_event_cross_2
+    korean: "{player}\uC758 \uC5BC\uB9AC \uD06C\uB85C\uC2A4!"
+    english: An early cross from {player}!
+  - key: match_event_cross_3
+    korean: "{player}\uC758 \uD06C\uB85C\uC2A4, \uC218\uBE44\uC218\uC5D0\uAC8C \uCC28\uB2E8!"
+    english: '{player}''s cross is cleared by the defender.'
+  - key: match_event_corner_1
+    korean: "\uCF54\uB108\uD0A5 \u2014 {player} \uAC00 \uC900\uBE44\uD55C\uB2E4."
+    english: "Corner \u2014 {player} steps up to take it."
+  - key: match_event_corner_2
+    korean: "\uC9E7\uC740 \uCF54\uB108 \u2014 \uBC15\uC2A4 \uC678\uACFD\uC73C\uB85C
+      \uBE60\uC9C4\uB2E4."
+    english: "Short corner \u2014 played back to the edge of the area."
+  - key: match_event_corner_3
+    korean: "\uCF54\uB108\uC5D0\uC11C \uD5E4\uB354 \uC2DC\uB3C4!"
+    english: Header attempt from the corner!
+  - key: match_event_fk_direct_1
+    korean: "\uC9C1\uC811 \uD504\uB9AC\uD0A5 \u2014 {player} \uAC00 \uC900\uBE44."
+    english: "Direct free kick \u2014 {player} stands over it."
+  - key: match_event_fk_direct_2
+    korean: "{player}\uC758 \uD504\uB9AC\uD0A5\uC774 \uBCBD\uC744 \uB118\uAE34\uB2E4!"
+    english: '{player}''s free kick clears the wall!'
+  - key: match_event_fk_direct_3
+    korean: "{player}\uC758 \uD504\uB9AC\uD0A5\uC774 \uBCBD\uC5D0 \uB9C9\uD78C\uB2E4."
+    english: '{player}''s free kick is blocked by the wall.'
+  - key: match_event_fk_direct_4
+    korean: "{player}\uC758 \uD658\uC0C1\uC801\uC778 \uAC10\uC544\uCC28\uAE30 \uD504\uB9AC\uD0A5!"
+    english: A beautiful curling free kick from {player}!
+  - key: match_event_fk_indirect_1
+    korean: "\uAC04\uC811 \uD504\uB9AC\uD0A5 \u2014 \uC9E7\uAC8C \uC5F0\uACB0."
+    english: "Indirect free kick \u2014 played short."
+  - key: match_event_fk_indirect_2
+    korean: "{player}\uAC00 \uBC15\uC2A4 \uC548\uC73C\uB85C \uB744\uC6B4\uB2E4."
+    english: '{player} lofts it into the box.'
+  - key: match_event_fk_indirect_3
+    korean: "\uAC04\uC811 \uD504\uB9AC\uD0A5\uC5D0\uC11C \uD5E4\uB354 \uCC2C\uC2A4!"
+    english: Header chance from the indirect free kick!
+  - key: match_event_throw_1
+    korean: "{player}\uC758 \uB871 \uC2A4\uB85C\uC778\uC774 \uBC15\uC2A4\uB85C!"
+    english: '{player} hurls in a long throw!'
+  - key: match_event_throw_2
+    korean: "{player}\uC758 \uC2A4\uB85C\uC778\uC5D0\uC11C \uD63C\uC804 \uBC1C\uC0DD!"
+    english: Scramble in the box from {player}'s long throw!
+  - key: match_event_throw_3
+    korean: "{player}\uC758 \uC2A4\uB85C\uC778, \uC218\uBE44\uC218\uAC00 \uD5E4\uB354\uB85C
+      \uCC98\uB9AC."
+    english: '{player}''s throw is headed clear by the defender.'
+  - key: match_event_offside_1
+    korean: "\uC624\uD504\uC0AC\uC774\uB4DC \uAE43\uBC1C\uC774 \uC62C\uB77C\uAC04\uB2E4
+      \u2014 {player}."
+    english: "Flag is up \u2014 offside on {player}."
+  - key: match_event_offside_2
+    korean: "{player}\uAC00 \uC544\uC2AC\uC544\uC2AC\uD558\uAC8C \uC624\uD504\uC0AC\uC774\uB4DC!"
+    english: '{player} caught marginally offside!'
+  - key: match_event_offside_3
+    korean: "\uB77C\uC778\uC744 \uB108\uBB34 \uC77C\uCC0D \uAE6C {player}."
+    english: '{player} times his run too early.'
+  - key: match_event_interception_1
+    korean: "{player}\uC758 \uC815\uD655\uD55C \uC778\uD130\uC149\uD2B8!"
+    english: Brilliant interception from {player}!
+  - key: match_event_interception_2
+    korean: "{player}\uAC00 \uD328\uC2A4 \uAE38\uC744 \uC77D\uC5B4\uB0B8\uB2E4!"
+    english: '{player} reads the pass perfectly!'
+  - key: match_event_interception_3
+    korean: "{player}, \uACF5\uC744 \uAC00\uB85C\uCC44 \uC5ED\uC2B5!"
+    english: '{player} picks it off and launches a counter!'
+  - key: match_event_kickoff_1
+    korean: "\uD0A5\uC624\uD504! \uACBD\uAE30\uAC00 \uC2DC\uC791\uB41C\uB2E4."
+    english: Kick-off! The match is underway.
+  - key: match_event_kickoff_2
+    korean: "\uD6C4\uBC18\uC804 \uC2DC\uC791!"
+    english: Second half is underway!
+  - key: match_event_kickoff_3
+    korean: "\uC5F0\uC7A5 \uC804\uBC18\uC804 \uC2DC\uC791!"
+    english: First half of extra time begins!
+  - key: match_event_kickoff_4
+    korean: "\uC5F0\uC7A5 \uD6C4\uBC18\uC804 \uC2DC\uC791!"
+    english: Second half of extra time begins!
+  - key: match_event_halftime_1
+    korean: "\uC804\uBC18 \uC885\uB8CC \uD718\uC2AC."
+    english: Whistle blows for half-time.
+  - key: match_event_halftime_2
+    korean: "\uD718\uC2AC \u2014 \uB77C\uCEE4\uB8F8\uC73C\uB85C \uD5A5\uD55C\uB2E4."
+    english: "Half-time \u2014 teams head to the dressing room."
+  - key: match_event_halftime_3
+    korean: "\uC804\uBC18 \uC885\uB8CC \u2014 \uC810\uC218\uB294 {homeScore}-{awayScore}."
+    english: "Half-time \u2014 score is {homeScore}-{awayScore}."
+  - key: match_event_fulltime_1
+    korean: "\uACBD\uAE30 \uC885\uB8CC!"
+    english: Full time!
+  - key: match_event_fulltime_2
+    korean: "\uCD5C\uC885 \uD718\uC2AC \u2014 {homeScore}-{awayScore}."
+    english: "Final whistle \u2014 {homeScore}-{awayScore}."
+  - key: match_event_fulltime_3
+    korean: "\uACBD\uAE30 \uC885\uB8CC \u2014 \uACB0\uACFC \uD655\uC815."
+    english: "It's all over \u2014 the result is final."
+  - key: match_event_fulltime_4
+    korean: "\uB9C8\uC9C0\uB9C9 \uD718\uC2AC\uC774 \uC6B8\uB9B0\uB2E4."
+    english: The final whistle blows.
+  - key: match_event_et_start_1
+    korean: "\uC5F0\uC7A5\uC804 \uB3CC\uC785!"
+    english: Heading to extra time!
+  - key: match_event_et_start_2
+    korean: "\uC815\uADDC \uC2DC\uAC04 \uBB34\uC2B9\uBD80 \u2014 \uC5F0\uC7A5\uC804
+      \uC2DC\uC791."
+    english: "Level after 90 \u2014 extra time it is."
+  - key: match_event_pso_1
+    korean: "\uC2B9\uBD80\uCC28\uAE30 \u2014 \uC6B4\uBA85\uC758 \uC21C\uAC04."
+    english: "Penalty shootout \u2014 the moment of truth."
+  - key: match_event_pso_2
+    korean: "\uC2B9\uBD80\uCC28\uAE30 \uC2DC\uC791!"
+    english: The shootout begins!
+  - key: match_event_pso_3
+    korean: "{player}\uAC00 \uD398\uB110\uD2F0 \uC2A4\uD3FF\uC73C\uB85C \uD5A5\uD55C\uB2E4."
+    english: '{player} walks up to the spot.'
+  - key: match_report_win_1
+    korean: "{home}, {away} \uC0C1\uB300\uB85C {homeScore}-{awayScore} \uC644\uC2B9!"
+    english: '{home} cruise past {away} {homeScore}-{awayScore}!'
+  - key: match_report_win_2
+    korean: "{home}\uC758 \uC555\uB3C4\uC801 \uC2B9\uB9AC, {away} \uC0C1\uB300 {homeScore}-{awayScore}."
+    english: Dominant {home} win {homeScore}-{awayScore} against {away}.
+  - key: match_report_win_3
+    korean: "{home}, {away}\uC5D0 {homeScore}-{awayScore} \uC2B9."
+    english: '{home} beat {away} {homeScore}-{awayScore}.'
+  - key: match_report_win_4
+    korean: "\uCE58\uC5F4\uD55C \uC811\uC804 \uB05D\uC5D0 {home}\uC774 {away}\uB97C
+      \uAEBE\uC5C8\uB2E4."
+    english: '{home} edge {away} in a tight contest.'
+  - key: match_report_win_5
+    korean: "{home}\uC758 \uACB0\uC815\uC801\uC778 \uACE8\uB4E4\uC774 {away}\uB97C
+      \uCE68\uBAB0\uC2DC\uCF30\uB2E4."
+    english: Clinical finishing from {home} sinks {away}.
+  - key: match_report_loss_1
+    korean: "{home}, {away}\uC5D0 {homeScore}-{awayScore} \uD328."
+    english: '{home} fall {homeScore}-{awayScore} to {away}.'
+  - key: match_report_loss_2
+    korean: "{away}\uC758 \uC77C\uACA9\uC5D0 {home}\uC774 \uBB34\uB98E \uAFC7\uC5C8\uB2E4."
+    english: '{home} undone by a sharp {away} performance.'
+  - key: match_report_loss_3
+    korean: "{home}\uC758 \uB9C8\uBB34\uB9AC \uBD80\uC871\uC774 {away}\uC5D0 \uC810\uC218\uB97C
+      \uB0B4\uC92C\uB2E4."
+    english: Profligate finishing costs {home} the points against {away}.
+  - key: match_report_loss_4
+    korean: "{home}, \uC548\uBC29\uC5D0\uC11C {away}\uC5D0 \uBB34\uB98E \uAFC7\uB2E4."
+    english: '{home} stunned at home by {away}.'
+  - key: match_report_loss_5
+    korean: "{away}\uC758 \uD6A8\uC728\uC801\uC778 \uACBD\uAE30 \uC6B4\uC601\uC774
+      {home}\uC744 \uC555\uB3C4\uD588\uB2E4."
+    english: Efficient {away} prove too much for {home}.
+  - key: match_report_draw_1
+    korean: "{home}\uACFC {away}, {homeScore}-{awayScore} \uBB34\uC2B9\uBD80."
+    english: '{home} and {away} share the spoils {homeScore}-{awayScore}.'
+  - key: match_report_draw_2
+    korean: "{home} vs {away}, \uC810\uC218\uB9CC\uD07C \uCE58\uC5F4\uD55C \uBB34\uC2B9\uBD80."
+    english: An evenly-matched draw between {home} and {away}.
+  - key: match_report_draw_3
+    korean: "\uC591 \uD300 \uBAA8\uB450 \uACB0\uC815\uD0C0 \uBD80\uC871 \u2014 \uBB34\uC2B9\uBD80\uB85C
+      \uB9C8\uBB34\uB9AC."
+    english: "Neither side could find the winner \u2014 a stalemate."
+  - key: match_report_draw_4
+    korean: "{home} vs {away}, \uBC15\uBE59\uC758 \uBB34\uC2B9\uBD80."
+    english: '{home} and {away} cancel each other out.'
+  - key: match_report_draw_5
+    korean: "\uD55C \uC810\uB3C4 \uC591\uBCF4 \uC5C6\uB294 \uB05D\uC7A5 \uBB34\uC2B9\uBD80."
+    english: A back-and-forth draw with both sides giving nothing.
+  - key: options_title
+    korean: "\uC635\uC158"
+    english: Options
+  - key: options_master_volume
+    korean: "\uB9C8\uC2A4\uD130 \uBCFC\uB968"
+    english: Master Volume
+  - key: options_sfx_volume
+    korean: "\uD6A8\uACFC\uC74C \uBCFC\uB968"
+    english: SFX Volume
+  - key: options_bgm_volume
+    korean: "\uBC30\uACBD\uC74C\uC545 \uBCFC\uB968"
+    english: BGM Volume
+  - key: options_language
+    korean: "\uC5B8\uC5B4"
+    english: Language
+  - key: options_language_ko
+    korean: "\uD55C\uAD6D\uC5B4"
+    english: Korean
+  - key: options_language_en
+    korean: English
+    english: English
+  - key: options_currency
+    korean: "\uD1B5\uD654"
+    english: Currency
+  - key: options_ui_scale
+    korean: "UI \uD06C\uAE30"
+    english: UI Scale
+  - key: options_auto_save
+    korean: "\uC790\uB3D9 \uC800\uC7A5"
+    english: Auto Save
+  - key: options_shortcuts
+    korean: "\uB2E8\uCD95\uD0A4 \uC548\uB0B4"
+    english: Shortcuts
+  - key: options_on
+    korean: "\uCF1C\uAE30"
+    english: On
+  - key: options_off
+    korean: "\uB044\uAE30"
+    english: Off
+  - key: options_save_apply
+    korean: "\uC800\uC7A5"
+    english: Save
+  - key: inbox_category_match
+    korean: "\uACBD\uAE30"
     english: Match
-  - key: match_text_speed_1x
-    korean: "\u00D71"
-    english: "\u00D71"
-  - key: match_text_speed_2x
-    korean: "\u00D72"
-    english: "\u00D72"
-  - key: match_text_speed_4x
-    korean: "\u00D74"
-    english: "\u00D74"
-  - key: match_text_skip
-    korean: "\uC2A4\uD0B5"
-    english: Skip
-  - key: match_text_result_title
-    korean: "\uCD5C\uC885 \uACB0\uACFC"
-    english: Full Time
-  - key: match_text_scorers_label
-    korean: "\uB4DD\uC810"
-    english: Scorers
-  - key: match_text_ratings_label
-    korean: "\uD3C9\uC810 TOP 5"
-    english: Top Ratings
-  - key: match_text_no_goals
-    korean: "\uB4DD\uC810 \uC5C6\uC74C"
-    english: No goals
-  - key: match_text_rating_fmt
-    korean: "{0}  {1:F1}"
-    english: "{0}  {1:F1}"
-  - key: match_text_back_btn
-    korean: "\uB300\uC2DC\uBCF4\uB4DC\uB85C"
-    english: Dashboard
-  - key: promise_inbox_title
-    korean: "\uC57D\uC18D \uD604\uD669"
-    english: Promises
-  - key: promise_item_fmt
-    korean: "{0}  [{1}]  \uB9C8\uAC10: {2}  {3}"
-    english: "{0}  [{1}]  Due: {2}  {3}"
-  - key: promise_progress_fmt
-    korean: "{0}/{1}\uD68C \uCD9C\uC804"
-    english: "{0}/{1} apps"
-  - key: promise_inbox_empty
-    korean: "\uC9C4\uD589 \uC911\uC778 \uC57D\uC18D \uC5C6\uC74C"
-    english: No active promises
-  - key: promise_inbox_back_btn
-    korean: "\uB300\uC2DC\uBCF4\uB4DC\uB85C"
-    english: Dashboard
+  - key: inbox_category_transfer
+    korean: "\uC774\uC801"
+    english: Transfer
+  - key: inbox_category_morale
+    korean: "\uC0AC\uAE30"
+    english: Morale
+  - key: inbox_category_board
+    korean: "\uC774\uC0AC\uD68C"
+    english: Board
+  - key: inbox_category_youth
+    korean: "\uC720\uC2A4"
+    english: Youth
+  - key: inbox_category_cup
+    korean: "\uCEF5"
+    english: Cup
+  - key: inbox_category_award
+    korean: "\uC2DC\uC0C1"
+    english: Award
+  - key: inbox_priority_low
+    korean: "\uB0AE\uC74C"
+    english: Low
+  - key: inbox_priority_medium
+    korean: "\uBCF4\uD1B5"
+    english: Medium
+  - key: inbox_priority_high
+    korean: "\uB192\uC74C"
+    english: High
+  - key: inbox_priority_requires_action
+    korean: "\uCC98\uB9AC \uD544\uC694"
+    english: Requires Action
+  - key: inbox_promise_deadline_fmt
+    korean: "\uC57D\uC18D #{id} \uB9C8\uAC10 {days}\uC77C \uB0A8\uC74C"
+    english: Promise #{id} due in {days} days
+  - key: inbox_counter_offer_fmt
+    korean: "\uC5ED\uC81C\uC548 \uB3C4\uCC29 (\uC624\uD37C #{offerId})"
+    english: Counter-offer received (Offer #{offerId})
+  - key: inbox_contract_renewed_fmt
+    korean: "\uC120\uC218 #{playerId} \uC7AC\uACC4\uC57D \uCCB4\uACB0"
+    english: Player #{playerId} has signed a new contract
+  - key: inbox_contract_rejected_fmt
+    korean: "\uC120\uC218 #{playerId} \uC7AC\uACC4\uC57D \uAC70\uC808"
+    english: Player #{playerId} rejected the contract offer
+  - key: inbox_youth_intake_fmt
+    korean: "\uAD6C\uB2E8 #{clubId} \uC720\uC2A4 \uC778\uC2A4\uD399\uC158 \uAC00\uB2A5"
+    english: Youth intake available for club #{clubId}
+  - key: inbox_title
+    korean: "\uC778\uBC15\uC2A4"
+    english: Inbox
+  - key: inbox_empty
+    korean: "\uBC1B\uC740 \uC54C\uB9BC\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    english: No notifications.
+  - key: inbox_mark_all_read
+    korean: "\uBAA8\uB450 \uC77D\uC74C \uCC98\uB9AC"
+    english: Mark all as read
+  - key: inbox_open
+    korean: "\uC5F4\uAE30"
+    english: Open
+  - key: currency_gbp_symbol
+    korean: "\xA3"
+    english: "\xA3"
+  - key: currency_usd_symbol
+    korean: $
+    english: $
+  - key: currency_eur_symbol
+    korean: "\u20AC"
+    english: "\u20AC"
+  - key: currency_krw_symbol
+    korean: "\u20A9"
+    english: "\u20A9"
+  - key: currency_unit_thousand
+    korean: K
+    english: K
+  - key: currency_unit_million
+    korean: M
+    english: M
+  - key: currency_unit_billion
+    korean: B
+    english: B
+  - key: currency_label_gbp
+    korean: "\uD30C\uC6B4\uB4DC (GBP)"
+    english: Pound (GBP)
+  - key: currency_label_usd
+    korean: "\uB2EC\uB7EC (USD)"
+    english: Dollar (USD)
+  - key: currency_label_eur
+    korean: "\uC720\uB85C (EUR)"
+    english: Euro (EUR)
+  - key: currency_label_krw
+    korean: "\uC6D0 (KRW)"
+    english: Won (KRW)
+  - key: synergy_big_and_small_name
+    korean: "\uBE45\uC564\uC2A4\uBAB0"
+    english: Big & Small
+  - key: synergy_big_and_small_desc
+    korean: "\uC7A5\uC2E0 \uC2A4\uD2B8\uB77C\uC774\uCEE4 + \uB2E8\uC2E0 \uC719\uC5B4
+      \uC870\uD569. \uD5E4\uB354\uACE8 +10% / \uD06C\uB85C\uC2A4 \uACB0\uC815 +10%."
+    english: Tall striker paired with short wingers. +10% headed goals / +10% cross
+      finishing.
+  - key: synergy_target_speedster_name
+    korean: "\uD0C0\uAC9F+\uBC1C\uB9C8\uB2C8"
+    english: Target & Speedster
+  - key: synergy_target_speedster_desc
+    korean: "\uD0C0\uAC9F\uB9E8 \uC2A4\uD2B8\uB77C\uC774\uCEE4 + \uBE60\uB978 \uC719\uC5B4.
+      \uCE74\uC6B4\uD130 \uC5B4\uD0DD +15%."
+    english: Target Man with pacy wingers. +15% counter attacks.
+  - key: synergy_possession_name
+    korean: "\uC628\uBCFC\uC774\uB9C8\uC774\uC6E8\uC774"
+    english: Possession
+  - key: synergy_possession_desc
+    korean: "\uD328\uC2A4 + \uBE44\uC804 \uC88B\uC740 \uBBF8\uB4DC\uD544\uB354 2\uBA85.
+      \uC810\uC720\uC728 +5% / \uD328\uC2A4 \uC131\uACF5 +5%."
+    english: Two midfielders with elite passing and vision. +5% possession / +5%
+      pass success.
+  - key: synergy_defensive_wall_name
+    korean: "\uACE8\uB2C8\uC544"
+    english: Defensive Wall
+  - key: synergy_defensive_wall_desc
+    korean: "\uC13C\uD130\uBC31 2\uBA85\uC758 \uAC15\uB825\uD55C \uD0DC\uD074\xB7\uB9C8\uD0B9.
+      \uC2E4\uC810 -10%."
+    english: Two centre-backs locking down the area. -10% goals conceded.
+  - key: synergy_wingback_duo_name
+    korean: "\uC11C\uD504-\uC2A4\uD14C\uD30C"
+    english: Wing-Back Duo
+  - key: synergy_wingback_duo_desc
+    korean: "\uC2A4\uD0DC\uBBF8\uB098\xB7\uADFC\uBA74\uC131 \uC88B\uC740 \uC591\uCABD
+      \uD480\uBC31. \uD06C\uB85C\uC2A4 \uBE48\uB3C4 +20%."
+    english: High-stamina and hard-working full-backs. +20% cross frequency.
+  - key: synergy_double_pivot_name
+    korean: "\uB354\uBE14 \uD53C\uBCF4\uD14C"
+    english: Double Pivot
+  - key: synergy_double_pivot_desc
+    korean: "\uC218\uBE44\uD615 \uBBF8\uB4DC\uD544\uB354 2\uBA85. \uC911\uC6D0 \uC810\uC720
+      +10% / \uCC28\uB2E8 +10%."
+    english: Two defensive midfielders. +10% midfield control / +10% interceptions.
+  - key: synergy_trequartista_name
+    korean: "\uD2B8\uB808\uC790\uB974\uD14C"
+    english: Trequartista
+  - key: synergy_trequartista_desc
+    korean: "\uACF5\uACA9\uD615 \uBBF8\uB4DC\uD544\uB354\uC758 \uCC3D\uC758\uC131.
+      \uD0A4\uD328\uC2A4 \uBE48\uB3C4 +20%."
+    english: Creative attacking midfielder. +20% key pass frequency.
+  - key: synergy_false_nine_name
+    korean: "\uD384\uC2A49"
+    english: False 9
+  - key: synergy_false_nine_desc
+    korean: "\uAC70\uC9D3 9\uBC88\uC758 \uBC15\uC2A4 \uCE68\uD22C. \uB4DC\uB9AC\uBE14
+      \uBC15\uC2A4 \uC9C4\uC785 +15%."
+    english: False 9 dropping deep and arriving late. +15% dribble box entries.
+  - key: synergy_diamond_midfield_name
+    korean: "\uB2E4\uC774\uC544\uBAAC\uB4DC \uBBF8\uB4DC"
+    english: Diamond Midfield
+  - key: synergy_diamond_midfield_desc
+    korean: "DM + CM 2 + AM \uB2E4\uC774\uC544\uBAAC\uB4DC \uD615\uD0DC. \uC810\uC720
+      +8% / \uC29B +10%."
+    english: DM + 2 CM + AM diamond shape. +8% possession / +10% shots.
+  - key: synergy_homegrown_spine_name
+    korean: "\uC790\uAD6D\uC778 \uB77C\uC778"
+    english: Homegrown Spine
+  - key: synergy_homegrown_spine_desc
+    korean: "GK + CB + DM + ST \uC790\uAD6D \uC120\uC218. \uC0AC\uAE30 +5 \uC601\uAD6C
+      / \uB9E4\uCE58 +3%."
+    english: GK + CB + DM + ST all homegrown. +5 permanent morale / +3% match strength.
+  - key: synergy_active_label
+    korean: "\uD65C\uC131 \uC2DC\uB108\uC9C0"
+    english: Active Synergies
+  - key: synergy_none_active
+    korean: "\uD65C\uC131 \uC2DC\uB108\uC9C0 \uC5C6\uC74C"
+    english: No active synergies
+  - key: cup_facup_name
+    korean: "FA\uCEF5"
+    english: FA Cup
+  - key: cup_round_32
+    korean: "32\uAC15"
+    english: Round of 32
+  - key: cup_round_16
+    korean: "16\uAC15"
+    english: Round of 16
+  - key: cup_quarter
+    korean: "8\uAC15"
+    english: Quarter-finals
+  - key: cup_semi
+    korean: "4\uAC15"
+    english: Semi-finals
+  - key: cup_final
+    korean: "\uACB0\uC2B9"
+    english: Final
+  - key: cup_winner_fmt
+    korean: "{club}\uC774(\uAC00) {season} \uC2DC\uC98C FA\uCEF5 \uC6B0\uC2B9!"
+    english: '{club} win the {season} FA Cup!'
+  - key: cup_match_label_fmt
+    korean: "FA\uCEF5 {round}"
+    english: FA Cup {round}
+  - key: cup_eliminated_fmt
+    korean: "{club}, FA\uCEF5 {round} \uD0C8\uB77D"
+    english: '{club} eliminated in FA Cup {round}'
+  - key: training_title
+    korean: "\uD6C8\uB828"
+    english: Training
+  - key: training_group
+    korean: "\uADF8\uB8F9 \uD6C8\uB828"
+    english: Group Training
+  - key: training_individual
+    korean: "\uAC1C\uC778 \uD6C8\uB828"
+    english: Individual Training
+  - key: training_intensity_low
+    korean: "\uB0AE\uC74C"
+    english: Low
+  - key: training_intensity_medium
+    korean: "\uBCF4\uD1B5"
+    english: Medium
+  - key: training_intensity_high
+    korean: "\uB192\uC74C"
+    english: High
+  - key: training_group_gk
+    korean: GK
+    english: GK
+  - key: training_group_df
+    korean: "\uC218\uBE44"
+    english: Defence
+  - key: training_group_mf
+    korean: "\uBBF8\uB4DC\uD544\uB4DC"
+    english: Midfield
+  - key: training_group_at
+    korean: "\uACF5\uACA9"
+    english: Attack
+  - key: training_individual_target
+    korean: "\uD0C0\uAC9F \uC2A4\uD0EF"
+    english: Target Stat
+  - key: training_individual_start
+    korean: "\uC2DC\uC791\uC77C"
+    english: Start Date
+  - key: training_individual_end
+    korean: "\uC885\uB8CC\uC77C"
+    english: End Date
+  - key: training_individual_capacity_fmt
+    korean: "\uB3D9\uC2DC \uC778\uC6D0 {used}/{cap}"
+    english: 'Active trainees: {used}/{cap}'
+  - key: training_individual_full
+    korean: "\uD6C8\uB828 \uC778\uC6D0 \uCD08\uACFC \u2014 \uC2DC\uC124 \uC5C5\uADF8\uB808\uC774\uB4DC
+      \uD544\uC694"
+    english: "Training capacity full \u2014 upgrade facility"
+  - key: training_button_start
+    korean: "\uD6C8\uB828 \uC2DC\uC791"
+    english: Start Training
+  - key: training_button_cancel
+    korean: "\uCDE8\uC18C"
+    english: Cancel
