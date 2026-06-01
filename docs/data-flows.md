@@ -477,6 +477,53 @@
 
 ---
 
+## 8. GlobalNav 씬 진입 흐름 (V1.0, Stage W)
+
+### Trigger
+컨텐츠 씬 (Dashboard / Squad / Tactic / ... 11+) 로드. 각 씬에 `GlobalNavPrefab` baked-in (씬별 인스턴스, DontDestroyOnLoad 아님 — `design-decisions.md #58`).
+
+### Sequence
+
+```
+씬 로드 (SceneManager.LoadScene)
+  → GlobalNavController.Awake()
+      Instance = this                       # 현재 씬의 nav (중복 guard 불필요)
+  → GlobalNavController.Start()
+      state = GameManager.Instance.State    # 진실의 원천 (DDOL 은 GameManager)
+      RefreshFromState():
+        DateText   = state.currentDate
+        MoneyText  = CurrencyFormatter.Format(userClub.finance.balance)  # Stage Z
+        TokenText  = state.rerollTokens
+        InboxBadge = state.inbox.Count(i => !i.isRead)                    # Stage A.1 / B
+      HighlightCurrentScene()               # SideBar 현재 씬 버튼 강조 (W.4)
+      EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced)
+  → (이후) DayAdvancedEvent 발화
+      → OnDayAdvanced → RefreshFromState()  # 날짜/자금/토큰/배지 실시간 갱신
+  → 씬 전환 (다음 씬 로드)
+      → GlobalNavController.OnDestroy()
+          EventBus.Unsubscribe<DayAdvancedEvent>
+          Instance = null
+```
+
+### 버튼 동작
+
+```
+TopBar [뒤로]    → PlayerPrefs "PreviousScene" 기반 직전 씬 로드
+TopBar [인박스]  → ToggleInboxPanel() (우측 슬라이드, V1.0 정적 즉시 표시)
+TopBar [옵션]    → OptionsScene 추가 진입 (Stage X)
+TopBar [저장]    → GlobalSavePanel.Show() (모달, 어디서든 동일 — W.5)
+TopBar [홈]      → "메인 메뉴로?" 확인 모달 → MainMenuScene
+SideBar 9 버튼   → 해당 씬 LoadScene (현재 씬 버튼 클릭 = 무동작, W.4)
+```
+
+### Key Points
+- **상태 비보유** — nav 는 가변 상태 없음. 매 씬 GameManager 재조회 + EventBus 구독 (`UI 갱신 패턴` 과 동일).
+- **씬별 인스턴스** — DontDestroyOnLoad 안 함. 씬 로드마다 재생성/소멸. 제외 씬 (§3.19.4) 은 prefab 미포함 → 정리 로직 0.
+- **TopBar 아이콘** — 이모지 텍스트 금지 (NotoSansKR 미지원). MUIP 스프라이트/라벨.
+- 각 씬 컨트롤러의 자체 [뒤로]/[저장] 은 제거 (GlobalNav 로 일원화).
+
+---
+
 ## Common Patterns
 
 ### Stateless System 호출 패턴

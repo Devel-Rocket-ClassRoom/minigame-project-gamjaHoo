@@ -1821,14 +1821,30 @@ fatigue > 40             → 부상 발생률 × 1.5
 - SeasonSummary / MatchText / Options — TopBar 만 (SideBar 없음, 특수 흐름).
 
 **영향 범위:**
-- `UI/GlobalNavController.cs` 신규 (싱글톤, DontDestroyOnLoad)
+- `UI/GlobalNavController.cs` 신규 (씬별 인스턴스 — 생명주기 항목 참조)
 - `Assets/Imported/FMLite UI/Prefabs/GlobalNavPrefab.prefab` 신규
-- 11+ 컨텐츠 씬에 prefab 자동 주입 (Awake)
+- 11+ 컨텐츠 씬에 prefab baked-in (씬마다 인스턴스 포함)
 - 각 씬 컨트롤러의 자체 [뒤로] / [저장] 버튼 제거 (중복 회피)
 - `DashboardController.savePanel` → `GlobalSavePanel` (모달, 한 곳)
 
+### 생명주기 모델 — 씬별 인스턴스 (2026-06-01 정정)
+
+**초안 모순:** 초안은 "싱글톤 + DontDestroyOnLoad" (영구 1개) 와 "11+ 모든 씬에 prefab baked-in" (씬마다 1개) 을 동시에 적었으나 두 모델은 양립 불가. baked-in + DDOL 이면 씬 전환마다 중복 생성 → Awake guard 로 파괴는 되나, 제외 씬 (MainMenu / Gacha / ClubSelect) 진입 시 영구 nav 를 별도 Hide/Destroy 하는 정리 로직이 필요해짐. (`GameManager` / `SoundManager` 의 DDOL 싱글톤은 "모든 씬 baked-in" 이 아니라 부트스트랩 1회 생성이라 이 문제가 없음 — 패턴이 다름.)
+
+**결정 (사용자, 2026-06-01): 씬별 인스턴스 (DontDestroyOnLoad 없음).**
+- 각 컨텐츠 씬에 `GlobalNavPrefab` baked-in. 씬 로드마다 새로 생성/소멸.
+- `GlobalNavController.Instance` 는 "현재 씬의 nav" 접근자 (Awake 에서 set, OnDestroy 에서 clear). DontDestroyOnLoad 안 함. 중복 파괴 guard 불필요 (씬당 1개).
+- **데이터는 영구 보관 X** — nav 자체는 상태 없음. 매 씬 진입 시 `Start` 에서 `GameManager.Instance.State` 를 읽어 TopBar (날짜 / 자금 / 토큰 / 인박스 배지) 갱신. 진실의 원천은 이미 DDOL 인 `GameManager`.
+- **제외 씬은 prefab 을 안 넣음** → 정리 로직 0. MainMenu / Gacha / ClubSelect 는 nav 자체가 없음. SeasonSummary / MatchText / Options 는 TopBar 만 있는 변형 (또는 prefab 의 SideBar 비활성).
+
+**이유:**
+- **단순/견고** — 씬당 1개라 중복 guard·제외 씬 Hide 로직 모두 불필요. baked-in 이 곧 "그 씬에 nav 가 있다" 의 단일 표현.
+- **상태 비보유 일관** (`#3` Stateless 정신) — nav 는 GameManager 를 읽어 표시만. 영구 객체가 들고 다닐 가변 상태 없음.
+- **트레이드오프** — 씬 전환 시 nav 가 재생성 (미세 flicker). V1.0 은 정적 UI (애니메이션 X) 라 체감 거의 없음. 진짜 끊김 없는 영구 레이어는 V1.x DOTween 도입 시 재검토.
+
 ### V1.x 보완 포인트
 - **DOTween 슬라이드 애니메이션** (인박스 패널 / 모달 등) — V1.0 정적, V1.x 도입.
+- **영구 레이어 재검토** — 씬 전환 재생성 flicker 가 거슬리면 단일 DDOL 인스턴스 + sceneLoaded 갱신 모델로 전환 (이때 제외 씬 Hide 로직 동반).
 - **테마 토글** — UI Manager 가 다크 ↔ 라이트 전환 (V1.x).
 
 ---
@@ -2265,6 +2281,7 @@ public class StatSnapshot {
 | 2026-05-22 | #39~#52 추가 | V0.1 빌드 마무리 후 V0.5 계획 수립 (`docs/v0.5-plan.md` 작성). 사용자 플레이테스트 피드백 11 카테고리 + 기존 V0.5+ 보완 포인트 + FM 표준 통합. 12 Open Questions 모두 결정 후 본 결정사항 #39~#52 추가. **§ 매핑**: #39 Stats 1-100 + FM 49 (Q1, Q12) / #40 Hidden Attributes (Q4) / #41 Trait 효과 본격화 / #42 Morale + Happiness 분리 (Q7) / #43 Promise + 면담 (Q7) / #44 매치 엔진 V0.5 분 단위 (#34 실현, Q5) / #45 Tactic 중간 스코프 (Q10) / #46 스카우트 이분법 (Q4) / #47 CpuTransferAi 필요 기반 (Q3) / #48 협상 V0.5 + 임대 / #49 시설 8종 × 10단계 + 병렬 / #50 유스 V0.5 (CA 캡 + 시설 분리 + Mentoring) / #51 시즌 V0.5 (시상 + 보드 + 재정) / #52 인프라 (String Table + Localization + Save Migration, Q8). 일정 정책 (Q11) = 마감 없음. |
 | 2026-05-26 | #53 추가 | Stage D.4 Sub-A 명세 (`algorithms.md` V0.5-10 + V0.5-11 와 짝). 시설 효과 본격 적용 — Training (Player Growth System 신규) + Medical (Injury Recovery + Rate 보정) + Gym (피지컬 성장 보조 + 회복 일부). Stadium / Scout / Youth* 은 D.4 책임 X — 후속 Stage M.6 / E.2 / L.1-3 의존. 성장 시스템 = 매월 1일 / 2단계 모델 (발생 확률 + size 분포 +1/+2/+3) / Relative only (Absolute ×0.10) / 나이 곡선 4단계 (16-22 peak / 23-26 prime / 27-30 정체 / 31+ decline) / PA 캡. 결정성 시드 = `state.randomSeed ^ player.id ^ (year×12 + month)`. CA = static (V1.0 derived 검토). 부상 회복 결정성 = 발생 시점 `expectedReturn` 고정. 발생률 floor 0.5 (Medical Lv10 도 부상 완전 차단 불가). |
 | 2026-05-26 | #53 보강 | 성장 size 분포 도입. V0.5-10 의 초안 (`+1` 단위만) → 사용자 지적 ("특정 스탯 +2 가능") 반영. **2단계 모델**: (1) 발생 확률 `growthBaseChance = 0.01` (월 1% — 초안 0.05 너무 빈번해서 1/5 로 낮춤. 49 stat × 1% = 평범 선수 1년 ~6 stat 변동). (2) 발생 시 size 추첨 `[+1, +2, +3]` 분포 `[75, 20, 5]`. peak youth (ageFactor ≥ 1.3, 16-18세) 는 큰 점프 분포 `[60, 30, 10]`. decline 대칭. 18세 wonderkid 1년 stat 합산 ~12 (peak 추정), 평범 25세 ~5. FM 표준 (15-20 wonderkid / 5-10 평범) 와 일치. |
+| 2026-06-01 | #58 정정 | Stage W Sub-A (#416). GlobalNav 생명주기 모순 해소 — 초안의 "싱글톤 + DontDestroyOnLoad" 와 "모든 씬 baked-in" 양립 불가 (중복 생성 + 제외 씬 정리 로직 필요). **씬별 인스턴스 모델 채택** (사용자 결정): 각 씬 baked-in, DDOL 안 함, 상태 비보유 (매 씬 `GameManager.State` 재조회), 제외 씬은 prefab 미포함. `v1.0-plan §3.19.5–6` / `class-diagram.md` Presentation Layer / `data-flows.md §8` / `muip-reference §17` 동기 갱신. TopBar 아이콘 이모지 금지 함정 (NotoSansKR 미지원) 기록. |
 | 2026-05-26 | #47 V0.5+ 보완 포인트 2 항목 추가 | F.1+F.2 머지 (#295) 직후 사용자 지적. 현재 V0.5 한계 2가지 명세화 — (1) "매주 월요일 모든 AI 구단 동시" = 비자연스러운 동기화. (2) "구단당 주 1 오퍼" = 여름 윈도우 대규모 리빌딩 시나리오 X. V1.0 진화 = 구단별 cooldown (`Club.lastTransferAttemptDate`) + `DetectTrigger` → `DetectTriggers` (복수) + 자금 트리거별 분배. `aiPersonality` 와 결합 시 FM 식 비동기 + 다발 협상. 결정성 시드는 `lastAttemptDate.Ticks` 로 클럽별 독립 재현성 확보. V0.5 본문 정책 (매주 호출) 은 그대로 유지 — V1.0 스코프. |
 | 2026-05-28 | #57 추가 | Stage J.4 TacticImpact (#341). `Application/TacticImpact.cs` 신규 — Role×Duty×Stat 이벤트 주체 *선택* 가중치 (`MatchSimulator.SnapPlayer` 가중 추첨). Mentality 제외 (J.3 zone 전이 중복 + 같은 팀 상쇄) / 외부영향 제외 (Eff 성공률 중복) → double-counting 방지. Duty 가중치 = `GameBalanceSO.tacticDuty*` 4필드 외부화 (#11, `balance` 파라미터 — 원 스펙 시그니처와 일치) / Role = `PlayerRoleSO.eventModifiers` 외부화 / stat 분모(10000)만 구조적 상수. `HasLineup` 가드 (assignedPlayerId 미배정 시 균등 추첨 → T1~T12 회귀 0, J.5 라인업 후 본격 작동). `algorithms.md` V0.5-7 실제 코드 정합 갱신 (string eventType / roleId / mentality·external 제외 / T2=T12·T3=T13 대체). **검증**: T1/T4 = ComputeEventWeight **가중치 비율** 정밀 검증 (2.0/3.0 — 스펙 "~2×/~3×" 의 실체) + 통합 테스트 방향성 (emergent 슛 카운트는 zone 동학으로 증폭되어 정확 비율 비검증). |
 | 2026-05-27 | #17 V0.1 한정 표시 + #34 갱신 + #44 전면 개정 + #54/#55/#56 신규 | openfootmanager(OFM) 매치 엔진 분석 후 Stage I 5-zone Markov 재설계 (이슈 #319, Sub-A 명세). **#17** "결과 미리 산출" V0.5 완전 폐기 — forward simulation, 결정성은 시드 고정에서만. **#34** 5-zone Markov 채택 명시 (초안 "양 팀 독립 추첨" 폐기 근거). **#44** 분 단위 독립 → 5-zone Markov 상태 전이 전면 개정 (ballZone + possession, 49 stat zone별 매핑, OFM 18→FM 49). **#54** fatigue 임계 (>50 경기력↓ / >40 부상↑, OFM 선형 대체 — 과도 로테이션 방지). **#55** 5-zone + background 동일 엔진 (collectEvents 플래그, 통계 양쪽 수집, 연산 부담 0 검증). **#56** 컵 대회 + 연장/승부차기 V0.5 스코프 확대 (I.11 연장 + Stage Q 컵). `algorithms.md` V0.5-2 재작성 + `v0.5-tasks.md` Stage I 재구성 + Stage Q 신규와 짝. |

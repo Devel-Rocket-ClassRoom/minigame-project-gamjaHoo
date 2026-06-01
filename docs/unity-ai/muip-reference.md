@@ -572,6 +572,10 @@ Scene Root
 └── (씬별 컨트롤러 GameObject)
 ```
 
+> **생명주기 (2026-06-01 확정):** GlobalNavPrefab 은 **씬별 인스턴스** — 각 컨텐츠 씬에 baked-in, DontDestroyOnLoad 안 함 (`design-decisions.md #58`). `GlobalNavController.Instance` 는 현재 씬의 nav 접근자. 데이터는 매 씬 `GameManager.Instance.State` 재조회. 제외 씬 (MainMenu / Gacha / ClubSelect) 은 prefab 을 안 넣으면 됨.
+>
+> **TopBar 아이콘 = 이모지 금지:** `NotoSansKR-VF SDF` 폰트에 이모지 글리프 (◀ 📥 ⚙ 💾 🏠) 없음 → □ 로 깨짐 (Console 확인). MUIP `Basic - Only Icon` 버튼 + 아이콘 스프라이트, 또는 한/영 텍스트 라벨 사용.
+
 ### ScrollRect 구조
 
 ```

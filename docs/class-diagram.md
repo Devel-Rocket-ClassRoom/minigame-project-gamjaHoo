@@ -662,6 +662,33 @@ public class SaveSlotMeta {
 
 > **위치 근거**: `JsonConvert.SerializeObject` + `File.Replace` (atomic) + `Application.persistentDataPath` 사용. Application 시스템(Stateless 도메인 변환) 과 본질이 다른 I/O 어댑터.
 
+## Presentation Layer (UI)
+
+UI MonoBehaviour 컨트롤러. 상태 비보유 — `GameManager.Instance.State` 를 읽어 표시, EventBus 구독으로 갱신. 대부분 씬별 컨트롤러 (DashboardController 등) 라 개별 카탈로그는 생략. 아래는 V1.0 전역 표준 UI (Stage W).
+
+```csharp
+// FMLite.UI — 글로벌 네비게이션 (design-decisions.md #58, v1.0-plan §3.19)
+// 씬별 인스턴스 (DontDestroyOnLoad 아님). 각 컨텐츠 씬에 GlobalNavPrefab baked-in.
+public class GlobalNavController : MonoBehaviour {
+    public static GlobalNavController Instance { get; private set; }  // 현재 씬의 nav
+    // Awake: Instance = this  /  OnDestroy: Instance = null (씬당 1개, 중복 guard 불필요)
+    // Start: GameManager.State 읽어 TopBar 갱신 + DayAdvancedEvent 구독
+    public void RefreshFromState();        // 날짜 / 자금 / 토큰 / 인박스 배지
+    public void RefreshMoney();            // 통화 변경 시 (Stage X.4)
+    public void HighlightCurrentScene();   // SideBar 현재 씬 강조 (W.4)
+    public void ToggleInboxPanel();        // 우측 슬라이드 (V1.0 정적 즉시 표시)
+}
+
+// 어디서든 TopBar [저장] → 모달. 11+ 씬의 자체 savePanel 통합 (W.5).
+public class GlobalSavePanel : MonoBehaviour {
+    public void Show();                    // SaveSystem.ListSlots() 채움
+    public void Hide();
+    // [신규 슬롯] → 자동 슬롯명 저장 / 기존 슬롯 클릭 → 덮어쓰기 (Stage N.1 에서 슬롯명 입력)
+}
+```
+
+> **생명주기 근거**: `design-decisions.md #58` — 씬별 인스턴스 모델 (DDOL 싱글톤 아님). nav 는 상태 비보유라 매 씬 GameManager 재조회. 제외 씬 (MainMenu / Gacha / ClubSelect, §3.19.4) 은 prefab 미포함.
+
 ## Relationship Diagram (Mermaid)
 
 ```mermaid
