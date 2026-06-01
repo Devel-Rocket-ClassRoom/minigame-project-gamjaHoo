@@ -33,7 +33,6 @@ namespace FMLite.UI
         private const string MentoringScene = "MentoringScene";
         private const string SeasonSummaryScene = "SeasonSummaryScene";
         private const string MatchTextScene = "MatchTextScene";
-        private const string NegotiationScene = "NegotiationScene";
         internal const string SelectedMatchIdKey = "SelectedMatchId";
 
         [Header("요약 정보")]
@@ -102,12 +101,9 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text injuryText;
 
-        private bool _youthIntakePending;
-
         private void OnEnable()
         {
             EventBus.Subscribe<DayAdvancedEvent>(OnDayAdvanced);
-            EventBus.Subscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
             EventBus.Subscribe<PromiseCreatedEvent>(OnPromiseCreated);
             EventBus.Subscribe<PromiseFulfilledEvent>(OnPromiseFulfilled);
             EventBus.Subscribe<PromiseBrokenEvent>(OnPromiseBroken);
@@ -119,7 +115,6 @@ namespace FMLite.UI
         private void OnDisable()
         {
             EventBus.Unsubscribe<DayAdvancedEvent>(OnDayAdvanced);
-            EventBus.Unsubscribe<YouthIntakeAvailableEvent>(OnYouthIntakeAvailable);
             EventBus.Unsubscribe<PromiseCreatedEvent>(OnPromiseCreated);
             EventBus.Unsubscribe<PromiseFulfilledEvent>(OnPromiseFulfilled);
             EventBus.Unsubscribe<PromiseBrokenEvent>(OnPromiseBroken);
@@ -180,16 +175,9 @@ namespace FMLite.UI
                 return;
             }
 
-            // AI 클럽 역제안(CounterOffer) 도착 시 NegotiationScene 으로 전환
-            var counterOffer = state.activeOffers?.Find(o =>
-                o != null &&
-                o.toClubId == state.userClubId &&
-                o.status == OfferStatus.CounterOffer);
-            if (counterOffer != null)
-            {
-                SceneManager.LoadScene(NegotiationScene);
-                return;
-            }
+            // B.2 (design-decisions #66): CounterOffer 강제 NegotiationScene 전환 폐기.
+            // InboxRouter 가 InboxItem(Transfer/RequiresAction, 기한 7일, OpenScene:NegotiationScene) 으로 흡수 —
+            // 유저가 인박스에서 클릭해 처리. Continue 시 강제 전환 X.
 
             RefreshInfo();
             CheckBoardMeeting();
@@ -289,23 +277,8 @@ namespace FMLite.UI
             RefreshInfo();
         }
 
-        private void OnYouthIntakeAvailable(YouthIntakeAvailableEvent e)
-        {
-            if (e.clubId == GameManager.Instance?.State?.userClubId)
-                _youthIntakePending = true;
-        }
-
-        private void Update()
-        {
-            if (
-                _youthIntakePending
-                && (boardMeetingPanel == null || !boardMeetingPanel.gameObject.activeSelf)
-            )
-            {
-                _youthIntakePending = false;
-                SceneManager.LoadScene(YouthScene);
-            }
-        }
+        // B.2 (design-decisions #66 Q3): YouthIntakeAvailableEvent 강제 YouthScene 전환 폐기.
+        // InboxRouter 가 InboxItem(Youth/RequiresAction, OpenScene:YouthScene) 으로 흡수.
 
         // ── 인박스 (V0.5 G.2 Sub-B) ──────────────────────────────────
 
