@@ -77,7 +77,7 @@ namespace FMLite.Editor
                 E("youth_facility_fmt", "유스 시설 레벨 {0}", "Youth Facility Lv.{0}"),
                 // ── Transfer ───────────────────────────────────────────────
                 E("filter_all", "전체", "All"),
-                E("market_value_fmt", "시장가 £{0}M", "Market Value £{0}M"),
+                E("market_value_fmt", "시장가 {0}", "Market Value {0}"),
                 E("transfer_window_open", "이적 창 열림 (체결 가능)", "Transfer Window Open"),
                 E(
                     "transfer_window_closed",
@@ -87,7 +87,7 @@ namespace FMLite.Editor
                 E("no_active_offers", "활성 오퍼 없음", "No Active Offers"),
                 E("active_offers_header", "[활성 오퍼]", "[Active Offers]"),
                 // ── Facility ───────────────────────────────────────────────
-                E("facility_money_fmt", "잔고: £{0}M", "Balance: £{0}M"),
+                E("facility_money_fmt", "잔고: {0}", "Balance: {0}"),
                 E(
                     "facility_upgrade_progress_fmt",
                     "{0} 업그레이드 중 (완료: {1})",
@@ -97,8 +97,8 @@ namespace FMLite.Editor
                 E("max_level", "최고 등급", "Max Level"),
                 E(
                     "facility_upgrade_cost_fmt",
-                    "업그레이드 £{0}M ({1}일)",
-                    "Upgrade £{0}M ({1} days)"
+                    "업그레이드 {0} ({1}일)",
+                    "Upgrade {0} ({1} days)"
                 ),
                 // ── Facility (V0.5 D.5 — 8 시설 이름 + 효과 fmt) ────────────
                 E("facility_name_scout", "스카우트", "Scouting"),
@@ -234,9 +234,9 @@ namespace FMLite.Editor
                 E("no_traits", "없음", "None"),
                 E("section_contract", "[계약]", "[Contract]"),
                 E("no_info", "정보 없음", "No Info"),
-                E("contract_wage_fmt", "주급: £{0}", "Weekly Wage: £{0}"),
+                E("contract_wage_fmt", "주급: {0}", "Weekly Wage: {0}"),
                 E("contract_end_fmt", "계약 만료: {0}", "Contract End: {0}"),
-                E("contract_release_debug_fmt", "바이아웃: £{0}", "Release Clause: £{0}"),
+                E("contract_release_debug_fmt", "바이아웃: {0}", "Release Clause: {0}"),
                 E("contract_release", "바이아웃: 있음", "Release Clause: Yes"),
                 E("section_state", "[상태]", "[State]"),
                 E("state_fatigue_fmt", "피로: {0}", "Fatigue: {0}"),

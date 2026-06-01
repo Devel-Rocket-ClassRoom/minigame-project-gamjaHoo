@@ -328,7 +328,13 @@ namespace FMLite.UI
             var sb = new StringBuilder(Localization.Get("section_contract") + "\n");
             if (debug)
                 sb.AppendLine(
-                    Localization.Get("contract_wage_fmt", c.weeklyWage.ToString("N0"))
+                    Localization.Get(
+                        "contract_wage_fmt",
+                        FMLite.Utils.CurrencyFormatter.Format(
+                            c.weeklyWage,
+                            FMLite.Application.OptionsManager.Currency
+                        )
+                    )
                 );
             sb.AppendLine(
                 Localization.Get("contract_end_fmt", c.endDate.ToString("yyyy-MM-dd"))
@@ -338,7 +344,10 @@ namespace FMLite.UI
                     debug
                         ? Localization.Get(
                             "contract_release_debug_fmt",
-                            c.releaseClause.ToString("N0")
+                            FMLite.Utils.CurrencyFormatter.Format(
+                                c.releaseClause,
+                                FMLite.Application.OptionsManager.Currency
+                            )
                         )
                         : Localization.Get("contract_release")
                 );

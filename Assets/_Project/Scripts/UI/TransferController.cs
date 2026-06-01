@@ -275,7 +275,13 @@ namespace FMLite.UI
                 offerTargetText.text =
                     $"{player.info?.firstName} {player.info?.lastName}  "
                     + $"({player.info?.primaryPosition})  {club?.name ?? "-"}  "
-                    + Localization.Get("market_value_fmt", (mv / 1000000.0).ToString("0.0"));
+                    + Localization.Get(
+                        "market_value_fmt",
+                        FMLite.Utils.CurrencyFormatter.Format(
+                            mv,
+                            FMLite.Application.OptionsManager.Currency
+                        )
+                    );
             }
 
             if (offerAmountInput != null)
