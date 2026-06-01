@@ -168,14 +168,11 @@ namespace FMLite.UI
             return Localization.Get("season_summary_board_fmt", confidence, rep);
         }
 
-        private static string FormatMoney(int amount)
-        {
-            if (amount >= 1_000_000)
-                return $"£{amount / 1_000_000.0f:0.##}M";
-            if (amount >= 1_000)
-                return $"£{amount / 1_000}K";
-            return $"£{amount}";
-        }
+        private static string FormatMoney(int amount) =>
+            FMLite.Utils.CurrencyFormatter.Format(
+                amount,
+                FMLite.Application.OptionsManager.Currency
+            );
 
         private static string AwardTypeKey(AwardType type) =>
             type switch

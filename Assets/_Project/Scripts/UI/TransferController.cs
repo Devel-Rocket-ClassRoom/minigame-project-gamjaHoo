@@ -341,7 +341,9 @@ namespace FMLite.UI
                     player?.info != null
                         ? $"{player.info.firstName} {player.info.lastName}"
                         : $"id={offer.playerId}";
-                sb.AppendLine($"{name}  £{offer.amount / 1000000.0:0.0}M  [{offer.status}]");
+                sb.AppendLine(
+                    $"{name}  {FMLite.Utils.CurrencyFormatter.Format(offer.amount, FMLite.Application.OptionsManager.Currency)}  [{offer.status}]"
+                );
             }
             activeOffersText.text = sb.ToString().TrimEnd();
         }

@@ -328,8 +328,6 @@ namespace FMLite.UI
         }
 
         private static string FormatMoney(int amount) =>
-            amount >= 1_000_000
-                ? $"£{amount / 1_000_000.0:0.0}M"
-                : $"£{amount / 1_000.0:0}K";
+            FMLite.Utils.CurrencyFormatter.Format(amount, FMLite.Application.OptionsManager.Currency);
     }
 }

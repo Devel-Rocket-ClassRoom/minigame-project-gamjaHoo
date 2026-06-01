@@ -92,7 +92,10 @@ namespace FMLite.UI
                 balance != null ? TransferSystem.CalculateMarketValue(player, state, balance) : 0;
 
             if (scouted)
-                return $"£{mv / 1000000.0:0.0}M";
+                return FMLite.Utils.CurrencyFormatter.Format(
+                    mv,
+                    FMLite.Application.OptionsManager.Currency
+                );
 
             // 명단 ∉ — 정성적 라벨. market value 의 max 임계는 명성/시즌에 따라 다르나 단순화: ~£100M 기준.
             var tier = ScoutingVisibility.GetTier(mv, 100_000_000);
