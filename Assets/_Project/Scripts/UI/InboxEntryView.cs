@@ -38,33 +38,55 @@ namespace FMLite.UI
         // 표시 색 (muip-reference §18)
         private static readonly Color UnreadBg = Hex(0x3A3A4E);
         private static readonly Color ReadBg = Hex(0x2A2A3E);
-        private static readonly Color DeadlineUrgent = Hex(0xE87040); // 경고 (≤2일 / 만료)
+        private static readonly Color DeadlineUrgent = Hex(0xE87040); // 경고 (≤2일)
         private static readonly Color DeadlineNormal = Hex(0xCCCCCC); // 보조 텍스트
+        private static readonly Color InactiveText = Hex(0x777777); // 만료 비활성
 
         public void Setup(D.InboxItem item, D.GameState state, Action<D.InboxItem> onClick)
         {
             if (item == null)
                 return;
 
+            // Q1 (design-decisions #66): 기한 만료해도 자동처리 X / 사라지지 않음 — 비활성 표시만.
+            bool expired = IsExpired(item, state);
+
             if (titleText != null)
+            {
                 titleText.text = InboxTextResolver.ResolveTitle(item, state);
+                titleText.color = expired ? InactiveText : Color.white;
+            }
 
             if (background != null)
                 background.color = item.isRead ? ReadBg : UnreadBg;
 
             if (categoryStripe != null)
-                categoryStripe.color = CategoryColor(item.category);
+            {
+                var c = CategoryColor(item.category);
+                if (expired)
+                    c.a = 0.35f; // 만료 = 스트라이프 흐리게
+                categoryStripe.color = c;
+            }
 
-            RefreshDeadline(item, state);
+            RefreshDeadline(item, state, expired);
 
             if (rowButton != null)
             {
                 rowButton.onClick.RemoveAllListeners();
-                rowButton.onClick.AddListener(() => onClick?.Invoke(item));
+                // 만료 = 비활성 (클릭해도 동작 X — 기회 소멸)
+                rowButton.interactable = !expired;
+                if (!expired)
+                    rowButton.onClick.AddListener(() => onClick?.Invoke(item));
             }
         }
 
-        private void RefreshDeadline(D.InboxItem item, D.GameState state)
+        /// <summary>기한 도래(만료) 여부. deadline 없거나 state 없으면 false.</summary>
+        public static bool IsExpired(D.InboxItem item, D.GameState state) =>
+            item != null
+            && state != null
+            && item.deadline.HasValue
+            && item.deadline.Value.Date < state.currentDate.Date;
+
+        private void RefreshDeadline(D.InboxItem item, D.GameState state, bool expired)
         {
             if (deadlineText == null)
                 return;
@@ -76,18 +98,16 @@ namespace FMLite.UI
             }
 
             deadlineText.gameObject.SetActive(true);
-            int days = (item.deadline.Value.Date - state.currentDate.Date).Days;
-            if (days < 0)
+            if (expired)
             {
-                // Q1 (design-decisions #66): 기한 만료해도 사라지지 않음 — 만료 표시만.
                 deadlineText.text = Localization.Get("inbox_deadline_expired");
-                deadlineText.color = DeadlineUrgent;
+                deadlineText.color = InactiveText;
+                return;
             }
-            else
-            {
-                deadlineText.text = Localization.Get("inbox_deadline_days_fmt", days);
-                deadlineText.color = days <= 2 ? DeadlineUrgent : DeadlineNormal;
-            }
+
+            int days = (item.deadline.Value.Date - state.currentDate.Date).Days;
+            deadlineText.text = Localization.Get("inbox_deadline_days_fmt", days);
+            deadlineText.color = days <= 2 ? DeadlineUrgent : DeadlineNormal;
         }
 
         public static Color CategoryColor(D.InboxCategory cat) =>
