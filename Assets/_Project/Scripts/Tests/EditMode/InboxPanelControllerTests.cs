@@ -106,5 +106,44 @@ namespace FMLite.Tests
             Assert.AreEqual(0, InboxPanelController.Filter(null, null).Count);
             Assert.AreEqual(0, InboxPanelController.CountUnread(null));
         }
+
+        // ── B.4: 기한 만료 비활성 표시 (InboxEntryView.IsExpired) ──────
+
+        private static Inbox.GameState StateAt(DateTime d) =>
+            new Inbox.GameState { currentDate = d };
+
+        [Test]
+        public void IsExpired_PastDeadline_True()
+        {
+            var item = Item(1, Inbox.InboxPriority.RequiresAction, Inbox.InboxCategory.Transfer, T);
+            item.deadline = T.AddDays(-1);
+            Assert.IsTrue(InboxEntryView.IsExpired(item, StateAt(T)));
+        }
+
+        [Test]
+        public void IsExpired_FutureDeadline_False()
+        {
+            var item = Item(1, Inbox.InboxPriority.RequiresAction, Inbox.InboxCategory.Transfer, T);
+            item.deadline = T.AddDays(3);
+            Assert.IsFalse(InboxEntryView.IsExpired(item, StateAt(T)));
+        }
+
+        [Test]
+        public void IsExpired_SameDay_False()
+        {
+            // 마감 당일(D-0)은 아직 처리 가능 — 만료 아님
+            var item = Item(1, Inbox.InboxPriority.RequiresAction, Inbox.InboxCategory.Transfer, T);
+            item.deadline = T.Date.AddHours(23);
+            Assert.IsFalse(InboxEntryView.IsExpired(item, StateAt(T)));
+        }
+
+        [Test]
+        public void IsExpired_NoDeadlineOrNullState_False()
+        {
+            var item = Item(1, Inbox.InboxPriority.Low, Inbox.InboxCategory.Morale, T); // deadline null
+            Assert.IsFalse(InboxEntryView.IsExpired(item, StateAt(T)));
+            item.deadline = T.AddDays(-5);
+            Assert.IsFalse(InboxEntryView.IsExpired(item, null));
+        }
     }
 }
