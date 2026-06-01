@@ -8,6 +8,15 @@
 
 각 도구의 역할과 사용 원칙을 정의한다.
 
+> ## ⚠️ 2026-06-01 정책 변경 — 씬/prefab 작업은 Claude Code + Unity MCP 직접
+>
+> **기존**: 씬·prefab·인스펙터 와이어링을 `docs/unity-ai/<name>.md` 지시서로 작성 → 사용자가 Unity AI Assistant 에 복붙.
+> **변경**: Stage 0 Unity MCP 셋업 성공 (옵션 A, 2026-05-29) 이후 **Claude Code 가 MCP 도구로 직접 수행** (`manage_gameobject` / `manage_prefabs` / `manage_components` / `manage_scene` / `manage_ui` 등). `find_gameobjects` + 리소스로 상태 확인하며 진행, `read_console` 로 컴파일 검증.
+> **Unity AI Assistant 잔존 역할**: 콘텐츠 생성 (스프라이트 / 텍스처 / 머티리얼 / 사운드 / 3D) 위주. 시각적 판단이 필요한 일부 작업은 선택적 보조.
+> **md 복붙 패턴 폐지**: 신규 `docs/unity-ai/*.md` 지시서 작성 중단. 기존 파일은 참고 자료로만 보존.
+>
+> 아래 §1~§2 역할 분담표는 이 정책 기준으로 갱신됨 (Change Log 2026-06-01 참조).
+
 ---
 
 ## 0. Unity AI 베타 2026 — 무엇이 어디 있나 (Unity 6.3+)
@@ -128,17 +137,21 @@ UI 는 통합이지만 Package Manager 에선 별도 패키지 (의존 자동 �
 - 컴파일 에러 확인
 - 기본 프리팹 구성 자동화
 
+**Unity MCP 직접 수행 (2026-06-01~):**
+- 씬 구성 (GameObject 생성 / 배치 / 계층) — `manage_gameobject` / `manage_scene`
+- prefab 셋업 / 컴포넌트 추가 / SerializeField 와이어링 — `manage_prefabs` / `manage_components`
+- UGUI 레이아웃 — `manage_ui`
+- SO 인스턴스 생성 + 데이터 입력 — `manage_scriptable_object`
+
 ### Unity AI Assistant (Unity 에디터)
 
-**주 용도:** Unity 에디터 작업, 시각적 작업
+**주 용도:** 콘텐츠 생성, 시각적 판단 보조
 
 **적합한 작업:**
-- UI 레이아웃 구성
-- 프리팹 셋업 / 컴포넌트 연결
-- 씬 구성 (게임오브젝트 배치)
-- 머터리얼 / 라이팅
-- ScriptableObject 인스턴스 데이터 입력
-- 인스펙터 기반 디버깅
+- 스프라이트 / 텍스처 / 머티리얼 / 큐브맵 생성 (Generators)
+- 사운드 / 프로덕션급 3D 생성
+- 라이팅 / 머터리얼 시각 조정
+- (보조) 레이아웃 시안 제안 — 실제 와이어링은 Claude Code + MCP
 
 ---
 
@@ -149,12 +162,13 @@ UI 는 통합이지만 Package Manager 에선 별도 패키지 (의존 자동 �
 | 새 클래스 작성 | Claude Code | 명세 기반 코드 |
 | 알고리즘 구현 | Claude Code | algorithms.md 참조 필요 |
 | 리팩터링 | Claude Code | 코드 일관성 |
-| UI 화면 만들기 | Unity AI Assistant | 인스펙터 기반 작업 |
-| 프리팹 셋업 | Unity AI Assistant | 시각적 작업 |
-| SO 에셋 만들기 | 둘 다 (Claude Code로 생성 후 데이터 입력) | |
+| UI 화면 만들기 | Claude Code + MCP | `manage_ui` / `manage_gameobject` 직접 |
+| 프리팹 셋업 / 와이어링 | Claude Code + MCP | `manage_prefabs` / `manage_components` 직접 |
+| SO 에셋 만들기 | Claude Code + MCP | 클래스 작성 + `manage_scriptable_object` |
 | 디버그 윈도우 | Claude Code | 코드 위주 |
-| 씬 구성 | Unity AI Assistant | 게임오브젝트 배치 |
-| 머터리얼 / 셰이더 | Unity AI Assistant | Unity 종속 |
+| 씬 구성 | Claude Code + MCP | `manage_scene` / `manage_gameobject` 직접 |
+| 머터리얼 / 셰이더 생성 | Unity AI Assistant | 콘텐츠 생성 (Generators) |
+| 스프라이트 / 텍스처 / 사운드 / 3D | Unity AI Assistant | 콘텐츠 생성 (Generators) |
 
 ### 협업 예시
 
@@ -370,3 +384,4 @@ Unity AI Assistant → Asset 변경 → Git 커밋
 | --- | --- |
 | 2025-05-15 | 초안 작성 |
 | 2026-05-20 | 이슈 #142 — Unity AI 베타 4 컴포넌트 (Assistant / Generators / AI Gateway / Unity MCP Server) 정리 + 환경 셋업 절차 (자동 / 수동) 추가. `.claude/settings.json` / `.editorconfig` / `.config/dotnet-tools.json` / `.claude/hooks/csharpier-format.ps1` 도입. Stage 13 UI 진입 전 셋업. |
+| 2026-06-01 | **정책 변경 — 씬/prefab 작업 Claude Code + Unity MCP 직접 수행**. Stage 0 MCP 셋업 성공 (옵션 A) 이후 `docs/unity-ai/*.md` 복붙 패턴 폐지. 씬·prefab·인스펙터 와이어링·SO 인스턴스를 Claude Code 가 MCP 도구 (`manage_gameobject` / `manage_prefabs` / `manage_components` / `manage_scene` / `manage_ui` / `manage_scriptable_object`) 로 직접 처리. Unity AI Assistant 는 콘텐츠 생성 (스프라이트/텍스처/머티리얼/사운드/3D) 위주로 축소. §0 배너 + §1~§2 역할표 갱신. Stage W (GlobalNav) 부터 적용. |
