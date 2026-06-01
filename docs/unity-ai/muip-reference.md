@@ -151,7 +151,7 @@ mySelector.CreateNewItem("Korean");
 mySelector.CreateNewItem("English");
 mySelector.defaultIndex = 0;
 mySelector.SetupSelector();
-mySelector.selectorEvent.AddListener(OnIndexChanged);   // (int index)
+mySelector.onValueChanged.AddListener(OnIndexChanged);   // (int index) — 실제 필드명 onValueChanged (SelectorEvent : UnityEvent<int>). 구 문서 selectorEvent 오기 (2026-06-01 reflection 확인)
 
 // 현재 값
 int idx = mySelector.index;
@@ -227,7 +227,9 @@ ON / OFF 이진 토글. 부드러운 슬라이드 애니메이션.
 [SerializeField] SwitchManager mySwitch;
 mySwitch.isOn = true;
 mySwitch.UpdateUI();
-mySwitch.onValueChanged.AddListener(OnAutoSaveToggled);   // (bool v)
+// SwitchManager 는 OnEvents / OffEvents (UnityEvent 2개) 분리 — bool 콜백 없음 (2026-06-01 reflection 확인)
+mySwitch.OnEvents.AddListener(() => OnAutoSave(true));
+mySwitch.OffEvents.AddListener(() => OnAutoSave(false));
 ```
 
 ### 사용처 (V1.0)
