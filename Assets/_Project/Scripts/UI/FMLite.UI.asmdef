@@ -6,6 +6,7 @@
         "FMLite.Domain",
         "FMLite.Application",
         "FMLite.Persistence",
+        "FMLite.Utils",
         "Unity.TextMeshPro",
         "ModernUIPack"
     ],
