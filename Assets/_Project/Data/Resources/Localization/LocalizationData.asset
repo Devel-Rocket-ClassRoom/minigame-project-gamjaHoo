@@ -1270,3 +1270,15 @@ MonoBehaviour:
   - key: physical_weak_foot_fmt
     korean: "\uC57D\uBC1C {0}"
     english: Weak Foot {0}
+  - key: label_height
+    korean: "\uD0A4"
+    english: Height
+  - key: label_weight
+    korean: "\uBAB8\uBB34\uAC8C"
+    english: Weight
+  - key: label_preferred_foot
+    korean: "\uC8FC\uBC1C"
+    english: Preferred Foot
+  - key: label_weak_foot
+    korean: "\uC57D\uBC1C"
+    english: Weak Foot
