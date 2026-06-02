@@ -82,6 +82,7 @@ namespace FMLite.Tests
             string dn1 = StatColorCoding.TrendArrow(-1);
             string dn2 = StatColorCoding.TrendArrow(-2);
             Assert.IsFalse(string.IsNullOrEmpty(up2));
+            Assert.AreEqual("-", flat, "변화 없음(0) = 대시");
             CollectionAssert.AllItemsAreUnique(new[] { up2, up1, flat, dn1, dn2 }, "5단계 화살표 고유");
         }
 

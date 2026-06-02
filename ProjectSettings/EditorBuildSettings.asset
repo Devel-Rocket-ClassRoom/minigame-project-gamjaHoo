@@ -46,7 +46,7 @@ EditorBuildSettings:
     guid: 1047b32fc8e1793499697d7f4247dfac
   - enabled: 1
     path: Assets/Scenes/MentoringScene.unity
-    guid: 1045ee94284588f42a987476074dc38b
+    guid: 13cfdc3cf9b63bf4380a1d6689c57f81
   - enabled: 1
     path: Assets/Scenes/SeasonSummaryScene.unity
     guid: f70c6c5fa9ce0cf46accdd58431e2a20
@@ -62,6 +62,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/OptionsScene.unity
     guid: ad7966b07fd60f24f90ad21e3afa676e
+  - enabled: 1
+    path: Assets/Scenes/YouthManagementScene.unity
+    guid: 49f142a20bd6be645940f25450fca93d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
