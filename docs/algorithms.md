@@ -4839,17 +4839,17 @@ public static StatGrade Classify(int value) =>
 
 ### V1.0-12.2 성장 동향 화살표 (C.4)
 
-직전 3개월 변화량 (`GrowthSystem.GetStatChange(player, fieldPath, 3)`) → 5 단계.
+직전 3개월 변화량 (`GrowthSystem.GetStatChange(player, fieldPath, 3)`) → 5 단계. 색(`TrendColor`) + 표시 토큰(`TrendArrow`).
 
-| 변화량 | 동향 | 색 | 글리프 |
+| 변화량 | 동향 | 색 | 표시 |
 | --- | --- | --- | --- |
-| +2 이상 | StrongUp | `#1E8449` 진녹 | ↑ |
-| +1 | Up | `#2ECC71` 녹 | ↗ |
-| 0 | Flat | `#999999` 회 | → |
-| -1 | Down | `#E87040` 주황 | ↘ |
-| -2 이하 | StrongDown | `#E74C3C` 빨강 | ↓ |
+| +2 이상 | StrongUp | `#1E8449` 진녹 | `+N` |
+| +1 | Up | `#2ECC71` 녹 | `+1` |
+| 0 | Flat | `#999999` 회 | `0` |
+| -1 | Down | `#E87040` 주황 | `-1` |
+| -2 이하 | StrongDown | `#E74C3C` 빨강 | `-N` |
 
-- 글리프는 `StatColorCoding` 내 단일 상수 — NotoSansKR 대각(↗↘) 미지원 시 Sub-C 시각 검증 후 조정 (단일 교체 지점).
+- **글리프 조정 (Sub-C 검증)**: NotoSansKR SDF 아틀라스(450자)에 ↑↓↗↘ 미포함 확인 (→/★☆/ASCII 만) → 화살표 대신 **색상 + 부호付 증감값**(`+2`/`0`/`-1`) 으로 방향·크기 전달. design-decisions 미지원 글리프 금지 준수. 색이 주 신호, 숫자가 정확한 크기. ★☆ (별점, C.3) 는 폰트 포함 확인.
 
 ### V1.0-12.3 StatRowView 계약
 

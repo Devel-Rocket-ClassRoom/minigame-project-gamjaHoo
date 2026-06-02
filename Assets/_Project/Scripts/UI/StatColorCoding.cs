@@ -45,13 +45,6 @@ namespace FMLite.UI
         private static readonly Color TrendDown = Hex(0xE87040); // 주황
         private static readonly Color TrendStrongDown = Hex(0xE74C3C); // 빨강
 
-        // 화살표 글리프 단일 교체 지점 — NotoSansKR 미지원 시 Sub-C 에서 조정 (대각 ↗↘ 위험).
-        private const string ArrowStrongUp = "↑"; // ↑
-        private const string ArrowUp = "↗"; // ↗
-        private const string ArrowFlat = "→"; // →
-        private const string ArrowDown = "↘"; // ↘
-        private const string ArrowStrongDown = "↓"; // ↓
-
         // ── 등급 분류 (C.2) ───────────────────────────────────────────────
 
         /// <summary>stat 값 → 등급. 경계값은 임계값 이상 (80+ = Elite).</summary>
@@ -119,17 +112,13 @@ namespace FMLite.UI
                 _ => TrendStrongDown,
             };
 
-        public static string TrendArrow(int change) => TrendArrow(Trend(change));
-
-        public static string TrendArrow(GrowthTrend trend) =>
-            trend switch
-            {
-                GrowthTrend.StrongUp => ArrowStrongUp,
-                GrowthTrend.Up => ArrowUp,
-                GrowthTrend.Flat => ArrowFlat,
-                GrowthTrend.Down => ArrowDown,
-                _ => ArrowStrongDown,
-            };
+        /// <summary>
+        /// 성장 동향 표시 토큰 — 부호付 증감값 ("+2" / "0" / "-1").
+        /// NotoSansKR SDF 아틀라스에 ↑↓↗↘ 글리프 미포함 (→/★☆/ASCII 만 존재) → 화살표 대신
+        /// 색상(TrendColor) + 부호 숫자로 방향·크기 전달 (폰트 안전, design-decisions 미지원 글리프 금지).
+        /// </summary>
+        public static string TrendArrow(int change) =>
+            change > 0 ? "+" + change : change.ToString();
 
         private static Color Hex(int rgb) =>
             new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f);
