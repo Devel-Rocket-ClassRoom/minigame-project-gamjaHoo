@@ -1,8 +1,10 @@
 // Task 13.6 (Issue #51) — 선수 프로필 화면.
 // PlayerPrefs("SelectedPlayerId")로 선수 ID 수신.
-// 능력치는 5단계 티어로 표시 (design-decisions #14).
-// GameBalanceSO.isDebugMode 활성 시 정확한 수치 추가 노출 (Task 14.2 연동).
 // V0.5 G.2 Sub-B (#300): [면담] 버튼 + InterviewDialogController 연동 (own-club 선수만 활성화).
+// Stage C (V1.0, #455): 49-stat 4 카테고리 2×2 그리드 (StatRowView 행 위젯) + 색상 코딩 (C.2)
+//   + 신체 조건 (C.3: height/weight/preferredFoot/weakFootAbility 별점) + 성장 동향 화살표 (C.4).
+//   기존 카테고리별 TMP_Text 블록 → 카테고리 GridLayout 컨테이너 + StatRowView 인스턴스화로 교체.
+// GameBalanceSO.isDebugMode 활성 시 정확한 계약 재무 정보 추가 노출 (Task 14.2 연동).
 
 using System.Text;
 using FMLite.Application;
@@ -32,18 +34,32 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text footText;
 
-        [Header("능력치")]
+        [Header("신체 조건 (C.3)")]
         [SerializeField]
-        private TMP_Text technicalText;
+        private TMP_Text heightWeightText;
 
         [SerializeField]
-        private TMP_Text mentalText;
+        private TMP_Text weakFootText;
+
+        [Header("능력치 그리드 (C.1 — StatRowView prefab 인스턴스화)")]
+        [SerializeField]
+        private GameObject statRowPrefab;
 
         [SerializeField]
-        private TMP_Text physicalText;
+        private Transform technicalGrid;
 
         [SerializeField]
-        private TMP_Text gkText;
+        private Transform mentalGrid;
+
+        [SerializeField]
+        private Transform physicalGrid;
+
+        [SerializeField]
+        private Transform gkGrid;
+
+        [Tooltip("GK 가 아닌 선수는 비활성화 (GK stat 무관). 미지정 시 gkGrid 부모 토글 생략.")]
+        [SerializeField]
+        private GameObject gkPanel;
 
         [Header("트레잇 / 계약 / 상태")]
         [SerializeField]
@@ -116,20 +132,8 @@ namespace FMLite.UI
             if (nationalityText != null)
                 nationalityText.text = player.info?.nationalityCode ?? "-";
 
-            if (footText != null)
-                footText.text = player.info?.preferredFoot.ToString() ?? "-";
-
-            if (technicalText != null)
-                technicalText.text = BuildTechnicalText(player);
-
-            if (mentalText != null)
-                mentalText.text = BuildMentalText(player);
-
-            if (physicalText != null)
-                physicalText.text = BuildPhysicalText(player);
-
-            if (gkText != null)
-                gkText.text = BuildGkText(player);
+            BuildPhysicalCondition(player);
+            PopulateStatGrids(player);
 
             if (traitsText != null)
                 traitsText.text = BuildTraitsText(player);
@@ -216,93 +220,142 @@ namespace FMLite.UI
             }
         }
 
-        // ── 능력치 ──────────────────────────────────────────────────────────
+        // ── 신체 조건 (C.3) ───────────────────────────────────────────────
 
-        private static string StatLine(string label, int value) => $"{label}: {value}";
+        private void BuildPhysicalCondition(Player p)
+        {
+            var phys = p.physical;
 
-        private string BuildTechnicalText(Player p)
+            // preferredFoot — physical 우선, 없으면 info fallback.
+            if (footText != null)
+            {
+                Foot foot = phys?.preferredFoot ?? p.info?.preferredFoot ?? Foot.Right;
+                footText.text = Localization.Get(FootKey(foot));
+            }
+
+            if (heightWeightText != null)
+            {
+                heightWeightText.text =
+                    phys != null
+                        ? Localization.Get("physical_height_weight_fmt", phys.height, phys.weight)
+                        : "-";
+            }
+
+            if (weakFootText != null)
+            {
+                int rating = phys != null ? Mathf.Clamp(phys.weakFootAbility, 0, 5) : 0;
+                weakFootText.text = Localization.Get("physical_weak_foot_fmt", StarRating(rating));
+            }
+        }
+
+        private static string FootKey(Foot foot) =>
+            foot switch
+            {
+                Foot.Left => "foot_left",
+                Foot.Both => "foot_both",
+                _ => "foot_right",
+            };
+
+        // 별점 (1-5) — 채워진 ★ + 빈 ☆. CJK 폰트 포함 글리프 (Sub-C 시각 검증).
+        private static string StarRating(int filled)
+        {
+            var sb = new StringBuilder(5);
+            for (int i = 0; i < 5; i++)
+                sb.Append(i < filled ? '★' : '☆');
+            return sb.ToString();
+        }
+
+        // ── 능력치 그리드 (C.1 + C.2 색상 + C.4 성장) ─────────────────────
+
+        private void PopulateStatGrids(Player p)
         {
             if (p.stats == null)
-                return Localization.Get("no_stats_tech");
+                return;
+
             var t = p.stats.technical;
-            var sb = new StringBuilder(Localization.Get("section_tech") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_passing"), t.passing));
-            sb.AppendLine(StatLine(Localization.Get("stat_tackling"), t.tackling));
-            sb.AppendLine(StatLine(Localization.Get("stat_dribbling"), t.dribbling));
-            sb.AppendLine(StatLine(Localization.Get("stat_heading"), t.heading));
-            sb.AppendLine(StatLine(Localization.Get("stat_crossing"), t.crossing));
-            sb.AppendLine(StatLine(Localization.Get("stat_first_touch"), t.firstTouch));
-            sb.AppendLine(StatLine(Localization.Get("stat_finishing"), t.finishing));
-            sb.AppendLine(StatLine(Localization.Get("stat_long_shots"), t.longShots));
-            sb.AppendLine(StatLine(Localization.Get("stat_free_kick"), t.freeKickTaking));
-            sb.AppendLine(StatLine(Localization.Get("stat_penalty"), t.penaltyTaking));
-            sb.AppendLine(StatLine(Localization.Get("stat_corners"), t.corners));
-            sb.AppendLine(StatLine(Localization.Get("stat_marking"), t.marking));
-            sb.AppendLine(StatLine(Localization.Get("stat_technique"), t.technique));
-            sb.Append(StatLine(Localization.Get("stat_long_throws"), t.longThrows));
-            return sb.ToString();
-        }
+            ClearGrid(technicalGrid);
+            AddRow(technicalGrid, p, "stat_passing", t.passing, "technical.passing");
+            AddRow(technicalGrid, p, "stat_tackling", t.tackling, "technical.tackling");
+            AddRow(technicalGrid, p, "stat_dribbling", t.dribbling, "technical.dribbling");
+            AddRow(technicalGrid, p, "stat_heading", t.heading, "technical.heading");
+            AddRow(technicalGrid, p, "stat_crossing", t.crossing, "technical.crossing");
+            AddRow(technicalGrid, p, "stat_first_touch", t.firstTouch, "technical.firstTouch");
+            AddRow(technicalGrid, p, "stat_finishing", t.finishing, "technical.finishing");
+            AddRow(technicalGrid, p, "stat_long_shots", t.longShots, "technical.longShots");
+            AddRow(technicalGrid, p, "stat_free_kick", t.freeKickTaking, "technical.freeKickTaking");
+            AddRow(technicalGrid, p, "stat_penalty", t.penaltyTaking, "technical.penaltyTaking");
+            AddRow(technicalGrid, p, "stat_corners", t.corners, "technical.corners");
+            AddRow(technicalGrid, p, "stat_marking", t.marking, "technical.marking");
+            AddRow(technicalGrid, p, "stat_technique", t.technique, "technical.technique");
+            AddRow(technicalGrid, p, "stat_long_throws", t.longThrows, "technical.longThrows");
 
-        private string BuildMentalText(Player p)
-        {
-            if (p.stats == null)
-                return Localization.Get("no_stats_mental");
             var m = p.stats.mental;
-            var sb = new StringBuilder(Localization.Get("section_mental") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_vision"), m.vision));
-            sb.AppendLine(StatLine(Localization.Get("stat_anticipation"), m.anticipation));
-            sb.AppendLine(StatLine(Localization.Get("stat_composure"), m.composure));
-            sb.AppendLine(StatLine(Localization.Get("stat_concentration"), m.concentration));
-            sb.AppendLine(StatLine(Localization.Get("stat_decisions"), m.decisions));
-            sb.AppendLine(StatLine(Localization.Get("stat_determination"), m.determination));
-            sb.AppendLine(StatLine(Localization.Get("stat_leadership"), m.leadership));
-            sb.AppendLine(StatLine(Localization.Get("stat_off_the_ball"), m.offTheBall));
-            sb.AppendLine(StatLine(Localization.Get("stat_positioning"), m.positioning));
-            sb.AppendLine(StatLine(Localization.Get("stat_teamwork"), m.teamwork));
-            sb.AppendLine(StatLine(Localization.Get("stat_work_rate"), m.workRate));
-            sb.AppendLine(StatLine(Localization.Get("stat_aggression"), m.aggression));
-            sb.AppendLine(StatLine(Localization.Get("stat_bravery"), m.bravery));
-            sb.Append(StatLine(Localization.Get("stat_flair"), m.flair));
-            return sb.ToString();
-        }
+            ClearGrid(mentalGrid);
+            AddRow(mentalGrid, p, "stat_vision", m.vision, "mental.vision");
+            AddRow(mentalGrid, p, "stat_anticipation", m.anticipation, "mental.anticipation");
+            AddRow(mentalGrid, p, "stat_composure", m.composure, "mental.composure");
+            AddRow(mentalGrid, p, "stat_concentration", m.concentration, "mental.concentration");
+            AddRow(mentalGrid, p, "stat_decisions", m.decisions, "mental.decisions");
+            AddRow(mentalGrid, p, "stat_determination", m.determination, "mental.determination");
+            AddRow(mentalGrid, p, "stat_leadership", m.leadership, "mental.leadership");
+            AddRow(mentalGrid, p, "stat_off_the_ball", m.offTheBall, "mental.offTheBall");
+            AddRow(mentalGrid, p, "stat_positioning", m.positioning, "mental.positioning");
+            AddRow(mentalGrid, p, "stat_teamwork", m.teamwork, "mental.teamwork");
+            AddRow(mentalGrid, p, "stat_work_rate", m.workRate, "mental.workRate");
+            AddRow(mentalGrid, p, "stat_aggression", m.aggression, "mental.aggression");
+            AddRow(mentalGrid, p, "stat_bravery", m.bravery, "mental.bravery");
+            AddRow(mentalGrid, p, "stat_flair", m.flair, "mental.flair");
 
-        private string BuildPhysicalText(Player p)
-        {
-            if (p.stats == null)
-                return Localization.Get("no_stats_physical");
             var ph = p.stats.physical;
-            var sb = new StringBuilder(Localization.Get("section_physical") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_acceleration"), ph.acceleration));
-            sb.AppendLine(StatLine(Localization.Get("stat_agility"), ph.agility));
-            sb.AppendLine(StatLine(Localization.Get("stat_balance"), ph.balance));
-            sb.AppendLine(StatLine(Localization.Get("stat_jumping"), ph.jumpingReach));
-            sb.AppendLine(StatLine(Localization.Get("stat_natural_fitness"), ph.naturalFitness));
-            sb.AppendLine(StatLine(Localization.Get("stat_pace"), ph.pace));
-            sb.AppendLine(StatLine(Localization.Get("stat_stamina"), ph.stamina));
-            sb.Append(StatLine(Localization.Get("stat_strength"), ph.strength));
-            return sb.ToString();
+            ClearGrid(physicalGrid);
+            AddRow(physicalGrid, p, "stat_acceleration", ph.acceleration, "physical.acceleration");
+            AddRow(physicalGrid, p, "stat_agility", ph.agility, "physical.agility");
+            AddRow(physicalGrid, p, "stat_balance", ph.balance, "physical.balance");
+            AddRow(physicalGrid, p, "stat_jumping", ph.jumpingReach, "physical.jumpingReach");
+            AddRow(physicalGrid, p, "stat_natural_fitness", ph.naturalFitness, "physical.naturalFitness");
+            AddRow(physicalGrid, p, "stat_pace", ph.pace, "physical.pace");
+            AddRow(physicalGrid, p, "stat_stamina", ph.stamina, "physical.stamina");
+            AddRow(physicalGrid, p, "stat_strength", ph.strength, "physical.strength");
+
+            // GK stat 은 GK 포지션 선수만 (다른 포지션은 무관 → 패널 숨김).
+            bool isGk = p.info?.primaryPosition == Position.GK;
+            if (gkPanel != null)
+                gkPanel.SetActive(isGk);
+            ClearGrid(gkGrid);
+            if (isGk)
+            {
+                var g = p.stats.gk;
+                AddRow(gkGrid, p, "stat_aerial_reach", g.aerialReach, "gk.aerialReach");
+                AddRow(gkGrid, p, "stat_command_of_area", g.commandOfArea, "gk.commandOfArea");
+                AddRow(gkGrid, p, "stat_communication", g.communication, "gk.communication");
+                AddRow(gkGrid, p, "stat_eccentricity", g.eccentricity, "gk.eccentricity");
+                AddRow(gkGrid, p, "stat_handling", g.handling, "gk.handling");
+                AddRow(gkGrid, p, "stat_kicking", g.kicking, "gk.kicking");
+                AddRow(gkGrid, p, "stat_one_on_ones", g.oneOnOnes, "gk.oneOnOnes");
+                AddRow(gkGrid, p, "stat_reflexes", g.reflexes, "gk.reflexes");
+                AddRow(gkGrid, p, "stat_rushing_out", g.rushingOut, "gk.rushingOut");
+                AddRow(gkGrid, p, "stat_throwing", g.throwing, "gk.throwing");
+                AddRow(gkGrid, p, "stat_first_touch_gk", g.firstTouchGk, "gk.firstTouchGk");
+                AddRow(gkGrid, p, "stat_passing_gk", g.passingGk, "gk.passingGk");
+                AddRow(gkGrid, p, "stat_punching_tendency", g.punchingTendency, "gk.punchingTendency");
+            }
         }
 
-        private string BuildGkText(Player p)
+        private static void ClearGrid(Transform grid)
         {
-            if (p.stats == null || p.info?.primaryPosition != Position.GK)
-                return string.Empty;
-            var g = p.stats.gk;
-            var sb = new StringBuilder(Localization.Get("section_gk") + "\n");
-            sb.AppendLine(StatLine(Localization.Get("stat_aerial_reach"), g.aerialReach));
-            sb.AppendLine(StatLine(Localization.Get("stat_command_of_area"), g.commandOfArea));
-            sb.AppendLine(StatLine(Localization.Get("stat_communication"), g.communication));
-            sb.AppendLine(StatLine(Localization.Get("stat_eccentricity"), g.eccentricity));
-            sb.AppendLine(StatLine(Localization.Get("stat_handling"), g.handling));
-            sb.AppendLine(StatLine(Localization.Get("stat_kicking"), g.kicking));
-            sb.AppendLine(StatLine(Localization.Get("stat_one_on_ones"), g.oneOnOnes));
-            sb.AppendLine(StatLine(Localization.Get("stat_reflexes"), g.reflexes));
-            sb.AppendLine(StatLine(Localization.Get("stat_rushing_out"), g.rushingOut));
-            sb.AppendLine(StatLine(Localization.Get("stat_throwing"), g.throwing));
-            sb.AppendLine(StatLine(Localization.Get("stat_first_touch_gk"), g.firstTouchGk));
-            sb.AppendLine(StatLine(Localization.Get("stat_passing_gk"), g.passingGk));
-            sb.Append(StatLine(Localization.Get("stat_punching_tendency"), g.punchingTendency));
-            return sb.ToString();
+            if (grid == null)
+                return;
+            for (int i = grid.childCount - 1; i >= 0; i--)
+                Destroy(grid.GetChild(i).gameObject);
+        }
+
+        private void AddRow(Transform grid, Player p, string labelKey, int value, string fieldPath)
+        {
+            if (grid == null || statRowPrefab == null)
+                return;
+            var go = Instantiate(statRowPrefab, grid);
+            int change = GrowthSystem.GetStatChange(p, fieldPath, 3);
+            go.GetComponent<StatRowView>()?.Setup(labelKey, value, change);
         }
 
         // ── 트레잇 / 계약 / 상태 / 커리어 ─────────────────────────────────
