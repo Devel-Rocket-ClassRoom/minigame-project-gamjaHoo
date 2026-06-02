@@ -61,6 +61,7 @@ namespace FMLite.Application
                 info = info,
                 stats = stats,
                 currentAbility = ca,
+                caAnchor = ca - CaCalculator.RelevantMean(stats, targetPosition), // Stage D — CA 앵커 (#459)
                 potentialAbility = pa,
                 traitIds = traitIds,
                 hiddenAttrs = hiddenAttrs,

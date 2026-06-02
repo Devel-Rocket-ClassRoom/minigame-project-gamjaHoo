@@ -14,6 +14,10 @@ namespace FMLite.Domain
         public Stats stats;
         public int currentAbility;
         public int potentialAbility;
+
+        // V1.0 신규 (Stage D, #459) — CA 재계산 앵커. caAnchor = 생성시 CA − Avg49(생성 stats).
+        // currentAbility = round(Avg49(현재 stats) + caAnchor) → 성장 시 CA 자연 상승, 생성 시점 CA 보존.
+        public double caAnchor;
         public List<int> traitIds = new List<int>();
 
         public int currentClubId;

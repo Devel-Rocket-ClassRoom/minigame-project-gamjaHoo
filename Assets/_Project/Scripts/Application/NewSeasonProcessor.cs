@@ -42,6 +42,7 @@ namespace FMLite.Application
                 player.state.fatigue = 0;
                 player.state.form = 50;
                 player.state.seasonAppearances = 0;
+                player.state.appearancesAtLastGrowthTick = 0; // Stage D (#459) — 출전 성장 보너스 기준 리셋
                 player.state.seasonYellowCards = 0;
                 player.state.suspendedMatches = 0;
             }

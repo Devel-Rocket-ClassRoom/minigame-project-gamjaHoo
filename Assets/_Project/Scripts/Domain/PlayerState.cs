@@ -15,6 +15,9 @@ namespace FMLite.Domain
         public InjuryInfo injury;
         public bool transferListed;
         public int seasonAppearances;
+
+        // Stage D (#459) c — 직전 성장 틱 시점 누적 출전수. 월별 출전 델타 = seasonAppearances − 이 값 (출전 성장 보너스).
+        public int appearancesAtLastGrowthTick;
         public int suspendedMatches; // 출전 정지 잔여 경기 수 (카드 누적)
         public int seasonYellowCards; // 시즌 누적 옐로 (5/10/15 → 정지). NewSeasonProcessor 리셋. (V0.5 I.3)
     }

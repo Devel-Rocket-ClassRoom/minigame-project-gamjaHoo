@@ -4884,6 +4884,38 @@ PlayerProfile 헤더. `Player.physical` (PhysicalAttributes, V1.0-8) 소비.
 
 ---
 
+## V1.0-13. CurrentAbility 재계산 (앵커 방식) (`#459` / Stage D)
+
+**문제:** V0.5 모델에서 `currentAbility` 는 생성 시 RNG 값으로 고정 (`PlayerGenerator.DetermineCA`), `GrowthSystem` 은 49 stat 만 성장시키고 CA 는 안 건드림 → "CA 변화량" 항상 0 → Squad 성장 추세 표시 불가.
+
+**해결 (앵커 방식 — 밸런스 점프 0 보장):**
+
+```
+caAnchor = genCA − RelevantMean(genStats, pos)        # 생성 시 1회 (PlayerGenerator)
+currentAbility = round(RelevantMean(stats, pos) + caAnchor)   # 성장 후 재산출 (GrowthSystem)
+```
+
+- **(b) RelevantMean** = 포지션 관련 카테고리만 평균 — 필드=기술+정신+신체(36), GK=골키퍼+정신+신체(35). 무관 카테고리(필드의 GK스탯 등) 희석 제거 → 성장이 CA에 제대로 반영.
+- **라운드트립:** `Recompute(genStats) = round(RelevantMean + (genCA − RelevantMean)) = genCA` (정확) → t=0 밸런스(매치/이적가/티어) 점프 0. 성장 후에만 CA 자연 상승.
+- **CA 변화량:** `GetCaChange(p, 3) = round(RelevantMean(now)) − round(RelevantMean(snapshot[−3]))` — 앵커 상쇄. CA 히스토리 별도 저장 불필요.
+- **lazy-init:** `caAnchor == 0` (기존 세이브) 시 첫 호출에서 `currentAbility − RelevantMean` 로 보정.
+
+**성장 체감 튜닝 (item 3):**
+- **(a) growthBaseChance 0.01 → 0.06** (스탯당 월 발생률 6×) — 기존이 너무 낮아 반시즌에도 거의 정체했음.
+- **(c) 출전 기반 성장 보너스 (FM식):** `growthChance ×= (1 + min(monthApps, growthPlaytimeCap) × growthPlaytimeCoeff)`. `monthApps` = 직전 성장 틱 이후 누적 출전 델타 (`PlayerState.appearancesAtLastGrowthTick`). 벤치(0출전)=보너스 0(기저 성장 유지), 주전(cap=4)= +100% (coeff 0.25). senior 만 적용 (youth 매치 없음). NewSeasonProcessor 에서 기준 리셋.
+
+### V1.0-13 영향 범위
+
+- `Domain/Player.cs` — `caAnchor: double` / `Domain/PlayerState.cs` — `appearancesAtLastGrowthTick: int`
+- `Application/CaCalculator.cs` 신규 (`RelevantMean` / `Recompute` / `GetCaChange`)
+- `Application/PlayerGenerator.cs` — 생성 시 `caAnchor` 설정
+- `Application/GrowthSystem.cs` — playtimeFactor + senior/youth 성장 후 `currentAbility = Recompute(...)`
+- `GameBalanceSO` / `GameBalance.asset` — growthBaseChance 0.06 / growthPlaytimeCoeff 0.25 / growthPlaytimeCap 4
+- 소비자: Stage D.2 (Squad row CA 변화 화살표 — `StatColorCoding.Trend*`)
+- **밸런스:** 라운드트립으로 t=0 영향 0. 성장률 상향 + 출전 보너스 → 시즌 진행 시 체감 성장 (의도). 시즌 시뮬로 추가 튜닝 가능.
+
+---
+
 ## Part 3 Change Log
 
 | Date | Section | Change |
@@ -4893,3 +4925,4 @@ PlayerProfile 헤더. `Player.physical` (PhysicalAttributes, V1.0-8) 소비.
 | 2026-06-02 | V1.0-12 신규 | Stage C (#455) — Stat 등급 색상 코딩 (C.2) + 성장 동향 화살표 (C.4) + StatRowView 행 위젯 계약 (C.1) + 신체 조건 (C.3). StatColorCoding/StatRowView 신규 / PlayerProfileController 그리드 재작업 / Localization 키 10 (등급명 5 / 주발 3 / 신체 2). 색 팔레트 muip-reference §18. |
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
+| 2026-06-02 | V1.0-13 신규 | Stage D (#459) — CurrentAbility 재계산 (앵커 + 포지션 관련 평균 RelevantMean). CA 고정 문제 해소, 라운드트립으로 t=0 밸런스 점프 0. + 성장 체감 튜닝: (a) growthBaseChance 0.01→0.06, (c) 출전 기반 성장 보너스 (PlayerState.appearancesAtLastGrowthTick + growthPlaytimeCoeff/Cap). CaCalculator/Player.caAnchor/PlayerGenerator/GrowthSystem/GameBalance 연동. D.1 Squad 검색 제거 동반. |

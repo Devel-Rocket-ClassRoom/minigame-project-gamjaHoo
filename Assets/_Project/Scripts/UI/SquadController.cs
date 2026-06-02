@@ -2,7 +2,7 @@
 // 유저 구단 1군 / 유스 명단 탭 표시. 선수 클릭 → PlayerProfileScene.
 // 선택 선수 ID는 PlayerPrefs("SelectedPlayerId")로 씬 간 전달.
 // J.6: 캡틴/부캡틴 임명 — 선수 선택 패널 내 버튼으로 호출.
-// N.6: 이름/포지션 검색 필터 추가.
+// Stage D (V1.0, #459): 검색/필터 제거 (스쿼드 내 검색 불필요 — 사용자 결정). 성장 동향 시각화 집중.
 
 using System.Collections.Generic;
 using FMLite.Application;
@@ -42,13 +42,6 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text titleText;
 
-        [Header("검색 필터 (N.6)")]
-        [SerializeField]
-        private TMP_InputField searchNameInput;
-
-        [SerializeField]
-        private TMP_Dropdown searchPositionDropdown;
-
         private GameState _state;
         private Club _club;
 
@@ -62,7 +55,6 @@ namespace FMLite.UI
             if (titleText != null)
                 titleText.text = _club.name;
 
-            InitPositionDropdown();
             RefreshLists();
             ShowSenior();
         }
@@ -72,8 +64,6 @@ namespace FMLite.UI
         public void OnYouthTabClicked() => ShowYouth();
 
         public void OnBackClicked() => SceneManager.LoadScene(DashboardScene);
-
-        public void OnSearchClicked() => RefreshLists();
 
         private void ShowSenior()
         {
@@ -87,50 +77,15 @@ namespace FMLite.UI
             youthPanel.SetActive(true);
         }
 
-        private void InitPositionDropdown()
-        {
-            if (searchPositionDropdown == null)
-                return;
-            searchPositionDropdown.ClearOptions();
-            var options = new List<string> { Localization.Get("filter_all") };
-            foreach (Position pos in System.Enum.GetValues(typeof(Position)))
-                options.Add(pos.ToString());
-            searchPositionDropdown.AddOptions(options);
-        }
-
         private void RefreshLists()
         {
             if (_state == null || _club == null)
                 return;
-            var filter = BuildSquadFilter();
-            PopulateList(seniorListParent, _club.seniorSquadIds, _state, filter);
-            PopulateList(youthListParent, _club.youthSquadIds, _state, filter);
+            PopulateList(seniorListParent, _club.seniorSquadIds, _state);
+            PopulateList(youthListParent, _club.youthSquadIds, _state);
         }
 
-        private TransferSearchFilter BuildSquadFilter()
-        {
-            var filter = new TransferSearchFilter
-            {
-                excludeUserClub = false,
-                onlyClubId = _state.userClubId,
-            };
-
-            var name = searchNameInput?.text?.Trim();
-            if (!string.IsNullOrEmpty(name))
-                filter.nameContains = name;
-
-            if (searchPositionDropdown != null && searchPositionDropdown.value > 0)
-                filter.position = (Position)(searchPositionDropdown.value - 1);
-
-            return filter;
-        }
-
-        private void PopulateList(
-            Transform parent,
-            List<int> ids,
-            GameState state,
-            TransferSearchFilter filter = null
-        )
+        private void PopulateList(Transform parent, List<int> ids, GameState state)
         {
             foreach (Transform child in parent)
                 Destroy(child.gameObject);
@@ -141,23 +96,6 @@ namespace FMLite.UI
                 if (player == null)
                     continue;
 
-                if (filter != null)
-                {
-                    if (
-                        filter.position.HasValue
-                        && player.info.primaryPosition != filter.position.Value
-                    )
-                        continue;
-                    if (
-                        !string.IsNullOrEmpty(filter.nameContains)
-                        && (player.info.firstName + " " + player.info.lastName).IndexOf(
-                            filter.nameContains,
-                            System.StringComparison.OrdinalIgnoreCase
-                        ) < 0
-                    )
-                        continue;
-                }
-
                 var item = Instantiate(playerItemPrefab, parent);
                 item.GetComponent<PlayerListItem>().Setup(player, state, OnPlayerSelected);
             }
@@ -166,6 +104,8 @@ namespace FMLite.UI
         private void OnPlayerSelected(int playerId)
         {
             PlayerPrefs.SetInt(SelectedPlayerIdKey, playerId);
+            // Stage D (#459): 프로필 뒤로가기 캐싱 — 어디서 들어왔는지 기록 (스쿼드 복귀).
+            PlayerPrefs.SetString("PreviousScene", SceneManager.GetActiveScene().name);
             SceneManager.LoadScene(PlayerProfileScene);
         }
 
@@ -178,7 +118,7 @@ namespace FMLite.UI
                 return;
             CaptainSystem.Assign(_club, playerId, isVice: false);
             if (_state != null)
-                PopulateList(seniorListParent, _club.seniorSquadIds, _state, BuildSquadFilter());
+                PopulateList(seniorListParent, _club.seniorSquadIds, _state);
         }
 
         public void OnAssignViceCaptainClicked(int playerId)
@@ -187,7 +127,7 @@ namespace FMLite.UI
                 return;
             CaptainSystem.Assign(_club, playerId, isVice: true);
             if (_state != null)
-                PopulateList(seniorListParent, _club.seniorSquadIds, _state, BuildSquadFilter());
+                PopulateList(seniorListParent, _club.seniorSquadIds, _state);
         }
 
         // 현재 캡틴/부캡틴 ID 노출 — PlayerListItem 이 (C)/(VC) 배지 표시에 사용.

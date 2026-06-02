@@ -67,6 +67,17 @@ namespace FMLite.Application
                     float paFactor =
                         (paGap > 0) ? Math.Min(1f, paGap / balance.growthPaGapNormalizer) : 0f;
 
+                    // Stage D (#459) c — 출전 성장 보너스 (직전 한 달 출전 델타). 벤치(0)=보너스 0.
+                    int apps = player.state?.seasonAppearances ?? 0;
+                    int monthApps = Math.Max(
+                        0,
+                        apps - (player.state?.appearancesAtLastGrowthTick ?? 0)
+                    );
+                    float playtimeFactor =
+                        1f
+                        + Math.Min(monthApps, balance.growthPlaytimeCap)
+                            * balance.growthPlaytimeCoeff;
+
                     ProcessCategory(
                         player,
                         player.stats.technical,
@@ -75,7 +86,9 @@ namespace FMLite.Application
                         paFactor,
                         trainingLevel,
                         gymLevel,
-                        balance
+                        balance,
+                        1f,
+                        playtimeFactor
                     );
                     ProcessCategory(
                         player,
@@ -85,7 +98,9 @@ namespace FMLite.Application
                         paFactor,
                         trainingLevel,
                         gymLevel,
-                        balance
+                        balance,
+                        1f,
+                        playtimeFactor
                     );
                     ProcessCategory(
                         player,
@@ -95,7 +110,9 @@ namespace FMLite.Application
                         paFactor,
                         trainingLevel,
                         gymLevel,
-                        balance
+                        balance,
+                        1f,
+                        playtimeFactor
                     );
                     ProcessCategory(
                         player,
@@ -105,8 +122,15 @@ namespace FMLite.Application
                         paFactor,
                         trainingLevel,
                         gymLevel,
-                        balance
+                        balance,
+                        1f,
+                        playtimeFactor
                     );
+
+                    // Stage D (#459): 성장 후 CA 재산출 (앵커 방식 — 생성 CA 보존 + 성장 반영)
+                    player.currentAbility = CaCalculator.Recompute(player, balance);
+                    if (player.state != null)
+                        player.state.appearancesAtLastGrowthTick = apps;
                 }
 
                 // L.3: 유스 스쿼드 — YouthFacility.youthGrowthRate 적용
@@ -193,6 +217,9 @@ namespace FMLite.Application
                         balance,
                         youthGrowthRate
                     );
+
+                    // Stage D (#459): 성장 후 CA 재산출
+                    player.currentAbility = CaCalculator.Recompute(player, balance);
                 }
             }
         }
@@ -206,7 +233,8 @@ namespace FMLite.Application
             int trainingLevel,
             int gymLevel,
             GameBalanceSO balance,
-            float facilityGrowthRate = 1f
+            float facilityGrowthRate = 1f,
+            float playtimeFactor = 1f
         )
         {
             if (category == null)
@@ -262,7 +290,8 @@ namespace FMLite.Application
                         * trainingBonus
                         * gymBonus
                         * paFactor
-                        * facilityGrowthRate;
+                        * facilityGrowthRate
+                        * playtimeFactor;
                     if (rng.NextDouble() < growthChance)
                     {
                         int size = SampleGrowthSize(rng, ageFactor, balance);
