@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 74334859}
   - component: {fileID: 74334861}
   - component: {fileID: 74334860}
+  - component: {fileID: 74334862}
   m_Layer: 0
   m_Name: Text
   m_TagString: Untagged
@@ -256,6 +257,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 74334858}
   m_CullTransparentMesh: 1
+--- !u!114 &74334862
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 74334858}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: nav_youth
 --- !u!1 &116934943
 GameObject:
   m_ObjectHideFlags: 0
@@ -405,6 +419,7 @@ GameObject:
   - component: {fileID: 133975176}
   - component: {fileID: 133975175}
   - component: {fileID: 133975174}
+  - component: {fileID: 133975177}
   m_Layer: 0
   m_Name: HdrAge
   m_TagString: Untagged
@@ -551,6 +566,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 133975172}
   m_CullTransparentMesh: 1
+--- !u!114 &133975177
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133975172}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: col_age
 --- !u!1 &236771781
 GameObject:
   m_ObjectHideFlags: 0
@@ -1525,6 +1553,7 @@ GameObject:
   - component: {fileID: 533947139}
   - component: {fileID: 533947138}
   - component: {fileID: 533947137}
+  - component: {fileID: 533947140}
   m_Layer: 0
   m_Name: HdrChange
   m_TagString: Untagged
@@ -1671,6 +1700,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 533947135}
   m_CullTransparentMesh: 1
+--- !u!114 &533947140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 533947135}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: col_trend
 --- !u!1 &560128858
 GameObject:
   m_ObjectHideFlags: 0
@@ -2277,6 +2319,7 @@ GameObject:
   - component: {fileID: 816707753}
   - component: {fileID: 816707752}
   - component: {fileID: 816707751}
+  - component: {fileID: 816707754}
   m_Layer: 0
   m_Name: HdrName
   m_TagString: Untagged
@@ -2423,6 +2466,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 816707749}
   m_CullTransparentMesh: 1
+--- !u!114 &816707754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 816707749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: col_name
 --- !u!1 &828367411
 GameObject:
   m_ObjectHideFlags: 0
@@ -2577,6 +2633,7 @@ GameObject:
   - component: {fileID: 887992537}
   - component: {fileID: 887992536}
   - component: {fileID: 887992535}
+  - component: {fileID: 887992538}
   m_Layer: 0
   m_Name: HdrPos
   m_TagString: Untagged
@@ -2723,6 +2780,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 887992533}
   m_CullTransparentMesh: 1
+--- !u!114 &887992538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 887992533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: col_position
 --- !u!1 &1207822211
 GameObject:
   m_ObjectHideFlags: 0
@@ -3538,6 +3608,7 @@ GameObject:
   - component: {fileID: 1969452077}
   - component: {fileID: 1969452079}
   - component: {fileID: 1969452078}
+  - component: {fileID: 1969452080}
   m_Layer: 0
   m_Name: Text
   m_TagString: Untagged
@@ -3664,6 +3735,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1969452076}
   m_CullTransparentMesh: 1
+--- !u!114 &1969452080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1969452076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b29cfcb54273cf4392dd3f0f3664cea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FMLite.UI::FMLite.UI.LocalizedText
+  key: tab_first_team
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
