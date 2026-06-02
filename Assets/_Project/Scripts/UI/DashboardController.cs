@@ -186,7 +186,9 @@ namespace FMLite.UI
 
         public void OnSquadClicked() => SceneManager.LoadScene(SquadScene);
 
-        public void OnYouthClicked() => SceneManager.LoadScene(YouthScene);
+        // Stage E (#461) E.4: 대기 인스펙션 풀이면 YouthScene, 평시는 YouthManagementScene.
+        public void OnYouthClicked() =>
+            SceneManager.LoadScene(GlobalNavController.ResolveYouthScene());
 
         public void OnTransferClicked() => SceneManager.LoadScene(TransferScene);
 

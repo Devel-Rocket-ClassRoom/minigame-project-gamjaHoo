@@ -988,6 +988,25 @@ namespace FMLite.Editor
                 E("label_weight", "몸무게", "Weight"),
                 E("label_preferred_foot", "주발", "Preferred Foot"),
                 E("label_weak_foot", "약발", "Weak Foot"),
+                // ── Stage E — YouthManagementScene (#461) ───────────────────
+                E("youth_mgmt_title", "유스 관리", "Youth Management"),
+                E("youth_inspection_section", "다음 인스펙션", "Next Inspection"),
+                E("youth_current_section", "현 유스", "Current Youth"),
+                E("youth_callup_section", "1군 콜업 후보", "Call-up Candidates"),
+                E("youth_mentoring_section", "멘토링", "Mentoring"),
+                E("youth_next_inspection_fmt", "{0} (D-{1})", "{0} (D-{1})"),
+                E(
+                    "youth_pool_prediction_fmt",
+                    "예상 풀 {0}명 · 영입 가능 ~{1}명 (모집 Lv.{2})",
+                    "Pool ~{0} · Sign up to {1} (Recruit Lv.{2})"
+                ),
+                E("youth_count_fmt", "현 유스 {0}명", "Youth Squad: {0}"),
+                E("youth_callup_empty", "콜업 후보 없음", "No call-up candidates"),
+                E(
+                    "youth_mentoring_summary_fmt",
+                    "멘토링 그룹 {0} · 멘티 {1}명",
+                    "Mentoring Groups {0} · Mentees {1}"
+                ),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

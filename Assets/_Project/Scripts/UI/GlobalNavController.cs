@@ -29,6 +29,7 @@ namespace FMLite.UI
         public const string StandingsScene = "StandingsScene";
         public const string FacilityScene = "FacilityScene";
         public const string YouthScene = "YouthScene";
+        public const string YouthManagementScene = "YouthManagementScene"; // Stage E (#461)
         public const string MentoringScene = "MentoringScene";
         public const string MainMenuScene = "MainMenuScene";
         public const string OptionsScene = "OptionsScene";
@@ -260,10 +261,35 @@ namespace FMLite.UI
         {
             if (string.IsNullOrEmpty(sceneName))
                 return;
+            // Stage E (#461) E.4: 유스 = 대기 인스펙션 풀 있으면 YouthScene, 평시는 YouthManagementScene.
+            if (sceneName == YouthScene)
+                sceneName = ResolveYouthScene();
             if (sceneName == SceneManager.GetActiveScene().name)
                 return; // 현재 씬 = 무동작
             PlayerPrefs.SetString(PreviousSceneKey, SceneManager.GetActiveScene().name);
             SceneManager.LoadScene(sceneName);
+        }
+
+        // 미결정(미서명·미거절) 후보가 남은 인텍이 있으면 인스펙션 화면, 없으면 평시 관리 화면.
+        internal static string ResolveYouthScene()
+        {
+            var club = GameManager.Instance?.UserClub;
+            if (club?.intakeHistory != null)
+            {
+                foreach (var intake in club.intakeHistory)
+                {
+                    if (intake?.candidatePlayerIds == null)
+                        continue;
+                    foreach (var cid in intake.candidatePlayerIds)
+                    {
+                        bool signed = intake.signedPlayerIds?.Contains(cid) ?? false;
+                        bool rejected = intake.rejectedPlayerIds?.Contains(cid) ?? false;
+                        if (!signed && !rejected)
+                            return YouthScene;
+                    }
+                }
+            }
+            return YouthManagementScene;
         }
 
         private void OnBackClicked()
