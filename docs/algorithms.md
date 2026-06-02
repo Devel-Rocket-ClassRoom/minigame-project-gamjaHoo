@@ -4814,9 +4814,78 @@ public static int GetStatChange(Player player, string statFieldPath, int monthsB
 
 ---
 
+## V1.0-12. Stat 등급 색상 코딩 + 성장 동향 화살표 (`#455` / Stage C)
+
+PlayerProfile / Squad / SquadComparison 공통 **표시 전용** 로직. 게임 룰 아님 → `GameBalanceSO` 외부화 대상 아님 (V1.0 = `StatColorCoding` 자체 보유, V1.x 외부화 검토). 색 팔레트는 `muip-reference §18`.
+
+### V1.0-12.1 등급 분류 (C.2)
+
+값 → 5 등급. 경계값은 **임계값 이상** (80 → Elite).
+
+| 등급 | 범위 | 색 | 등급명 키 |
+| --- | --- | --- | --- |
+| Elite | 80+ | `#2ECC71` | `stat_grade_elite` |
+| Good | 65-79 | `#82E08A` | `stat_grade_good` |
+| Average | 50-64 | `#BBBBBB` | `stat_grade_average` |
+| Weak | 35-49 | `#F39C12` | `stat_grade_weak` |
+| Poor | -34 | `#E74C3C` | `stat_grade_poor` |
+
+```csharp
+public static StatGrade Classify(int value) =>
+    value >= 80 ? Elite : value >= 65 ? Good : value >= 50 ? Average : value >= 35 ? Weak : Poor;
+```
+
+- Hidden Attributes 동일 적용 (C.2). 등급명 키는 Tooltip (`TooltipContent.description`) 에 사용 (§11).
+
+### V1.0-12.2 성장 동향 화살표 (C.4)
+
+직전 3개월 변화량 (`GrowthSystem.GetStatChange(player, fieldPath, 3)`) → 5 단계.
+
+| 변화량 | 동향 | 색 | 글리프 |
+| --- | --- | --- | --- |
+| +2 이상 | StrongUp | `#1E8449` 진녹 | ↑ |
+| +1 | Up | `#2ECC71` 녹 | ↗ |
+| 0 | Flat | `#999999` 회 | → |
+| -1 | Down | `#E87040` 주황 | ↘ |
+| -2 이하 | StrongDown | `#E74C3C` 빨강 | ↓ |
+
+- 글리프는 `StatColorCoding` 내 단일 상수 — NotoSansKR 대각(↗↘) 미지원 시 Sub-C 시각 검증 후 조정 (단일 교체 지점).
+
+### V1.0-12.3 StatRowView 계약
+
+stat 1개 = 행 위젯 (prefab). 카테고리 GridLayout 컨테이너 아래 인스턴스화. 4 카테고리 2×2 그리드 (C.1).
+
+```csharp
+StatRowView.Setup(string labelKey, int value, int change);
+// labelKey  → 라벨 (Localization)
+// value     → 값 (GradeColor 적용)
+// change    → 성장 화살표 (TrendArrow + TrendColor); GetStatChange 결과
+```
+
+- GK 카테고리는 GK 포지션 선수만 표시 (다른 포지션 무관 → 패널 숨김). 따라서 outfield = 36 stat, GK = 49 stat.
+
+### V1.0-12.4 신체 조건 (C.3)
+
+PlayerProfile 헤더. `Player.physical` (PhysicalAttributes, V1.0-8) 소비.
+
+- height / weight: `physical_height_weight_fmt` ("{0}cm · {1}kg")
+- preferredFoot: `foot_left` / `foot_right` / `foot_both` (physical 우선, info fallback)
+- weakFootAbility (1-5): 별점 `★`(채움) + `☆`(빈), `physical_weak_foot_fmt`
+
+### V1.0-12.5 영향 범위
+
+- `UI/StatColorCoding.cs` 신규 (등급/화살표 분류 + 색 + 키)
+- `UI/StatRowView.cs` 신규 (행 위젯 — InboxEntryView 패턴)
+- `UI/PlayerProfileController.cs` — 4 TMP 블록 → 카테고리 GridLayout + StatRowView 인스턴스화 / 신체 조건 헤더
+- Localization 키 — 등급명 5 / 주발 3 / 신체 2 (`SeedV10LocalizationData.BuildV10PlayerProfile`)
+- 소비자 후속: Stage D.2 (Squad 성장 열) / Stage AC.3 (선수 비교 색상)
+
+---
+
 ## Part 3 Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-29 | V1.0-1 ~ V1.0-10 | Part 3: V1.0 Updates 부록 신규 작성. 10 섹션 — 5-Zone 골 빈도 P0 밸런싱 (V0.5 플레이테스트 hotfix) / 매치 텍스트 ~150 키 카탈로그 (5종 변형 × 30 이벤트 종류, 시드 회전) / 선수 조합 시너지 10종 (SynergySO 외부화, ComputeSynergies 알고리즘) / Training System (개인 + 그룹 + GrowthSystem 통합) / CurrencyFormatter (GBP base, 4 통화 환율 고정) / PlayerAvatar + ClubBadge (이니셜 + 색상, ClubGenerator 색상 생성 추가) / Inbox 도메인 + 정책 (자동 만료 + 시즌 종료 시 읽은 것 삭제, InboxRouter EventBus 흡수) / Player.physical + 매치 영향 (헤더/agility/pace/PK 발 일치) / FormationMatchupSO (6×6 행렬) / Cup FA컵 단판 단일 (V0.5 Stage Q 이월). `docs/v1.0-plan.md` §3 + `docs/design-decisions.md` #58~#65 와 연동. |
 | 2026-05-31 | V1.0-11 신규 | Task A.3 — growthHistory + GrowthSystem 월별 스냅샷. StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 / GetStatChange 헬퍼. design-decisions.md #68 연동. |
+| 2026-06-02 | V1.0-12 신규 | Stage C (#455) — Stat 등급 색상 코딩 (C.2) + 성장 동향 화살표 (C.4) + StatRowView 행 위젯 계약 (C.1) + 신체 조건 (C.3). StatColorCoding/StatRowView 신규 / PlayerProfileController 그리드 재작업 / Localization 키 10 (등급명 5 / 주발 3 / 신체 2). 색 팔레트 muip-reference §18. |

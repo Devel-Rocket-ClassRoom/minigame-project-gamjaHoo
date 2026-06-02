@@ -53,6 +53,7 @@ namespace FMLite.Editor
             entries.AddRange(BuildV10MatchEvents());
             entries.AddRange(BuildV10OptionsAndInbox());
             entries.AddRange(BuildV10CurrencySynergyCupTraining());
+            entries.AddRange(BuildV10PlayerProfile());
             return entries;
         }
 
@@ -964,6 +965,25 @@ namespace FMLite.Editor
                     "Training capacity full — upgrade facility"),
                 E("training_button_start", "훈련 시작", "Start Training"),
                 E("training_button_cancel", "취소", "Cancel"),
+            };
+
+        // ── Stage C — PlayerProfile stat 등급 / 신체 조건 (#455) ───────────────
+        private static List<LocalizationEntry> BuildV10PlayerProfile() =>
+            new List<LocalizationEntry>
+            {
+                // 등급명 (C.2 — 색상 코딩 툴팁)
+                E("stat_grade_elite", "엘리트 (80+)", "Elite (80+)"),
+                E("stat_grade_good", "우수 (65-79)", "Good (65-79)"),
+                E("stat_grade_average", "평범 (50-64)", "Average (50-64)"),
+                E("stat_grade_weak", "약함 (35-49)", "Weak (35-49)"),
+                E("stat_grade_poor", "부족 (-34)", "Poor (≤34)"),
+                // 주발 (C.3)
+                E("foot_left", "왼발", "Left"),
+                E("foot_right", "오른발", "Right"),
+                E("foot_both", "양발", "Both"),
+                // 신체 조건 (C.3)
+                E("physical_height_weight_fmt", "{0}cm · {1}kg", "{0}cm · {1}kg"),
+                E("physical_weak_foot_fmt", "약발 {0}", "Weak Foot {0}"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>
