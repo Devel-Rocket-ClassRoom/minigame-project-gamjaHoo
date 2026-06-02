@@ -1358,3 +1358,90 @@ MonoBehaviour:
   - key: nav_home
     korean: "\uD648"
     english: Home
+  - key: col_position
+    korean: "\uD3EC\uC9C0\uC158"
+    english: Position
+  - key: col_name
+    korean: "\uC774\uB984"
+    english: Name
+  - key: col_age
+    korean: "\uB098\uC774"
+    english: Age
+  - key: col_trend
+    korean: "\uCD94\uC138"
+    english: Trend
+  - key: tab_first_team
+    korean: "1\uAD70"
+    english: First Team
+  - key: dlg_board_demands_title
+    korean: "\uC774\uC0AC\uD68C \uC694\uAD6C\uC0AC\uD56D"
+    english: Board Demands
+  - key: dlg_transfer_request_title
+    korean: "\uC774\uC801 \uC694\uCCAD"
+    english: Transfer Request
+  - key: btn_interview
+    korean: "\uBA74\uB2F4"
+    english: Interview
+  - key: btn_reject
+    korean: "\uAC70\uC808"
+    english: Reject
+  - key: btn_later
+    korean: "\uB098\uC911\uC5D0"
+    english: Later
+  - key: btn_accept_transfer_list
+    korean: "\uC218\uB77D (\uC774\uC801 \uB9AC\uC2A4\uD2B8 \uB4F1\uC7AC)"
+    english: Accept (List for Transfer)
+  - key: btn_close
+    korean: "\uB2EB\uAE30"
+    english: Close
+  - key: pp_section_contract
+    korean: "[\uACC4\uC57D]"
+    english: '[Contract]'
+  - key: pp_section_career
+    korean: "[\uCEE4\uB9AC\uC5B4]"
+    english: '[Career]'
+  - key: pp_section_status
+    korean: "[\uC0C1\uD0DC]"
+    english: '[Status]'
+  - key: pp_section_traits
+    korean: "[\uD2B8\uB808\uC787]"
+    english: '[Traits]'
+  - key: stat_cat_goalkeeping
+    korean: "\uACE8\uD0A4\uD37C"
+    english: Goalkeeping
+  - key: stat_cat_physical
+    korean: "\uC2E0\uCCB4"
+    english: Physical
+  - key: stat_cat_technical
+    korean: "\uAE30\uC220"
+    english: Technical
+  - key: stat_cat_mental
+    korean: "\uC815\uC2E0"
+    english: Mental
+  - key: opt_title
+    korean: "\uC635\uC158"
+    english: Options
+  - key: opt_sound
+    korean: "\uC0AC\uC6B4\uB4DC"
+    english: Sound
+  - key: opt_language
+    korean: "\uC5B8\uC5B4"
+    english: Language
+  - key: opt_currency
+    korean: "\uD1B5\uD654"
+    english: Currency
+  - key: opt_autosave
+    korean: "\uC790\uB3D9 \uC800\uC7A5"
+    english: Auto Save
+  - key: opt_shortcuts
+    korean: "\uB2E8\uCD95\uD0A4 \uC548\uB0B4"
+    english: Shortcuts
+  - key: dashboard_form_fmt
+    korean: "\uC0C1\uB300 \uD3FC {0}"
+    english: 'Form: {0}'
+  - key: dashboard_last_result_fmt
+    korean: "\uC9C1\uC804 \uACB0\uACFC {0}"
+    english: 'Last: {0}'
+  - key: dashboard_h2h_fmt
+    korean: "\uC804\uC801 {0}"
+    english: 'H2H: {0}'

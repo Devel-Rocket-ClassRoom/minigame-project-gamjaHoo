@@ -55,8 +55,51 @@ namespace FMLite.Editor
             entries.AddRange(BuildV10CurrencySynergyCupTraining());
             entries.AddRange(BuildV10PlayerProfile());
             entries.AddRange(BuildV10Nav());
+            entries.AddRange(BuildV10CompletedSceneLabels());
             return entries;
         }
+
+        // 완료 V1.0 씬 하드코딩 라벨 로컬라이즈 (#467) — Dashboard/Squad/PlayerProfile/YouthManagement/Options.
+        // 공통 라벨(컬럼/탭)은 공유 키. 동적 텍스트(컨트롤러 Localization.Get)는 제외.
+        private static List<LocalizationEntry> BuildV10CompletedSceneLabels() =>
+            new List<LocalizationEntry>
+            {
+                // 공통 컬럼 헤더 (Squad / YouthManagement)
+                E("col_position", "포지션", "Position"),
+                E("col_name", "이름", "Name"),
+                E("col_age", "나이", "Age"),
+                E("col_trend", "추세", "Trend"),
+                // Squad 탭 (유스 탭은 nav_youth 재사용)
+                E("tab_first_team", "1군", "First Team"),
+                // Dashboard 다이얼로그 (이사회 / 이적 요청)
+                E("dlg_board_demands_title", "이사회 요구사항", "Board Demands"),
+                E("dlg_transfer_request_title", "이적 요청", "Transfer Request"),
+                E("btn_interview", "면담", "Interview"),
+                E("btn_reject", "거절", "Reject"),
+                E("btn_later", "나중에", "Later"),
+                E("btn_accept_transfer_list", "수락 (이적 리스트 등재)", "Accept (List for Transfer)"),
+                E("btn_close", "닫기", "Close"),
+                // PlayerProfile 섹션 / 스탯 카테고리
+                E("pp_section_contract", "[계약]", "[Contract]"),
+                E("pp_section_career", "[커리어]", "[Career]"),
+                E("pp_section_status", "[상태]", "[Status]"),
+                E("pp_section_traits", "[트레잇]", "[Traits]"),
+                E("stat_cat_goalkeeping", "골키퍼", "Goalkeeping"),
+                E("stat_cat_physical", "신체", "Physical"),
+                E("stat_cat_technical", "기술", "Technical"),
+                E("stat_cat_mental", "정신", "Mental"),
+                // Options 라벨 (저장=nav_save, 뒤로=nav_back 재사용)
+                E("opt_title", "옵션", "Options"),
+                E("opt_sound", "사운드", "Sound"),
+                E("opt_language", "언어", "Language"),
+                E("opt_currency", "통화", "Currency"),
+                E("opt_autosave", "자동 저장", "Auto Save"),
+                E("opt_shortcuts", "단축키 안내", "Shortcuts"),
+                // Dashboard 다음 매치 미리보기 (누락 키 — raw 표시되던 것)
+                E("dashboard_form_fmt", "상대 폼 {0}", "Form: {0}"),
+                E("dashboard_last_result_fmt", "직전 결과 {0}", "Last: {0}"),
+                E("dashboard_h2h_fmt", "전적 {0}", "H2H: {0}"),
+            };
 
         // GlobalNav 라벨 (#463) — 사이드바 10 + 탑바 5. SideBar 키는 GlobalNavController.SideBarScenes 순서.
         private static List<LocalizationEntry> BuildV10Nav() =>
