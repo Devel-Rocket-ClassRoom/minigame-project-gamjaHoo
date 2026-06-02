@@ -64,6 +64,11 @@ MonoBehaviour:
   facilityNoiseSigma: 1
   minFacilityLevel: 1
   maxFacilityLevel: 5
+  captainAgeCap: 35
+  captainAgeMultiplier: 0.5
+  captainContractYearsMultiplier: 2
+  formationStyleMinWeight: 0.1
+  formationStyleBalancedWeight: 0.5
   formation:
     name: 4-4-2
     gk: 3
@@ -99,18 +104,88 @@ MonoBehaviour:
   - 0.4
   - 0.8
   - 0.95
-  avgGoalsPerMatch: 2.7
-  homeAdvantageGoalBonus: 0.3
-  strengthExponent: 1.5
-  scoringWeightByLine:
+  shotChanceBaseDivisor: 720
+  shotOnTargetDivisor: 100
+  shotSaveDivisor: 100
+  shotPositionWeights:
   - 0
   - 0.4
   - 1.5
   - 5
+  keyPassChanceDivisor: 300000
+  crossChanceDivisor: 30000
+  passChanceDivisor: 150
+  passSuccessDivisor: 100
+  tackleChanceDivisor: 1500
+  interceptionChanceDivisor: 1500
+  foulChanceDivisor: 2625
+  foulYellowRatio: 0.5
+  foulRedRatio: 0.03
+  injuryBaseRate: 0.0001
+  injuryProneRefDivisor: 50
+  injuryCareerThreateningDays: 90
+  homeAdvantageMultiplier: 1.08
+  actionsPerMinuteMin: 1
+  actionsPerMinuteMax: 3
+  shotAccuracyBase: 0.45
+  shotAccuracyDivisor: 200
+  goalConversionBase: 0.3
+  goalConversionDivisor: 150
+  shotBlockedRatio: 0.4
+  zoneCornerChance: 0.25
+  zoneCornerToBoxChance: 0.3
+  midfieldTackleRatio: 0.6
+  attackingThirdTackleRatio: 0.5
+  stoppageTimeMax: 4
+  extraTimeStoppageMax: 2
+  penaltyShootoutRounds: 5
+  penaltyShootoutConversionBase: 0.75
+  penaltyShootoutDivisor: 300
+  fatiguePerfThreshold: 50
+  fatiguePerfFloor: 0.6
+  fatiguePerfPenaltyPerPoint: 0.01
+  fatigueInjuryThreshold: 40
+  fatigueInjuryMultiplier: 1.5
+  formCoeff: 200
+  moraleCoeff: 200
+  cornerConversionBase: 0.08
+  cornerHeadingDivisor: 150
+  freeKickDirectProb: 0.5
+  freeKickConversionBase: 0.15
+  freeKickDirectDivisor: 200
+  longThrowChance: 0.1
+  longThrowBoxChance: 0.6
+  foulProbability: 0.12
+  penaltyProbability: 0.08
+  yellowCardProbability: 0.3
+  redCardProbability: 0.04
+  matchInjuryProbability: 0.03
+  penaltyConversion: 0.75
+  yellowSuspensionThreshold: 5
+  redSuspensionMatches: 2
+  ratingBase: 6.5
+  ratingGoalBonus: 1
+  ratingAssistBonus: 0.5
+  ratingKeyPassBonus: 0.1
+  ratingDefActionBonus: 0.05
+  ratingShotOnTargetBonus: 0.1
+  ratingYellowPenalty: -0.3
+  ratingRedPenalty: -1.5
+  ratingSaveBonus: 0.15
+  ratingCleanSheetBonus: 0.5
+  ratingConcededPenalty: -0.2
+  ratingWinBonus: 0.2
+  ratingLossPenalty: -0.2
+  ratingMin: 1
+  ratingMax: 10
+  youthBaseAvgPA: 100
   youthStarPickProbability: 0.05
   youthStarPaBonus: 50
   youthPaStdDev: 15
   youthPaGapStdDev: 25
+  youthMinCa: 30
+  youthMaxCa: 95
+  youthCaGapMean: 60
   youthIntakeMinAge: 16
   youthIntakeMaxAge: 18
   youthIntakeAgeWeights:
@@ -122,6 +197,11 @@ MonoBehaviour:
   youthIntakeMainDay: 15
   youthIntakeSecondMonth: 1
   youthIntakeSecondDay: 15
+  mentoringRateModifier: 5
+  youthPromotionAge: 18
+  youthPromotionCaRatio: 0.7
+  youthRejectedToOtherClubRatio: 0.3
+  youthPositionWeightVolatility: 0.5
   fatigueRecoveryPerDay: 15
   fatigueGainPerMatch: 30
   retirementMinAge: 33
@@ -154,6 +234,13 @@ MonoBehaviour:
   marketValueInjuryFactor: 0.5
   aiValueNoiseSigma: 0.1
   aiAcceptRatio: 1.2
+  aiAcceptThreshold: 1.3
+  aiCounterOfferThreshold: 1.1
+  aiMockingThreshold: 0.85
+  aiCounterOfferFactor: 1.3
+  maxNegotiationRounds: 3
+  aiMockingMoralePenalty: 3
+  playtimeAgreementBonus: 0.2
   transferWindowSummerStartMonth: 6
   transferWindowSummerStartDay: 1
   transferWindowSummerEndMonth: 8
@@ -178,7 +265,19 @@ MonoBehaviour:
   - 0.9
   - 0.8
   - 0.65
-  growthBaseChance: 0.01
+  mentalityKeyPassMultiplier:
+  - 0.7
+  - 0.85
+  - 0.95
+  - 1
+  - 1.1
+  - 1.2
+  - 1.4
+  tacticDutyPrimaryWeight: 1.5
+  tacticDutySecondaryWeight: 1
+  tacticDutyOffWeight: 0.5
+  tacticDutyKeyPassSupportWeight: 1.3
+  growthBaseChance: 0.06
   growthAbsoluteFactor: 0.1
   growthTrainingCoeff: 0.1
   growthGymCoeff: 0.05
@@ -196,7 +295,74 @@ MonoBehaviour:
   - 30
   - 10
   growthBigJumpAgeThreshold: 1.3
+  growthPlaytimeCoeff: 0.25
+  growthPlaytimeCap: 4
   injuryMedicalRecoveryCoeff: 0.05
   injuryGymRecoveryCoeff: 0.02
   injuryMedicalRateCoeff: 0.05
   scoutWeeklyLevelGain: 5
+  aiWeaknessRatioThreshold: 0.95
+  aiCoreInjuryWeeksThreshold: 4
+  aiSavingsThreshold: 10000
+  aiOfferAmountRandomMin: 1.2
+  aiOfferAmountRandomMax: 1.4
+  aiBudgetRatio: 0.4
+  aiContractFaThresholdDays: 180
+  moraleDailyRecoveryRate: 1
+  moraleMatchWinBonus: 8
+  moraleMatchLossPenalty: 8
+  moraleBigMatchMultiplier: 1.5
+  moraleHighRatingBonus: 5
+  moraleLowRatingPenalty: 3
+  moralePromotionWinBonus: 30
+  moraleRelegationPenalty: 50
+  contractRenewalMoraleBoost: 15
+  contractRenewalHappinessBoost: 25
+  promiseBreakHappinessPenalty: 20
+  promiseFulfilledHappinessBonus: 10
+  transferRequestThreshold: 20
+  transferListedDiscount: 0.7
+  unhappyThreshold: 40
+  satisfiedThreshold: 80
+  transferCompletedIncomingMoraleBonus: 20
+  interviewPraiseMoraleBonus: 5
+  interviewCriticizeMoralePenalty: 3
+  ratingHighThreshold: 7.5
+  ratingLowThreshold: 6
+  promisePlaytimeDefaultRatio: 50
+  promiseDeadlineApproachingDays: 30
+  dressingRoomMoodLowThreshold: 30
+  dressingRoomLowMoodStrengthFactor: 0.95
+  dressingRoomCaptainLeadershipBonus: 0.2
+  promisePlaytimeDeadlineMonth: 5
+  promisePlaytimeDeadlineDay: 15
+  promiseRenewalDeadlineMonth: 8
+  promiseRenewalDeadlineDay: 15
+  promiseTransferDeadlineDaysSummerEnd: 31
+  promiseTransferDeadlineMonthSummerEnd: 8
+  promiseTransferDeadlineDaysWinterEnd: 31
+  promiseTransferDeadlineMonthWinterEnd: 1
+  maxSubstitutionsPerTeam: 3
+  substitutionFatigueThreshold: 70
+  substitutionTacticalMinute: 60
+  mvpChampionBonus: 0.3
+  awardMoraleBonus: 10
+  awardHappinessBonus: 10
+  youngPlayerMaxAge: 21
+  monthlyPlayerMoraleBonus: 10
+  monthlyManagerConfidenceBonus: 5
+  managerRepLeagueWin: 20
+  managerRepMonthlyAward: 5
+  managerRepSacked: -30
+  managerRepBoardBonusDivisor: 20
+  baseMatchDayIncome: 50000
+  baseTvIncome: 1500000
+  basePrize: 5000000
+  boardPromiseRejectPenalty: 10
+  boardConfidenceLossPerDefeat: 2
+  boardConfidenceBigMatchLossExtra: 3
+  boardConfidenceWinGain: 1
+  boardConfidenceRankMultiplier: 2
+  boardWarningThreshold: 30
+  boardSackedThreshold: 10
+  bigMatchReputationThreshold: 75

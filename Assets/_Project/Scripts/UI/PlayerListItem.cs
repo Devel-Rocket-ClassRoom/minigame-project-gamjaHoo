@@ -1,6 +1,8 @@
 // 스쿼드 화면 선수 목록 아이템 프리팹 컨트롤러.
+// Stage D (V1.0, #459): CA 변화량 화살표/색 (직전 3개월, CaCalculator.GetCaChange + StatColorCoding).
 
 using System;
+using FMLite.Application;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
@@ -21,6 +23,10 @@ namespace FMLite.UI
 
         [SerializeField]
         private TMP_Text caText;
+
+        [Tooltip("Stage D — CA 직전 3개월 변화량 (부호付 숫자 + 색). 없으면 생략.")]
+        [SerializeField]
+        private TMP_Text caChangeText;
 
         [SerializeField]
         private Button selectButton;
@@ -46,6 +52,13 @@ namespace FMLite.UI
 
             if (caText != null)
                 caText.text = player.currentAbility.ToString();
+
+            if (caChangeText != null)
+            {
+                int caChange = CaCalculator.GetCaChange(player, 3);
+                caChangeText.text = StatColorCoding.TrendArrow(caChange);
+                caChangeText.color = StatColorCoding.TrendColor(caChange);
+            }
 
             selectButton.onClick.RemoveAllListeners();
             selectButton.onClick.AddListener(() => onSelect(player.id));

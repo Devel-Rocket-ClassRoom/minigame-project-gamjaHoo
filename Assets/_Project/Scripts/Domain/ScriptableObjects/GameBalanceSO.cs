@@ -464,7 +464,7 @@ namespace FMLite.Domain
         // ── V0.5 D.4 시설 효과 (design-decisions.md #53 / algorithms.md V0.5-10 + V0.5-11) ──
 
         [Header("Player Growth System (V0.5-10)")]
-        public float growthBaseChance = 0.01f;
+        public float growthBaseChance = 0.06f; // Stage D (#459): 0.01 → 0.06 (체감 가능한 성장)
         public float growthAbsoluteFactor = 0.10f;
         public float growthTrainingCoeff = 0.10f;
         public float growthGymCoeff = 0.05f;
@@ -476,6 +476,11 @@ namespace FMLite.Domain
         public float[] growthSizeWeights = { 75f, 20f, 5f };
         public float[] growthSizePeakWeights = { 60f, 30f, 10f };
         public float growthBigJumpAgeThreshold = 1.3f;
+
+        // Stage D (#459) c — 출전 기반 성장 보너스 (FM식). 직전 한 달 출전수 × coeff (cap 까지) 가산.
+        // growthChance ×= (1 + min(monthAppearances, cap) × playtimeCoeff). 벤치(0출전)=보너스 0 (기저 성장 유지).
+        public float growthPlaytimeCoeff = 0.25f;
+        public int growthPlaytimeCap = 4;
 
         [Header("Injury System (V0.5-11)")]
         public float injuryMedicalRecoveryCoeff = 0.05f;
