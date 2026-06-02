@@ -113,12 +113,15 @@ namespace FMLite.UI
             };
 
         /// <summary>
-        /// 성장 동향 표시 토큰 — 부호付 증감값 ("+2" / "0" / "-1").
+        /// 성장 동향 표시 토큰 — 부호付 증감값 ("+2" / "-1") 또는 변화 없음 대시 ("-").
         /// NotoSansKR SDF 아틀라스에 ↑↓↗↘ 글리프 미포함 (→/★☆/ASCII 만 존재) → 화살표 대신
         /// 색상(TrendColor) + 부호 숫자로 방향·크기 전달 (폰트 안전, design-decisions 미지원 글리프 금지).
+        /// 변화 없음(0)은 허전한 "0" 대신 대시 "-" (색은 Flat 회색) 로 표기.
         /// </summary>
         public static string TrendArrow(int change) =>
-            change > 0 ? "+" + change : change.ToString();
+            change > 0 ? "+" + change
+            : change == 0 ? "-"
+            : change.ToString();
 
         private static Color Hex(int rgb) =>
             new Color(((rgb >> 16) & 0xFF) / 255f, ((rgb >> 8) & 0xFF) / 255f, (rgb & 0xFF) / 255f);

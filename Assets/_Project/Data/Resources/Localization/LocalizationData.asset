@@ -1282,3 +1282,34 @@ MonoBehaviour:
   - key: label_weak_foot
     korean: "\uC57D\uBC1C"
     english: Weak Foot
+  - key: youth_mgmt_title
+    korean: "\uC720\uC2A4 \uAD00\uB9AC"
+    english: Youth Management
+  - key: youth_inspection_section
+    korean: "\uB2E4\uC74C \uC778\uC2A4\uD399\uC158"
+    english: Next Inspection
+  - key: youth_current_section
+    korean: "\uD604 \uC720\uC2A4"
+    english: Current Youth
+  - key: youth_callup_section
+    korean: "1\uAD70 \uCF5C\uC5C5 \uD6C4\uBCF4"
+    english: Call-up Candidates
+  - key: youth_mentoring_section
+    korean: "\uBA58\uD1A0\uB9C1"
+    english: Mentoring
+  - key: youth_next_inspection_fmt
+    korean: '{0} (D-{1})'
+    english: '{0} (D-{1})'
+  - key: youth_pool_prediction_fmt
+    korean: "\uC608\uC0C1 \uD480 {0}\uBA85 \xB7 \uC601\uC785 \uAC00\uB2A5 ~{1}\uBA85
+      (\uBAA8\uC9D1 Lv.{2})"
+    english: "Pool ~{0} \xB7 Sign up to {1} (Recruit Lv.{2})"
+  - key: youth_count_fmt
+    korean: "\uD604 \uC720\uC2A4 {0}\uBA85"
+    english: 'Youth Squad: {0}'
+  - key: youth_callup_empty
+    korean: "\uCF5C\uC5C5 \uD6C4\uBCF4 \uC5C6\uC74C"
+    english: No call-up candidates
+  - key: youth_mentoring_summary_fmt
+    korean: "\uBA58\uD1A0\uB9C1 \uADF8\uB8F9 {0} \xB7 \uBA58\uD2F0 {1}\uBA85"
+    english: "Mentoring Groups {0} \xB7 Mentees {1}"
