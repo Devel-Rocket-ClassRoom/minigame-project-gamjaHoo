@@ -65,6 +65,10 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text careerText;
 
+        [Header("네비 (MUIP 버튼)")]
+        [SerializeField]
+        private Button backButton;
+
         [Header("면담 (V0.5 G.2 Sub-B)")]
         [SerializeField]
         private Button interviewButton;
@@ -96,6 +100,11 @@ namespace FMLite.UI
                 return;
             }
             _currentPlayerId = playerId;
+            if (backButton != null)
+            {
+                backButton.onClick.RemoveAllListeners();
+                backButton.onClick.AddListener(OnBackClicked);
+            }
             ConfigureInterviewButton(player, state);
             ConfigurePromotionButtons(player, state);
 
