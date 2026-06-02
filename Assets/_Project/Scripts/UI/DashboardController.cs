@@ -180,6 +180,9 @@ namespace FMLite.UI
             // 유저가 인박스에서 클릭해 처리. Continue 시 강제 전환 X.
 
             RefreshInfo();
+            // #465: Continue 가 알림 도착일에 멈춰도 그날 생성된 인박스 아이템이 배지에 즉시 반영되도록
+            // GlobalNav 갱신 (DayAdvancedEvent 는 인박스 생성 이전 단계라 도착 당일 배지를 놓침).
+            GlobalNavController.Instance?.RefreshFromState();
             CheckBoardMeeting();
             continueButton.interactable = true;
         }
