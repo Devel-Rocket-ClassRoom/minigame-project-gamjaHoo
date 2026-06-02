@@ -32,7 +32,10 @@ namespace FMLite.Application
         {
             // GameDatabase는 항상 로드 — NamePool 등 런타임 조회에 필요
             GameDatabase.LoadAll();
-            LocalizationSystem.Initialize(GameDatabase.LocalizationData);
+            // 언어 선호 적용 (#463) — 시스템 언어가 아닌 저장된 OptionsManager.Language 가 source of truth.
+            // (DebugBootstrap 은 매 씬 Awake 마다 실행되므로 여기서 시스템 언어로 덮어쓰면 옵션 선택이 무효화됨)
+            OptionsManager.EnsureInitialized();
+            LocalizationSystem.Initialize(GameDatabase.LocalizationData, OptionsManager.Language);
 
             // 이미 다른 씬에서 GameManager + State 가 초기화된 경우 스킵
             // (MainMenu → ClubSelect → Gacha → Dashboard 실제 플로우 보호)

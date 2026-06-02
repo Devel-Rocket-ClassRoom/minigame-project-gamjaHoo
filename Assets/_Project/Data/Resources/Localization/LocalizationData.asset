@@ -1313,3 +1313,48 @@ MonoBehaviour:
   - key: youth_mentoring_summary_fmt
     korean: "\uBA58\uD1A0\uB9C1 \uADF8\uB8F9 {0} \xB7 \uBA58\uD2F0 {1}\uBA85"
     english: "Mentoring Groups {0} \xB7 Mentees {1}"
+  - key: nav_dashboard
+    korean: "\uB300\uC2DC\uBCF4\uB4DC"
+    english: Dashboard
+  - key: nav_squad
+    korean: "\uC2A4\uCFFC\uB4DC"
+    english: Squad
+  - key: nav_tactic
+    korean: "\uC804\uC220"
+    english: Tactics
+  - key: nav_lineup
+    korean: "\uB77C\uC778\uC5C5"
+    english: Lineup
+  - key: nav_transfer
+    korean: "\uC774\uC801"
+    english: Transfers
+  - key: nav_schedule
+    korean: "\uC77C\uC815"
+    english: Schedule
+  - key: nav_standings
+    korean: "\uC21C\uC704"
+    english: Standings
+  - key: nav_facility
+    korean: "\uC2DC\uC124"
+    english: Facilities
+  - key: nav_youth
+    korean: "\uC720\uC2A4"
+    english: Youth
+  - key: nav_mentoring
+    korean: "\uBA58\uD1A0\uB9C1"
+    english: Mentoring
+  - key: nav_back
+    korean: "\uB4A4\uB85C"
+    english: Back
+  - key: nav_inbox
+    korean: "\uC778\uBC15\uC2A4"
+    english: Inbox
+  - key: nav_options
+    korean: "\uC635\uC158"
+    english: Options
+  - key: nav_save
+    korean: "\uC800\uC7A5"
+    english: Save
+  - key: nav_home
+    korean: "\uD648"
+    english: Home

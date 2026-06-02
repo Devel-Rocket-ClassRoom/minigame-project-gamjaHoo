@@ -39,9 +39,22 @@ namespace FMLite.Application
         public static float UiScale { get; set; }
         public static bool AutoSave { get; set; }
 
-        /// <summary>게임 시작 시 1회 호출. PlayerPrefs 값 로드, 미존재 시 시스템 언어 + default.</summary>
+        private static bool _initialized;
+
+        /// <summary>
+        /// 세션 중 1회만 PlayerPrefs 로드. 이미 로드됐으면 no-op — in-memory 변경(미저장 선택)을 보존.
+        /// 매 씬 Awake (DebugBootstrap 등) 에서 안전하게 호출 가능 (#463). Initialize 와 달리 재로드 안 함.
+        /// </summary>
+        public static void EnsureInitialized()
+        {
+            if (!_initialized)
+                Initialize();
+        }
+
+        /// <summary>PlayerPrefs 값 (재)로드. 미존재 시 시스템 언어 + default. 호출 시 항상 prefs 기준으로 덮어씀.</summary>
         public static void Initialize()
         {
+            _initialized = true;
             MasterVolume = PlayerPrefs.GetFloat(MasterKey, DefaultVolume);
             SfxVolume = PlayerPrefs.GetFloat(SfxKey, DefaultVolume);
             BgmVolume = PlayerPrefs.GetFloat(BgmKey, DefaultVolume);

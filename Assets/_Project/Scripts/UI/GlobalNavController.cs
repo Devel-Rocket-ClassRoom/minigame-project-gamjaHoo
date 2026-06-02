@@ -10,6 +10,7 @@ using System.Linq;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Utils;
+using Michsky.UI.ModernUIPack;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -50,6 +51,21 @@ namespace FMLite.UI
             FacilityScene,
             YouthScene,
             MentoringScene,
+        };
+
+        // SideBar 라벨 로컬라이즈 키 (#463) — SideBarScenes 와 1:1 순서.
+        private static readonly string[] SideBarLabelKeys =
+        {
+            "nav_dashboard",
+            "nav_squad",
+            "nav_tactic",
+            "nav_lineup",
+            "nav_transfer",
+            "nav_schedule",
+            "nav_standings",
+            "nav_facility",
+            "nav_youth",
+            "nav_mentoring",
         };
 
         /// <summary>현재 씬의 nav 인스턴스. 씬 로드마다 교체 (DDOL 아님).</summary>
@@ -139,6 +155,7 @@ namespace FMLite.UI
         private void Start()
         {
             WireButtons();
+            LocalizeLabels();
             if (inboxPanel != null)
                 inboxPanel.SetActive(false);
             if (homeConfirmModal != null)
@@ -175,6 +192,45 @@ namespace FMLite.UI
                 return;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(handler);
+        }
+
+        // ── 라벨 로컬라이즈 (#463) ───────────────────────────────────
+        // 사이드바/탑바 라벨이 prefab 에 한국어로 하드코딩돼 있어 언어 전환에 안 따라옴.
+        // 런타임에 Localization 키로 덮어씀 (코드 전용 — prefab 수정 불필요).
+        private void LocalizeLabels()
+        {
+            SetLabel(backButton, "nav_back");
+            SetLabel(inboxButton, "nav_inbox");
+            SetLabel(optionsButton, "nav_options");
+            SetLabel(saveButton, "nav_save");
+            SetLabel(homeButton, "nav_home");
+
+            if (sideBarButtons != null)
+            {
+                for (int i = 0; i < sideBarButtons.Length && i < SideBarLabelKeys.Length; i++)
+                    SetLabel(sideBarButtons[i]?.button, SideBarLabelKeys[i]);
+            }
+        }
+
+        // MUIP ButtonManager 면 buttonText(소스) 를 바꿔야 Start 의 UpdateUI 가 덮어써도 유지됨.
+        // 일반 Button 이면 자식 TMP 직접 세팅.
+        private static void SetLabel(Button button, string key)
+        {
+            if (button == null)
+                return;
+            string text = Localization.Get(key);
+            var bm = button.GetComponent<ButtonManager>();
+            if (bm != null && bm.normalText != null)
+            {
+                bm.buttonText = text;
+                bm.normalText.text = text;
+                if (bm.highlightedText != null)
+                    bm.highlightedText.text = text;
+                return;
+            }
+            var tmp = button.GetComponentInChildren<TMP_Text>(true);
+            if (tmp != null)
+                tmp.text = text;
         }
 
         // ── TopBar 갱신 ──────────────────────────────────────────────

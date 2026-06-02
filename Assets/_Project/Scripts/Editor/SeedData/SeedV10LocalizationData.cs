@@ -54,8 +54,30 @@ namespace FMLite.Editor
             entries.AddRange(BuildV10OptionsAndInbox());
             entries.AddRange(BuildV10CurrencySynergyCupTraining());
             entries.AddRange(BuildV10PlayerProfile());
+            entries.AddRange(BuildV10Nav());
             return entries;
         }
+
+        // GlobalNav 라벨 (#463) — 사이드바 10 + 탑바 5. SideBar 키는 GlobalNavController.SideBarScenes 순서.
+        private static List<LocalizationEntry> BuildV10Nav() =>
+            new List<LocalizationEntry>
+            {
+                E("nav_dashboard", "대시보드", "Dashboard"),
+                E("nav_squad", "스쿼드", "Squad"),
+                E("nav_tactic", "전술", "Tactics"),
+                E("nav_lineup", "라인업", "Lineup"),
+                E("nav_transfer", "이적", "Transfers"),
+                E("nav_schedule", "일정", "Schedule"),
+                E("nav_standings", "순위", "Standings"),
+                E("nav_facility", "시설", "Facilities"),
+                E("nav_youth", "유스", "Youth"),
+                E("nav_mentoring", "멘토링", "Mentoring"),
+                E("nav_back", "뒤로", "Back"),
+                E("nav_inbox", "인박스", "Inbox"),
+                E("nav_options", "옵션", "Options"),
+                E("nav_save", "저장", "Save"),
+                E("nav_home", "홈", "Home"),
+            };
 
         private static List<LocalizationEntry> BuildV05Entries() =>
             new List<LocalizationEntry>
