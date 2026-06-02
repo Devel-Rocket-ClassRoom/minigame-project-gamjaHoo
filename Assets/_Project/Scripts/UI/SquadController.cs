@@ -42,6 +42,16 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text titleText;
 
+        [Header("탭 비주얼 (Stage D item2)")]
+        [SerializeField]
+        private Image seniorTabImage;
+
+        [SerializeField]
+        private Image youthTabImage;
+
+        private static readonly Color TabActive = new Color(0.29f, 0.565f, 0.851f, 1f); // 강조 #4A90D9
+        private static readonly Color TabInactive = new Color(0.16f, 0.16f, 0.23f, 1f); // 어두운 패널
+
         private GameState _state;
         private Club _club;
 
@@ -69,12 +79,23 @@ namespace FMLite.UI
         {
             seniorPanel.SetActive(true);
             youthPanel.SetActive(false);
+            SetTabVisual(senior: true);
         }
 
         private void ShowYouth()
         {
             seniorPanel.SetActive(false);
             youthPanel.SetActive(true);
+            SetTabVisual(senior: false);
+        }
+
+        // Stage D item2 — 활성 탭 강조 (강조색) / 비활성 어둡게.
+        private void SetTabVisual(bool senior)
+        {
+            if (seniorTabImage != null)
+                seniorTabImage.color = senior ? TabActive : TabInactive;
+            if (youthTabImage != null)
+                youthTabImage.color = senior ? TabInactive : TabActive;
         }
 
         private void RefreshLists()
