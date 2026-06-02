@@ -6,6 +6,7 @@
 //   T4  Save → Initialize 라운드트립 (AutoSave bool)
 //   T5  키 충돌 없음 — 모든 PlayerPrefs 키 unique
 //   T6  ResetToDefaults — Save 후 호출 시 기본값 복원
+//   T7  EnsureInitialized — 이미 로드된 세션에서 in-memory 선택 보존 (#463)
 
 using FMLite.Application;
 using FMLite.Domain;
@@ -125,6 +126,22 @@ namespace FMLite.Tests
             };
             var distinct = new System.Collections.Generic.HashSet<string>(keys);
             Assert.AreEqual(keys.Length, distinct.Count, "T5: 키 unique");
+        }
+
+        // ── T7. EnsureInitialized — in-memory 보존 (#463) ───────────
+
+        [Test]
+        public void T7_EnsureInitialized_PreservesInMemoryLanguage()
+        {
+            OptionsManager.Initialize(); // _initialized = true
+            OptionsManager.Language = Language.English; // 미저장 in-memory 선택
+            OptionsManager.EnsureInitialized(); // 이미 로드됨 → 재로드 안 함
+
+            Assert.AreEqual(
+                Language.English,
+                OptionsManager.Language,
+                "T7: EnsureInitialized 가 미저장 선택을 덮어쓰지 않음"
+            );
         }
 
         // ── T6. ResetToDefaults ─────────────────────────────────────
