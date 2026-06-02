@@ -4839,30 +4839,32 @@ public static StatGrade Classify(int value) =>
 
 ### V1.0-12.2 성장 동향 화살표 (C.4)
 
-직전 3개월 변화량 (`GrowthSystem.GetStatChange(player, fieldPath, 3)`) → 5 단계.
+직전 3개월 변화량 (`GrowthSystem.GetStatChange(player, fieldPath, 3)`) → 5 단계. 색(`TrendColor`) + 표시 토큰(`TrendArrow`).
 
-| 변화량 | 동향 | 색 | 글리프 |
+| 변화량 | 동향 | 색 | 표시 |
 | --- | --- | --- | --- |
-| +2 이상 | StrongUp | `#1E8449` 진녹 | ↑ |
-| +1 | Up | `#2ECC71` 녹 | ↗ |
-| 0 | Flat | `#999999` 회 | → |
-| -1 | Down | `#E87040` 주황 | ↘ |
-| -2 이하 | StrongDown | `#E74C3C` 빨강 | ↓ |
+| +2 이상 | StrongUp | `#1E8449` 진녹 | `+N` |
+| +1 | Up | `#2ECC71` 녹 | `+1` |
+| 0 | Flat | `#999999` 회 | `0` |
+| -1 | Down | `#E87040` 주황 | `-1` |
+| -2 이하 | StrongDown | `#E74C3C` 빨강 | `-N` |
 
-- 글리프는 `StatColorCoding` 내 단일 상수 — NotoSansKR 대각(↗↘) 미지원 시 Sub-C 시각 검증 후 조정 (단일 교체 지점).
+- **글리프 조정 (Sub-C 검증)**: NotoSansKR SDF 아틀라스(450자)에 ↑↓↗↘ 미포함 확인 (→/★☆/ASCII 만) → 화살표 대신 **색상 + 부호付 증감값**(`+2`/`0`/`-1`) 으로 방향·크기 전달. design-decisions 미지원 글리프 금지 준수. 색이 주 신호, 숫자가 정확한 크기. ★☆ (별점, C.3) 는 폰트 포함 확인.
 
 ### V1.0-12.3 StatRowView 계약
 
-stat 1개 = 행 위젯 (prefab). 카테고리 GridLayout 컨테이너 아래 인스턴스화. 4 카테고리 2×2 그리드 (C.1).
+stat 1개 = 행 위젯 (prefab). 카테고리 RowsContainer (VerticalLayout) 아래 인스턴스화.
+
+**레이아웃 (Sub-C 플레이테스트 결정 — 2×2 폐지, FM식 채택):** 4 카테고리를 **풀-높이 컬럼**으로 가로 배치 (HorizontalLayoutGroup). 상단 = stat 컬럼 밴드 (Technical/Mental/Physical/GK), 하단 = traits/contract/state/career info 스트립. 2×2 그리드는 14행 패널의 행 높이를 ~24px 로 묶어 폰트가 작고 빈 공간이 많아 폐지. 컬럼식은 행 높이 ~32px / 폰트 24 로 가독성 ↑ (FM 스타일).
 
 ```csharp
 StatRowView.Setup(string labelKey, int value, int change);
 // labelKey  → 라벨 (Localization)
 // value     → 값 (GradeColor 적용)
-// change    → 성장 화살표 (TrendArrow + TrendColor); GetStatChange 결과
+// change    → 성장 증감 (TrendArrow 부호付 숫자 + TrendColor); GetStatChange 결과
 ```
 
-- GK 카테고리는 GK 포지션 선수만 표시 (다른 포지션 무관 → 패널 숨김). 따라서 outfield = 36 stat, GK = 49 stat.
+- GK 카테고리는 GK 포지션 선수만 표시 (다른 포지션 무관 → 컬럼 숨김, HorizontalLayout 이 자동 재분배). outfield = 3 컬럼 36 stat, GK = 4 컬럼 49 stat.
 
 ### V1.0-12.4 신체 조건 (C.3)
 
@@ -4889,3 +4891,5 @@ PlayerProfile 헤더. `Player.physical` (PhysicalAttributes, V1.0-8) 소비.
 | 2026-05-29 | V1.0-1 ~ V1.0-10 | Part 3: V1.0 Updates 부록 신규 작성. 10 섹션 — 5-Zone 골 빈도 P0 밸런싱 (V0.5 플레이테스트 hotfix) / 매치 텍스트 ~150 키 카탈로그 (5종 변형 × 30 이벤트 종류, 시드 회전) / 선수 조합 시너지 10종 (SynergySO 외부화, ComputeSynergies 알고리즘) / Training System (개인 + 그룹 + GrowthSystem 통합) / CurrencyFormatter (GBP base, 4 통화 환율 고정) / PlayerAvatar + ClubBadge (이니셜 + 색상, ClubGenerator 색상 생성 추가) / Inbox 도메인 + 정책 (자동 만료 + 시즌 종료 시 읽은 것 삭제, InboxRouter EventBus 흡수) / Player.physical + 매치 영향 (헤더/agility/pace/PK 발 일치) / FormationMatchupSO (6×6 행렬) / Cup FA컵 단판 단일 (V0.5 Stage Q 이월). `docs/v1.0-plan.md` §3 + `docs/design-decisions.md` #58~#65 와 연동. |
 | 2026-05-31 | V1.0-11 신규 | Task A.3 — growthHistory + GrowthSystem 월별 스냅샷. StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 / GetStatChange 헬퍼. design-decisions.md #68 연동. |
 | 2026-06-02 | V1.0-12 신규 | Stage C (#455) — Stat 등급 색상 코딩 (C.2) + 성장 동향 화살표 (C.4) + StatRowView 행 위젯 계약 (C.1) + 신체 조건 (C.3). StatColorCoding/StatRowView 신규 / PlayerProfileController 그리드 재작업 / Localization 키 10 (등급명 5 / 주발 3 / 신체 2). 색 팔레트 muip-reference §18. |
+| 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
+| 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |

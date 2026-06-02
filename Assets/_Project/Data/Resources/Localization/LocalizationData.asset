@@ -1240,3 +1240,45 @@ MonoBehaviour:
   - key: training_button_cancel
     korean: "\uCDE8\uC18C"
     english: Cancel
+  - key: stat_grade_elite
+    korean: "\uC5D8\uB9AC\uD2B8 (80+)"
+    english: Elite (80+)
+  - key: stat_grade_good
+    korean: "\uC6B0\uC218 (65-79)"
+    english: Good (65-79)
+  - key: stat_grade_average
+    korean: "\uD3C9\uBC94 (50-64)"
+    english: Average (50-64)
+  - key: stat_grade_weak
+    korean: "\uC57D\uD568 (35-49)"
+    english: Weak (35-49)
+  - key: stat_grade_poor
+    korean: "\uBD80\uC871 (-34)"
+    english: "Poor (\u226434)"
+  - key: foot_left
+    korean: "\uC67C\uBC1C"
+    english: Left
+  - key: foot_right
+    korean: "\uC624\uB978\uBC1C"
+    english: Right
+  - key: foot_both
+    korean: "\uC591\uBC1C"
+    english: Both
+  - key: physical_height_weight_fmt
+    korean: "{0}cm \xB7 {1}kg"
+    english: "{0}cm \xB7 {1}kg"
+  - key: physical_weak_foot_fmt
+    korean: "\uC57D\uBC1C {0}"
+    english: Weak Foot {0}
+  - key: label_height
+    korean: "\uD0A4"
+    english: Height
+  - key: label_weight
+    korean: "\uBAB8\uBB34\uAC8C"
+    english: Weight
+  - key: label_preferred_foot
+    korean: "\uC8FC\uBC1C"
+    english: Preferred Foot
+  - key: label_weak_foot
+    korean: "\uC57D\uBC1C"
+    english: Weak Foot

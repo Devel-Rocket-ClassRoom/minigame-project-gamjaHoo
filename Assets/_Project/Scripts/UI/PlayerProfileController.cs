@@ -28,19 +28,6 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text positionAgeText;
 
-        [SerializeField]
-        private TMP_Text nationalityText;
-
-        [SerializeField]
-        private TMP_Text footText;
-
-        [Header("신체 조건 (C.3)")]
-        [SerializeField]
-        private TMP_Text heightWeightText;
-
-        [SerializeField]
-        private TMP_Text weakFootText;
-
         [Header("능력치 그리드 (C.1 — StatRowView prefab 인스턴스화)")]
         [SerializeField]
         private GameObject statRowPrefab;
@@ -75,6 +62,10 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text careerText;
 
+        [Header("네비 (MUIP 버튼)")]
+        [SerializeField]
+        private Button backButton;
+
         [Header("면담 (V0.5 G.2 Sub-B)")]
         [SerializeField]
         private Button interviewButton;
@@ -106,6 +97,11 @@ namespace FMLite.UI
                 return;
             }
             _currentPlayerId = playerId;
+            if (backButton != null)
+            {
+                backButton.onClick.RemoveAllListeners();
+                backButton.onClick.AddListener(OnBackClicked);
+            }
             ConfigureInterviewButton(player, state);
             ConfigurePromotionButtons(player, state);
 
@@ -123,16 +119,17 @@ namespace FMLite.UI
                         : $"id={player.id}";
 
             if (positionAgeText != null)
-                positionAgeText.text = Localization.Get(
+            {
+                // 포지션 · 나이 · 국적 한 줄 (이름 밑 부제 — FM식). 국적 단독 텍스트 폐기.
+                string nat = player.info?.nationalityCode;
+                string posAge = Localization.Get(
                     "player_position_age_fmt",
                     player.info?.primaryPosition,
                     age
                 );
+                positionAgeText.text = string.IsNullOrEmpty(nat) ? posAge : $"{posAge} · {nat}";
+            }
 
-            if (nationalityText != null)
-                nationalityText.text = player.info?.nationalityCode ?? "-";
-
-            BuildPhysicalCondition(player);
             PopulateStatGrids(player);
 
             if (traitsText != null)
@@ -220,32 +217,23 @@ namespace FMLite.UI
             }
         }
 
-        // ── 신체 조건 (C.3) ───────────────────────────────────────────────
+        // ── 신체 조건 (C.3) — FM식: 신체 컬럼 하단 정보 행 ──────────────────
 
-        private void BuildPhysicalCondition(Player p)
+        private void AppendPhysicalBio(Player p)
         {
             var phys = p.physical;
+            if (phys == null)
+                return;
 
-            // preferredFoot — physical 우선, 없으면 info fallback.
-            if (footText != null)
-            {
-                Foot foot = phys?.preferredFoot ?? p.info?.preferredFoot ?? Foot.Right;
-                footText.text = Localization.Get(FootKey(foot));
-            }
-
-            if (heightWeightText != null)
-            {
-                heightWeightText.text =
-                    phys != null
-                        ? Localization.Get("physical_height_weight_fmt", phys.height, phys.weight)
-                        : "-";
-            }
-
-            if (weakFootText != null)
-            {
-                int rating = phys != null ? Mathf.Clamp(phys.weakFootAbility, 0, 5) : 0;
-                weakFootText.text = Localization.Get("physical_weak_foot_fmt", StarRating(rating));
-            }
+            Foot foot = phys.preferredFoot;
+            AddTextRow(physicalGrid, "label_height", $"{phys.height}cm");
+            AddTextRow(physicalGrid, "label_weight", $"{phys.weight}kg");
+            AddTextRow(physicalGrid, "label_preferred_foot", Localization.Get(FootKey(foot)));
+            AddTextRow(
+                physicalGrid,
+                "label_weak_foot",
+                StarRating(Mathf.Clamp(phys.weakFootAbility, 0, 5))
+            );
         }
 
         private static string FootKey(Foot foot) =>
@@ -316,6 +304,8 @@ namespace FMLite.UI
             AddRow(physicalGrid, p, "stat_pace", ph.pace, "physical.pace");
             AddRow(physicalGrid, p, "stat_stamina", ph.stamina, "physical.stamina");
             AddRow(physicalGrid, p, "stat_strength", ph.strength, "physical.strength");
+            // 신체 bio (FM식 — 키/몸무게/주발/약발 을 신체 컬럼 하단에).
+            AppendPhysicalBio(p);
 
             // GK stat 은 GK 포지션 선수만 (다른 포지션은 무관 → 패널 숨김).
             bool isGk = p.info?.primaryPosition == Position.GK;
@@ -356,6 +346,15 @@ namespace FMLite.UI
             var go = Instantiate(statRowPrefab, grid);
             int change = GrowthSystem.GetStatChange(p, fieldPath, 3);
             go.GetComponent<StatRowView>()?.Setup(labelKey, value, change);
+        }
+
+        // 문자값 정보 행 (게이지/증감 없음) — 신체 bio 등.
+        private void AddTextRow(Transform grid, string labelKey, string value)
+        {
+            if (grid == null || statRowPrefab == null)
+                return;
+            var go = Instantiate(statRowPrefab, grid);
+            go.GetComponent<StatRowView>()?.SetupText(labelKey, value);
         }
 
         // ── 트레잇 / 계약 / 상태 / 커리어 ─────────────────────────────────

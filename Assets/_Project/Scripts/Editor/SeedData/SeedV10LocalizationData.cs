@@ -981,9 +981,13 @@ namespace FMLite.Editor
                 E("foot_left", "왼발", "Left"),
                 E("foot_right", "오른발", "Right"),
                 E("foot_both", "양발", "Both"),
-                // 신체 조건 (C.3)
+                // 신체 조건 (C.3) — 헤더 fmt (구) + FM식 신체 컬럼 행 라벨 (신규)
                 E("physical_height_weight_fmt", "{0}cm · {1}kg", "{0}cm · {1}kg"),
                 E("physical_weak_foot_fmt", "약발 {0}", "Weak Foot {0}"),
+                E("label_height", "키", "Height"),
+                E("label_weight", "몸무게", "Weight"),
+                E("label_preferred_foot", "주발", "Preferred Foot"),
+                E("label_weak_foot", "약발", "Weak Foot"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>
