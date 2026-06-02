@@ -28,9 +28,6 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text positionAgeText;
 
-        [SerializeField]
-        private TMP_Text nationalityText;
-
         [Header("능력치 그리드 (C.1 — StatRowView prefab 인스턴스화)")]
         [SerializeField]
         private GameObject statRowPrefab;
@@ -122,14 +119,16 @@ namespace FMLite.UI
                         : $"id={player.id}";
 
             if (positionAgeText != null)
-                positionAgeText.text = Localization.Get(
+            {
+                // 포지션 · 나이 · 국적 한 줄 (이름 밑 부제 — FM식). 국적 단독 텍스트 폐기.
+                string nat = player.info?.nationalityCode;
+                string posAge = Localization.Get(
                     "player_position_age_fmt",
                     player.info?.primaryPosition,
                     age
                 );
-
-            if (nationalityText != null)
-                nationalityText.text = player.info?.nationalityCode ?? "-";
+                positionAgeText.text = string.IsNullOrEmpty(nat) ? posAge : $"{posAge} · {nat}";
+            }
 
             PopulateStatGrids(player);
 
