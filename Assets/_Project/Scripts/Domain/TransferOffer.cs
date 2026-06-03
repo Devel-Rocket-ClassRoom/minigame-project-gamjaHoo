@@ -25,7 +25,8 @@ namespace FMLite.Domain
 
         // V0.5 협상 필드
         public int counterAmount; // 판매 구단 역제안 금액
-        public int negotiationRound; // 협상 라운드 횟수
+        public int negotiationRound; // 이적료 협상 라운드 횟수 (구단 역제안)
+        public int personalNegotiationRound; // 선수 개인 협상 라운드 횟수 (V1.0 #469, Negotiating 단계)
         public bool releaseClauseActivated; // release clause 발동 여부
         public bool includesPlaytimeAgreement; // 출전시간 약속 포함 여부 (K.2 선수 협상 +0.2)
 

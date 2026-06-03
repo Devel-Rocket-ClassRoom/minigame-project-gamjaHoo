@@ -1023,6 +1023,17 @@ MonoBehaviour:
   - key: inbox_counter_offer_fmt
     korean: "[\uC5ED\uC81C\uC548] {0} \uC601\uC785 \u2014 \uC5ED\uC81C\uC548 \uB3C4\uCC29"
     english: "[Counter-offer] {0} \u2014 counter-offer received"
+  - key: inbox_personal_negotiation_fmt
+    korean: "[\uAC1C\uC778\uD611\uC0C1] {0} \uC601\uC785 \u2014 \uAD6C\uB2E8 \uD569\uC758,
+      \uAC1C\uC778 \uC870\uAC74 \uD611\uC0C1 \uD544\uC694"
+    english: "[Personal Terms] {0} \u2014 club agreed, negotiate personal terms"
+  - key: inbox_offer_accepted_fmt
+    korean: "[\uC624\uD37C \uC218\uB77D] {0} \uC601\uC785 \u2014 \uAD6C\uB2E8 \uD569\uC758,
+      \uC774\uC801\uCC3D \uC5F4\uB9AC\uBA74 \uC131\uC0AC"
+    english: "[Offer Accepted] {0} \u2014 agreed, completes when window opens"
+  - key: inbox_offer_rejected_fmt
+    korean: "[\uC624\uD37C \uAC70\uC808] {0} \uC601\uC785 \u2014 \uD611\uC0C1 \uACB0\uB82C"
+    english: "[Offer Rejected] {0} \u2014 negotiation fell through"
   - key: inbox_contract_renewed_fmt
     korean: "[\uC7AC\uACC4\uC57D] {0} \uC7AC\uACC4\uC57D \uCCB4\uACB0"
     english: '[Renewal] {0} has signed a new contract'
@@ -1032,6 +1043,84 @@ MonoBehaviour:
   - key: inbox_youth_intake_fmt
     korean: "[\uC720\uC2A4] {0} \uC720\uC2A4 \uC778\uC2A4\uD399\uC158 \uAC00\uB2A5"
     english: '[Youth] {0} youth intake available'
+  - key: pnego_title
+    korean: "\uAC1C\uC778 \uC870\uAC74 \uD611\uC0C1"
+    english: Personal Terms
+  - key: pnego_empty
+    korean: "\uC9C4\uD589 \uC911\uC778 \uAC1C\uC778 \uD611\uC0C1\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+    english: No ongoing personal negotiations
+  - key: pnego_status_negotiating
+    korean: "\uAC1C\uC778\uD611\uC0C1"
+    english: Negotiating
+  - key: pnego_terms_title_fmt
+    korean: "{0} \uAC1C\uC778 \uC870\uAC74 \uD611\uC0C1"
+    english: "{0} \u2014 Personal Terms"
+  - key: pnego_wage_label
+    korean: "\uC8FC\uAE09"
+    english: Weekly Wage
+  - key: pnego_years_label
+    korean: "\uACC4\uC57D \uAE30\uAC04(\uB144)"
+    english: Contract Years
+  - key: pnego_playtime_label
+    korean: "\uCD9C\uC804 \uC2DC\uAC04 \uC57D\uC18D"
+    english: Playtime Promise
+  - key: pnego_propose
+    korean: "\uC81C\uC548"
+    english: Propose
+  - key: pnego_wage_caption_fmt
+    korean: "\uC8FC\uAE09 {0} / \uC8FC"
+    english: Wage {0} / week
+  - key: pnego_reaction_happy
+    korean: "\uC120\uC218\uAC00 \uB9CC\uC871\uC2A4\uB7EC\uC6CC\uD569\uB2C8\uB2E4"
+    english: The player is pleased
+  - key: pnego_reaction_think
+    korean: "\uC120\uC218\uAC00 \uACE0\uBBFC \uC911\uC785\uB2C8\uB2E4"
+    english: The player is undecided
+  - key: pnego_reaction_unhappy
+    korean: "\uC120\uC218\uAC00 \uBD88\uB9CC\uC871\uC2A4\uB7EC\uC6CC\uD569\uB2C8\uB2E4"
+    english: The player is unhappy
+  - key: pnego_result_accepted
+    korean: "\uD569\uC758 \uC131\uC0AC! \uC774\uC801\uCC3D\uC774 \uC5F4\uB9AC\uBA74
+      \uC601\uC785\uC774 \uC644\uB8CC\uB429\uB2C8\uB2E4."
+    english: Agreed! The transfer completes when the window opens.
+  - key: pnego_result_rejected
+    korean: "\uC120\uC218\uAC00 \uC870\uAC74\uC744 \uAC70\uBD80\uD588\uC2B5\uB2C8\uB2E4
+      \u2014 \uD611\uC0C1 \uACB0\uB82C."
+    english: "The player rejected the terms \u2014 negotiation broke down."
+  - key: pnego_result_still_fmt
+    korean: "\uC120\uC218\uAC00 \uB9DD\uC124\uC785\uB2C8\uB2E4 (R{0}/{1}) \u2014
+      \uC870\uAC74\uC744 \uC62C\uB824 \uB2E4\uC2DC \uC81C\uC548\uD574 \uBCF4\uC138\uC694."
+    english: "The player hesitates (R{0}/{1}) \u2014 improve the terms and propose
+      again."
+  - key: negotiation_counter_title_fmt
+    korean: "{0} \uC774\uC801\uB8CC \uD611\uC0C1"
+    english: "{0} \u2014 Fee Negotiation"
+  - key: negotiation_counter_detail_fmt
+    korean: "\uB0B4 \uC81C\uC548 {0} \u2192 \uAD6C\uB2E8 \uC5ED\uC81C\uC548 {1} 
+      (\uB77C\uC6B4\uB4DC {2})"
+    english: "Your bid {0} \u2192 club counter {1}  (Round {2})"
+  - key: negotiation_accepted_title_fmt
+    korean: "{0} \uC774\uC801\uB8CC \uD569\uC758"
+    english: "{0} \u2014 Fee Agreed"
+  - key: negotiation_accepted_detail_fmt
+    korean: "\uAD6C\uB2E8\uC774 {0} \uC5D0 \uD569\uC758\uD588\uC2B5\uB2C8\uB2E4.
+      \uC218\uB77D \uC2DC \uAC1C\uC778 \uC870\uAC74 \uD611\uC0C1\uC73C\uB85C \uC9C4\uD589\uD569\uB2C8\uB2E4."
+    english: The club agreed to {0}. Accept to proceed to personal terms.
+  - key: negotiation_status_counter
+    korean: "\uC5ED\uC81C\uC548"
+    english: Counter
+  - key: negotiation_status_ai_accepted
+    korean: "\uC218\uB77D"
+    english: Accepted
+  - key: negotiation_status_pending
+    korean: "\uB300\uAE30 \uC911"
+    english: Pending
+  - key: negotiation_status_negotiating
+    korean: "\uAC1C\uC778\uD611\uC0C1"
+    english: Negotiating
+  - key: negotiation_status_accepted
+    korean: "\uD569\uC758"
+    english: Agreed
   - key: inbox_title
     korean: "\uC778\uBC15\uC2A4"
     english: Inbox

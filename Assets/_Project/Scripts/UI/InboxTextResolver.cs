@@ -43,6 +43,9 @@ namespace FMLite.UI
                         PlayerName(state, ArgInt(a, "playerId"))
                     );
                 case "inbox_counter_offer_fmt":
+                case "inbox_personal_negotiation_fmt":
+                case "inbox_offer_accepted_fmt":
+                case "inbox_offer_rejected_fmt":
                 {
                     var offer = state?.activeOffers?.Find(o =>
                         o != null && o.id == ArgInt(a, "offerId")

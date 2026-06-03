@@ -53,6 +53,14 @@ namespace FMLite.Domain
         ReCounter, // 새 금액 역제안 → AiRespondToOffer 재호출
     }
 
+    // V1.0 #469 — RespondToPersonalTerms 결과 (선수 개인 협상, Negotiating 단계).
+    public enum PersonalTermsResult
+    {
+        Accepted, // 선수 수락 → 이적 성사 대기 (Accepted)
+        StillNegotiating, // 선수 거절, 라운드 여유 → 재제안 가능 (Negotiating 유지)
+        Rejected, // 선수 거절, 최대 라운드 초과 → 협상 결렬 (Rejected)
+    }
+
     public enum PlayerOrigin
     {
         InitialRoster,

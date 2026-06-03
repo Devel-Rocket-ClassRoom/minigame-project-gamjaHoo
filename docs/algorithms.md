@@ -2585,9 +2585,9 @@ aiPerceivedValue = marketValue * max(0.5, noise)
 ratio = offer.amount / aiPerceivedValue
 
 if ratio >= 1.30:
-    offer.status = Accepted
+    offer.status = Negotiating                 # 구단 이적료 합의 → 선수 개인협상 단계 ([4])
 elif ratio >= 1.10:
-    offer.status = CounterOffer                # 신규 — 시장가 ×1.30 역제안 (offer.counterAmount 필드)
+    offer.status = CounterOffer                # 시장가 ×1.30 역제안 (offer.counterAmount 필드)
     offer.counterAmount = round(aiPerceivedValue * 1.30)
     offer.negotiationRound += 1
 elif ratio >= 0.85:
@@ -2596,42 +2596,53 @@ else:
     offer.status = Rejected
     # 조롱 효과 (사기 -3 보너스 별도 처리)
 
+offer.lastResponseDate = today                 # #384 EventScheduler 트리거 표식
 EventBus.Publish(new OfferRespondedEvent { offerId, newStatus })
 ```
 
-#### [3-b] CounterOffer 라운드 (신규)
+> **#469 재구성 (2026-06-03):** 코드가 `ratio≥1.30` 수락 구간을 `CounterOffer(counterAmount=amount)` 로 위장하던 결함 정정 → `Negotiating`(구단 이적료 합의). 이적료(역제안)와 선수 개인조건([4])을 FM 표준대로 분리. `InboxRouter` 는 `toClub=user` 의 `OfferRespondedEvent` 를 `Negotiating`(RequiresAction, OpenScene:PlayerNegotiationScene) / `Accepted`(High) / `Rejected`(Medium) 로 통지. `design-decisions.md` #69.
+
+#### [3-b] CounterOffer 라운드 (이적료 흥정)
 
 ```
-유저 응답 옵션:
-- Accept (counterAmount 수락 → status = Accepted → Negotiating 단계로)
+유저 응답 옵션 (NegotiationScene):
+- Accept (counterAmount 수락 → status = Negotiating → 개인조건 협상 [4] 로)
 - Reject (status = Rejected → 종료)
 - ReCounter (새 amount → AiRespondToOffer 재호출, negotiationRound++)
 
 negotiationRound > balance.maxNegotiationRounds (3) → 강제 Rejected
 ```
 
-#### [4] Negotiating (선수 개인 협상) — 신규
+#### [4] Negotiating — 선수 개인 조건 협상 (#469 인터랙티브 재구성)
+
+구단 이적료 합의(`Negotiating`) 후, 유저는 `PlayerNegotiationScene` 에서 주급/계약기간/출전약속을
+제안한다. `RespondToPersonalTerms(offerId, proposed, includesPlaytimeAgreement)`:
 
 ```
-# AI 구단 Accepted 후 선수 측 평가
-player = state.GetPlayer(offer.playerId)
+# 순수 평가 (EvaluatePlayerAcceptance / ComputePlayerAcceptChance)
 estimatedFairWage = EstimateInitialWage(player, balance)
-wageRatio = offer.proposed.weeklyWage / estimatedFairWage
+wageRatio = proposed.weeklyWage / estimatedFairWage
+acceptChance = 0.5
+acceptChance += (wageRatio - 1.0) * 0.5
+acceptChance -= (player.hiddenAttrs.loyalty - 50) / 100 * 0.3
+acceptChance += (player.hiddenAttrs.ambition - 50) / 100 * 0.3
+if includesPlaytimeAgreement: acceptChance += balance.playtimeAgreementBonus (0.2)
 
-baseAcceptChance = 0.5
-baseAcceptChance += (wageRatio - 1.0) * 0.5         # 주급 ↑ = 가능성 ↑
-baseAcceptChance -= (player.hiddenAttrs.loyalty - 50) / 100 * 0.3   # loyalty ↑ = 거절
-baseAcceptChance += (player.hiddenAttrs.ambition - 50) / 100 * 0.3  # ambition ↑ = 수락
-
-# 출전시간 약속 (PlaytimeAgreement Promise 자동 생성 옵션)
-if offer.includesPlaytimeAgreement:
-    baseAcceptChance += 0.2
-
-if rng.NextDouble() < baseAcceptChance:
-    offer.status = Accepted    # 체결 단계로
+rng = new Random(randomSeed ^ playerId*397 ^ offerId ^ currentDate.Ticks)   # round 미포함
+if rng.NextDouble() < acceptChance:
+    offer.status = Accepted        # 이적창 열리면 CompleteTransfer
 else:
-    offer.status = Rejected    # 협상 결렬
+    offer.personalNegotiationRound += 1
+    if offer.personalNegotiationRound >= balance.maxPersonalNegotiationRounds (4):
+        offer.status = Rejected    # 협상 결렬
+    else:
+        # Negotiating 유지 → 조건 상향 재제안 (반복 협상). 이벤트 미발행(인박스 스팸 방지).
 ```
+
+- **AI 구매 구단**: 개인협상 UI 없음 → `ProcessOffers` 가 `Negotiating + toClubId != userClubId` 를
+  `AutoResolveAiPersonalTerms`(proposed 1회 평가)로 자동 처리. V0.1 AI 이적 완결성 유지.
+- 결정성: 시드에 round 미포함 → 같은 날 같은 조건 재제안 = 동일 결과, 조건 상향 시 acceptChance↑ 로 고정 임계 초과.
+- UI: 주급 입력 + 선수 반응 라벨(만족/고민/불만, `EstimatePlayerAcceptChance` 확률 3단계). `yearsInput`/`playtimeToggle` 는 v1 미배선(3년/false 기본).
 
 #### [5] CompleteTransfer 변경 (임대 분기)
 

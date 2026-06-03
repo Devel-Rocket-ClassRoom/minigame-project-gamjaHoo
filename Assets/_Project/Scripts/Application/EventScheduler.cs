@@ -91,9 +91,10 @@ namespace FMLite.Application
                     continue;
                 if (offer.lastResponseDate.Value.Date != today)
                     continue;
-                // CounterOffer / Rejected 둘 다 user 가 알아야 할 응답.
+                // CounterOffer(역제안) / Negotiating(구단 합의→개인협상) / Rejected — user 가 알아야 할 응답.
                 if (
                     offer.status == OfferStatus.CounterOffer
+                    || offer.status == OfferStatus.Negotiating
                     || offer.status == OfferStatus.Rejected
                 )
                     return true;

@@ -40,6 +40,8 @@ namespace FMLite.Tests
                 "inbox_promise_deadline_fmt",
                 "inbox_transfer_request_fmt",
                 "inbox_counter_offer_fmt",
+                "inbox_offer_accepted_fmt",
+                "inbox_offer_rejected_fmt",
                 "inbox_contract_renewed_fmt",
                 "inbox_contract_rejected_fmt",
                 "inbox_youth_intake_fmt",

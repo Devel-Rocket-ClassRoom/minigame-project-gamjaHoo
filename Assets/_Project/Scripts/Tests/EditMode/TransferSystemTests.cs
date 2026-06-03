@@ -337,20 +337,14 @@ namespace FMLite.Tests
                 _balance
             );
             TransferSystem.ProcessOffers(state, _balance);
-            // 새 흐름: AI 수락 → CounterOffer. 유저 수락 시뮬레이션.
-            if (highOffer.status == OfferStatus.CounterOffer)
-                TransferSystem.RespondToCounterOffer(
-                    highOffer.id,
-                    CounterResponse.Accept,
-                    0,
-                    state,
-                    _balance
-                );
+            // #469 흐름: 구단 이적료 합의 → Negotiating → 개인 조건 제안(고임금) → Accepted.
+            if (highOffer.status == OfferStatus.Negotiating)
+                TransferSystem.RespondToPersonalTerms(highOffer.id, contract, false, state, _balance);
             // 여름 활성화 기간 안 (currentDate=7/1) — Accepted → 즉시 Completed 일 수도 / 또는 Accepted 유지
             Assert.That(
                 highOffer.status,
                 Is.EqualTo(OfferStatus.Accepted).Or.EqualTo(OfferStatus.Completed),
-                $"T8a: 높은 오퍼 → Accepted 또는 Completed (실측 {highOffer.status})"
+                $"T8a: 높은 오퍼 → 구단 합의 후 개인협상 수락 (실측 {highOffer.status})"
             );
 
             // Low offer (ratio ~0.5) → Rejected
@@ -416,16 +410,10 @@ namespace FMLite.Tests
                 _balance
             );
 
-            TransferSystem.ProcessOffers(state, _balance); // Pending → CounterOffer (AI 수락, 새 흐름)
-            // 새 흐름: AI 수락 → CounterOffer. 유저 수락 시뮬레이션 → Accepted 대기.
-            if (offer.status == OfferStatus.CounterOffer)
-                TransferSystem.RespondToCounterOffer(
-                    offer.id,
-                    CounterResponse.Accept,
-                    0,
-                    state,
-                    _balance
-                );
+            TransferSystem.ProcessOffers(state, _balance); // Pending → Negotiating (AI 이적료 수락, #469)
+            // #469 흐름: 구단 합의 → Negotiating → 개인 조건 제안(고임금) → Accepted 대기.
+            if (offer.status == OfferStatus.Negotiating)
+                TransferSystem.RespondToPersonalTerms(offer.id, contract, false, state, _balance);
             Assert.AreEqual(OfferStatus.Accepted, offer.status, "T9 사전: Accepted 대기");
             Assert.AreEqual(c1.id, p.currentClubId, "T9 사전: 아직 이적 X (활성화 기간 외)");
 
@@ -515,9 +503,9 @@ namespace FMLite.Tests
 
         // ── T11~T13. Release Clause (H.2 DoD) ────────────────────────
 
-        // T11. amount ≥ releaseClause → 즉시 Accepted + releaseClauseActivated
+        // T11. amount ≥ releaseClause → 구단 강제 합의(Negotiating) + releaseClauseActivated (#469)
         [Test]
-        public void T11_ReleaseClause_Exact_ImmediatelyAccepted()
+        public void T11_ReleaseClause_Exact_GoesToNegotiating()
         {
             var (state, c1, c2) = BuildState();
             var p = NewPlayer(1, ca: 100, pa: 100, age: 25, position: Position.CM, contractYears: 3);
@@ -534,7 +522,11 @@ namespace FMLite.Tests
             };
             var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 5_000_000, contract, state, _balance);
 
-            Assert.AreEqual(OfferStatus.Accepted, offer.status, "T11: release clause 발동 → Accepted");
+            Assert.AreEqual(
+                OfferStatus.Negotiating,
+                offer.status,
+                "T11: release clause 발동 → 구단 합의(Negotiating), 선수 협상은 진행"
+            );
             Assert.IsTrue(offer.releaseClauseActivated, "T11: releaseClauseActivated=true");
         }
 

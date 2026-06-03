@@ -281,6 +281,121 @@ namespace FMLite.Tests
             Assert.AreEqual(0, state.inbox.Count, "T12: Unwire 후 미생성");
         }
 
+        // ── T13. Accepted(toClub=user) → Transfer/High ───────────────
+
+        [Test]
+        public void T13_OfferAccepted_ToUserClub_AddsTransferHigh()
+        {
+            var state = NewState(userClubId: 10);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 1,
+                    fromClubId = 20,
+                    toClubId = 10,
+                    playerId = 50,
+                    status = OfferStatus.Accepted,
+                }
+            );
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new OfferRespondedEvent { offerId = 1, newStatus = OfferStatus.Accepted });
+
+            Assert.AreEqual(1, state.inbox.Count, "T13: 1개 생성");
+            var item = state.inbox[0];
+            Assert.AreEqual(InboxCategory.Transfer, item.category, "T13: Transfer");
+            Assert.AreEqual(InboxPriority.High, item.priority, "T13: High");
+            Assert.AreEqual("inbox_offer_accepted_fmt", item.titleKey, "T13: titleKey");
+            Assert.AreEqual(InboxAction.None, item.action, "T13: action None");
+            Assert.IsNull(item.deadline, "T13: deadline 없음");
+        }
+
+        // ── T14. Rejected(toClub=user) → Transfer/Medium ─────────────
+
+        [Test]
+        public void T14_OfferRejected_ToUserClub_AddsTransferMedium()
+        {
+            var state = NewState(userClubId: 10);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 1,
+                    fromClubId = 20,
+                    toClubId = 10,
+                    playerId = 50,
+                    status = OfferStatus.Rejected,
+                }
+            );
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new OfferRespondedEvent { offerId = 1, newStatus = OfferStatus.Rejected });
+
+            Assert.AreEqual(1, state.inbox.Count, "T14: 1개 생성");
+            var item = state.inbox[0];
+            Assert.AreEqual(InboxCategory.Transfer, item.category, "T14: Transfer");
+            Assert.AreEqual(InboxPriority.Medium, item.priority, "T14: Medium");
+            Assert.AreEqual("inbox_offer_rejected_fmt", item.titleKey, "T14: titleKey");
+        }
+
+        // ── T15. Accepted(toClub≠user) → 생성 안 됨 ──────────────────
+
+        [Test]
+        public void T15_OfferAccepted_ToOtherClub_NoInboxItem()
+        {
+            var state = NewState(userClubId: 10);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 1,
+                    fromClubId = 10,
+                    toClubId = 20,
+                    playerId = 50,
+                    status = OfferStatus.Accepted,
+                }
+            );
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new OfferRespondedEvent { offerId = 1, newStatus = OfferStatus.Accepted });
+
+            Assert.AreEqual(0, state.inbox.Count, "T15: 유저 무관 오퍼 — 미생성");
+        }
+
+        // ── T16. Negotiating(toClub=user) → Transfer/RequiresAction + PlayerNegotiationScene ─
+
+        [Test]
+        public void T16_Negotiating_ToUserClub_AddsTransferRequiresAction()
+        {
+            var state = NewState(userClubId: 10);
+            state.activeOffers.Add(
+                new TransferOffer
+                {
+                    id = 1,
+                    fromClubId = 20,
+                    toClubId = 10,
+                    playerId = 50,
+                    status = OfferStatus.Negotiating,
+                }
+            );
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new OfferRespondedEvent { offerId = 1, newStatus = OfferStatus.Negotiating }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T16: 1개 생성");
+            var item = state.inbox[0];
+            Assert.AreEqual(InboxCategory.Transfer, item.category, "T16: Transfer");
+            Assert.AreEqual(InboxPriority.RequiresAction, item.priority, "T16: RequiresAction");
+            Assert.AreEqual("inbox_personal_negotiation_fmt", item.titleKey, "T16: titleKey");
+            Assert.AreEqual(InboxAction.OpenScene, item.action, "T16: OpenScene");
+            Assert.AreEqual(
+                "PlayerNegotiationScene",
+                item.actionTargetSceneOrDialogId,
+                "T16: target"
+            );
+            Assert.AreEqual(_date.AddDays(7), item.deadline, "T16: deadline +7일");
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────────────────
 
         private GameState NewState(int userClubId = -1) =>

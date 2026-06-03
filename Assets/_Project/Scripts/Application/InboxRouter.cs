@@ -89,25 +89,65 @@ namespace FMLite.Application
 
             // ── Transfer ─────────────────────────────────────────────────
             // CounterOffer → 강제 NegotiationScene 라우팅 폐기 (design-decisions.md #66)
+            // Accepted/Rejected → 결과 통지 인박스 (역제안 외 결과도 사용자가 인지하도록).
             Subscribe<OfferRespondedEvent>(e =>
             {
                 var offer = state.activeOffers.Find(o => o.id == e.offerId);
-                if (
-                    offer != null
-                    && offer.toClubId == state.userClubId
-                    && e.newStatus == OfferStatus.CounterOffer
-                )
+                if (offer == null || offer.toClubId != state.userClubId)
+                    return;
+
+                var args = new Dictionary<string, string> { { "offerId", e.offerId.ToString() } };
+
+                switch (e.newStatus)
                 {
-                    AddInbox(
-                        state,
-                        InboxCategory.Transfer,
-                        InboxPriority.RequiresAction,
-                        "inbox_counter_offer_fmt",
-                        new Dictionary<string, string> { { "offerId", e.offerId.ToString() } },
-                        deadline: state.currentDate.AddDays(7),
-                        action: InboxAction.OpenScene,
-                        target: "NegotiationScene"
-                    );
+                    case OfferStatus.CounterOffer:
+                        AddInbox(
+                            state,
+                            InboxCategory.Transfer,
+                            InboxPriority.RequiresAction,
+                            "inbox_counter_offer_fmt",
+                            args,
+                            deadline: state.currentDate.AddDays(7),
+                            action: InboxAction.OpenScene,
+                            target: "NegotiationScene"
+                        );
+                        break;
+
+                    case OfferStatus.Negotiating:
+                        // 구단 이적료 합의 → 선수 개인협상 단계 (PlayerNegotiationScene).
+                        AddInbox(
+                            state,
+                            InboxCategory.Transfer,
+                            InboxPriority.RequiresAction,
+                            "inbox_personal_negotiation_fmt",
+                            args,
+                            deadline: state.currentDate.AddDays(7),
+                            action: InboxAction.OpenScene,
+                            target: "PlayerNegotiationScene"
+                        );
+                        break;
+
+                    case OfferStatus.Accepted:
+                        // 구단 수락 + 선수 합의 → 이적창 열리면 자동 성사 (action 없음).
+                        AddInbox(
+                            state,
+                            InboxCategory.Transfer,
+                            InboxPriority.High,
+                            "inbox_offer_accepted_fmt",
+                            args
+                        );
+                        break;
+
+                    case OfferStatus.Rejected:
+                        // 구단 거절 또는 선수 개인협상 결렬 (단일 "거절" 문구로 통합).
+                        AddInbox(
+                            state,
+                            InboxCategory.Transfer,
+                            InboxPriority.Medium,
+                            "inbox_offer_rejected_fmt",
+                            args
+                        );
+                        break;
                 }
             });
 
