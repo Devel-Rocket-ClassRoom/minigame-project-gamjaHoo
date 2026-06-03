@@ -142,14 +142,17 @@ namespace FMLite.UI
             if (balance == null)
                 return;
 
-            if (!TryParseOffer(out int amount, out int wage, out int years))
+            if (!TryParseAmount(out int amount))
                 return;
 
+            // 오퍼는 이적료만 (#469). 개인 조건(주급/계약기간/출전약속)은 구단 합의 후
+            // PlayerNegotiationScene 에서 협상. 여기선 공정 주급 / 3년 기본 계약을 placeholder 로 부여.
+            int defaultWage = TransferSystem.SuggestFairWage(player, balance);
             var proposed = new Contract
             {
-                weeklyWage = wage,
+                weeklyWage = defaultWage,
                 startDate = _state.currentDate,
-                endDate = _state.currentDate.AddYears(years),
+                endDate = _state.currentDate.AddYears(3),
                 releaseClause = 0,
             };
 
@@ -292,27 +295,16 @@ namespace FMLite.UI
                 int suggested = (int)(mv * 1.30);
                 offerAmountInput.text = suggested.ToString();
             }
-            if (offerWageInput != null)
-                offerWageInput.text = "50000";
-            if (offerYearsInput != null)
-                offerYearsInput.text = "3";
 
             if (offerPanel != null)
                 offerPanel.SetActive(true);
         }
 
-        private bool TryParseOffer(out int amount, out int wage, out int years)
+        // 오퍼는 이적료만 검증 (#469 — 개인 조건은 PlayerNegotiationScene).
+        private bool TryParseAmount(out int amount)
         {
             amount = 0;
-            wage = 0;
-            years = 0;
-            if (!int.TryParse(offerAmountInput?.text, out amount) || amount <= 0)
-                return false;
-            if (!int.TryParse(offerWageInput?.text, out wage) || wage <= 0)
-                return false;
-            if (!int.TryParse(offerYearsInput?.text, out years) || years < 1 || years > 10)
-                return false;
-            return true;
+            return int.TryParse(offerAmountInput?.text, out amount) && amount > 0;
         }
 
         private void RefreshWindowStatus()

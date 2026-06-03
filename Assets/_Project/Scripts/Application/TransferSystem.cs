@@ -122,20 +122,30 @@ namespace FMLite.Application
                 status = OfferStatus.Pending,
             };
 
-            // Release clause 발동: amount ≥ clause → 판매 구단 응답 강제 Accepted
+            // Release clause 발동: amount ≥ clause → 판매 구단 강제 합의 → 선수 개인협상(Negotiating).
+            // (선수 협상은 그대로 진행 — design-decisions.md #48/#69)
             if (
                 player.contract != null
                 && player.contract.releaseClause > 0
                 && amount >= player.contract.releaseClause
             )
             {
-                offer.status = OfferStatus.Accepted;
+                offer.status = OfferStatus.Negotiating;
                 offer.releaseClauseActivated = true;
             }
 
             state.activeOffers.Add(offer);
 
             EventBus.Publish(new OfferSubmittedEvent { offerId = offer.id });
+            // 구단 합의(release clause) → 개인협상 단계 인박스 라우팅 트리거.
+            if (offer.status == OfferStatus.Negotiating)
+                EventBus.Publish(
+                    new OfferRespondedEvent
+                    {
+                        offerId = offer.id,
+                        newStatus = OfferStatus.Negotiating,
+                    }
+                );
             return offer;
         }
 
@@ -158,7 +168,13 @@ namespace FMLite.Application
                 {
                     case OfferStatus.Pending:
                         AiRespondToOffer(offer, state, balance);
-                        // CounterOffer/Rejected: Dashboard 가 감지 → NegotiationScene 라우팅
+                        break;
+
+                    case OfferStatus.Negotiating:
+                        // AI 구매 구단은 개인협상 UI 가 없음 → proposed 조건으로 자동 평가
+                        // (V0.1 AI 이적 완결성 유지). 유저 클럽은 PlayerNegotiationScene 대기.
+                        if (offer.toClubId != state.userClubId)
+                            AutoResolveAiPersonalTerms(offer, state, balance);
                         break;
 
                     case OfferStatus.Accepted:
@@ -168,7 +184,7 @@ namespace FMLite.Application
                         break;
 
                     // CounterOffer — 유저 RespondToCounterOffer 호출 대기
-                    // Negotiating / Rejected / Completed: skip
+                    // Rejected / Completed: skip
                 }
             }
         }
@@ -202,13 +218,12 @@ namespace FMLite.Application
             double aiPerceivedValue = marketValue * noise;
             double ratio = aiPerceivedValue > 0 ? offer.amount / aiPerceivedValue : 0;
 
-            // V0.5 K.1/K.2 4분기 응답 (algorithms.md V0.5-3.1 [3-a])
-            // AI 구단 수락 → CounterOffer(counterAmount = amount) 로 저장, 유저 NegotiationScene 대기
+            // V0.5 K.1/K.2 4분기 응답 (algorithms.md V0.5-3.1 [3-a], V1.0 #469 정합화)
+            // 구단 이적료 수락(ratio≥1.30) → Negotiating (선수 개인협상 단계, PlayerNegotiationScene).
+            // 위장 CounterOffer(counterAmount=amount) 폐기 — 좋은 오퍼가 매번 역제안으로 뜨던 결함 정정.
             if (ratio >= balance.aiAcceptThreshold)
             {
-                offer.status = OfferStatus.CounterOffer;
-                offer.counterAmount = offer.amount;
-                offer.negotiationRound++;
+                offer.status = OfferStatus.Negotiating;
             }
             else if (ratio >= balance.aiCounterOfferThreshold)
             {
@@ -241,19 +256,163 @@ namespace FMLite.Application
             );
         }
 
-        // ── PlayerNegotiate (algorithms.md V0.5-3.1 [4] / design-decisions.md #48) ──
+        // ── 선수 개인 협상 (algorithms.md V0.5-3.1 [4] / design-decisions.md #48, #69) ──
 
-        // AI 구단 수락(Negotiating) 후 선수 측 평가.
+        // 선수 수락 확률 (순수 — RNG·부수효과 없음). UI 반응 미리보기 + RespondToPersonalTerms 공용.
         // loyalty ↑ → 거절 / ambition ↑ → 수락 / includesPlaytimeAgreement → +playtimeAgreementBonus.
-        // 결과: Accepted 또는 Rejected (+ OfferRespondedEvent 발행).
-        private static void PlayerNegotiate(
+        // includeHidden=false → 공개 정보(주급/출전약속)만 — UI 반응 미리보기용.
+        // includeHidden=true → 숨은 능력치(loyalty/ambition) 포함 — 실제 수락 판정용.
+        private static double ComputePlayerAcceptChance(
+            Player player,
+            int weeklyWage,
+            bool includesPlaytimeAgreement,
+            GameBalanceSO balance,
+            bool includeHidden = true
+        )
+        {
+            int fairWage = EstimateInitialWage(player.currentAbility, balance);
+            double wageRatio = fairWage > 0 ? (double)weeklyWage / fairWage : 1.0;
+
+            double acceptChance = 0.5 + (wageRatio - 1.0) * 0.5;
+
+            if (includeHidden)
+            {
+                int loyalty = player.hiddenAttrs != null ? player.hiddenAttrs.loyalty : 50;
+                int ambition = player.hiddenAttrs != null ? player.hiddenAttrs.ambition : 50;
+                acceptChance -= (loyalty - 50) / 100.0 * 0.3; // loyalty ↑ = 거절
+                acceptChance += (ambition - 50) / 100.0 * 0.3; // ambition ↑ = 수락
+            }
+
+            if (includesPlaytimeAgreement)
+                acceptChance += balance.playtimeAgreementBonus;
+
+            return acceptChance;
+        }
+
+        // UI 반응 미리보기 — 공개 정보(주급)만 반영한 대략적 수락 확률 (0~1 clamp).
+        // 숨은 능력치(loyalty/ambition)는 제외 → 실제 제안 시 불확실성이 남아 재협상 라운드가 유의미.
+        public static double EstimatePlayerAcceptChance(
+            int playerId,
+            int weeklyWage,
+            bool includesPlaytimeAgreement,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            var player = state?.GetPlayer(playerId);
+            if (player == null || balance == null)
+                return 0.0;
+            return Math.Clamp(
+                ComputePlayerAcceptChance(
+                    player,
+                    weeklyWage,
+                    includesPlaytimeAgreement,
+                    balance,
+                    includeHidden: false
+                ),
+                0.0,
+                1.0
+            );
+        }
+
+        // 공정 주급 추정 (선수 개인협상 씬 기본값/안내용). PlayerGenerator 와 동일 공식.
+        public static int SuggestFairWage(Player player, GameBalanceSO balance)
+        {
+            if (player == null || balance == null)
+                return 0;
+            return EstimateInitialWage(player.currentAbility, balance);
+        }
+
+        // ── RespondToPersonalTerms (V1.0 #469 — Negotiating 단계 인터랙티브 협상) ──
+
+        // 구단 이적료 합의(Negotiating) 후 유저가 개인 조건(주급/계약기간/출전약속)을 제안.
+        // 선수 수락 → Accepted (이적창 열리면 CompleteTransfer).
+        // 거절 → personalNegotiationRound++. max 초과 시 Rejected, 아니면 Negotiating 유지(재제안).
+        // 결정성 시드는 round 미포함 — 같은 날 같은 조건 재제안=동일 결과, 조건 상향 시 수락 확률↑.
+        public static PersonalTermsResult RespondToPersonalTerms(
+            int offerId,
+            Contract proposed,
+            bool includesPlaytimeAgreement,
+            GameState state,
+            GameBalanceSO balance
+        )
+        {
+            if (proposed == null)
+                throw new ArgumentNullException(nameof(proposed));
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+
+            var offer =
+                state.activeOffers.Find(o => o != null && o.id == offerId)
+                ?? throw new ArgumentException($"offer id={offerId} not found");
+
+            if (offer.status != OfferStatus.Negotiating)
+                throw new InvalidOperationException(
+                    $"offer id={offerId} status={offer.status} — Negotiating 상태가 아님"
+                );
+
+            offer.proposed = proposed;
+            offer.includesPlaytimeAgreement = includesPlaytimeAgreement;
+
+            var player = state.GetPlayer(offer.playerId);
+            if (player == null)
+            {
+                offer.status = OfferStatus.Rejected;
+                EventBus.Publish(
+                    new OfferRespondedEvent { offerId = offer.id, newStatus = OfferStatus.Rejected }
+                );
+                return PersonalTermsResult.Rejected;
+            }
+
+            int seed =
+                state.randomSeed
+                ^ (offer.playerId * 397)
+                ^ offer.id
+                ^ unchecked((int)state.currentDate.Ticks);
+            var rng = new Random(seed);
+
+            double acceptChance = ComputePlayerAcceptChance(
+                player,
+                proposed.weeklyWage,
+                includesPlaytimeAgreement,
+                balance
+            );
+
+            if (rng.NextDouble() < acceptChance)
+            {
+                offer.status = OfferStatus.Accepted;
+                EventBus.Publish(
+                    new OfferRespondedEvent { offerId = offer.id, newStatus = OfferStatus.Accepted }
+                );
+                return PersonalTermsResult.Accepted;
+            }
+
+            offer.personalNegotiationRound++;
+            if (offer.personalNegotiationRound >= balance.maxPersonalNegotiationRounds)
+            {
+                offer.status = OfferStatus.Rejected;
+                EventBus.Publish(
+                    new OfferRespondedEvent { offerId = offer.id, newStatus = OfferStatus.Rejected }
+                );
+                return PersonalTermsResult.Rejected;
+            }
+
+            // Negotiating 유지 — 재제안 가능 (이벤트 미발행: 인박스 스팸 방지)
+            return PersonalTermsResult.StillNegotiating;
+        }
+
+        // AI 구매 구단의 개인협상 자동 처리 — proposed 조건으로 1회 평가 (재협상 없음).
+        // ProcessOffers 가 Negotiating + toClubId != userClubId 일 때 호출.
+        private static void AutoResolveAiPersonalTerms(
             TransferOffer offer,
             GameState state,
             GameBalanceSO balance
         )
         {
             var player = state.GetPlayer(offer.playerId);
-            if (player == null)
+            if (player == null || offer.proposed == null)
             {
                 offer.status = OfferStatus.Rejected;
                 EventBus.Publish(
@@ -269,25 +428,15 @@ namespace FMLite.Application
                 ^ unchecked((int)state.currentDate.Ticks);
             var rng = new Random(seed);
 
-            int fairWage = EstimateInitialWage(player.currentAbility, balance);
-            double wageRatio =
-                fairWage > 0 ? (double)(offer.proposed?.weeklyWage ?? 0) / fairWage : 1.0;
-
-            double acceptChance = 0.5;
-            acceptChance += (wageRatio - 1.0) * 0.5;
-
-            int loyalty = player.hiddenAttrs != null ? player.hiddenAttrs.loyalty : 50;
-            int ambition = player.hiddenAttrs != null ? player.hiddenAttrs.ambition : 50;
-
-            acceptChance -= (loyalty - 50) / 100.0 * 0.3; // loyalty ↑ = 거절
-            acceptChance += (ambition - 50) / 100.0 * 0.3; // ambition ↑ = 수락
-
-            if (offer.includesPlaytimeAgreement)
-                acceptChance += balance.playtimeAgreementBonus;
+            double acceptChance = ComputePlayerAcceptChance(
+                player,
+                offer.proposed.weeklyWage,
+                offer.includesPlaytimeAgreement,
+                balance
+            );
 
             offer.status =
                 rng.NextDouble() < acceptChance ? OfferStatus.Accepted : OfferStatus.Rejected;
-
             EventBus.Publish(
                 new OfferRespondedEvent { offerId = offer.id, newStatus = offer.status }
             );
@@ -326,8 +475,15 @@ namespace FMLite.Application
             {
                 case CounterResponse.Accept:
                     offer.amount = offer.counterAmount;
-                    // 구단 합의 후 즉시 선수 협상 (K.2)
-                    PlayerNegotiate(offer, state, balance);
+                    // 구단 이적료 합의 → 선수 개인협상 단계 (PlayerNegotiationScene)
+                    offer.status = OfferStatus.Negotiating;
+                    EventBus.Publish(
+                        new OfferRespondedEvent
+                        {
+                            offerId = offer.id,
+                            newStatus = OfferStatus.Negotiating,
+                        }
+                    );
                     break;
 
                 case CounterResponse.Reject:

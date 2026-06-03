@@ -908,6 +908,21 @@ namespace FMLite.Editor
                     "[Counter-offer] {0} — counter-offer received"
                 ),
                 E(
+                    "inbox_personal_negotiation_fmt",
+                    "[개인협상] {0} 영입 — 구단 합의, 개인 조건 협상 필요",
+                    "[Personal Terms] {0} — club agreed, negotiate personal terms"
+                ),
+                E(
+                    "inbox_offer_accepted_fmt",
+                    "[오퍼 수락] {0} 영입 — 구단 합의, 이적창 열리면 성사",
+                    "[Offer Accepted] {0} — agreed, completes when window opens"
+                ),
+                E(
+                    "inbox_offer_rejected_fmt",
+                    "[오퍼 거절] {0} 영입 — 협상 결렬",
+                    "[Offer Rejected] {0} — negotiation fell through"
+                ),
+                E(
                     "inbox_contract_renewed_fmt",
                     "[재계약] {0} 재계약 체결",
                     "[Renewal] {0} has signed a new contract"
@@ -922,6 +937,54 @@ namespace FMLite.Editor
                     "[유스] {0} 유스 인스펙션 가능",
                     "[Youth] {0} youth intake available"
                 ),
+
+                // ── Player Negotiation (개인 조건 협상, #469) ─────────
+                E("pnego_title", "개인 조건 협상", "Personal Terms"),
+                E("pnego_empty", "진행 중인 개인 협상이 없습니다", "No ongoing personal negotiations"),
+                E("pnego_status_negotiating", "개인협상", "Negotiating"),
+                E("pnego_terms_title_fmt", "{0} 개인 조건 협상", "{0} — Personal Terms"),
+                E("pnego_wage_label", "주급", "Weekly Wage"),
+                E("pnego_years_label", "계약 기간(년)", "Contract Years"),
+                E("pnego_playtime_label", "출전 시간 약속", "Playtime Promise"),
+                E("pnego_propose", "제안", "Propose"),
+                E("pnego_wage_caption_fmt", "주급 {0} / 주", "Wage {0} / week"),
+                E("pnego_reaction_happy", "선수가 만족스러워합니다", "The player is pleased"),
+                E("pnego_reaction_think", "선수가 고민 중입니다", "The player is undecided"),
+                E("pnego_reaction_unhappy", "선수가 불만족스러워합니다", "The player is unhappy"),
+                E(
+                    "pnego_result_accepted",
+                    "합의 성사! 이적창이 열리면 영입이 완료됩니다.",
+                    "Agreed! The transfer completes when the window opens."
+                ),
+                E(
+                    "pnego_result_rejected",
+                    "선수가 조건을 거부했습니다 — 협상 결렬.",
+                    "The player rejected the terms — negotiation broke down."
+                ),
+                E(
+                    "pnego_result_still_fmt",
+                    "선수가 망설입니다 (R{0}/{1}) — 조건을 올려 다시 제안해 보세요.",
+                    "The player hesitates (R{0}/{1}) — improve the terms and propose again."
+                ),
+
+                // ── Negotiation (구단 이적료 협상 / 역제안) ───────────
+                E("negotiation_counter_title_fmt", "{0} 이적료 협상", "{0} — Fee Negotiation"),
+                E(
+                    "negotiation_counter_detail_fmt",
+                    "내 제안 {0} → 구단 역제안 {1}  (라운드 {2})",
+                    "Your bid {0} → club counter {1}  (Round {2})"
+                ),
+                E("negotiation_accepted_title_fmt", "{0} 이적료 합의", "{0} — Fee Agreed"),
+                E(
+                    "negotiation_accepted_detail_fmt",
+                    "구단이 {0} 에 합의했습니다. 수락 시 개인 조건 협상으로 진행합니다.",
+                    "The club agreed to {0}. Accept to proceed to personal terms."
+                ),
+                E("negotiation_status_counter", "역제안", "Counter"),
+                E("negotiation_status_ai_accepted", "수락", "Accepted"),
+                E("negotiation_status_pending", "대기 중", "Pending"),
+                E("negotiation_status_negotiating", "개인협상", "Negotiating"),
+                E("negotiation_status_accepted", "합의", "Agreed"),
 
                 // ── Inbox UI ─────────────────────────────────────────
                 E("inbox_title", "인박스", "Inbox"),

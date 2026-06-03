@@ -52,12 +52,15 @@ namespace FMLite.Tests
         [TearDown]
         public void TearDown() => EventBus.Clear();
 
-        // ── T1. ratio >= 1.30 → Accepted (100 시드 중 다수) ──────────
+        // ── T1. ratio >= 1.30 → Negotiating (구단 합의 → 개인협상 단계) ──
+        // 명세 V0.5-3.1 [3-a] (#469): 구단 이적료 수락 → Negotiating. 역제안 위장 폐기.
+        // 후한 오퍼는 CounterOffer 로 뜨지 않음을 함께 검증.
 
         [Test]
-        public void T1_HighOffer_MostlyAccepted()
+        public void T1_HighOffer_GoesToNegotiating_NoCounterOffer()
         {
-            int accepted = 0;
+            int negotiating = 0;
+            int counterOffers = 0;
             const int trials = 100;
             for (int seed = 0; seed < trials; seed++)
             {
@@ -78,22 +81,21 @@ namespace FMLite.Tests
                     _balance
                 );
                 TransferSystem.ProcessOffers(state, _balance);
-                // 새 흐름: AI 수락 → CounterOffer. 유저 수락 시뮬레이션.
+
                 if (offer.status == OfferStatus.CounterOffer)
-                    TransferSystem.RespondToCounterOffer(
-                        offer.id,
-                        CounterResponse.Accept,
-                        0,
-                        state,
-                        _balance
-                    );
-                if (offer.status == OfferStatus.Accepted || offer.status == OfferStatus.Completed)
-                    accepted++;
+                    counterOffers++;
+                if (offer.status == OfferStatus.Negotiating)
+                    negotiating++;
             }
             Assert.GreaterOrEqual(
-                accepted,
+                negotiating,
                 80,
-                $"T1: ratio×2.0 → 80% 이상 Accepted ({accepted}/100)"
+                $"T1: ratio×2.0 → 80% 이상 Negotiating(구단 합의) ({negotiating}/100)"
+            );
+            Assert.AreEqual(
+                0,
+                counterOffers,
+                $"T1: 후한 오퍼는 CounterOffer(역제안)로 뜨지 않아야 함 ({counterOffers}/100)"
             );
         }
 
@@ -196,10 +198,10 @@ namespace FMLite.Tests
             Assert.AreEqual(47, p.state.morale, "T4: 사기 50-3=47");
         }
 
-        // ── T5. RespondToCounterOffer — Accept → Accepted ─────────────
+        // ── T5. RespondToCounterOffer — Accept → Negotiating (개인협상 단계) ──
 
         [Test]
-        public void T5_RespondAccept_StatusAccepted()
+        public void T5_RespondAccept_StatusNegotiating()
         {
             var (state, c1, c2) = BuildState(42);
             var offer = MakeCounterOffer(state, c1, c2, counterAmount: 5_000_000);
@@ -215,10 +217,10 @@ namespace FMLite.Tests
                 _balance
             );
 
-            Assert.AreEqual(OfferStatus.Accepted, offer.status, "T5: Accepted");
+            Assert.AreEqual(OfferStatus.Negotiating, offer.status, "T5: 이적료 합의 → Negotiating");
             Assert.AreEqual(5_000_000, offer.amount, "T5: amount = counterAmount");
             Assert.IsNotNull(published);
-            Assert.AreEqual(OfferStatus.Accepted, published!.newStatus);
+            Assert.AreEqual(OfferStatus.Negotiating, published!.newStatus);
         }
 
         // ── T6. RespondToCounterOffer — Reject → Rejected ────────────
@@ -253,7 +255,7 @@ namespace FMLite.Tests
             var offer = MakeCounterOffer(state, c1, c2, counterAmount: 5_000_000);
 
             int mv = TransferSystem.CalculateMarketValue(p, state, _balance);
-            // 매우 높은 역제안 → AI 반드시 Accepted
+            // 매우 높은 역제안 → AI 이적료 수락 → Negotiating
             TransferSystem.RespondToCounterOffer(
                 offer.id,
                 CounterResponse.ReCounter,
@@ -264,8 +266,8 @@ namespace FMLite.Tests
 
             Assert.That(
                 offer.status,
-                Is.EqualTo(OfferStatus.Accepted).Or.EqualTo(OfferStatus.CounterOffer),
-                "T7: ReCounter 후 AI 응답 (Accepted 또는 CounterOffer)"
+                Is.EqualTo(OfferStatus.Negotiating).Or.EqualTo(OfferStatus.CounterOffer),
+                "T7: ReCounter 후 AI 응답 (Negotiating 또는 CounterOffer)"
             );
         }
 

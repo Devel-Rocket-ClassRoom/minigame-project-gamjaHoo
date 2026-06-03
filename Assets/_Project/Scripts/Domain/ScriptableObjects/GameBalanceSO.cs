@@ -394,7 +394,8 @@ namespace FMLite.Domain
         public float aiCounterOfferThreshold = 1.10f; // ratio >= → CounterOffer (역제안)
         public float aiMockingThreshold = 0.85f; // ratio < → Mocking (모욕적 오퍼, 사기 감소)
         public float aiCounterOfferFactor = 1.30f; // counterAmount = aiPerceivedValue × factor
-        public int maxNegotiationRounds = 3; // 최대 협상 라운드
+        public int maxNegotiationRounds = 3; // 최대 이적료 협상 라운드 (구단 역제안)
+        public int maxPersonalNegotiationRounds = 4; // 최대 선수 개인 협상 라운드 (V1.0 #469)
         public int aiMockingMoralePenalty = 3; // 모욕적 오퍼 시 사기 감소량
         public float playtimeAgreementBonus = 0.2f; // 출전시간 약속 포함 시 선수 수락 확률 +N
 

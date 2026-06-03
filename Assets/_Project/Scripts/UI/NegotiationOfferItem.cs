@@ -47,7 +47,10 @@ namespace FMLite.UI
 
             if (selectButton != null)
             {
-                selectButton.interactable = offer.status == OfferStatus.CounterOffer;
+                // 역제안(이적료) 또는 개인협상(Negotiating) 단계에서 선택 가능.
+                selectButton.interactable =
+                    offer.status == OfferStatus.CounterOffer
+                    || offer.status == OfferStatus.Negotiating;
                 if (onSelect != null)
                     selectButton.onClick.AddListener(() => onSelect());
             }

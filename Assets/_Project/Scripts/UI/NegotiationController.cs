@@ -252,12 +252,8 @@ namespace FMLite.UI
                 // 유저 클럽이 매수 측인 오퍼만 (toClubId == userClubId)
                 if (offer.toClubId != _state.userClubId)
                     continue;
-                if (
-                    offer.status == OfferStatus.CounterOffer
-                    || offer.status == OfferStatus.Pending
-                    || offer.status == OfferStatus.Negotiating
-                    || offer.status == OfferStatus.Accepted
-                )
+                // 이 씬은 구단 이적료 흥정(역제안) 전용. 개인협상(Negotiating)은 PlayerNegotiationScene.
+                if (offer.status == OfferStatus.CounterOffer)
                     result.Add(offer);
             }
             return result;

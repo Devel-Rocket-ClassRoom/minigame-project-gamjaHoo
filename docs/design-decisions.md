@@ -2261,6 +2261,43 @@ public class StatSnapshot {
 
 ---
 
+## 69. 이적 흐름 재구성 — 이적료↔개인조건 분리 + 선수 개인협상 단계/씬 (V1.0 — Stage F 선행, #469)
+
+**결정:** 이적을 FM 표준 2단계로 분리 — (1) 구단 이적료 협상 (역제안), (2) 선수 개인조건 협상 (`Negotiating` 단계, 전용 씬). 명세에 정의됐으나 미사용이던 `OfferStatus.Negotiating` ([3-b][4]) 을 실제 인터랙티브 단계로 구현.
+
+**배경 (결함 3건):**
+1. 코드가 `ratio ≥ 1.30` 수락 구간을 `CounterOffer(counterAmount=amount)` 로 위장 → **후한 오퍼도 항상 '역제안'** 으로 표시 (사용자 혼란).
+2. 선수 개인협상(`PlayerNegotiate`) 이 코드로 자동 처리될 뿐 **UI(씬) 가 없음** → 구단 합의 후 아무 화면도 안 뜸.
+3. `NegotiationScene.offerItemPrefab` 미연결 → 역제안 씬 빈 화면.
+
+**변경 (흐름):**
+- `AiRespondToOffer`: `ratio ≥ 1.30` → `status = Negotiating` (구단 이적료 합의). `1.10 ≤ ratio < 1.30` → `CounterOffer` (진짜 역제안, 이적료 흥정). 이하 거절.
+- `RespondToCounterOffer.Accept` / release clause → `Negotiating` 으로 수렴 (이적료 합의 완료).
+- **신규 `RespondToPersonalTerms(offerId, proposed, playtime)`**: `Negotiating` 오퍼에 주급/계약기간/출전약속 제안 → `EvaluatePlayerAcceptance`(순수, loyalty/ambition/wage/playtime). 수락 → `Accepted` / 거절 → `personalNegotiationRound++`, `maxPersonalNegotiationRounds(4)` 초과 시 `Rejected`, 아니면 `Negotiating` 유지(재제안). **반복 협상.**
+- **AI 구매 구단**: 개인협상 UI 없음 → `ProcessOffers` 가 `Negotiating + toClubId != userClubId` 를 `AutoResolveAiPersonalTerms` 로 1회 자동 평가 (V0.1 AI 이적 완결성 유지).
+- 오퍼 제출은 **이적료만** (`TransferController`); 주급/계약기간은 개인협상 씬에서 결정 (`SubmitOffer` 에는 공정 주급/3년 placeholder).
+
+**변경 (UI):**
+- 신규 `PlayerNegotiationController` + `PlayerNegotiationScene` (NegotiationScene 복제 후 재구성): Negotiating 오퍼 목록 → 선택 → 주급 입력 + 선수반응 라벨(확률 3단계) + [제안] → 결과 피드백(성사/재협상 R{n}/{max}/결렬). `EstimatePlayerAcceptChance` 로 반응 미리보기.
+- `NegotiationController` 는 `CounterOffer` 전용으로 축소.
+- `offerItemPrefab` 연결 (#4 수정).
+
+**변경 (통지):** `InboxRouter` — `Negotiating` → Transfer/RequiresAction `OpenScene:PlayerNegotiationScene`, `Accepted` → High, `Rejected` → Medium, `CounterOffer` → NegotiationScene. `EventScheduler` Continue 정지 트리거에 `Negotiating` 추가.
+
+**이유:**
+- **명세 우선 + FM 표준**: 이적료 합의와 개인조건 협상은 별개 단계. `Negotiating` status 가 본래 그 의도.
+- **인터랙티브**: 자동 처리 → 유저가 주급을 조정하며 반복 협상 (거절 시 상향 재제안). 결정성 시드는 round 미포함 — 같은 날 같은 조건=동일 결과, 조건 상향 시 수락 확률↑.
+
+**V1.x 보완 포인트:**
+- **출전 시간 약속 = 카테고리 시스템 (정식 구현 필요)**: 현재 `Promise.PlaytimeAgreement` 는 `targets["minPlayRatio"]`(0~100 %) 기반이고, **명명된 스쿼드 지위 카테고리(주전/중요선수/로테이션/비주전/후보 등)가 없음**. FM 표준대로 카테고리 → minPlayRatio 매핑(예: 주전 70 / 중요 50 / 비주전 30 / 후보 10)을 도입해야 함. 추가로 **이적 완료 시 약속 Promise 가 생성되지 않음** — `CreatePlaytimeAgreement` 는 현재 `MoraleSystem`(면담)에서만 호출되고, `TransferSystem.CompleteTransfer` 와 미배선. `offer.includesPlaytimeAgreement`(bool) 는 선수 수락 보너스(+0.2)에만 쓰임. **계약 후 약속 조회·재협상·해제 UI 도 없음**(불만만 누적). → V1.x 에서 (a) 카테고리 enum + 비율 매핑, (b) 오퍼에 카테고리 필드 + 수락 보너스 카테고리별 차등, (c) CompleteTransfer 시 Promise 생성 배선, (d) 선수 프로필/면담 약속 관리 UI 를 한 묶음으로 구현. **v1.0 에서 개인협상 씬의 이진 출전약속 토글은 제거**(카테고리 미구현 상태의 토글은 오해 유발).
+- 개인협상 씬 UI 폴리시 (v1.0 적용 완료): 반응 라인에 `주급 £X/주`(통화·단위) + 기분(색 코딩) 표시, 미리보기는 공개 정보(주급)만 → 숨은 능력치로 라운드 유의미. 주급·계약기간 입력 + placeholder 정상화. ResponsePanel 딤 `raycastTarget=false`(전체화면 오버레이가 [뒤로] 버튼 클릭 차단하던 문제 — 협상 후 씬 탈출 불가 수정).
+- 기본 오퍼 금액 = `시장가 × 1.30`(= `aiAcceptThreshold`) 라 디폴트 제출이 자주 즉시 수락됨 — 친선 마찰 부족. 디폴트를 흥정 구간(~1.10×)으로 낮추거나 `aiAcceptThreshold` 상향 검토 (밸런스).
+- `Rejected` 사유 구분 (구단 거절 vs 선수협상 결렬) — 현재 단일 문구.
+- `Accepted` 는 Continue 정지 안 함 (인박스 배지로만 통지).
+- 직접 Play(게임 미시작) 시 `GameManager.State == null` → 협상 씬 목록 비어 패널 미표시 (정상). 협상 씬은 실제 오퍼 플로우로만 테스트 가능.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2289,3 +2326,4 @@ public class StatSnapshot {
 | 2026-05-31 | #66 추가 | Task A.1 Sub-A — Inbox 도메인 + 정책 (V1.0). InboxItem 도메인 클래스 / GameState 확장 / InboxRouter (10 이벤트 흡수) / 정책 Q1(기한 만료 비효과) + Q2(시즌 종료 정리) + Q3(YouthIntakeAvailableEvent 정지 제거). `algorithms.md` V1.0-7 참조 번호 #68 → #66 정정. |
 | 2026-05-31 | #67 추가 | Task A.2 Sub-A — Player.physical 신체 조건 도메인 (V1.0). PhysicalAttributes 클래스 + PlayerGenerator GeneratePhysical 단계. `algorithms.md` V1.0-8 참조 번호 #70 → #67 정정. 명명 혼동 주의 (`stats.physical` vs `Player.physical`). |
 | 2026-05-31 | #68 추가 | Task A.3 Sub-A — Player.growthHistory + GrowthSystem 월별 스냅샷 (V1.0). StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 + GetStatChange 헬퍼. `algorithms.md` V1.0-11 신규. |
+| 2026-06-03 | #69 추가 | Stage F 선행 (#469) — 이적 흐름 FM 2단계 재구성. (1) 이적료 협상(역제안): `AiRespondToOffer` 의 `ratio≥1.30` 위장 CounterOffer → `Negotiating`(구단 합의). (2) 선수 개인협상: `Negotiating` 단계를 실제 인터랙티브 구현 — 신규 `RespondToPersonalTerms`(반복 협상, `maxPersonalNegotiationRounds=4`) + `PlayerNegotiationController`/`PlayerNegotiationScene`(신규). AI 구매 구단은 `AutoResolveAiPersonalTerms` 자동. 오퍼=이적료만(`TransferController`). 오퍼 결과 인박스(Negotiating/Accepted/Rejected) + EventScheduler Negotiating 정지. `offerItemPrefab` 미연결(#4) 수정. 신규 로컬라이즈 키 (`inbox_personal_negotiation_fmt` / `pnego_*` / `inbox_offer_*`) — 시드 갱신 별도 chore. `PersonalTermsResult` enum / `TransferOffer.personalNegotiationRound` 신규. |
