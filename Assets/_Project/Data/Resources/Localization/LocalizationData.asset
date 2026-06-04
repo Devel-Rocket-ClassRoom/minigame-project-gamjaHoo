@@ -1250,6 +1250,30 @@ MonoBehaviour:
   - key: synergy_none_active
     korean: "\uD65C\uC131 \uC2DC\uB108\uC9C0 \uC5C6\uC74C"
     english: No active synergies
+  - key: matchup_label
+    korean: "\uC804\uC220 \uC0C1\uC131"
+    english: Formation Matchup
+  - key: matchup_even
+    korean: "\uB300\uB4F1"
+    english: Even
+  - key: duty_attack
+    korean: "\uACF5\uACA9"
+    english: Attack
+  - key: duty_support
+    korean: "\uC9C0\uC6D0"
+    english: Support
+  - key: duty_defend
+    korean: "\uC218\uBE44"
+    english: Defend
+  - key: duty_attack_short
+    korean: "\uACF5"
+    english: A
+  - key: duty_support_short
+    korean: "\uC9C0"
+    english: S
+  - key: duty_defend_short
+    korean: "\uC218"
+    english: D
   - key: cup_facup_name
     korean: "FA\uCEF5"
     english: FA Cup

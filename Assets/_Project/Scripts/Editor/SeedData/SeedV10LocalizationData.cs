@@ -1060,6 +1060,16 @@ namespace FMLite.Editor
                 E("synergy_active_label", "활성 시너지", "Active Synergies"),
                 E("synergy_none_active", "활성 시너지 없음", "No active synergies"),
 
+                // ── H.5 매치업 / Duty (H.3 이월) ─────────────────────
+                E("matchup_label", "전술 상성", "Formation Matchup"),
+                E("matchup_even", "대등", "Even"),
+                E("duty_attack", "공격", "Attack"),
+                E("duty_support", "지원", "Support"),
+                E("duty_defend", "수비", "Defend"),
+                E("duty_attack_short", "공", "A"),
+                E("duty_support_short", "지", "S"),
+                E("duty_defend_short", "수", "D"),
+
                 // ── FA Cup ──────────────────────────────────────────
                 E("cup_facup_name", "FA컵", "FA Cup"),
                 E("cup_round_32", "32강", "Round of 32"),

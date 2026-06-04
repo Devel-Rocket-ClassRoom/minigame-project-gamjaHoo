@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FMLite.Application;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
@@ -55,8 +56,19 @@ namespace FMLite.UI
             WireDuty(dutyAttackButton, Duty.Attack);
             WireDuty(dutySupportButton, Duty.Support);
             WireDuty(dutyDefendButton, Duty.Defend);
+            // H.5: duty 라벨 로컬라이즈 (H.3 한글 하드코딩 대체)
+            SetButtonLabel(dutyAttackButton, "duty_attack");
+            SetButtonLabel(dutySupportButton, "duty_support");
+            SetButtonLabel(dutyDefendButton, "duty_defend");
             if (root != null)
                 root.SetActive(false);
+        }
+
+        private static void SetButtonLabel(Button b, string key)
+        {
+            var t = b != null ? b.GetComponentInChildren<TMP_Text>(true) : null;
+            if (t != null)
+                t.text = Localization.Get(key);
         }
 
         private void WireDuty(Button b, Duty d)

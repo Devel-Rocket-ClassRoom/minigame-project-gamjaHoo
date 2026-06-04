@@ -135,9 +135,9 @@ namespace FMLite.UI
                 FillLineup(opponentLineupContent, oppXI);
             }
 
-            // 활성 시너지 (출전 XI 기준 임시 tactic — 상세/툴팁은 H.5)
+            // H.5: 매치업 보너스 + 활성 시너지 목록(이름 — 효과) 인라인
             if (synergyText != null)
-                synergyText.text = $"활성 시너지: {CountSynergies(_userXI)}";
+                synergyText.text = BuildInfoText(_userXI);
 
             // 게이트 — 출전 가능 11명 미만이면 시작 차단.
             bool ok = _userXI.Count >= 11;
@@ -149,7 +149,37 @@ namespace FMLite.UI
             SetInteractable(startButton, ok);
         }
 
-        private int CountSynergies(List<int> xi)
+        // H.5: 매치업 보너스 + 활성 시너지(이름 — 효과설명) 멀티라인 rich text.
+        private string BuildInfoText(List<int> xi)
+        {
+            var sb = new System.Text.StringBuilder();
+
+            // 포메이션 매치업 — 유저 기준 (홈/원정 무관 Get(userF, oppF), 명세 G.4)
+            int userF = _userClub.tactic?.formationId ?? 1;
+            int oppF = _opponent?.tactic?.formationId ?? 1;
+            float bonus = GameDatabase.FormationMatchup != null
+                ? GameDatabase.FormationMatchup.Get(userF, oppF)
+                : 1f;
+            string matchupVal =
+                Mathf.Abs(bonus - 1f) < 0.001f
+                    ? Localization.Get("matchup_even")
+                    : $"{(bonus >= 1f ? "+" : "")}{(bonus - 1f) * 100f:0}%";
+            sb.AppendLine($"<b>{Localization.Get("matchup_label")}</b>: {matchupVal}");
+
+            // 활성 시너지 목록
+            var syns = TacticImpact.ComputeSynergies(BuildTempTactic(xi), _state);
+            sb.AppendLine($"<b>{Localization.Get("synergy_active_label")}</b> ({syns.Count})");
+            if (syns.Count == 0)
+                sb.AppendLine(Localization.Get("synergy_none_active"));
+            else
+                foreach (var s in syns)
+                    sb.AppendLine(
+                        $"· {Localization.Get(s.nameKey)} — {Localization.Get(s.descriptionKey)}"
+                    );
+            return sb.ToString();
+        }
+
+        private Tactic BuildTempTactic(List<int> xi)
         {
             var temp = new Tactic
             {
@@ -159,7 +189,7 @@ namespace FMLite.UI
             };
             for (int i = 0; i < xi.Count; i++)
                 temp.slots.Add(new TacticSlot { slotIndex = i, assignedPlayerId = xi[i] });
-            return TacticImpact.ComputeSynergies(temp, _state).Count;
+            return temp;
         }
 
         private void FillLineup(RectTransform content, List<int> xi)
