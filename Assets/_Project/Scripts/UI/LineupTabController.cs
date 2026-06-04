@@ -138,11 +138,11 @@ namespace FMLite.UI
             switch (d)
             {
                 case Duty.Attack:
-                    return "공";
+                    return FMLite.Application.Localization.Get("duty_attack_short");
                 case Duty.Defend:
-                    return "수";
+                    return FMLite.Application.Localization.Get("duty_defend_short");
                 default:
-                    return "지";
+                    return FMLite.Application.Localization.Get("duty_support_short");
             }
         }
 
