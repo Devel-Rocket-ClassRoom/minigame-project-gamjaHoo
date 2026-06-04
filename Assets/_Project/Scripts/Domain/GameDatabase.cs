@@ -25,11 +25,14 @@ namespace FMLite.Domain
         private static readonly Dictionary<int, FormationSO> _formations = new();
         private static readonly Dictionary<int, PlayerRoleSO> _playerRoles = new();
         private static readonly Dictionary<int, InjuryTypeSO> _injuryTypes = new();
+        private static readonly Dictionary<int, SynergySO> _synergies = new(); // V1.0 G.3
+        private static FormationMatchupSO _formationMatchup; // V1.0 G.4 (단일 매트릭스)
         private static GameBalanceSO _gameBalance;
         private static LocalizationSO _localizationData;
 
         public static GameBalanceSO GameBalance => _gameBalance;
         public static LocalizationSO LocalizationData => _localizationData;
+        public static FormationMatchupSO FormationMatchup => _formationMatchup;
 
         public static void LoadAll()
         {
@@ -52,6 +55,11 @@ namespace FMLite.Domain
                 _playerRoles[r.id] = r;
             foreach (var i in Resources.LoadAll<InjuryTypeSO>(string.Empty))
                 _injuryTypes[i.id] = i;
+            foreach (var s in Resources.LoadAll<SynergySO>(string.Empty))
+                _synergies[s.id] = s;
+            _formationMatchup = Resources
+                .LoadAll<FormationMatchupSO>(string.Empty)
+                .FirstOrDefault();
             _gameBalance = Resources.LoadAll<GameBalanceSO>(string.Empty).FirstOrDefault();
             _localizationData = Resources.LoadAll<LocalizationSO>(string.Empty).FirstOrDefault();
         }
@@ -67,6 +75,8 @@ namespace FMLite.Domain
             _formations.Clear();
             _playerRoles.Clear();
             _injuryTypes.Clear();
+            _synergies.Clear();
+            _formationMatchup = null;
             _gameBalance = null;
             _localizationData = null;
         }
@@ -93,6 +103,10 @@ namespace FMLite.Domain
 
         public static void Register(InjuryTypeSO injuryType) =>
             _injuryTypes[injuryType.id] = injuryType;
+
+        public static void Register(SynergySO synergy) => _synergies[synergy.id] = synergy;
+
+        public static void Register(FormationMatchupSO matchup) => _formationMatchup = matchup;
 
         public static void Register(GameBalanceSO gameBalance) => _gameBalance = gameBalance;
 
@@ -137,5 +151,6 @@ namespace FMLite.Domain
         public static IEnumerable<FormationSO> AllFormations => _formations.Values;
         public static IEnumerable<PlayerRoleSO> AllPlayerRoles => _playerRoles.Values;
         public static IEnumerable<InjuryTypeSO> AllInjuryTypes => _injuryTypes.Values;
+        public static IEnumerable<SynergySO> AllSynergies => _synergies.Values;
     }
 }

@@ -90,6 +90,10 @@ namespace FMLite.Application
 
             // V1.0 — AA.5 선당김. 슛별 xG/위치/결과.
             public List<ShotPin> shotMap = new List<ShotPin>();
+
+            // V1.0 G.3/G.4 — 팀 시너지×포메이션 매치업 곱셈 보정 (매치 시작 1회).
+            public double homeTeamMod = 1.0;
+            public double awayTeamMod = 1.0;
         }
 
         public static MatchResult Simulate(
@@ -140,6 +144,10 @@ namespace FMLite.Application
                 homeClub = home,
                 awayClub = away,
             };
+
+            // G.3/G.4 — 시너지(활성 strengthBonus product) × 포메이션 매치업 보너스 (매치 시작 1회)
+            sim.homeTeamMod = ComputeTeamMod(state, home, away);
+            sim.awayTeamMod = ComputeTeamMod(state, away, home);
 
             // 킥오프 이벤트
             if (collectEvents)
@@ -575,6 +583,11 @@ namespace FMLite.Application
             double xg = BaseXg(b, type) * xgMultiplier;
             if (type == ChanceType.Header)
                 xg *= HeaderMod(b, shooter); // G.2 (1) 키×헤딩×점프
+            // G.3/G.4 — 공격팀 시너지·매치업으로 찬스 품질↑, 수비팀 mod로 ↓ (비율, clamp bounded).
+            // 점유/box 진입이 아닌 xG 에만 적용 → 단조·비폭주 (blanket Eff 곱셈의 degenerate 회피).
+            double attMod = att == Side.Home ? sim.homeTeamMod : sim.awayTeamMod;
+            double defMod = att == Side.Home ? sim.awayTeamMod : sim.homeTeamMod;
+            xg *= attMod / defMod;
             xg = Clamp(xg, b.xgFloor, b.xgCeil);
 
             // G.2 (4) — 약발: 주발 아닌 발 슈팅 시 finishing 감점 (Header 제외)
@@ -610,8 +623,18 @@ namespace FMLite.Application
             );
             double conversion = Clamp(xg * finishMod * gkMod, b.conversionFloor, b.conversionCeil);
 
+            // 결정성: outcome 과 무관하게 rng 2회 소비 (conversion / accuracy).
+            // → xg(시너지·매치업) 변경 시 rng 스트림 불변 → 페어드 비교 정상 + 결정성 강화.
+            double convRoll = sim.rng.NextDouble();
+            double accRoll = sim.rng.NextDouble();
+            double accuracy = Clamp(
+                b.shotAccuracyBase + (finishEff - 50.0) / b.shotAccuracyDivisor,
+                0.15,
+                0.85
+            );
+
             ShotOutcome outcome;
-            if (sim.rng.NextDouble() < conversion)
+            if (convRoll < conversion)
             {
                 // GOAL
                 outcome = ShotOutcome.Goal;
@@ -650,12 +673,7 @@ namespace FMLite.Application
                 if (xg >= b.bigChanceThreshold)
                     sim.stats[shooter.id].bigChancesMissed++;
 
-                double accuracy = Clamp(
-                    b.shotAccuracyBase + (finishEff - 50.0) / b.shotAccuracyDivisor,
-                    0.15,
-                    0.85
-                );
-                if (sim.rng.NextDouble() < accuracy)
+                if (accRoll < accuracy)
                 {
                     // on-target → GK 선방
                     outcome = ShotOutcome.Saved;
@@ -1465,6 +1483,19 @@ namespace FMLite.Application
                     : 1.0;
 
             return raw * perf * formMod * moodMod * homeMod;
+        }
+
+        // G.3/G.4 — 팀 strength 보정 = 활성 시너지 strengthBonus product × 포메이션 매치업 homeBonus.
+        // 시너지/매치업 데이터 미등록 또는 tactic null → 1.0 (무영향, 회귀 없음).
+        private static double ComputeTeamMod(GameState state, Club club, Club opp)
+        {
+            double mod = 1.0;
+            foreach (var syn in TacticImpact.ComputeSynergies(club?.tactic, state))
+                mod *= syn.strengthBonus;
+            var matchup = GameDatabase.FormationMatchup;
+            if (matchup != null && club?.tactic != null && opp?.tactic != null)
+                mod *= matchup.Get(club.tactic.formationId, opp.tactic.formationId);
+            return mod;
         }
 
         private static double Clamp(double v, double lo, double hi) =>
