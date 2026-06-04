@@ -576,6 +576,126 @@ namespace FMLite.Tests
             Assert.IsFalse(offer.releaseClauseActivated, "T13: releaseClauseActivated=false");
         }
 
+        // ── Stage F (#472): 세부 stat / 주급 필터 ────────────────────
+
+        // T14. stat 임계 필터 — finishing ≥ 70 인 선수만 매치 (모든 임계 AND).
+        [Test]
+        public void T14_SearchPlayers_StatThreshold()
+        {
+            var (state, c1, c2) = BuildState();
+            state.userClubId = c1.id;
+
+            var hi = NewPlayer(1, ca: 130, pa: 150, age: 24, position: Position.ST, contractYears: 3);
+            hi.currentClubId = c2.id;
+            hi.stats = new Stats();
+            hi.stats.technical.finishing = 80;
+            hi.stats.physical.pace = 85;
+
+            var lo = NewPlayer(2, ca: 120, pa: 140, age: 24, position: Position.ST, contractYears: 3);
+            lo.currentClubId = c2.id;
+            lo.stats = new Stats();
+            lo.stats.technical.finishing = 60; // 임계 미달
+            lo.stats.physical.pace = 90;
+
+            state.AddPlayer(hi);
+            state.AddPlayer(lo);
+            c2.seniorSquadIds.AddRange(new[] { 1, 2 });
+
+            var filter = new TransferSearchFilter
+            {
+                statThresholds = new Dictionary<string, int>
+                {
+                    { "technical.finishing", 70 },
+                },
+            };
+            var result = TransferSystem.SearchPlayers(filter, state);
+            Assert.AreEqual(1, result.Count, "T14: finishing≥70 인 1명만 (hi)");
+            Assert.AreEqual(1, result[0].id);
+
+            // 복수 임계 AND — finishing≥70 AND pace≥88 → lo 는 finishing 미달, hi 는 pace 미달 → 0명.
+            filter.statThresholds["physical.pace"] = 88;
+            Assert.AreEqual(0, TransferSystem.SearchPlayers(filter, state).Count, "T14: 복수 임계 AND → 0명");
+        }
+
+        // T15. 주급 범위 필터 — minWage~maxWage 안의 선수만.
+        [Test]
+        public void T15_SearchPlayers_WageRange()
+        {
+            var (state, c1, c2) = BuildState();
+            state.userClubId = c1.id;
+
+            var cheap = NewPlayer(1, ca: 110, pa: 120, age: 24, position: Position.CM, contractYears: 3);
+            cheap.currentClubId = c2.id;
+            cheap.contract.weeklyWage = 20_000;
+
+            var pricey = NewPlayer(2, ca: 150, pa: 160, age: 26, position: Position.CM, contractYears: 3);
+            pricey.currentClubId = c2.id;
+            pricey.contract.weeklyWage = 150_000;
+
+            state.AddPlayer(cheap);
+            state.AddPlayer(pricey);
+            c2.seniorSquadIds.AddRange(new[] { 1, 2 });
+
+            var filter = new TransferSearchFilter { minWage = 50_000, maxWage = 200_000 };
+            var result = TransferSystem.SearchPlayers(filter, state);
+            Assert.AreEqual(1, result.Count, "T15: 50k~200k 주급 1명 (pricey)");
+            Assert.AreEqual(2, result[0].id);
+        }
+
+        // ── Stage F (#472): 협상 결함 (#469 이월) ─────────────────────
+
+        // T16. 극저가 오퍼(500) → Rejected. ratio≈0 < aiMockingThreshold(0.85) — seed 무관 결정적.
+        // (T8b 의 ratio 0.5 보다 극단적 케이스를 명시적으로 고정 — "500 도 수락된다" 제보 반증.)
+        [Test]
+        public void T16_LowballOffer_AlwaysRejected()
+        {
+            var (state, c1, c2) = BuildState();
+            var p = NewPlayer(1, ca: 140, pa: 160, age: 25, position: Position.ST, contractYears: 3);
+            p.contract.releaseClause = 0; // release clause 미발동 보장
+            p.currentClubId = c1.id;
+            state.AddPlayer(p);
+            c1.seniorSquadIds.Add(p.id);
+
+            int mv = TransferSystem.CalculateMarketValue(p, state, _balance);
+            Assert.Greater(mv, 1000, "T16 전제: 시장가가 충분히 큼 (극저가 대비)");
+
+            var contract = new Contract
+            {
+                weeklyWage = 50_000,
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(3),
+            };
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 500, contract, state, _balance);
+            TransferSystem.ProcessOffers(state, _balance);
+
+            Assert.AreEqual(OfferStatus.Rejected, offer.status, "T16: 극저가 500 → Rejected");
+        }
+
+        // T17. 오퍼는 제출 금액을 그대로 기록 (활성오퍼 목록이 시장가 아닌 제시금액 표시 — #2 불변식 고정).
+        [Test]
+        public void T17_OfferRecordsSubmittedAmount()
+        {
+            var (state, c1, c2) = BuildState();
+            var p = NewPlayer(1, ca: 130, pa: 150, age: 24, position: Position.CM, contractYears: 3);
+            p.contract.releaseClause = 0;
+            p.currentClubId = c1.id;
+            state.AddPlayer(p);
+            c1.seniorSquadIds.Add(p.id);
+
+            int mv = TransferSystem.CalculateMarketValue(p, state, _balance);
+            int submitted = mv + 1_234_567; // 시장가와 명확히 다른 금액
+            var contract = new Contract
+            {
+                weeklyWage = 50_000,
+                startDate = state.currentDate,
+                endDate = state.currentDate.AddYears(3),
+            };
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, submitted, contract, state, _balance);
+
+            Assert.AreEqual(submitted, offer.amount, "T17: offer.amount == 제출 금액 (시장가 아님)");
+            Assert.AreNotEqual(mv, offer.amount, "T17: 시장가와 다른 값임을 확인");
+        }
+
         // ── Helpers ──────────────────────────────────────────────────
 
         private (GameState state, Club c1, Club c2) BuildState()
