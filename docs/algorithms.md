@@ -4278,18 +4278,19 @@ for each synergy in allSynergies:
 return activeSynergies
 ```
 
-**MatchSimulator 통합:**
-- 매치 시작 시 `var synergies = TacticImpact.ComputeSynergies(homeTactic, ...)` 호출.
-- 각 synergy 의 `strengthBonus` 곱해 팀 effective strength 보정.
-- 사기 영구 보너스 (#10 자국인 라인) 은 매치 외부 영향 (별도 처리).
+**MatchSimulator 통합 (실제 구현, #478):**
+- 매치 시작 시 `sim.homeTeamMod = ComputeTeamMod(home, away)` / `awayTeamMod = ComputeTeamMod(away, home)` 1회.
+  `ComputeTeamMod = Π(활성 시너지 strengthBonus) × FormationMatchup.Get(myFormation, oppFormation)` (G.4 통합).
+- **적용 위치 = xG 에만** (`ResolveShotXg`): `xg *= attTeamMod / defTeamMod` (clamp). 공격팀 시너지/상성으로 찬스 품질↑, 수비팀 mod 로 ↓.
+  > **왜 xG 만?** teamMod 을 모든 `Eff`(점유+공격+수비)에 곱하면 약한 우위가 점유 독점으로 **폭주(degenerate)** + 비단조 + xG/골 불일치 (구현 중 측정으로 확인). xG-only 는 단조·bounded·골에 직접 반영·폭주 없음.
+- **rng 결정성 수정 동반**: `ResolveShotXg` 의 conversion/accuracy roll 을 outcome 무관 **항상 2회 소비**로 변경 (구 버전은 골/노골 경로 소비 횟수 달라 xg 변경 시 rng 스트림 어긋남 → 페어드 비교·결정성 결함). PR1 밸런스 무영향 (평균골 2.76→2.66, 목표 내).
+- 사기 영구 보너스 (#10 자국인 라인) 은 매치 외부 영향 (V1.x).
 
-**UI 노출 (§3.7 MatchPreviewScene):**
-- pre-match 화면에 활성 시너지 목록 표시.
-- 예: "✅ 빅앤스몰 시너지 (+10% 헤더골)"
+**SynergyCondition 구현 확장 (명세 보완):** 단일 `Position` → `List<Position>`(any-of, LW/RW 표현) + `minCount`("2명") + `requireSameNationality`(자국 라인) + `statRequirement` = `"fieldPath op value"` '&' AND (StatCatalog fieldPath / height·weight·weakFoot 특수). roleRequirement 은 V1.0 미사용(stat 근사).
 
-**SaveMigration:**
-- 도메인 영향 0 (Tactic 도메인 그대로).
-- SynergySO = 시드 자산 (`Resources/Synergy/*.asset`).
+**UI 노출 (§3.7 MatchPreviewScene):** pre-match 활성 시너지 표시 — **Stage H.4/H.5 로 이관** (씬 미존재).
+
+**SaveMigration:** 도메인 영향 0. SynergySO/FormationMatchupSO = 시드 자산 (`Resources/Synergies/*` / `Resources/Matchup/*`, `Generate V1.0 Synergy+Matchup` 메뉴).
 
 ---
 
@@ -4788,13 +4789,13 @@ public class MatchupEntry {
 - 5-3-2 vs 4-3-3 = 4-3-3 측 우세 (수비 라인 3 → 윙어 노출).
 - 같은 포메이션 = 1.0 (무영향).
 
-**MatchSimulator 통합:**
+**MatchSimulator 통합 (실제, #478):**
+- `FormationMatchupSO` = `GameDatabase.FormationMatchup` (단일 매트릭스, 36 entry). `Get(homeId, awayId)` → homeBonus (미정의/동일 = 1.0).
+- 시너지(G.3)와 **하나의 teamMod 로 합산**: `homeTeamMod = Π(시너지) × Get(homeF, awayF)`, `awayTeamMod = Π(away 시너지) × Get(awayF, homeF)` (비대칭 — 각자 home 관점 lookup).
+- 적용 = **xG 비율** (`ResolveShotXg`: `xg *= attTeamMod/defTeamMod`, clamp). V1.0-3 통합 절 참조 (blanket Eff 폭주 회피).
 ```python
-def Simulate(match, state, balance):
-    # ... 기존 ...
-    matchup = balance.formationMatchup.Get(homeTactic.formationId, awayTactic.formationId)
-    homeStrength *= matchup.homeBonus
-    # awayBonus 는 별도 entry (대칭 X — 홈/원정 자체 영향)
+homeTeamMod = Π(synergy.strengthBonus for active home synergies) * matchup.Get(homeFid, awayFid)
+# ResolveShotXg: xg *= (att==home ? homeTeamMod : awayTeamMod) / (defendingTeamMod); clamp
 ```
 
 ---
@@ -5135,5 +5136,6 @@ INPUT: club (formationId), state, rng(=match seed 파생)
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
 | 2026-06-02 | V1.0-13 신규 | Stage D (#459) — CurrentAbility 재계산 (앵커 + 포지션 관련 평균 RelevantMean). CA 고정 문제 해소, 라운드트립으로 t=0 밸런스 점프 0. + 성장 체감 튜닝: (a) growthBaseChance 0.01→0.06, (c) 출전 기반 성장 보너스 (PlayerState.appearancesAtLastGrowthTick + growthPlaytimeCoeff/Cap). CaCalculator/Player.caAnchor/PlayerGenerator/GrowthSystem/GameBalance 연동. D.1 Squad 검색 제거 동반. |
+| 2026-06-04 | V1.0-3/V1.0-9 통합 구현 (#478) | G.3 시너지 + G.4 포메이션 상성 실제 통합. SynergyCondition 확장(List<Position>/minCount/requireSameNationality/stat-AND fieldPath). teamMod = Π(시너지)×매치업, **xG 비율에만 적용**(blanket Eff 폭주·비단조 회피 — 측정 확인). `ResolveShotXg` rng 결정성 수정(outcome 무관 2회 소비). 시드 생성기 `Generate V1.0 Synergy+Matchup`(10+36). MatchPreviewScene 표시는 Stage H 이관. PR1 밸런스 무영향(2.76→2.66). |
 | 2026-06-04 | V1.0-14 신규 | #474 후속 (design-decisions #71, Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합 + lineupNoiseSigma. StartingEleven_* 테스트 [Ignore] (구현 시 재작성). |
 | 2026-06-04 | V1.0-1 전면 재작성 | Stage G (#474, design-decisions #70) — "5-Zone 골 빈도 P0 밸런싱(블런트 튜닝)" → **xG 찬스-퀄리티 레이어 + 평점 재설계**. chanceType별 baseXG / 골=xG×finishMod×gkMod / E[goals]≈ΣxG 직접 산정(2.7). 평점 FM 정합 재설계(포지션 가중·패스성공률·DF 무실점공유·xG 보정 clinical/빅찬스미스, 사용자 #74). G.2 신체영향 통합 + G.1 이벤트(Offside/ThrowIn/KeeperPunch/LongShot). 신규 PlayerMatchStat.xg/bigChancesMissed/clearances + MatchResult.shotMap/zoneOccupancy(AA.1/AA.2 선당김). 5-Zone 구조·인터페이스·결정성 유지. |

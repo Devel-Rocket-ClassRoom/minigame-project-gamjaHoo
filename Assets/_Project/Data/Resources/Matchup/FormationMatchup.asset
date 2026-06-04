@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 814312835da5ebc41b285506eaef07bc, type: 3}
+  m_Name: FormationMatchup
+  m_EditorClassIdentifier: FMLite.Domain::FMLite.Domain.FormationMatchupSO
+  matchups:
+  - homeFormationId: 1
+    awayFormationId: 1
+    homeBonus: 1
+  - homeFormationId: 1
+    awayFormationId: 2
+    homeBonus: 0.97
+  - homeFormationId: 1
+    awayFormationId: 3
+    homeBonus: 1.03
+  - homeFormationId: 1
+    awayFormationId: 4
+    homeBonus: 1
+  - homeFormationId: 1
+    awayFormationId: 5
+    homeBonus: 1.02
+  - homeFormationId: 1
+    awayFormationId: 6
+    homeBonus: 1.05
+  - homeFormationId: 2
+    awayFormationId: 1
+    homeBonus: 1.03
+  - homeFormationId: 2
+    awayFormationId: 2
+    homeBonus: 1
+  - homeFormationId: 2
+    awayFormationId: 3
+    homeBonus: 1.02
+  - homeFormationId: 2
+    awayFormationId: 4
+    homeBonus: 1.05
+  - homeFormationId: 2
+    awayFormationId: 5
+    homeBonus: 1
+  - homeFormationId: 2
+    awayFormationId: 6
+    homeBonus: 1.07
+  - homeFormationId: 3
+    awayFormationId: 1
+    homeBonus: 0.97
+  - homeFormationId: 3
+    awayFormationId: 2
+    homeBonus: 0.98
+  - homeFormationId: 3
+    awayFormationId: 3
+    homeBonus: 1
+  - homeFormationId: 3
+    awayFormationId: 4
+    homeBonus: 1.02
+  - homeFormationId: 3
+    awayFormationId: 5
+    homeBonus: 1.03
+  - homeFormationId: 3
+    awayFormationId: 6
+    homeBonus: 1
+  - homeFormationId: 4
+    awayFormationId: 1
+    homeBonus: 1
+  - homeFormationId: 4
+    awayFormationId: 2
+    homeBonus: 0.95
+  - homeFormationId: 4
+    awayFormationId: 3
+    homeBonus: 0.98
+  - homeFormationId: 4
+    awayFormationId: 4
+    homeBonus: 1
+  - homeFormationId: 4
+    awayFormationId: 5
+    homeBonus: 1.03
+  - homeFormationId: 4
+    awayFormationId: 6
+    homeBonus: 1.05
+  - homeFormationId: 5
+    awayFormationId: 1
+    homeBonus: 0.98
+  - homeFormationId: 5
+    awayFormationId: 2
+    homeBonus: 1
+  - homeFormationId: 5
+    awayFormationId: 3
+    homeBonus: 0.97
+  - homeFormationId: 5
+    awayFormationId: 4
+    homeBonus: 0.97
+  - homeFormationId: 5
+    awayFormationId: 5
+    homeBonus: 1
+  - homeFormationId: 5
+    awayFormationId: 6
+    homeBonus: 1.03
+  - homeFormationId: 6
+    awayFormationId: 1
+    homeBonus: 0.95
+  - homeFormationId: 6
+    awayFormationId: 2
+    homeBonus: 0.93
+  - homeFormationId: 6
+    awayFormationId: 3
+    homeBonus: 1
+  - homeFormationId: 6
+    awayFormationId: 4
+    homeBonus: 0.95
+  - homeFormationId: 6
+    awayFormationId: 5
+    homeBonus: 0.97
+  - homeFormationId: 6
+    awayFormationId: 6
+    homeBonus: 1
