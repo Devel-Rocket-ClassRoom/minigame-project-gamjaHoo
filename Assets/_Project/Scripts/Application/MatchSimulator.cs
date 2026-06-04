@@ -164,7 +164,7 @@ namespace FMLite.Application
             sim.awayTeamMod = ComputeTeamMod(state, away, home);
             sim.matchSeed = match.id ^ state.randomSeed; // G.6 텍스트 변형 시드
 
-            // 킥오프 이벤트
+            // 킥오프 이벤트 — 개막은 항상 전반 시작 문구 (kickoff 변형은 context별이라 고정 선택).
             if (collectEvents)
                 EmitEvent(
                     sim,
@@ -172,7 +172,7 @@ namespace FMLite.Application
                     Side.Home,
                     0,
                     0,
-                    Vk(sim, "kickoff", 4),
+                    "match_event_kickoff_1",
                     null
                 );
 
@@ -195,7 +195,7 @@ namespace FMLite.Application
                     0,
                     0,
                     Vk(sim, "halftime", 3),
-                    null
+                    MakeScoreArgs(sim)
                 );
 
             // 후반 (46~90+stoppage)
@@ -215,7 +215,7 @@ namespace FMLite.Application
                     0,
                     0,
                     Vk(sim, "fulltime", 4),
-                    null
+                    MakeScoreArgs(sim)
                 );
 
             // I.11 — 컵 동점 시 연장전 + 승부차기
@@ -255,7 +255,7 @@ namespace FMLite.Application
                         Side.Home,
                         0,
                         0,
-                        Vk(sim, "halftime", 3),
+                        "match_event_kickoff_4", // "연장 후반전 시작!" (context 고정)
                         null
                     );
 
@@ -278,7 +278,7 @@ namespace FMLite.Application
                             0,
                             0,
                             Vk(sim, "fulltime", 4),
-                            null
+                            MakeScoreArgs(sim)
                         );
                     (penaltyHomeScore, penaltyAwayScore) = SimulatePenaltyShootout(sim);
                     decidedByPenalties = true;
@@ -919,10 +919,10 @@ namespace FMLite.Application
                     sim,
                     MatchEventType.FreeKick,
                     sim.possession,
-                    0,
+                    fouled.id,
                     0,
                     Vk(sim, "fk_direct", 4),
-                    null
+                    MakeArgs(sim, fouled.id, 0)
                 );
             }
 
@@ -1278,6 +1278,17 @@ namespace FMLite.Application
 
         // textArgs 빌더 — actorId/targetId → 선수 이름 (UI 표시용).
         // {player}/{gk} = actor (변형 텍스트 어휘). save 계열은 actor=gk 로 전달되므로 {gk}=actor 정합.
+        // 구조 이벤트(하프타임/풀타임 등) 스코어 표기용 — {homeScore}/{awayScore} 채움.
+        private static Dictionary<string, string> MakeScoreArgs(SimState sim)
+        {
+            return new Dictionary<string, string>
+            {
+                ["minute"] = sim.currentMinute.ToString(),
+                ["homeScore"] = sim.homeScore.ToString(),
+                ["awayScore"] = sim.awayScore.ToString(),
+            };
+        }
+
         private static Dictionary<string, string> MakeArgs(SimState sim, int actorId, int targetId)
         {
             var args = new Dictionary<string, string> { ["minute"] = sim.currentMinute.ToString() };
