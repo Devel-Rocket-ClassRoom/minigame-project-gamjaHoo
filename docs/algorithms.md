@@ -4985,6 +4985,28 @@ public static int GetStatChange(Player player, string statFieldPath, int monthsB
 - `Application/GrowthSystem.cs` — 스냅샷 단계 + `GetStatChange` 헬퍼 추가
 - 소비자: Stage C.4 (PlayerProfile 성장 화살표) / Stage D.2 (Squad 성장 열)
 
+### V1.0-11.5 슈퍼유망주 동적 재평가 (`#72` / Stage R)
+
+`슈퍼유망주`(trait id=14) 는 더 이상 PlayerGenerator 가 랜덤 부여하지 않는다(풀 제외). 대신 `GrowthSystem.Tick` 매월 호출 시 나이·CA 기반으로 부여/회수한다. **효과 없는 표시 라벨** (effects 비움).
+
+```
+def EvaluateSuperProspect(player, state, balance):
+    age = AgeOf(player, state.currentDate)
+    qualifies = age <= balance.superProspectMaxAge          # 21
+               and player.currentAbility >= balance.superProspectMinCA   # 110
+    has = player.traitIds.Contains(SUPER_PROSPECT_ID)        # 14
+    if qualifies and not has:
+        player.traitIds.Add(SUPER_PROSPECT_ID)               # 부여
+    elif not qualifies and has:
+        player.traitIds.Remove(SUPER_PROSPECT_ID)            # 회수 (22세 도달 또는 CA 미달)
+```
+
+- 호출 위치: `GrowthSystem.Tick` 의 스냅샷·성장 처리 **이후** (성장 결과 CA 반영 후 평가).
+- 대상: 전 구단 스쿼드(유스 포함). 결정성 — RNG 미사용(순수 조건 평가).
+- 외부화(#11): `superProspectMinCA`(110) / `superProspectMaxAge`(21) = `GameBalanceSO` (int, epsilon 불필요).
+- 가시성: CA 파생 라벨이므로 #73 의 CA 가시성을 따름(자기팀/정찰 시 표시).
+- 영향 범위: `GrowthSystem` (재평가 단계) / `PlayerGenerator.SelectTraits` (id=14 풀 제외) / `GameBalanceSO` 신규 2필드 / `SeedV10Data` id=14 effects 비움(에셋 chore).
+
 ---
 
 ## V1.0-12. Stat 등급 색상 코딩 + 성장 동향 화살표 (`#455` / Stage C)
@@ -5139,12 +5161,157 @@ INPUT: club (formationId), state, rng(=match seed 파생)
 
 ---
 
+## V1.0-15. Trait 가시성 + 스카우팅 공개 규칙 (`#73` / Stage R)
+
+trait 검색 폐지 + 정보 노출을 스카우팅에 종속. `TraitSO` 에 `visibility` 분류 신규.
+
+### V1.0-15.1 가시성 분류
+
+```csharp
+public enum TraitVisibility { Concealed, Public, ScoutGated }
+// TraitSO 에 public TraitVisibility visibility 필드 추가
+```
+
+| Tier | 노출 | trait id |
+| --- | --- | --- |
+| Concealed | 자기팀 포함 어떤 화면에도 X (내부 메커닉 전용) | 1 늦깎이형, 2 조숙형 |
+| Public | 스카우팅 무관 항상 | 6, 8, 9, 15, 16, 17, 19, 20 |
+| ScoutGated | 자기팀/완전정찰 표시, 미정찰 가려짐 | 3, 4, 5, 7, 10, 11, 12, 13, 18 |
+
+- 14 슈퍼유망주는 trait 풀에서 빠지고 CA 파생 라벨(V1.0-11.5) → CA 가시성을 따름.
+
+### V1.0-15.2 스카우팅 공개 — revealedTraitIds 채우기
+
+`ScoutReport.revealedTraitIds`(기존 미사용) 를 `ScoutingSystem` 이 채운다.
+
+```
+def UpdateRevealedTraits(report, player):
+    gated = player.traitIds where TraitOf(id).visibility == ScoutGated   # 결정적 순서 (id asc)
+    n = round(report.scoutLevel / 100.0 * gated.Count)                   # scoutLevel 0~100
+    report.revealedTraitIds = gated.Take(n)
+    # 자기팀: scoutLevel=100 → 전부. 미정찰(report 없음): 0
+```
+
+### V1.0-15.3 PlayerProfile 표시 게이팅
+
+```
+def VisibleTraits(player, viewerClub, state):
+    result = []
+    for id in player.traitIds:
+        t = TraitOf(id)
+        if t.visibility == Concealed: continue                  # 항상 숨김
+        if t.visibility == Public: result.add(id); continue
+        # ScoutGated:
+        if IsOwnClub(player, viewerClub) : result.add(id)        # 자기팀 = 전부
+        elif report.revealedTraitIds.Contains(id): result.add(id)
+    return result
+# 미정찰/부분정찰 시 정확 보유 수 비노출 + "추가 정찰 필요" 힌트만
+```
+
+### V1.0-15.4 영향 범위
+- `TraitSO.visibility` enum 필드 / `SeedV10Data` 각 trait visibility 세팅 (에셋 chore).
+- `ScoutingSystem` — `UpdateRevealedTraits` (RegisterOwnSquad=100, 정찰 진행 시 비례).
+- `PlayerProfileController.BuildTraitsText` — `VisibleTraits` 적용 (자기팀/타팀 분기, 항목 77-1 네비와 짝).
+- `TransferController` trait 드롭다운 + `TransferSystem.SearchPlayers` `filter.traitId` 제거.
+- Localization "scout_more_needed" 등 신규 키.
+
+---
+
+## V1.0-16. 구단 재정 (주급 차감 + 수입 정상화) + 선수 수락 명성격차 (`#74` / `#75` / Stage R)
+
+### V1.0-16.1 주급 월 차감 (#74)
+
+```
+def WageSystem.ProcessMonthly(state, balance):   # DailyProcessor Day==1 훅
+    for club in state.allClubs where club.isActiveSimulation:
+        weekly = Σ(player.contract.weeklyWage for player in club.seniorSquad)
+        monthly = round(weekly * 52.0 / 12.0)
+        club.finance.money -= monthly
+```
+
+### V1.0-16.2 수입 재스케일 + 분산 (#74)
+
+- **목표 불변식**: 전형적(중위) 구단 *연 매출 ≈ 연 임금 ÷ 0.63* (≈임금×1.6 — EPL 임금/매출 63% 앵커).
+- TV 수입 대폭 상향(매출 주축), matchday 는 홈경기마다 즉시/월 분산, 상금 시즌말.
+- 현재값(참고): `financeBaseMoney=5M`, `financeRepCoeff=4M`, `baseTvIncome=1.5M`, `baseMatchDayIncome=50k`, `basePrize=5M`. → 재산정 (특히 TV ↑).
+
+### V1.0-16.3 시설비 상향 (#74)
+
+- **목표**: 전 시설 풀업그레이드 비용 ≈ 한 시즌 이적예산급 부담 (현재 자금의 0.2~1% → 의미 있는 %). `FacilityLevelSO.cost` 곡선 재산정 (에셋 chore).
+
+### V1.0-16.4 측정 하네스 (#74, G.5 패턴)
+
+- 시즌 1회 완주 후 구단별 순현금흐름/잔고 추이 측정.
+- **합격 기준**: 중위 구단 시즌당 본전±(성적 따라 흑/적자), 돈으로 전원 영입 불가, 빅클럽도 무한 영입 X.
+- 사용자 Test Runner 1~2회 → `GameBalanceSO` 미세조정.
+
+### V1.0-16.5 선수 수락 명성격차 (#75)
+
+구단 응답(`AiRespondToOffer`)은 이적료 ratio 유지. **선수 개인협상 수락**(`ComputePlayerAcceptChance`, 3.1 Transfer Flow)에 영입 구단 명성 격차 항 추가.
+
+```
+playerExpectedRep = MapCaToRep(player.currentAbility)            # 외부화 매핑
+gap = playerExpectedRep - buyingClub.reputation                  # >0: 구단이 기대보다 약함
+if gap > Epsilon:
+    penalty = clamp(gap * balance.repGapWeight * (ambition/50.0),
+                    0, balance.repGapMaxPenalty)
+    acceptChance -= penalty
+# 기존 wageRatio 항이 높으면(고임금) penalty 상쇄 → 약체도 "엄청난 요구"면 영입 가능
+```
+
+### V1.0-16.6 GameBalanceSO 신규/재산정 필드
+- 신규: `repGapWeight`, `repGapMaxPenalty`, CA→rep 매핑 계수, (재정) 주급차감은 계수 불필요(직접 합산).
+- 재산정: `baseTvIncome` / `baseMatchDayIncome` / `basePrize` / `financeBaseMoney` / 시설 비용 곡선.
+- float 비교 epsilon(#11) 적용. 도메인은 GBP base 유지(#61) — 통화 표시 영향 0.
+
+### V1.0-16.7 영향 범위
+- `WageSystem`(신규) 또는 `FinanceSystem` 월처리 + DailyProcessor Day==1 / `FinanceSystem` 수입 재스케일·분산 / `MatchPostProcessor`(matchday 분산 시) / `TransferSystem.ComputePlayerAcceptChance`·`EstimatePlayerAcceptChance` / `FacilityLevelSO`·`GameBalance.asset` reseed(chore) / `MatchSimulatorTests` 또는 신규 재정 측정 테스트.
+
+---
+
+## V1.0-17. 리그 개인 리더보드 (`#77-6` / Stage R / Stage M 연동)
+
+`SeasonAwardSystem.BuildLeagueStats(league)`(시즌 전 경기 result.playerStats 집계 — 이미 존재)를 **시즌 중 조회 가능한 public 쿼리로 일반화**. 현재 시즌 매치는 풀데이터 보관(#8)이라 진행 중에도 집계 가능.
+
+```csharp
+// LeaderboardSystem (Application, stateless) — 또는 SeasonAwardSystem 공개 메서드
+TopScorers(league, n)     // goals desc
+TopAssists(league, n)     // assists desc
+TopRated(league, n)       // ratingSum/apps desc (최소 출전수 필터)
+TopCleanSheets(league, n) // GK 무실점 경기 (result 무실점 + 출전)
+MostAppearances(league, n)
+```
+
+- 클린시트 = 해당 GK 출전 경기 중 실점 0 카운트 (result.playerStats + match score).
+- 평점 순위는 최소 출전수(`leaderboardMinApps`, 외부화) 미만 제외.
+- UI: StandingsScene 탭/섹션 — 자국(유저 구단) 선수 강조. SeasonSummary 폴리싱(클럽 베스트)도 동일 쿼리 사용.
+- 영향 범위: `SeasonAwardSystem.BuildLeagueStats` public화/`LeaderboardSystem` / `StandingsController`+씬(탭) / `GameBalanceSO.leaderboardMinApps` / 선수명 = 글로벌 링크(77-1).
+
+---
+
+## V1.0-18. WB/AM squad 생성 — FormationConfig 1급 슬롯 편입 (`#77-5` / Stage R)
+
+### 현 결함
+- `Position` enum 에 WB/AM 존재하나 `FormationConfig`(FormationSO) 분배표에 **WB/AM 전용 슬롯 없음** → randomSlots 운에만 의존 → WB/AM 선수가 거의 생성 안 됨.
+- #483/H.6 의 squadConfig 시드가 WB/AM 을 같은 라인 폴백(WB↔FB, AM↔CM)으로만 흡수 → 명시 생성 보장 X.
+
+### 정책 — 기존 구조 보존 (사용자 결정: 안A)
+- `FormationConfig` 구성 테이블에 **WB / AM 을 1급 슬롯으로 편입** (현 GK/CB/LB/RB 개별 + DM+CM/LM+LW/RM+RW/ST+CF 그룹 패턴과 동일하게 확장). slotPositions 전면 리팩터 X.
+- WB 를 쓰는 포메이션(3-5-2, 5-3-2 등) / AM 을 쓰는 포메이션은 `SeedV10Data.GenerateFormations` 가 해당 min 을 명시 → 스쿼드가 실제로 WB/AM 을 생성.
+- **Formation 에셋 재생성 chore** (Sub-C, 사용자 메뉴 실행).
+
+### 영향 범위
+- `FormationSO.FormationConfig` (WB/AM 슬롯 필드) / `ClubGenerator.BuildSquadComposition` (WB/AM 분배 반영) / `SeedV10Data.GenerateFormations` / Formation 에셋 재생성 / `FormationRandomizationTests` (WB/AM 생성 검증 추가).
+
+---
+
 ## Part 3 Change Log
 
 | Date | Section | Change |
 | --- | --- | --- |
 | 2026-05-29 | V1.0-1 ~ V1.0-10 | Part 3: V1.0 Updates 부록 신규 작성. 10 섹션 — 5-Zone 골 빈도 P0 밸런싱 (V0.5 플레이테스트 hotfix) / 매치 텍스트 ~150 키 카탈로그 (5종 변형 × 30 이벤트 종류, 시드 회전) / 선수 조합 시너지 10종 (SynergySO 외부화, ComputeSynergies 알고리즘) / Training System (개인 + 그룹 + GrowthSystem 통합) / CurrencyFormatter (GBP base, 4 통화 환율 고정) / PlayerAvatar + ClubBadge (이니셜 + 색상, ClubGenerator 색상 생성 추가) / Inbox 도메인 + 정책 (자동 만료 + 시즌 종료 시 읽은 것 삭제, InboxRouter EventBus 흡수) / Player.physical + 매치 영향 (헤더/agility/pace/PK 발 일치) / FormationMatchupSO (6×6 행렬) / Cup FA컵 단판 단일 (V0.5 Stage Q 이월). `docs/v1.0-plan.md` §3 + `docs/design-decisions.md` #58~#65 와 연동. |
 | 2026-05-31 | V1.0-11 신규 | Task A.3 — growthHistory + GrowthSystem 월별 스냅샷. StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 / GetStatChange 헬퍼. design-decisions.md #68 연동. |
+| 2026-06-05 | V1.0-11.5 보강 + V1.0-15/16/17/18 신규 | V1.0 플레이테스트 트리아지 (design-decisions #72~#77 연동, Stage R). **V1.0-11.5** 슈퍼유망주 동적 재평가(GrowthSystem.Tick, CA≥110·21세↓ 부여/회수, 효과 없는 라벨, PlayerGenerator 풀 제외). **V1.0-15** Trait 가시성(Concealed/Public/ScoutGated enum) + revealedTraitIds scoutLevel 비례 공개 + PlayerProfile 게이팅 + 검색 폐지. **V1.0-16** 재정(주급 월차감 WageSystem + 수입/임금 63% 비율 정상화 + 시설비 상향 + 측정 하네스) + 선수 수락 명성격차(ComputePlayerAcceptChance, 임금 보상 가능). **V1.0-17** 리그 리더보드(BuildLeagueStats 일반화 — 득점/도움/평점/클린시트/출전). **V1.0-18** WB/AM squad FormationConfig 1급 슬롯 편입(구조 보존, 에셋 재생성). |
 | 2026-06-02 | V1.0-12 신규 | Stage C (#455) — Stat 등급 색상 코딩 (C.2) + 성장 동향 화살표 (C.4) + StatRowView 행 위젯 계약 (C.1) + 신체 조건 (C.3). StatColorCoding/StatRowView 신규 / PlayerProfileController 그리드 재작업 / Localization 키 10 (등급명 5 / 주발 3 / 신체 2). 색 팔레트 muip-reference §18. |
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
