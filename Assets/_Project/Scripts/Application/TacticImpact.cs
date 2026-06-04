@@ -9,6 +9,8 @@
 // roleId(코드 필드명) 로 PlayerRoleSO 조회. assignedPlayerId 미배정(-1) 슬롯은 role/duty=1.0 폴백 → J.5 라인업 배정 후 본격 작동.
 // Duty 가중치는 GameBalanceSO 외부화 (매직넘버 금지, design-decisions.md #11).
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using FMLite.Domain;
 
@@ -99,6 +101,156 @@ namespace FMLite.Application
                 default:
                     return 1f;
             }
+        }
+
+        // ── G.3 시너지 검출 (algorithms.md V1.0-3, #478) ──────────────────────
+        // 배정된 라인업(slot.assignedPlayerId>=0)에서 활성 시너지 목록. tactic/라인업 미배정 → 빈 목록.
+        public static List<SynergySO> ComputeSynergies(Tactic tactic, GameState state)
+        {
+            var active = new List<SynergySO>();
+            if (tactic?.slots == null || state == null)
+                return active;
+
+            var assigned = tactic
+                .slots.Where(s => s.assignedPlayerId >= 0)
+                .Select(s => (slot: s, player: state.GetPlayer(s.assignedPlayerId)))
+                .Where(x => x.player != null)
+                .ToList();
+            if (assigned.Count == 0)
+                return active;
+
+            foreach (var syn in GameDatabase.AllSynergies)
+            {
+                if (syn?.conditions == null || syn.conditions.Count == 0)
+                    continue;
+                bool allMet = true;
+                foreach (var cond in syn.conditions)
+                {
+                    if (!ConditionMet(cond, assigned))
+                    {
+                        allMet = false;
+                        break;
+                    }
+                }
+                if (allMet)
+                    active.Add(syn);
+            }
+            return active;
+        }
+
+        private static bool ConditionMet(
+            SynergyCondition cond,
+            List<(TacticSlot slot, Player player)> assigned
+        )
+        {
+            var cands = assigned
+                .Where(x =>
+                    cond.positions == null
+                    || cond.positions.Count == 0
+                    || cond.positions.Contains(x.player.info.primaryPosition)
+                )
+                .ToList();
+
+            int need = Math.Max(1, cond.minCount);
+
+            if (cond.requireSameNationality)
+            {
+                int maxSameNation = cands
+                    .Where(x => !string.IsNullOrEmpty(x.player.info.nationalityCode))
+                    .GroupBy(x => x.player.info.nationalityCode)
+                    .Select(g => g.Count())
+                    .DefaultIfEmpty(0)
+                    .Max();
+                return maxSameNation >= need;
+            }
+
+            int matched = cands.Count(x =>
+                EvalStatRequirement(x.player, cond.statRequirement)
+                && EvalRoleRequirement(x.slot, cond.roleRequirement)
+            );
+            return matched >= need;
+        }
+
+        // "fieldPath op value" 를 '&' 로 여러 개 AND. 빈 문자열 = 무조건 true.
+        private static bool EvalStatRequirement(Player player, string req)
+        {
+            if (string.IsNullOrWhiteSpace(req))
+                return true;
+            foreach (var clause in req.Split('&'))
+            {
+                if (!EvalClause(player, clause.Trim()))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool EvalClause(Player player, string clause)
+        {
+            if (string.IsNullOrWhiteSpace(clause))
+                return true;
+
+            string op;
+            int opIdx;
+            if ((opIdx = clause.IndexOf(">=", StringComparison.Ordinal)) >= 0)
+                op = ">=";
+            else if ((opIdx = clause.IndexOf("<=", StringComparison.Ordinal)) >= 0)
+                op = "<=";
+            else if ((opIdx = clause.IndexOf("==", StringComparison.Ordinal)) >= 0)
+                op = "==";
+            else if ((opIdx = clause.IndexOf(">", StringComparison.Ordinal)) >= 0)
+                op = ">";
+            else if ((opIdx = clause.IndexOf("<", StringComparison.Ordinal)) >= 0)
+                op = "<";
+            else
+                return false;
+
+            string name = clause.Substring(0, opIdx).Trim();
+            if (!int.TryParse(clause.Substring(opIdx + op.Length).Trim(), out int threshold))
+                return false;
+
+            int v = ResolveStatValue(player, name);
+            switch (op)
+            {
+                case ">=":
+                    return v >= threshold;
+                case "<=":
+                    return v <= threshold;
+                case "==":
+                    return v == threshold;
+                case ">":
+                    return v > threshold;
+                case "<":
+                    return v < threshold;
+                default:
+                    return false;
+            }
+        }
+
+        // 특수 토큰(height/weight/weakFoot) → Player.physical, 그 외 → StatCatalog fieldPath.
+        private static int ResolveStatValue(Player player, string name)
+        {
+            switch (name)
+            {
+                case "height":
+                    return player.physical?.height ?? 0;
+                case "weight":
+                    return player.physical?.weight ?? 0;
+                case "weakFoot":
+                case "weakFootAbility":
+                    return player.physical?.weakFootAbility ?? 0;
+                default:
+                    return StatCatalog.Read(player.stats, name);
+            }
+        }
+
+        private static bool EvalRoleRequirement(TacticSlot slot, string roleReq)
+        {
+            if (string.IsNullOrWhiteSpace(roleReq))
+                return true;
+            var role = GameDatabase.GetPlayerRole(slot.roleId);
+            return role != null
+                && !string.IsNullOrEmpty(role.displayName)
+                && role.displayName.IndexOf(roleReq, StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

@@ -28,6 +28,219 @@ namespace FMLite.Editor
             Debug.Log("[SeedV10Data] V0.5 seed data generated.");
         }
 
+        // ── V1.0 G.3/G.4 — 시너지 + 포메이션 상성 (#478) ──────────────────
+        [MenuItem("FM-Lite/Seed/Generate V1.0 Synergy+Matchup")]
+        public static void GenerateSynergyAndMatchup()
+        {
+            EnsureFolder(Res, "Synergies");
+            EnsureFolder(Res, "Matchup");
+            GenerateSynergies();
+            GenerateFormationMatchup();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("[SeedV10Data] V1.0 Synergy(10) + FormationMatchup(36) generated.");
+        }
+
+        private static SynergyCondition SynCond(
+            string stat,
+            int minCount,
+            bool sameNat,
+            params Position[] pos
+        ) =>
+            new SynergyCondition
+            {
+                positions = new List<Position>(pos),
+                statRequirement = stat,
+                minCount = minCount,
+                requireSameNationality = sameNat,
+            };
+
+        private static void GenerateSynergies()
+        {
+            // (id, nameKey, bonus, conditions) — algorithms.md V1.0-3 카탈로그. stat = StatCatalog fieldPath / height·weight 특수.
+            var defs = new (int id, string key, float bonus, SynergyCondition[] conds)[]
+            {
+                (
+                    1,
+                    "synergy_big_and_small",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond("height>=188", 1, false, Position.ST, Position.CF),
+                        SynCond("height<=175", 1, false, Position.LW, Position.RW),
+                    }
+                ),
+                (
+                    2,
+                    "synergy_target_speedster",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "technical.heading>=80 & physical.strength>=78",
+                            1,
+                            false,
+                            Position.ST,
+                            Position.CF
+                        ),
+                        SynCond("physical.pace>=85", 1, false, Position.LW, Position.RW),
+                    }
+                ),
+                (
+                    3,
+                    "synergy_possession",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "technical.passing>=80 & mental.vision>=75",
+                            2,
+                            false,
+                            Position.CM,
+                            Position.AM
+                        ),
+                    }
+                ),
+                (
+                    4,
+                    "synergy_defensive_wall",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "technical.tackling>=80 & technical.marking>=80",
+                            2,
+                            false,
+                            Position.CB
+                        ),
+                    }
+                ),
+                (
+                    5,
+                    "synergy_wingback_duo",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "physical.stamina>=80 & mental.workRate>=80",
+                            2,
+                            false,
+                            Position.LB,
+                            Position.RB,
+                            Position.WB
+                        ),
+                    }
+                ),
+                (
+                    6,
+                    "synergy_double_pivot",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "technical.tackling>=75 & mental.positioning>=75",
+                            2,
+                            false,
+                            Position.DM
+                        ),
+                    }
+                ),
+                (
+                    7,
+                    "synergy_trequartista",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "mental.flair>=80 & mental.vision>=80 & technical.technique>=80",
+                            1,
+                            false,
+                            Position.AM
+                        ),
+                    }
+                ),
+                (
+                    8,
+                    "synergy_false_nine",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "mental.offTheBall>=80 & mental.decisions>=75",
+                            1,
+                            false,
+                            Position.ST,
+                            Position.CF
+                        ),
+                    }
+                ),
+                (
+                    9,
+                    "synergy_diamond_midfield",
+                    1.05f,
+                    new[]
+                    {
+                        SynCond(
+                            "mental.teamwork>=70",
+                            4,
+                            false,
+                            Position.DM,
+                            Position.CM,
+                            Position.AM
+                        ),
+                    }
+                ),
+                (
+                    10,
+                    "synergy_homegrown_spine",
+                    1.03f,
+                    new[]
+                    {
+                        SynCond("", 4, true, Position.GK, Position.CB, Position.DM, Position.ST),
+                    }
+                ),
+            };
+
+            foreach (var (id, key, bonus, conds) in defs)
+            {
+                var path = Res + "/Synergies/Synergy_" + id + ".asset";
+                var so = CreateOrLoad<SynergySO>(path);
+                so.id = id;
+                so.nameKey = key + "_name";
+                so.descriptionKey = key + "_desc";
+                so.strengthBonus = bonus;
+                so.conditions = new List<SynergyCondition>(conds);
+                EditorUtility.SetDirty(so);
+            }
+        }
+
+        private static void GenerateFormationMatchup()
+        {
+            // V1.0-9 6×6 행렬 (행=home, 열=away). 포메이션 id: 1=4-4-2 2=4-3-3 3=3-5-2 4=4-2-3-1 5=4-4-1-1 6=5-3-2.
+            float[,] m =
+            {
+                { 1.00f, 0.97f, 1.03f, 1.00f, 1.02f, 1.05f }, // 4-4-2
+                { 1.03f, 1.00f, 1.02f, 1.05f, 1.00f, 1.07f }, // 4-3-3
+                { 0.97f, 0.98f, 1.00f, 1.02f, 1.03f, 1.00f }, // 3-5-2
+                { 1.00f, 0.95f, 0.98f, 1.00f, 1.03f, 1.05f }, // 4-2-3-1
+                { 0.98f, 1.00f, 0.97f, 0.97f, 1.00f, 1.03f }, // 4-4-1-1
+                { 0.95f, 0.93f, 1.00f, 0.95f, 0.97f, 1.00f }, // 5-3-2
+            };
+            var so = CreateOrLoad<FormationMatchupSO>(Res + "/Matchup/FormationMatchup.asset");
+            so.matchups = new List<MatchupEntry>();
+            for (int h = 0; h < 6; h++)
+            for (int a = 0; a < 6; a++)
+                so.matchups.Add(
+                    new MatchupEntry
+                    {
+                        homeFormationId = h + 1,
+                        awayFormationId = a + 1,
+                        homeBonus = m[h, a],
+                    }
+                );
+            EditorUtility.SetDirty(so);
+        }
+
         // ── Folder helpers ────────────────────────────────────────────────
 
         private static void EnsureFolders()
