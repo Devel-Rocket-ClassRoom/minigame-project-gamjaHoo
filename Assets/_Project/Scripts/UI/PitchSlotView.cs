@@ -14,7 +14,8 @@ namespace FMLite.UI
             IBeginDragHandler,
             IDragHandler,
             IEndDragHandler,
-            IDropHandler
+            IDropHandler,
+            IPointerClickHandler
     {
         [SerializeField]
         private TMP_Text nameText;
@@ -81,5 +82,13 @@ namespace FMLite.UI
         }
 
         public void OnDrop(PointerEventData e) => _ctrl?.OnDropOnSlot(SlotIndex, e.pointerDrag);
+
+        // 클릭(드래그 아님) → Role/Duty 팝업. 드래그가 일어났으면 OnPointerClick 미발화.
+        public void OnPointerClick(PointerEventData e)
+        {
+            if (e.dragging)
+                return;
+            _ctrl?.OnSlotClicked(SlotIndex);
+        }
     }
 }
