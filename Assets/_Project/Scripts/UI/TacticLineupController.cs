@@ -112,6 +112,9 @@ namespace FMLite.UI
 
         public void ShowTab(int index)
         {
+            // 라인업 탭 진입 전 전술(포메이션) 커밋 + 슬롯 보장 → 패널 활성 시 LineupTabController.OnEnable 이 Refresh.
+            if (index == 1)
+                PrepareLineupTab();
             if (tacticPanel != null)
                 tacticPanel.SetActive(index == 0);
             if (lineupPanel != null)
@@ -223,6 +226,19 @@ namespace FMLite.UI
                 );
             }
             _userClub.tactic.slots = slots;
+        }
+
+        // 라인업 탭 준비 — 포메이션/Mentality 커밋 + 슬롯 미생성/불일치 시 재구성.
+        private void PrepareLineupTab()
+        {
+            ApplyTacticFromUI();
+            if (_userClub?.tactic == null)
+                return;
+            var formation = GameDatabase.GetFormation(_userClub.tactic.formationId);
+            int need = formation?.slotPositions?.Length ?? 0;
+            var slots = _userClub.tactic.slots;
+            if (need > 0 && (slots == null || slots.Count != need))
+                RebuildSlotsForFormation(_userClub.tactic.formationId);
         }
 
         private void OnAutoLineupClicked()
