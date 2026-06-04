@@ -82,24 +82,9 @@ namespace FMLite.Tests
 
         // ── starting11 자동 선정 ──────────────────────────────────────
 
-        // 구 CA-top11 포지션무시 폴백 검증 — V1.0-14(Stage H) 포메이션 기반 라인업으로 재작성 예정 (#474 후속, design-decisions #71).
-        [Ignore("Pending V1.0-14 포메이션 기반 라인업 재작성 (Stage H, design-decisions #71)")]
-        [Test]
-        public void StartingEleven_TopByCAExcludingInjured()
-        {
-            var (state, match) = BuildState(seed: 1, matchId: 1);
-            var result = MatchSimulator.Simulate(match, state, _balance);
-
-            Assert.AreEqual(11, result.homeStarting11.Count);
-            var homeClub = state.GetClub(match.homeClubId);
-            var bench = homeClub
-                .seniorSquadIds.Where(id => !result.homeStarting11.Contains(id))
-                .Select(id => state.GetPlayer(id))
-                .ToList();
-            int xiMin = result.homeStarting11.Select(id => state.GetPlayer(id).currentAbility).Min();
-            int benchMax = bench.Count > 0 ? bench.Max(p => p.currentAbility) : 0;
-            Assert.GreaterOrEqual(xiMin, benchMax);
-        }
+        // 구 StartingEleven_TopByCAExcludingInjured / ExcludesSuspendedPlayers 제거 (#483 H.6):
+        // 선정 로직이 LineupSelector(포메이션 정합)로 이동 → 포지션 풀이면 고-CA도 벤치 가능(top-CA 가정 폐기).
+        // 동등 검증은 LineupSelectorTests (T1 포지션정합 / T2 부상·정지 제외 / T3 무포메이션 top-CA).
 
         [Test]
         public void StartingEleven_ExcludesInjuredPlayers()
@@ -113,27 +98,6 @@ namespace FMLite.Tests
                 .ToList();
             foreach (var p in top5)
                 p.state.injury.injuryTypeId = 1;
-
-            var result = MatchSimulator.Simulate(match, state, _balance);
-            foreach (var p in top5)
-                Assert.IsFalse(result.homeStarting11.Contains(p.id));
-            Assert.AreEqual(11, result.homeStarting11.Count);
-        }
-
-        // 구 폴백 동작 검증 — V1.0-14(Stage H) 라인업 재작성 시 suspended 제외 정합 포함해 재작성 (#474 후속).
-        [Ignore("Pending V1.0-14 포메이션 기반 라인업 재작성 (Stage H, design-decisions #71)")]
-        [Test]
-        public void StartingEleven_ExcludesSuspendedPlayers()
-        {
-            var (state, match) = BuildState(seed: 1, matchId: 1);
-            var home = state.GetClub(match.homeClubId);
-            var top5 = home
-                .seniorSquadIds.Select(id => state.GetPlayer(id))
-                .OrderByDescending(p => p.currentAbility)
-                .Take(5)
-                .ToList();
-            foreach (var p in top5)
-                p.state.suspendedMatches = 1;
 
             var result = MatchSimulator.Simulate(match, state, _balance);
             foreach (var p in top5)

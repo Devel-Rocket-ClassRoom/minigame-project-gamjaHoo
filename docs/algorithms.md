@@ -5127,6 +5127,13 @@ INPUT: club (formationId), state, rng(=match seed 파생)
 - 포지션 적합 판정 — `Player.info.primaryPosition` + 보조포지션(affinity) + `FormationSO.slotPositions`.
 - `MatchSimulatorTests` StartingEleven_* 재작성 (포메이션 정합 + AI 노이즈 분포 검증).
 
+### 실제 구현 (#483, H.6)
+- **`LineupSelector` (Application)** 신규 — `SelectStartingEleven(club, state, seed, balance)`: 슬롯 순회, 유저 배정(assignedPlayerId≥0) 우선, 빈 슬롯은 `PickBestFit`(포지션 적합 + CA + 균등 ±sigma 노이즈). 포메이션 미로드 시 위치 편향 없이 top-CA 폴백. `AiAutoLineup`(슬롯 무시 전체 자동) / `HasValidLineup`(11 배정+가용, H.4 게이트용).
+- 포지션 적합: 주 1000 > 보조 500 > 같은 라인(LineOf) 200 > 0. `seed = match.id ^ randomSeed ^ club.id` (결정성, gameplay rng 미소비).
+- **squadConfig 시드 (사용자 결정)** — 스쿼드가 formation 라인 분배 따름. `SeedV10Data.GenerateFormations` 가 포메이션별 FormationConfig(그룹 mins) + formationStyle 설정. AM↔CM·WB↔FB 는 같은 라인 폴백으로 흡수. **Formation 에셋 재생성 chore**.
+- **유저 강제 게이트는 H.4 (MatchPreviewScene)** 로 이관 — `HasValidLineup` 준비됨, 지금은 미지정 시 AI 자동 폴백 (UI 없이 차단하면 매치 불가).
+- 구 `MatchSimulator.SelectStartingEleven` private 제거. `StartingEleven_TopByCA/Suspended` 테스트 제거(obsolete) → `LineupSelectorTests` 로 대체.
+
 ### V1.x 보완
 - AI 전술/포메이션 선택 동적화 (상대 분석), 로테이션(컵/체력), 부상 연쇄 시 포지션 변경.
 
@@ -5142,6 +5149,7 @@ INPUT: club (formationId), state, rng(=match seed 파생)
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
 | 2026-06-02 | V1.0-13 신규 | Stage D (#459) — CurrentAbility 재계산 (앵커 + 포지션 관련 평균 RelevantMean). CA 고정 문제 해소, 라운드트립으로 t=0 밸런스 점프 0. + 성장 체감 튜닝: (a) growthBaseChance 0.01→0.06, (c) 출전 기반 성장 보너스 (PlayerState.appearancesAtLastGrowthTick + growthPlaytimeCoeff/Cap). CaCalculator/Player.caAnchor/PlayerGenerator/GrowthSystem/GameBalance 연동. D.1 Squad 검색 제거 동반. |
+| 2026-06-04 | V1.0-14 구현 (#483, Stage H.6) | 포메이션 기반 라인업 — `LineupSelector` 신규(유저 배정 우선 + 빈 슬롯 포지션 적합 자동 + 노이즈, 무포메이션 top-CA 폴백). AI 자동 라인업. CA-top11 포지션무시 폴백 폐기. **squadConfig 포메이션별 시드**(스쿼드가 formation 따름, 사용자 결정) + formationStyle 명시. lineupNoiseSigma. HasValidLineup(유저 게이트는 H.4). LineupSelectorTests 5종 / 구 StartingEleven obsolete 제거. Formation 에셋 재생성 chore. |
 | 2026-06-04 | V1.0-2 구현 (#481) | G.6 매치 텍스트 변형 + 시드 선택. `MatchSimulator.Vk`(matchSeed+eventSeq, gameplay rng 미소비) 로 28 패밀리 `match_event_{family}_{n}` 선택. SubstitutionAI sub 변형. MakeArgs `{player}`/`{gk}` 어휘 정합. 변형 텍스트는 A.5 시드. EditMode T28(결정성/형식/다양성). viewMode 폐기는 Stage J.2 이관. Stage G 완료. |
 | 2026-06-04 | V1.0-3/V1.0-9 통합 구현 (#478) | G.3 시너지 + G.4 포메이션 상성 실제 통합. SynergyCondition 확장(List<Position>/minCount/requireSameNationality/stat-AND fieldPath). teamMod = Π(시너지)×매치업, **xG 비율에만 적용**(blanket Eff 폭주·비단조 회피 — 측정 확인). `ResolveShotXg` rng 결정성 수정(outcome 무관 2회 소비). 시드 생성기 `Generate V1.0 Synergy+Matchup`(10+36). MatchPreviewScene 표시는 Stage H 이관. PR1 밸런스 무영향(2.76→2.66). |
 | 2026-06-04 | V1.0-14 신규 | #474 후속 (design-decisions #71, Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합 + lineupNoiseSigma. StartingEleven_* 테스트 [Ignore] (구현 시 재작성). |
