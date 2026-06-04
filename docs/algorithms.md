@@ -3930,60 +3930,215 @@ scoutWeeklyLevelGain = 5    # 매주 외부 명단 scoutLevel +5 (max 100)
 
 ---
 
-## V1.0-1. 5-Zone Markov 골 빈도 재밸런싱 (P0 hotfix — `#62`)
+## V1.0-1. 매치 엔진 xG 찬스-퀄리티 레이어 + 골 빈도 재밸런싱 (`#62 / #74`)
 
-**문제 (V0.5 플레이테스트, 2026-05-29):**
-- 380 매치 평균 골수 = ~4.5 (EPL 실측 2.7 대비 과다).
-- 11대 5 같은 비현실적 스코어 빈번.
+> **전면 재설계 (2026-06-04, 사용자 결정 #74):** V1.0 초안의 "블런트 4-파라미터 튜닝" 폐기 → **찬스-퀄리티(xG) 레이어** 도입. 실제 FM 매치 엔진의 핵심 원리 (슛의 가치 = 어떻게 그 찬스가 만들어졌나) 를 차용. 5-Zone Markov 구조 / `Simulate(...)` 인터페이스 / 결정성(시드) 은 그대로 유지 — **바뀌는 건 ResolveShot 내부 전환 모델 + 평점 + MatchResult 출력뿐**.
+
+### 문제 (V0.5 플레이테스트, 2026-05-29)
+- 380 매치 평균 골수 ~4.5 (EPL 실측 2.7 대비 과다). 11대 5 같은 비현실적 스코어 빈번.
 - 사용자 피드백: "골이 너무 많이 나옴. 야구마냥 11대 5 뭐 이런 경기가 너무 많이나와."
 
-**목표:**
-- `avgGoalsPerMatch` = 2.7 ± 0.3 수렴.
-- 380 매치 (시즌 1회 완주) 평균 골수 측정 → 2.4~3.0 진입.
+### 근본 원인
+V0.5 는 박스 안 모든 슛을 **평탄 전환** 처리: `conversion = goalConversionBase(0.30) + (shootRating-gkRating)/150`. 박스 도달만 하면 어떤 상황이든 동급 찬스 → 박스 진입 빈도가 곧 골. 실제 축구/FM 은 정반대 — 슛 가치는 찬스 유형(스루패스 1:1 vs 크라우드 하프찬스 vs 헤더 vs 중거리)과 수비 압박으로 결정된다.
 
-**조정 후보 파라미터:**
+### 목표
+- `avgGoalsPerMatch` 2.7 ± 0.3 (380매치). std 는 **Poisson 수준 (≈√mean ≈ 1.6)** — 실제 축구 골 분포가 Poisson 근사이므로 초안의 "<1.5" 는 비현실적 (정정). EPL 실측 std ~1.6.
+- 밸런싱이 **직감이 아닌 수학**: 기대 득점 = Σ(슛 xG). 평균팀 한쪽 Σ xG ≈ 1.35 → 2.7/경기. baseXG 표만 맞추면 직접 산정.
+- **측정 결과 (2026-06-04, 200매치)**: 평균골 2.76 / ΣxG 2.50 / std 1.62 / 슛 15.1팀 / PK 0.26경기 (목표 정합 ✓).
+
+### chanceType 분류 + baseXG 표 (외부화)
+
+각 슛은 **어떻게 만들어졌나**로 chanceType 이 결정되고, 그에 따른 `baseXG` (찬스 자체의 득점 확률 = situation quality, 슈터 실력 무관) 를 가진다.
+
+| chanceType | 발생 경로 | baseXG | 비고 |
+|---|---|---|---|
+| `ClearChance` | AttackingThird 성공 시 확률 `clearChanceProb` (스루패스 — 패서 vision/passing/flair) | 0.40 | 1:1 결정적 찬스 |
+| `OpenPlay` | AttackingThird 드리블 성공 → box 진입 (기본 경로) | 0.13 | 컨테스트된 박스 슛 |
+| `Header` | Corner / FreeKick 간접(크로스) / LongThrow → box | 0.12 | × `headerMod` (G.2 키·헤딩·점프) |
+| `LongShot` | AttackingThird 에서 확률 `longShotProb` 로 박스 미진입 즉시 슛 | 0.05 | 중거리 |
+| `DirectFreeKick` | FreeKick 직접 | 0.07 | freeKickTaking 보정 |
+| `Penalty` | box 파울 / PK 키커 | (별도 `penaltyConversion` 0.76) | xG 표 외 — 별도 해결 |
+
+### ResolveShot 새 흐름 (xG 기반)
 
 ```
-[1] Box 진입 확률 ↓
-    - 현재: AttackingThird → AwayBox 전이 확률
-    - 변경: -15% (튜닝 시작점)
+ResolveShot(sim, att, chanceType):
+    shooter = SnapPlayer(att, AT, EventShot)   # 또는 헤더/세트피스 지정자
+    gk      = FindGoalkeeper(def)
 
-[2] Shot success rate 분모 가중
-    - 현재: shotSuccess = attEff / (attEff + defEff)
-    - 변경: defEff *= 1.2 (GK 강화 — reflexes/handling/positioning 가중치 ↑)
+    # 1) 찬스 품질 (situation) — 슈터 실력 무관, xG 로 기록
+    xg = baseXG[chanceType]
+    if chanceType == Header:
+        xg *= HeaderMod(target)                 # G.2 (1): heading×jumpingReach×height/180 정규화
+    xg = Clamp(xg, xgFloor 0.02, xgCeil 0.85)
 
-[3] 매 분 1~3 action 평균값 ↓
-    - 현재: 1~3 균등 / 평균 ~2
-    - 변경: 1~2 균등 / 평균 ~1.5 (action 수 자체 감소)
+    # 2) 실제 골 확률 = xG × 슈터 finishing 보정 × GK 보정
+    finishEff  = FinishingEff(shooter, chanceType)   # finishing+composure+decisions, G.2 발 일치 보정
+    finishMod  = 1 + (finishEff - 50) / finishingXgDivisor(220)   # clamp 0.6~1.5
+    gkMod      = Clamp(1 - (GkRatingEff(gk) - 50) / gkXgDivisor(260), gkModFloor 0.55, gkModCeil 1.25)
+    conversion = Clamp(xg * finishMod * gkMod, convFloor 0.01, convCeil 0.95)
 
-[4] homeAdvantage 곱셈 ↓
-    - 현재: 1.10
-    - 변경: 1.05
-```
+    sim.stats[shooter].shots++
+    sim.stats[shooter].xg += xg                  # 누적 xG (평점 + AA 대시보드)
+    RecordShotPin(sim, att, chanceType, xg, outcome)   # AA.1 shotMap 선당김
 
-**튜닝 절차 (반복):**
-```
-for each candidate parameter set:
-    simulate 380 matches (시즌 1회 완주, 고정 시드)
-    measure avgGoalsPerMatch / stdGoalsPerMatch
-    if 2.4 <= avg <= 3.0 and std < 1.5:
-        accept
+    # 3) 결과 추첨
+    if rng < conversion:
+        GOAL  (assist 처리 동일)                  # on-target
     else:
-        adjust + repeat
+        # 빅찬스 미스 집계 (평점 — 사용자 #74)
+        if xg >= bigChanceThreshold(0.30): sim.stats[shooter].bigChancesMissed++
+        # on-target(Saved) vs off/blocked — 표시용 통계만
+        accuracy = Clamp(shotAccuracyBase + (finishEff-50)/shotAccuracyDivisor, 0.15, 0.85)
+        if rng2 < accuracy:  ShotSaved (GK save++)        # on target
+        else:                ShotOffTarget / ShotBlocked  # shotBlockedRatio
+    TurnOver(att, Midfield)
 ```
 
-**외부화 (`GameBalanceSO`):**
-- 모든 5-zone 파라미터 이미 외부화됨 (V0.5-2). 본 튜닝은 **수치 갱신만**.
-- `Balance/GameBalance.asset` reimport (Sub-C asset chore).
+> **핵심:** 기록되는 `shot.xG` 는 **찬스 품질 (situation)** — finishing/GK 무관. 실제 골 여부는 `xG × finishMod × gkMod`. 이것이 표준 xG 정의 (FM 동일): xG = 찬스의 질, 슈팅 실력은 over/under-performance.
 
-**검증 시드:**
-- `state.randomSeed = 42` (고정).
-- 같은 시드 = 항상 같은 결과 (결정성 #17).
-- 시즌 종료 후 380 매치 결과 dump → 평균 / 표준편차 계산.
+### chanceType 결정 (zone resolution 통합)
 
-**EditMode 테스트 갱신:**
-- `MatchSimulatorTests` 의 통계 임계치 갱신 (V0.5 → V1.0 기준).
-- 분포 테스트 → P5/P95 골수 분포 확인.
+```
+ResolveAttackingThird 성공 시:
+    if rng < ClearChanceProb(attacker):    # 스루패스 — vision/passing/flair 기반
+        pendingChanceType = ClearChance
+    else:
+        pendingChanceType = OpenPlay
+    ball → AttackingBox   # 다음 action 의 ResolveShot 이 pendingChanceType 소비
+
+ResolveAttackingThird 실패 전, 확률 longShotProb 로:
+    ResolveShot(LongShot)  # box 미진입 중거리 슛 (성공 시 골 / 실패 턴오버)
+
+Corner / FreeKick(간접) / LongThrow → ResolveShot(Header)
+FreeKick(직접) → ResolveShot(DirectFreeKick)
+```
+
+`ClearChanceProb(p) = clearChanceBase(0.10) + (creativeStat - 50)/clearChanceDivisor(400)`, clamp 0.03~0.35.
+여기서 `creativeStat = (vision + passing + flair)/3`. 창의적 미드/공격수일수록 결정적 찬스 생산 ↑.
+
+### G.2 신체 / 멘탈 매치 영향 (algorithms.md V1.0-8.3 통합)
+
+```
+(1) HeaderMod(target) = (heading * jumpingReach/100.0 * height/180.0) / headerModNormalizer(1.0)   # 키 큰 헤더 우세
+(2) AgilityEff(p)     = agility * (180.0 / max(height,165))     # 키 작을수록 드리블/회피 ↑ (AttackingThirdAtt 에 반영)
+(3) SprintEff(p)      = pace + weakFootAbility * 0.5            # 약발 좋을수록 미세 ↑ (AttackingThirdAtt / 카운터)
+(4) FootMatch         = (preferredFoot==Both) ? 1.0 : (kick 방향 일치 ? 1.0 : footMismatchPenalty 0.85)
+    → FinishingEff / PK / 직접FK 에 곱셈
+```
+
+### 평점 시스템 재설계 (I.4 → V1.0 — FM 정합 + xG, 사용자 #74)
+
+> **문제 (현 I.4):** ① 포지션 무가중 — 수비수/미드필더가 공격수와 동일 누적식 → 화려한 액션 적은 수비라인 구조적 저평점. ② 패스/점유 기여 0 — `passesCompleted` 평점 미반영, 미드 저평가. ③ 실점 책임 GK 독점 — 무실점 보너스·실점 감점이 GK 전용 (FM 은 수비라인 공유). ④ 부진 감점 부족 — 카드 외 빅찬스 미스/저조 패스 감점 없음.
+>
+> **FM 원리 (리서치 2026-06-04):** "포지션이 평점을 만든다" — 수비수는 태클/인터셉트/클리어/무실점, 미드는 패스성공률/키패스, 공격수는 슛 퀄리티/골. 평균 ~6.8, 실질 6~8. 한 실수 급락 / 한 골 회복.
+>
+> **설계 원칙:** 인위적 라인 곱셈 대신 **각 포지션이 실제 수행하는 액션을 충분히 가치화** → 포지션 특성이 자연 발현. 라인 게이팅은 무실점/실점(GK+DF 한정)에만. Stateless / 전부 `GameBalanceSO` 외부화 / 결정성 유지.
+
+```
+r = ratingBase(6.5)
+
+# ── 공격 기여 (전 포지션 — 골/어시는 누구든 가치) ──
+r += goals          * ratingGoalBonus(0.8)
+r += assists        * ratingAssistBonus(0.5)
+r += shotsOnTarget  * ratingShotOnTargetBonus(0.1)
+r += keyPasses      * ratingKeyPassBonus(0.12)        # 드리블 돌파/스루패스
+# xG 보정 (#74) — clinical finish 가산 / 낭비 감점
+r += (goals - xg)        * ratingXgPerformanceCoeff(0.6)
+r += bigChancesMissed    * ratingBigChanceMissPenalty(-0.5)   # xG≥bigChanceThreshold 미스
+
+# ── 수비 기여 (전 포지션 — 수비수가 자연히 더 누적) ──
+r += (tackles + interceptions) * ratingDefActionBonus(0.08)
+r += clearances                * ratingClearanceBonus(0.04)
+
+# ── 패스/점유 기여 (passes ≥ ratingPassMinAttempts(10) 일 때만) ──
+if passes >= ratingPassMinAttempts:
+    pct = passesCompleted / passes
+    r += pct>=0.90 ? ratingPassHighBonus(0.40)
+       : pct>=0.80 ? ratingPassMidBonus(0.20)
+       : pct>=0.70 ? 0.0
+       : ratingPassLowPenalty(-0.25)
+
+# ── 규율 ──
+r += yellowCards * ratingYellowPenalty(-0.3)
+r += redCards    * ratingRedPenalty(-1.5)
+
+# ── 무실점 / 실점 (GK + DF 라인 한정) ──
+if line == GK:
+    r += saves * ratingSaveBonus(0.15)
+    r += (conceded==0) ? ratingCleanSheetBonus(0.5) : conceded * ratingConcededPenalty(-0.2)
+elif line == DF:
+    r += (conceded==0) ? ratingCleanSheetBonusDef(0.35) : conceded * ratingConcededPenaltyDef(-0.12)
+
+# ── 팀 결과 (전원) ──
+r += (teamWin ? ratingWinBonus(0.2) : teamLoss ? ratingLossPenalty(-0.2) : 0)
+
+r = Clamp(Round1(r), ratingMin(1.0), ratingMax(10.0))   # 실질 6~8 밴드
+```
+
+**체감 검증:**
+- 0.40 xG 빅찬스 1미스 = (0-0.40)×0.6 + 1×(-0.5) = **약 -0.74** ("놓쳤다" 급락).
+- 0.05 xG 골(clinical) = 0.8 + (1-0.05)×0.6 = **+1.37** ("침착한 마무리").
+- 박스 근처 안 가는 CB: 태클3+인터셉트2(×0.08=0.4) + 패스90%(+0.4) + 무실점(+0.35) + 승리(+0.2) = 6.5+1.35 = **7.85** (FM "수비수 7.5+" 재현).
+- 미드필더 패스 88%(+0.2) + 키패스2(+0.24) + 태클2(+0.16) = **+0.6** → 골 없어도 ~7.1.
+
+**신규 통계 (`PlayerMatchStat`):** `xg`(float), `bigChancesMissed`(int), `clearances`(int). 클리어런스는 AttackingThird 수비 성공(드리블 차단) 시 증가.
+
+**신규 외부화 (`GameBalanceSO`):** `ratingClearanceBonus / ratingPassMinAttempts / ratingPassHighBonus / ratingPassMidBonus / ratingPassLowPenalty / ratingCleanSheetBonusDef / ratingConcededPenaltyDef / ratingXgPerformanceCoeff / ratingBigChanceMissPenalty`. 기존 `ratingGoalBonus` 1.0→0.8 (xG 항이 보완).
+
+### MatchResult 출력 확장 (AA.1 / AA.2 선당김)
+
+```csharp
+MatchResult:
+    + List<ShotPin> shotMap          # 슛별 (side, x, y, xG, outcome) — AA.5 슛맵
+    + int[] zoneOccupancy = new int[5]   # ballZone 점유 누적 — AA.4 히트맵
+ShotPin { int side; float x; float y; float xg; ShotOutcome outcome; }  # outcome: Goal/Saved/Off
+PlayerMatchStat:
+    + float xg                       # 누적 xG (situation quality 합)
+    + int bigChancesMissed
+```
+좌표 (x,y) 는 chanceType 별 대표 위치 (ClearChance/Penalty=중앙 근거리, Header=6yd, LongShot=박스 밖, OpenPlay=박스 안 분산 — 시드 기반 jitter). V1.0 은 근사, V1.x 정밀화.
+
+### 밸런싱 산정 (직접)
+
+```
+E[team goals] = Σ_shots conversion ≈ Σ_shots xG   (리그 평균 finishMod×gkMod ≈ 1)
+목표: 팀당 Σ xG ≈ 1.35  →  2.7/경기
+
+예시 믹스 (팀당 ~9 슛): clear 15% / open 50% / header 20% / long 15%
+avg xG = 0.15×0.40 + 0.50×0.13 + 0.20×0.12 + 0.15×0.05 = 0.156
+9 슛 × 0.156 = 1.40/팀 → 2.80/경기  ✓ (목표 진입)
+```
+
+**튜닝 레버 (우선순위):** ① 슛 빈도 (box 진입 = action 수 / zone 전이) ② baseXG 표 ③ clearChanceProb/longShotProb 믹스. ΣxG 가 직접 평균골을 결정하므로 1~2회 반복으로 수렴.
+
+### 외부화 (`GameBalanceSO` 신규)
+
+```
+[xG Chance-Quality]
+xgClearChance = 0.40 / xgOpenPlay = 0.13 / xgHeader = 0.12 / xgLongShot = 0.05 / xgDirectFreeKick = 0.07
+xgFloor = 0.02 / xgCeil = 0.85
+finishingXgDivisor = 220 (finishMod clamp 0.6~1.5)
+gkXgDivisor = 260 / gkModFloor = 0.55 / gkModCeil = 1.25
+conversionFloor = 0.01 / conversionCeil = 0.95
+clearChanceBase = 0.10 / clearChanceDivisor = 400 (clamp 0.03~0.35)
+longShotProb = 0.12
+headerModNormalizer = 1.0 / footMismatchPenalty = 0.85
+bigChanceThreshold = 0.30
+
+[Rating — xG (#74)]
+ratingXgPerformanceCoeff = 0.6 / ratingBigChanceMissPenalty = -0.5
+```
+> `goalConversionBase/Divisor` 는 xG 모델로 대체되어 **ResolveShot 에서 미사용** (코너/직접FK 폴백에서 일부 재활용 가능 — 구현 시 정리). 기존 5-zone 파라미터 (action/homeAdv/zone 전이) 는 슛 빈도 레버로 그대로 유지.
+
+### 검증 시드 / 측정 하네스
+- `state.randomSeed = 42` 고정. 같은 시드 = 같은 결과 (#17).
+- `MatchSimulatorTests` 통계 측정 테스트 (200~380 매치) — avg / std / P5 / P95 골수 + 팀 ΣxG.
+- **사용자 Test Runner 실행** 필요 (Claude 직접 실행 불가). 결과로 baseXG/빈도 1~2회 미세 조정.
+
+### EditMode 테스트 갱신
+- T3 (골 분포): avg 2.4~3.0 / std < 1.5 (V0.5 1.0~6.0 → V1.0 정밀화).
+- 신규: xG 분포 (팀 ΣxG ≈ 1.35) / 빅찬스 미스 평점 급락 / chanceType 분류 / G.2 키 큰 선수 헤더 우세·키 작은 선수 드리블 우세.
 
 ---
 
@@ -4927,6 +5082,49 @@ currentAbility = round(RelevantMean(stats, pos) + caAnchor)   # 성장 후 재�
 
 ---
 
+## V1.0-14. 포메이션 기반 라인업 선정 + AI 자동 라인업 (노이즈) (`#474 후속` / Stage H)
+
+> **신규 (2026-06-04, 사용자 결정):** 현 `MatchSimulator.SelectStartingEleven` 의 "포지션 무시 CA top-11 폴백" 폐기. 포메이션에 맞는 적정 라인업으로 교체. **미구현 — Stage H 에서 구현** (본 절은 명세 예약).
+
+### 문제 (현 동작)
+- `SelectStartingEleven`: `tactic.slots` 에 배정 있으면 슬롯대로, 없으면 **CA 내림차순 top-11** (포지션 완전 무시 — GK 4명·수비수 0명 같은 비현실 XI 가능).
+- 유저가 라인업을 안 짜도 자동으로 매치가 돌아감 → 라인업/전술 의사결정이 무의미.
+- 부수: `StartingEleven_TopByCAExcludingInjured` / `StartingEleven_ExcludesSuspendedPlayers` 테스트가 현 폴백의 포지션 무시 + suspended 필터 불일치로 실패 중 (V1.0-14 구현 시 재작성 — 그때까지 `[Ignore]`).
+
+### 정책
+
+**(1) 유저 팀 — 라인업 강제 (미지정 시 매치 차단):**
+- 매치 진입 게이트에서 `HasValidLineup(userClub)` 검사 (11 슬롯 모두 배정 + 부상/정지 아님 + 슬롯 포지션 적합).
+- 미충족 시 **매치 시뮬레이션 진입 거부** → 라인업 요구 (RequiresAction 인박스 또는 강제 라인업 씬). `MatchSimulator` 는 방어적으로 유저팀 라인업 누락 시 예외/플래그 (자동 폴백 금지).
+
+**(2) AI 팀 — 포메이션 기반 자동 라인업 + 노이즈:**
+```
+INPUT: club (formationId), state, rng(=match seed 파생)
+1. formation = GameDatabase.GetFormation(club.tactic.formationId)   # 11 슬롯 position
+2. pool = club.seniorSquadIds 중 부상/정지 제외
+3. for each slot in formation.slotPositions (희소 포지션 우선 — GK/측면 먼저):
+     cands = pool 중 해당 position 소화 가능 (주포지션 or 보조포지션 affinity)
+     점수 = CA + (포지션 적합 보너스) + NextNormal(0, lineupNoiseSigma)   # 노이즈
+     배정 = 미사용 최고점 선수
+     pool 에서 제거
+4. 빈 슬롯 (해당 포지션 후보 소진) → 남은 풀 중 CA 최상위로 채움 (현 폴백, 최후수단)
+```
+- **노이즈 (`lineupNoiseSigma`, 외부화 ~CA 5 정도)**: 항상 최적이 아니게 — 가끔 2nd/3rd 베스트 선발. **세부 stat / trait / 시너지 / 매치업 최적화는 안 함** (AI가 항상 완벽 라인업이면 밸런스 붕괴).
+- **상식 범위**: 일부러 약체 선발 X. 노이즈는 비슷한 CA 간 순서를 흔드는 수준 (엉뚱한 포지션·하위 선수 강제 배치 아님).
+- **결정성**: rng = `match.id ^ state.randomSeed` 파생 (재현성).
+
+### 영향 범위 (Stage H 구현 시)
+- `MatchSimulator.SelectStartingEleven` → 유저=라인업 검증 / AI=`AiAutoLineup` 신규.
+- 매치 진입 게이트 (`GameLoop`/스케줄러/매치 진입 씬) — 유저 라인업 미지정 차단.
+- `GameBalanceSO.lineupNoiseSigma` 신규.
+- 포지션 적합 판정 — `Player.info.primaryPosition` + 보조포지션(affinity) + `FormationSO.slotPositions`.
+- `MatchSimulatorTests` StartingEleven_* 재작성 (포메이션 정합 + AI 노이즈 분포 검증).
+
+### V1.x 보완
+- AI 전술/포메이션 선택 동적화 (상대 분석), 로테이션(컵/체력), 부상 연쇄 시 포지션 변경.
+
+---
+
 ## Part 3 Change Log
 
 | Date | Section | Change |
@@ -4937,3 +5135,5 @@ currentAbility = round(RelevantMean(stats, pos) + caAnchor)   # 성장 후 재�
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
 | 2026-06-02 | V1.0-13 신규 | Stage D (#459) — CurrentAbility 재계산 (앵커 + 포지션 관련 평균 RelevantMean). CA 고정 문제 해소, 라운드트립으로 t=0 밸런스 점프 0. + 성장 체감 튜닝: (a) growthBaseChance 0.01→0.06, (c) 출전 기반 성장 보너스 (PlayerState.appearancesAtLastGrowthTick + growthPlaytimeCoeff/Cap). CaCalculator/Player.caAnchor/PlayerGenerator/GrowthSystem/GameBalance 연동. D.1 Squad 검색 제거 동반. |
+| 2026-06-04 | V1.0-14 신규 | #474 후속 (design-decisions #71, Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합 + lineupNoiseSigma. StartingEleven_* 테스트 [Ignore] (구현 시 재작성). |
+| 2026-06-04 | V1.0-1 전면 재작성 | Stage G (#474, design-decisions #70) — "5-Zone 골 빈도 P0 밸런싱(블런트 튜닝)" → **xG 찬스-퀄리티 레이어 + 평점 재설계**. chanceType별 baseXG / 골=xG×finishMod×gkMod / E[goals]≈ΣxG 직접 산정(2.7). 평점 FM 정합 재설계(포지션 가중·패스성공률·DF 무실점공유·xG 보정 clinical/빅찬스미스, 사용자 #74). G.2 신체영향 통합 + G.1 이벤트(Offside/ThrowIn/KeeperPunch/LongShot). 신규 PlayerMatchStat.xg/bigChancesMissed/clearances + MatchResult.shotMap/zoneOccupancy(AA.1/AA.2 선당김). 5-Zone 구조·인터페이스·결정성 유지. |

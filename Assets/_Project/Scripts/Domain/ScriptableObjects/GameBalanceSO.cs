@@ -235,11 +235,45 @@ namespace FMLite.Domain
         public int actionsPerMinuteMax = 3;
 
         [Header("Match 5-Zone — Shot")]
-        public float shotAccuracyBase = 0.45f; // on-target = base + (shootRating-50)/divisor, clamp 0.15~0.85
+        public float shotAccuracyBase = 0.45f; // on-target = base + (finishEff-50)/divisor, clamp 0.15~0.85 (V1.0: 표시용 Saved/Off 분기)
         public float shotAccuracyDivisor = 200f;
-        public float goalConversionBase = 0.30f; // goal = base + (shootRating-gkRating)/divisor, clamp 0.10~0.70
+        public float goalConversionBase = 0.30f; // (V1.0 xG 모델로 대체 — 코너/직접FK 폴백 일부 재활용)
         public float goalConversionDivisor = 150f;
         public float shotBlockedRatio = 0.40f; // off-target 중 block 비율 (나머지 off)
+
+        // V1.0-1 — xG 찬스-퀄리티 레이어 (#474 / design-decisions #70).
+        // 기록 xG = baseXG[chanceType] (찬스 품질, 슈터 무관). 실제 골 = xG × finishMod × gkMod.
+        // E[goals] ≈ Σ xG → 팀당 ΣxG ≈ 1.35 로 2.7/경기 직접 산정.
+        [Header("Match xG — Chance Quality (V1.0)")]
+        // baseXG = 찬스 자체 득점확률 (FM 정합 현실값). 균등팀 ΣxG≈평균골 → 2.7 목표로 산정 (#474).
+        // 측정 보정 (2026-06-04): 평균골 3.21 → ×0.83 → ~2.7.
+        public float xgClearChance = 0.29f; // 스루패스 1:1 결정적
+        public float xgOpenPlay = 0.083f; // 드리블 박스 진입 (기본 경로)
+        public float xgHeader = 0.08f; // 크로스/코너/FK간접 — × headerMod
+        public float xgLongShot = 0.033f; // box 밖 중거리
+        public float xgDirectFreeKick = 0.045f; // 직접 FK
+        public float xgFloor = 0.02f;
+        public float xgCeil = 0.85f;
+        public float finishingXgDivisor = 220f; // finishMod = 1 + (finishEff-50)/divisor, clamp 0.6~1.5
+        public float finishModMin = 0.6f;
+        public float finishModMax = 1.5f;
+        public float gkXgDivisor = 260f; // gkMod = 1 - (gkRating-50)/divisor
+        public float gkModFloor = 0.55f;
+        public float gkModCeil = 1.25f;
+        public float conversionFloor = 0.01f;
+        public float conversionCeil = 0.95f;
+        public float clearChanceBase = 0.10f; // ClearChanceProb = base + (creative-50)/divisor, clamp 0.03~0.35
+        public float clearChanceDivisor = 400f;
+        public float clearChanceProbMin = 0.03f;
+        public float clearChanceProbMax = 0.35f;
+        public float longShotProb = 0.12f; // AttackingThird 에서 box 미진입 즉시 중거리 슛 확률
+        public float headerModNormalizer = 1.0f; // headerMod = heading×jumpingReach/100×height/180 / N
+        public float footMismatchPenalty = 0.85f; // PK/FK 발 불일치 시 finishing 곱셈
+        public float bigChanceThreshold = 0.30f; // xG ≥ N 미스 → bigChancesMissed
+
+        // V1.0 G.1 — 이벤트 종류 확장 (#474)
+        public float offsideProb = 0.18f; // ClearChance(스루패스) 중 오프사이드로 무산되는 비율
+        public float throwInChance = 0.25f; // AttackingThird 턴오버 시 스로인 표시 비율 (flavor)
 
         [Header("Match 5-Zone — Zone Transition")]
         public float zoneCornerChance = 0.25f; // attacking third 실패 시 corner 확률
@@ -274,7 +308,7 @@ namespace FMLite.Domain
 
         [Header("Match 5-Zone — Foul / Card / Injury (I.3)")]
         public float foulProbability = 0.12f; // Tackle 시 파울 base (× aggression 보정)
-        public float penaltyProbability = 0.08f; // box 안 파울 → 페널티 확률
+        public float penaltyProbability = 0.013f; // box 안 파울 → 페널티 (V1.0: 0.08→0.013, 경기당 ~0.3 PK 현실화 #474)
         public float yellowCardProbability = 0.30f; // 파울 → 카드 확률
         public float redCardProbability = 0.04f; // 카드 중 다이렉트 레드 비율
         public float matchInjuryProbability = 0.03f; // 파울당 부상 확률
@@ -282,12 +316,12 @@ namespace FMLite.Domain
         public int yellowSuspensionThreshold = 5; // 시즌 누적 옐로 5/10/15 → 정지 1/2/3
         public int redSuspensionMatches = 2; // 레드 / 2옐로 → 정지 경기 수
 
-        [Header("Match 5-Zone — Rating (I.4)")]
+        [Header("Match 5-Zone — Rating (I.4 / V1.0 재설계 #70)")]
         public float ratingBase = 6.5f; // 기본 평점
-        public float ratingGoalBonus = 1.0f;
+        public float ratingGoalBonus = 0.8f; // V1.0: 1.0→0.8 (xG 항이 보완)
         public float ratingAssistBonus = 0.5f;
-        public float ratingKeyPassBonus = 0.1f;
-        public float ratingDefActionBonus = 0.05f; // Tackle + Interception 당
+        public float ratingKeyPassBonus = 0.12f; // 드리블 돌파/스루패스
+        public float ratingDefActionBonus = 0.08f; // Tackle + Interception 당 (V1.0: 0.05→0.08, 수비 가치↑)
         public float ratingShotOnTargetBonus = 0.1f;
         public float ratingYellowPenalty = -0.3f;
         public float ratingRedPenalty = -1.5f;
@@ -298,6 +332,17 @@ namespace FMLite.Domain
         public float ratingLossPenalty = -0.2f; // 팀 패배 전원
         public float ratingMin = 1.0f;
         public float ratingMax = 10.0f;
+
+        // V1.0 평점 재설계 (#70) — 포지션 가중·패스성공률·DF 무실점공유·xG 보정.
+        public float ratingClearanceBonus = 0.04f; // 클리어런스당
+        public int ratingPassMinAttempts = 10; // 패스 성공률 평가 최소 시도수
+        public float ratingPassHighBonus = 0.40f; // 성공률 ≥ 90%
+        public float ratingPassMidBonus = 0.20f; // 80~89%
+        public float ratingPassLowPenalty = -0.25f; // < 70%
+        public float ratingCleanSheetBonusDef = 0.35f; // DF 무실점
+        public float ratingConcededPenaltyDef = -0.12f; // DF 실점당
+        public float ratingXgPerformanceCoeff = 0.6f; // (goals - xg) × coeff — clinical finish +/낭비 −
+        public float ratingBigChanceMissPenalty = -0.5f; // 빅찬스 미스당
 
         // ============================================================
         // Youth Intake (algorithms.md #4)

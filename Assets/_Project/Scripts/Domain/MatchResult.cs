@@ -26,6 +26,30 @@ namespace FMLite.Domain
         public int penaltyHomeScore;
         public int penaltyAwayScore;
         public bool decidedByPenalties;
+
+        // V1.0 xG (algorithms.md V1.0-1, #70) — 슛별 xG/위치/결과. AA.5 슛맵 선당김.
+        public List<ShotPin> shotMap = new List<ShotPin>();
+
+        // V1.0 (AA.2/AA.4 선당김) — ballZone 점유 누적 [HomeBox..AwayBox]. 히트맵.
+        public int[] zoneOccupancy = new int[5];
+    }
+
+    // V1.0 — 슈팅 결과 (슛맵 시각화 + 평점).
+    public enum ShotOutcome
+    {
+        Goal,
+        Saved, // on target, GK 선방
+        Off, // off target / blocked
+    }
+
+    [Serializable]
+    public class ShotPin
+    {
+        public int side; // 0 = Home, 1 = Away
+        public float x; // 0~1 (피치 길이 방향, 공격 골대 = 1)
+        public float y; // 0~1 (피치 폭 방향, 중앙 = 0.5)
+        public float xg; // 찬스 품질 (situation, 슈터 무관)
+        public ShotOutcome outcome;
     }
 
     [Serializable]
@@ -50,5 +74,10 @@ namespace FMLite.Domain
         public int foulsCommitted;
         public int foulsSuffered;
         public int saves; // GK 선방 (I.4 평점)
+
+        // V1.0 xG + 평점 재설계 (algorithms.md V1.0-1, #70)
+        public float xg; // 누적 xG (본인 슛들의 situation quality 합)
+        public int bigChancesMissed; // xG ≥ bigChanceThreshold 인데 미득점
+        public int clearances; // 수비 클리어런스 (평점 수비 기여)
     }
 }

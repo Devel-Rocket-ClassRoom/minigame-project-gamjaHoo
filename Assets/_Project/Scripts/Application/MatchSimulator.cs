@@ -34,6 +34,16 @@ namespace FMLite.Application
             Away,
         }
 
+        // V1.0-1 — 찬스 유형 (xG 찬스-퀄리티 레이어, #474). 박스 진입 경로로 결정.
+        private enum ChanceType
+        {
+            ClearChance, // 스루패스 1:1 결정적
+            OpenPlay, // 드리블 박스 진입 (기본)
+            Header, // 크로스/코너/FK간접
+            LongShot, // box 밖 중거리
+            DirectFreeKick, // 직접 FK
+        }
+
         // 매치 시뮬레이션 내부 상태 (직렬화 X — 매치 종료 시 MatchResult 로 변환).
         private sealed class SimState
         {
@@ -70,6 +80,16 @@ namespace FMLite.Application
             public Club homeClub;
             public Club awayClub;
             public List<MatchEvent> events = new List<MatchEvent>();
+
+            // V1.0-1 — 다음 ResolveShot 이 소비할 찬스 유형 (박스 진입 시 설정).
+            public ChanceType homePendingChance = ChanceType.OpenPlay;
+            public ChanceType awayPendingChance = ChanceType.OpenPlay;
+
+            // V1.0 — AA.2/AA.4 선당김. ballZone 점유 누적 [HomeBox..AwayBox].
+            public int[] zoneOccupancy = new int[5];
+
+            // V1.0 — AA.5 선당김. 슛별 xG/위치/결과.
+            public List<ShotPin> shotMap = new List<ShotPin>();
         }
 
         public static MatchResult Simulate(
@@ -238,6 +258,8 @@ namespace FMLite.Application
                 penaltyHomeScore = penaltyHomeScore,
                 penaltyAwayScore = penaltyAwayScore,
                 decidedByPenalties = decidedByPenalties,
+                shotMap = sim.shotMap,
+                zoneOccupancy = sim.zoneOccupancy,
             };
         }
 
@@ -258,6 +280,9 @@ namespace FMLite.Application
                 sim.homePossessionTicks++;
             else
                 sim.awayPossessionTicks++;
+
+            // V1.0 — zone 점유 누적 (히트맵 AA.4). Zone enum 순서 = int[5] 인덱스.
+            sim.zoneOccupancy[(int)sim.ballZone]++;
 
             // 1~3 actions
             int actions = sim.rng.Next(
@@ -365,7 +390,7 @@ namespace FMLite.Application
             }
         }
 
-        // 공격 third — 드리블 돌파. 성공 → Box / 실패 → Tackle·Clearance + Corner(25%) + 점유 전환.
+        // 공격 third — 드리블 돌파. 성공 → Box(찬스 유형 결정) / 중거리슛 / 실패 → Tackle·Clearance + Corner + 점유 전환.
         private static void ResolveAttackingThird(SimState sim, Side att)
         {
             Side def = Opposite(att);
@@ -373,6 +398,15 @@ namespace FMLite.Application
             var defender = SnapPlayer(sim, def, Line.DF, TacticImpact.EventTackle);
             if (attacker == null)
                 return;
+
+            // V1.0 G.1 — 중거리 슛 (box 미진입 즉시 슛). LongShot = 낮은 xG.
+            // 멘탈리티 가중 (공격적 팀이 중거리도 더 시도 — 멘탈리티 슛빈도 격차 반영).
+            if (sim.rng.NextDouble() < sim.balance.longShotProb * MentalityShotMult(sim, att))
+            {
+                ResolveShotXg(sim, att, attacker, FindGoalkeeper(sim, def), ChanceType.LongShot);
+                TurnOver(sim, att, Zone.Midfield);
+                return;
+            }
 
             double attEff =
                 Eff(AttackingThirdAtt(attacker), att, sim, attacker) * MentalityShotMult(sim, att);
@@ -385,12 +419,44 @@ namespace FMLite.Application
 
             if (sim.rng.NextDouble() < success)
             {
-                // 드리블 성공 → box 진입. 직전 패스 = keyPass 후보 (assist 추적).
+                // V1.0-1 — 찬스 유형 결정. 창의적 패서일수록 결정적 스루패스(ClearChance)↑.
+                double creative =
+                    (
+                        attacker.stats.mental.vision
+                        + attacker.stats.technical.passing
+                        + attacker.stats.mental.flair
+                    ) / 3.0;
+                double clearProb = Clamp(
+                    sim.balance.clearChanceBase
+                        + (creative - 50.0) / sim.balance.clearChanceDivisor,
+                    sim.balance.clearChanceProbMin,
+                    sim.balance.clearChanceProbMax
+                );
+                bool isClear = sim.rng.NextDouble() < clearProb;
+
+                // V1.0 G.1 — 결정적 스루패스는 오프사이드로 무산될 수 있음.
+                if (isClear && sim.rng.NextDouble() < sim.balance.offsideProb)
+                {
+                    if (sim.collectEvents)
+                        EmitEvent(
+                            sim,
+                            MatchEventType.Offside,
+                            att,
+                            attacker.id,
+                            0,
+                            "match_offside_fmt",
+                            MakeArgs(sim, attacker.id, 0)
+                        );
+                    TurnOver(sim, att, DefensiveThird(att));
+                    return;
+                }
+
+                // 드리블/스루패스 성공 → box 진입. 직전 패스 = keyPass(assist 추적).
                 SetPendingAssist(sim, att, attacker.id);
                 sim.stats[attacker.id].keyPasses++;
+                SetPendingChance(sim, att, isClear ? ChanceType.ClearChance : ChanceType.OpenPlay);
                 sim.ballZone = AttackingBox(att);
 
-                // I.5 — 드리블 성공 (KeyPass) 이벤트
                 if (sim.collectEvents)
                     EmitEvent(
                         sim,
@@ -412,25 +478,33 @@ namespace FMLite.Application
                         sim.stats[defender.id].tackles++;
                         foulOccurred = MaybeFoul(sim, attacker, defender);
                     }
-                    // else Clearance (통계 X)
+                    else
+                    {
+                        // V1.0 — Clearance 통계 (평점 수비 기여)
+                        sim.stats[defender.id].clearances++;
+                    }
                 }
                 if (foulOccurred)
                 {
                     ResolveFreeKick(sim, att); // I.10 — 위험지역 FK
                     return;
                 }
-                // I.10 — Corner (25%) / LongThrow (10%) / TurnOver
-                double cornerRoll = sim.rng.NextDouble();
-                if (cornerRoll < sim.balance.zoneCornerChance)
+                // I.10 — Corner / LongThrow / TurnOver
+                double roll = sim.rng.NextDouble();
+                if (roll < sim.balance.zoneCornerChance)
                 {
                     ResolveCorner(sim, att);
                     return;
                 }
-                if (cornerRoll < sim.balance.zoneCornerChance + sim.balance.longThrowChance)
+                if (roll < sim.balance.zoneCornerChance + sim.balance.longThrowChance)
                 {
                     ResolveLongThrow(sim, att);
                     return;
                 }
+                // V1.0 G.1 — 스로인 (flavor, 메커닉 영향 X). rng 는 항상 소비 (collectEvents 결정성 보존).
+                bool throwIn = sim.rng.NextDouble() < sim.balance.throwInChance;
+                if (throwIn && sim.collectEvents)
+                    EmitEvent(sim, MatchEventType.ThrowIn, att, 0, 0, "match_throw_in_fmt", null);
                 TurnOver(sim, att, DefensiveThird(att));
             }
         }
@@ -474,59 +548,74 @@ namespace FMLite.Application
                 return;
             }
 
-            double shootRating =
-                Eff(ShotRating(shooter), att, sim, shooter) * MentalityShotMult(sim, att);
-            sim.stats[shooter.id].shots++;
+            // V1.0-1 — 박스 진입 시 설정된 찬스 유형 소비 (기본 OpenPlay).
+            ChanceType type = ConsumePendingChance(sim, att);
+            ResolveShotXg(sim, att, shooter, gk, type);
+            TurnOver(sim, att, Zone.Midfield);
+        }
 
-            // On-target 판정
-            double accuracy = Clamp(
-                sim.balance.shotAccuracyBase
-                    + (shootRating - 50.0) / sim.balance.shotAccuracyDivisor,
-                0.15,
-                0.85
-            );
-            if (sim.rng.NextDouble() > accuracy)
-            {
-                // off-target (block / miss)
-                if (sim.collectEvents)
-                    EmitEvent(
-                        sim,
-                        MatchEventType.ShotOffTarget,
-                        att,
-                        shooter.id,
-                        0,
-                        "match_shot_off_target_fmt",
-                        MakeArgs(sim, shooter.id, 0)
-                    );
-                TurnOver(sim, att, Zone.Midfield);
+        // ── V1.0-1: xG 찬스-퀄리티 슛 해결 (모든 슛 경로 공통, #474) ──────────
+        // 기록 xG = 찬스 품질(situation, 슈터 무관). 실제 골 = xG × finishMod × gkMod.
+        // Header 시 shooter = 헤더 선수. xgMultiplier = 세트피스 딜리버리 보정 (코너/FK 크로스).
+        private static void ResolveShotXg(
+            SimState sim,
+            Side att,
+            Player shooter,
+            Player gk,
+            ChanceType type,
+            double xgMultiplier = 1.0
+        )
+        {
+            if (shooter == null)
                 return;
+            Side def = Opposite(att);
+            var b = sim.balance;
+
+            // (1) 찬스 품질 xG (슈터 실력 무관)
+            double xg = BaseXg(b, type) * xgMultiplier;
+            if (type == ChanceType.Header)
+                xg *= HeaderMod(b, shooter); // G.2 (1) 키×헤딩×점프
+            xg = Clamp(xg, b.xgFloor, b.xgCeil);
+
+            // G.2 (4) — 약발: 주발 아닌 발 슈팅 시 finishing 감점 (Header 제외)
+            bool footMismatch = false;
+            if (
+                type != ChanceType.Header
+                && shooter.physical != null
+                && shooter.physical.preferredFoot != Foot.Both
+            )
+            {
+                int wf = Math.Min(5, Math.Max(1, shooter.physical.weakFootAbility));
+                if (sim.rng.NextDouble() < (5 - wf) / 5.0 * 0.5)
+                    footMismatch = true;
             }
 
-            sim.stats[shooter.id].shotsOnTarget++;
+            sim.stats[shooter.id].shots++;
+            sim.stats[shooter.id].xg += (float)xg;
 
-            // I.5 — 유효슛
-            if (sim.collectEvents)
-                EmitEvent(
-                    sim,
-                    MatchEventType.ShotOnTarget,
-                    att,
-                    shooter.id,
-                    0,
-                    "match_shot_on_target_fmt",
-                    MakeArgs(sim, shooter.id, 0)
-                );
-
-            // GK save 판정
-            double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
-            double conversion = Clamp(
-                sim.balance.goalConversionBase
-                    + (shootRating - gkRating) / sim.balance.goalConversionDivisor,
-                0.10,
-                0.70
+            // (2) 실제 골 확률 = xG × 슈터 finishing 보정 × GK 보정
+            double finishEff =
+                Eff(FinishingEff(shooter, type, footMismatch, b), att, sim, shooter)
+                * MentalityShotMult(sim, att);
+            double finishMod = Clamp(
+                1.0 + (finishEff - 50.0) / b.finishingXgDivisor,
+                b.finishModMin,
+                b.finishModMax
             );
+            double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
+            double gkMod = Clamp(
+                1.0 - (gkRating - 50.0) / b.gkXgDivisor,
+                b.gkModFloor,
+                b.gkModCeil
+            );
+            double conversion = Clamp(xg * finishMod * gkMod, b.conversionFloor, b.conversionCeil);
+
+            ShotOutcome outcome;
             if (sim.rng.NextDouble() < conversion)
             {
                 // GOAL
+                outcome = ShotOutcome.Goal;
+                sim.stats[shooter.id].shotsOnTarget++;
                 if (att == Side.Home)
                     sim.homeScore++;
                 else
@@ -538,7 +627,6 @@ namespace FMLite.Application
                     sim.stats[assister].assists++;
                 ClearPendingAssist(sim, att);
 
-                // I.5 — 골 이벤트
                 if (sim.collectEvents)
                 {
                     string key =
@@ -556,25 +644,193 @@ namespace FMLite.Application
                     );
                 }
             }
-            else if (gk != null && sim.stats.ContainsKey(gk.id))
+            else
             {
-                sim.stats[gk.id].saves++; // I.4 — GK 선방
+                // 빅찬스 미스 (평점 #74)
+                if (xg >= b.bigChanceThreshold)
+                    sim.stats[shooter.id].bigChancesMissed++;
 
-                // I.5 — 선방 이벤트
-                if (sim.collectEvents)
-                    EmitEvent(
-                        sim,
-                        MatchEventType.ShotSaved,
-                        att,
-                        shooter.id,
-                        gk.id,
-                        "match_shot_saved_fmt",
-                        MakeArgs(sim, gk.id, shooter.id)
-                    );
+                double accuracy = Clamp(
+                    b.shotAccuracyBase + (finishEff - 50.0) / b.shotAccuracyDivisor,
+                    0.15,
+                    0.85
+                );
+                if (sim.rng.NextDouble() < accuracy)
+                {
+                    // on-target → GK 선방
+                    outcome = ShotOutcome.Saved;
+                    sim.stats[shooter.id].shotsOnTarget++;
+                    if (gk != null && sim.stats.ContainsKey(gk.id))
+                        sim.stats[gk.id].saves++;
+                    if (sim.collectEvents)
+                    {
+                        // G.1 — 헤더 선방 = GK 펀칭
+                        var et =
+                            type == ChanceType.Header
+                                ? MatchEventType.KeeperPunch
+                                : MatchEventType.ShotSaved;
+                        string key =
+                            type == ChanceType.Header
+                                ? "match_keeper_punch_fmt"
+                                : "match_shot_saved_fmt";
+                        EmitEvent(
+                            sim,
+                            et,
+                            att,
+                            shooter.id,
+                            gk?.id ?? 0,
+                            key,
+                            MakeArgs(sim, gk?.id ?? 0, shooter.id)
+                        );
+                    }
+                }
+                else
+                {
+                    // off-target / block
+                    outcome = ShotOutcome.Off;
+                    if (sim.collectEvents)
+                    {
+                        var et =
+                            type == ChanceType.LongShot
+                                ? MatchEventType.LongShot
+                                : MatchEventType.ShotOffTarget;
+                        string key =
+                            type == ChanceType.LongShot
+                                ? "match_long_shot_fmt"
+                                : "match_shot_off_target_fmt";
+                        EmitEvent(sim, et, att, shooter.id, 0, key, MakeArgs(sim, shooter.id, 0));
+                    }
+                }
+                ClearPendingAssist(sim, att);
             }
 
-            TurnOver(sim, att, Zone.Midfield);
+            RecordShotPin(sim, att, type, xg, outcome);
         }
+
+        // chanceType별 기본 xG (찬스 품질).
+        private static double BaseXg(GameBalanceSO b, ChanceType t)
+        {
+            switch (t)
+            {
+                case ChanceType.ClearChance:
+                    return b.xgClearChance;
+                case ChanceType.OpenPlay:
+                    return b.xgOpenPlay;
+                case ChanceType.Header:
+                    return b.xgHeader;
+                case ChanceType.LongShot:
+                    return b.xgLongShot;
+                case ChanceType.DirectFreeKick:
+                    return b.xgDirectFreeKick;
+                default:
+                    return b.xgOpenPlay;
+            }
+        }
+
+        // G.2 (1) — 헤더 보정. 평균(heading50/jump50/height180)≈1.0, 큰·잘하는 선수 ↑. clamp 0.5~1.8.
+        private static double HeaderMod(GameBalanceSO b, Player p)
+        {
+            double h = p.physical?.height ?? 180;
+            double mod =
+                (p.stats.technical.heading / 50.0)
+                * (p.stats.physical.jumpingReach / 50.0)
+                * (h / 180.0)
+                / b.headerModNormalizer;
+            return Clamp(mod, 0.5, 1.8);
+        }
+
+        // 슈터 마무리 능력 (찬스 유형별 stat). footMismatch 시 약발 감점.
+        private static double FinishingEff(
+            Player p,
+            ChanceType type,
+            bool footMismatch,
+            GameBalanceSO b
+        )
+        {
+            double raw;
+            if (type == ChanceType.Header)
+                raw = (p.stats.mental.composure + p.stats.mental.decisions) / 2.0;
+            else if (type == ChanceType.DirectFreeKick)
+                raw = (p.stats.technical.freeKickTaking + p.stats.mental.composure) / 2.0;
+            else
+                raw =
+                    (
+                        p.stats.technical.finishing
+                        + p.stats.mental.composure
+                        + p.stats.mental.decisions
+                    ) / 3.0;
+            if (footMismatch)
+                raw *= b.footMismatchPenalty;
+            return raw;
+        }
+
+        // 슛별 위치(x,y) + xG + 결과 기록 (AA.5 슛맵).
+        private static void RecordShotPin(
+            SimState sim,
+            Side att,
+            ChanceType type,
+            double xg,
+            ShotOutcome outcome
+        )
+        {
+            float x,
+                range;
+            switch (type)
+            {
+                case ChanceType.ClearChance:
+                    x = 0.90f;
+                    range = 0.08f;
+                    break;
+                case ChanceType.Header:
+                    x = 0.94f;
+                    range = 0.10f;
+                    break;
+                case ChanceType.LongShot:
+                    x = 0.72f;
+                    range = 0.22f;
+                    break;
+                case ChanceType.DirectFreeKick:
+                    x = 0.75f;
+                    range = 0.20f;
+                    break;
+                default: // OpenPlay
+                    x = 0.84f;
+                    range = 0.18f;
+                    break;
+            }
+            float y = 0.5f + (float)((sim.rng.NextDouble() - 0.5) * 2.0 * range);
+            sim.shotMap.Add(
+                new ShotPin
+                {
+                    side = (int)att,
+                    x = x,
+                    y = Clamp01(y),
+                    xg = (float)xg,
+                    outcome = outcome,
+                }
+            );
+        }
+
+        private static void SetPendingChance(SimState sim, Side att, ChanceType t)
+        {
+            if (att == Side.Home)
+                sim.homePendingChance = t;
+            else
+                sim.awayPendingChance = t;
+        }
+
+        // 박스 진입 시 설정된 찬스 유형 소비 후 기본값(OpenPlay) 리셋.
+        private static ChanceType ConsumePendingChance(SimState sim, Side att)
+        {
+            ChanceType t = att == Side.Home ? sim.homePendingChance : sim.awayPendingChance;
+            if (att == Side.Home)
+                sim.homePendingChance = ChanceType.OpenPlay;
+            else
+                sim.awayPendingChance = ChanceType.OpenPlay;
+            return t;
+        }
+
+        private static float Clamp01(float v) => v < 0f ? 0f : (v > 1f ? 1f : v);
 
         // ── I.3: Foul / Card / Penalty / Injury ──────────────────────
 
@@ -768,13 +1024,16 @@ namespace FMLite.Application
             sim.stats[taker.id].shotsOnTarget++;
 
             double gkRating = gk != null ? GkRating(gk) : 40.0;
+            // G.2 (4) — PK 는 주발로 차므로 약발 미스매치 없음 (foot match 항상 1.0).
             double conv = Clamp(
                 sim.balance.penaltyConversion
                     + (taker.stats.technical.penaltyTaking - gkRating) / 300.0,
                 0.5,
                 0.95
             );
-            if (sim.rng.NextDouble() < conv)
+            sim.stats[taker.id].xg += (float)conv; // PK = 고 xG 슛
+            bool scored = sim.rng.NextDouble() < conv;
+            if (scored)
             {
                 if (att == Side.Home)
                     sim.homeScore++;
@@ -809,6 +1068,18 @@ namespace FMLite.Application
                         MakeArgs(sim, taker.id, 0)
                     );
             }
+
+            // V1.0 — 슛맵 핀 (PK = 박스 중앙 근거리)
+            sim.shotMap.Add(
+                new ShotPin
+                {
+                    side = (int)att,
+                    x = 0.88f,
+                    y = 0.5f,
+                    xg = (float)conv,
+                    outcome = scored ? ShotOutcome.Goal : ShotOutcome.Saved,
+                }
+            );
         }
 
         // InjuryTypeSO 카탈로그 weight 비례 추첨.
@@ -836,44 +1107,81 @@ namespace FMLite.Application
         // 이벤트 누적 통계 → rating (base 6.5, clamp 1.0~10.0). pressureHandling 빅매치 가산 = V1.0.
         private static void ComputeRatings(SimState sim)
         {
-            var b = sim.balance;
             var homeSet = new HashSet<int>(sim.homeXI);
             foreach (var stat in sim.stats.Values)
             {
                 var p = sim.gameState.GetPlayer(stat.playerId);
                 bool isHome = homeSet.Contains(stat.playerId);
-
-                double r = b.ratingBase;
-                r += stat.goals * b.ratingGoalBonus;
-                r += stat.assists * b.ratingAssistBonus;
-                r += stat.keyPasses * b.ratingKeyPassBonus;
-                r += (stat.tackles + stat.interceptions) * b.ratingDefActionBonus;
-                r += stat.shotsOnTarget * b.ratingShotOnTargetBonus;
-                r += stat.yellowCards * b.ratingYellowPenalty; // penalty 음수
-                r += stat.redCards * b.ratingRedPenalty;
-
-                // GK — 선방 / 무실점 / 실점
-                if (p != null && p.info.primaryPosition == Position.GK)
-                {
-                    r += stat.saves * b.ratingSaveBonus;
-                    int conceded = isHome ? sim.awayScore : sim.homeScore;
-                    if (conceded == 0)
-                        r += b.ratingCleanSheetBonus;
-                    else
-                        r += conceded * b.ratingConcededPenalty;
-                }
-
-                // 팀 승/패 전원 가감
+                Line line = p != null ? StartingSquadGacha.LineOf(p.info.primaryPosition) : Line.MF;
                 int teamScore = isHome ? sim.homeScore : sim.awayScore;
                 int oppScore = isHome ? sim.awayScore : sim.homeScore;
-                if (teamScore > oppScore)
-                    r += b.ratingWinBonus;
-                else if (teamScore < oppScore)
-                    r += b.ratingLossPenalty;
-
-                r = Math.Round(r, 1);
-                stat.rating = (float)Clamp(r, b.ratingMin, b.ratingMax);
+                stat.rating = ComputePlayerRating(stat, line, teamScore, oppScore, sim.balance);
             }
+        }
+
+        // V1.0 평점 재설계 (#70, FM 정합) — 순수 함수 (테스트 직접 호출). base 6.5, clamp 1~10.
+        // 포지션이 평점을 만든다: 공격 기여(전원) + 수비 기여(수비수 누적) + 패스성공률 + 무실점/실점(GK·DF) + xG 보정.
+        public static float ComputePlayerRating(
+            PlayerMatchStat stat,
+            Line line,
+            int teamScore,
+            int oppScore,
+            GameBalanceSO b
+        )
+        {
+            double r = b.ratingBase;
+
+            // ── 공격 기여 (전 포지션 — 골/어시는 누구든 가치) ──
+            r += stat.goals * b.ratingGoalBonus;
+            r += stat.assists * b.ratingAssistBonus;
+            r += stat.shotsOnTarget * b.ratingShotOnTargetBonus;
+            r += stat.keyPasses * b.ratingKeyPassBonus;
+            // V1.0 xG 보정 (#74) — clinical finish 가산 / 낭비·빅찬스 미스 감점
+            r += (stat.goals - stat.xg) * b.ratingXgPerformanceCoeff;
+            r += stat.bigChancesMissed * b.ratingBigChanceMissPenalty;
+
+            // ── 수비 기여 (전 포지션 — 수비수가 자연히 더 누적) ──
+            r += (stat.tackles + stat.interceptions) * b.ratingDefActionBonus;
+            r += stat.clearances * b.ratingClearanceBonus;
+
+            // ── 패스/점유 기여 (시도수 ≥ 임계 시 성공률 티어) ──
+            if (stat.passes >= b.ratingPassMinAttempts)
+            {
+                double pct = (double)stat.passesCompleted / stat.passes;
+                if (pct >= 0.90)
+                    r += b.ratingPassHighBonus;
+                else if (pct >= 0.80)
+                    r += b.ratingPassMidBonus;
+                else if (pct < 0.70)
+                    r += b.ratingPassLowPenalty;
+            }
+
+            // ── 규율 ──
+            r += stat.yellowCards * b.ratingYellowPenalty;
+            r += stat.redCards * b.ratingRedPenalty;
+
+            // ── 무실점 / 실점 (GK + DF 라인 한정, V1.0 — 수비 책임 공유) ──
+            if (line == Line.GK)
+            {
+                r += stat.saves * b.ratingSaveBonus;
+                r += oppScore == 0 ? b.ratingCleanSheetBonus : oppScore * b.ratingConcededPenalty;
+            }
+            else if (line == Line.DF)
+            {
+                r +=
+                    oppScore == 0
+                        ? b.ratingCleanSheetBonusDef
+                        : oppScore * b.ratingConcededPenaltyDef;
+            }
+
+            // ── 팀 승/패 전원 가감 ──
+            if (teamScore > oppScore)
+                r += b.ratingWinBonus;
+            else if (teamScore < oppScore)
+                r += b.ratingLossPenalty;
+
+            r = Math.Round(r, 1);
+            return (float)Clamp(r, b.ratingMin, b.ratingMax);
         }
 
         // ── I.5: 이벤트 발행 헬퍼 ────────────────────────────────────
@@ -1104,13 +1412,15 @@ namespace FMLite.Application
                 + p.stats.mental.teamwork
             ) / 4.0;
 
-        private static double AttackingThirdAtt(Player p) =>
-            (
-                p.stats.technical.dribbling
-                + p.stats.physical.pace
-                + p.stats.physical.agility
-                + p.stats.mental.composure
-            ) / 4.0;
+        // G.2 (2)(3) — agility 키 역상관 (작을수록 ↑) / pace + 약발 미세 보정.
+        private static double AttackingThirdAtt(Player p)
+        {
+            double height = p.physical?.height ?? 180;
+            double agilityEff = p.stats.physical.agility * (180.0 / Math.Max(height, 165));
+            double sprintEff = p.stats.physical.pace + (p.physical?.weakFootAbility ?? 3) * 0.5;
+            return (p.stats.technical.dribbling + sprintEff + agilityEff + p.stats.mental.composure)
+                / 4.0;
+        }
 
         private static double AttackingThirdDef(Player p) =>
             (
@@ -1119,10 +1429,6 @@ namespace FMLite.Application
                 + p.stats.mental.positioning
                 + p.stats.technical.heading
             ) / 4.0;
-
-        private static double ShotRating(Player p) =>
-            (p.stats.technical.finishing + p.stats.mental.composure + p.stats.mental.decisions)
-            / 3.0;
 
         private static double GkRating(Player p) =>
             (p.stats.gk.handling + p.stats.gk.reflexes + p.stats.mental.positioning) / 3.0;
@@ -1325,16 +1631,12 @@ namespace FMLite.Application
                 .FirstOrDefault();
         }
 
-        // Corner: taker.corners + target.heading×jumpingReach → 헤더 슛.
+        // Corner (V1.0 xG): 딜리버리(corners) × 헤더 표적 → Header xG. cornerToBox 게이트로 슛 과다 방지.
         private static void ResolveCorner(SimState sim, Side att)
         {
             Side def = Opposite(att);
             var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.corners, 2);
-            var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
-            var target = xi.Select(id => sim.gameState.GetPlayer(id))
-                .Where(p => p != null)
-                .OrderByDescending(p => p.stats.technical.heading * p.stats.physical.jumpingReach)
-                .FirstOrDefault();
+            var target = BestHeaderTarget(sim, att);
             var gk = FindGoalkeeper(sim, def);
 
             if (taker == null || target == null)
@@ -1354,60 +1656,32 @@ namespace FMLite.Application
                     MakeArgs(sim, taker.id, 0)
                 );
 
-            double headingScore =
-                target.stats.technical.heading * target.stats.physical.jumpingReach / 100.0;
-            double accuracy = Clamp(
-                sim.balance.cornerConversionBase
-                    + (taker.stats.technical.corners + headingScore)
-                        / sim.balance.cornerHeadingDivisor,
-                0.05,
-                0.40
-            );
-
-            if (sim.rng.NextDouble() > accuracy)
+            // 코너가 헤더 슛으로 연결되는 비율 (나머지는 클리어/방어).
+            if (sim.rng.NextDouble() < sim.balance.zoneCornerToBoxChance)
             {
-                TurnOver(sim, att, Zone.Midfield);
-                return;
+                double delivery = Clamp(
+                    0.7 + (taker.stats.technical.corners - 50.0) / 200.0,
+                    0.6,
+                    1.3
+                );
+                SetPendingAssist(sim, att, taker.id); // 헤더 골 시 코너 키커 어시
+                ResolveShotXg(sim, att, target, gk, ChanceType.Header, delivery);
             }
-
-            sim.stats[target.id].shots++;
-            sim.stats[target.id].shotsOnTarget++;
-            double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
-            double conversion = Clamp(
-                sim.balance.goalConversionBase
-                    + (headingScore - gkRating) / sim.balance.goalConversionDivisor,
-                0.10,
-                0.60
-            );
-
-            if (sim.rng.NextDouble() < conversion)
-            {
-                if (att == Side.Home)
-                    sim.homeScore++;
-                else
-                    sim.awayScore++;
-                sim.stats[target.id].goals++;
-                if (sim.collectEvents)
-                    EmitEvent(
-                        sim,
-                        MatchEventType.Goal,
-                        att,
-                        target.id,
-                        taker.id,
-                        "match_goal_fmt",
-                        MakeArgs(sim, target.id, taker.id)
-                    );
-                TurnOver(sim, att, Zone.Midfield); // kickoff
-            }
-            else
-            {
-                if (gk != null && sim.stats.ContainsKey(gk.id))
-                    sim.stats[gk.id].saves++;
-                TurnOver(sim, att, Zone.Midfield);
-            }
+            TurnOver(sim, att, Zone.Midfield);
         }
 
-        // FreeKick: freeKickTaking vs GK (직접 50%) / cross→헤더 (간접 50%).
+        // 출전 중 최고 공중 표적 (heading × jumpingReach).
+        private static Player BestHeaderTarget(SimState sim, Side att)
+        {
+            var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
+            return xi.Select(id => sim.gameState.GetPlayer(id))
+                .Where(p => p != null && !sim.sentOff.Contains(p.id))
+                .OrderByDescending(p => p.stats.technical.heading * p.stats.physical.jumpingReach)
+                .FirstOrDefault();
+        }
+
+        // FreeKick (V1.0 xG): 직접(DirectFreeKick xG, 약발 적용) / 간접 크로스→헤더(Header xG).
+        // FreeKick 이벤트는 MaybeFoul 에서 이미 발행됨 (중복 방지로 여기선 미발행).
         private static void ResolveFreeKick(SimState sim, Side att)
         {
             Side def = Opposite(att);
@@ -1423,120 +1697,27 @@ namespace FMLite.Application
             if (sim.rng.NextDouble() < sim.balance.freeKickDirectProb)
             {
                 // 직접 슛
-                sim.stats[taker.id].shots++;
-                double takerRating = Eff(taker.stats.technical.freeKickTaking, att, sim, taker);
-                double accuracy = Clamp(
-                    sim.balance.freeKickConversionBase
-                        + takerRating / sim.balance.freeKickDirectDivisor,
-                    0.05,
-                    0.35
-                );
-                if (sim.rng.NextDouble() > accuracy)
-                {
-                    TurnOver(sim, att, Zone.Midfield);
-                    return;
-                }
-                sim.stats[taker.id].shotsOnTarget++;
-                double gkRating = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
-                double conversion = Clamp(
-                    sim.balance.goalConversionBase
-                        + (takerRating - gkRating) / sim.balance.goalConversionDivisor,
-                    0.10,
-                    0.60
-                );
-                if (sim.rng.NextDouble() < conversion)
-                {
-                    if (att == Side.Home)
-                        sim.homeScore++;
-                    else
-                        sim.awayScore++;
-                    sim.stats[taker.id].goals++;
-                    if (sim.collectEvents)
-                        EmitEvent(
-                            sim,
-                            MatchEventType.Goal,
-                            att,
-                            taker.id,
-                            0,
-                            "match_goal_fmt",
-                            MakeArgs(sim, taker.id, 0)
-                        );
-                    TurnOver(sim, att, Zone.Midfield);
-                }
-                else
-                {
-                    if (gk != null && sim.stats.ContainsKey(gk.id))
-                        sim.stats[gk.id].saves++;
-                    TurnOver(sim, att, Zone.Midfield);
-                }
+                ResolveShotXg(sim, att, taker, gk, ChanceType.DirectFreeKick);
             }
             else
             {
-                // 간접 — 크로스 → 헤더 (corner 로직 재활용, taker stat = freeKickTaking)
-                var xi = att == Side.Home ? sim.homeXI : sim.awayXI;
-                var target = xi.Select(id => sim.gameState.GetPlayer(id))
-                    .Where(p => p != null)
-                    .OrderByDescending(p =>
-                        p.stats.technical.heading * p.stats.physical.jumpingReach
-                    )
-                    .FirstOrDefault();
-                if (target == null)
+                // 간접 — 크로스 → 헤더 (도달 게이트)
+                var target = BestHeaderTarget(sim, att);
+                if (target != null && sim.rng.NextDouble() < sim.balance.zoneCornerToBoxChance)
                 {
-                    TurnOver(sim, att, Zone.Midfield);
-                    return;
-                }
-                double headingScore =
-                    target.stats.technical.heading * target.stats.physical.jumpingReach / 100.0;
-                double accuracy = Clamp(
-                    sim.balance.cornerConversionBase
-                        + (taker.stats.technical.freeKickTaking + headingScore)
-                            / sim.balance.cornerHeadingDivisor,
-                    0.05,
-                    0.35
-                );
-                if (sim.rng.NextDouble() > accuracy)
-                {
-                    TurnOver(sim, att, Zone.Midfield);
-                    return;
-                }
-                sim.stats[target.id].shots++;
-                sim.stats[target.id].shotsOnTarget++;
-                double gkRating2 = gk != null ? Eff(GkRating(gk), def, sim, gk) : 40.0;
-                double conversion2 = Clamp(
-                    sim.balance.goalConversionBase
-                        + (headingScore - gkRating2) / sim.balance.goalConversionDivisor,
-                    0.10,
-                    0.60
-                );
-                if (sim.rng.NextDouble() < conversion2)
-                {
-                    if (att == Side.Home)
-                        sim.homeScore++;
-                    else
-                        sim.awayScore++;
-                    sim.stats[target.id].goals++;
-                    if (sim.collectEvents)
-                        EmitEvent(
-                            sim,
-                            MatchEventType.Goal,
-                            att,
-                            target.id,
-                            taker.id,
-                            "match_goal_fmt",
-                            MakeArgs(sim, target.id, taker.id)
-                        );
-                    TurnOver(sim, att, Zone.Midfield);
-                }
-                else
-                {
-                    if (gk != null && sim.stats.ContainsKey(gk.id))
-                        sim.stats[gk.id].saves++;
-                    TurnOver(sim, att, Zone.Midfield);
+                    double delivery = Clamp(
+                        0.7 + (taker.stats.technical.freeKickTaking - 50.0) / 200.0,
+                        0.6,
+                        1.3
+                    );
+                    SetPendingAssist(sim, att, taker.id);
+                    ResolveShotXg(sim, att, target, gk, ChanceType.Header, delivery);
                 }
             }
+            TurnOver(sim, att, Zone.Midfield);
         }
 
-        // LongThrow: longThrows + target.heading → box 진입.
+        // LongThrow: longThrows → box 진입 (헤더 찬스). 진입 시 다음 슛 = Header.
         private static void ResolveLongThrow(SimState sim, Side att)
         {
             var taker = FindSetPieceTaker(sim, att, p => p.stats.technical.longThrows, 3);
@@ -1560,7 +1741,10 @@ namespace FMLite.Application
             );
 
             if (sim.rng.NextDouble() < boxChance)
+            {
+                SetPendingChance(sim, att, ChanceType.Header); // 롱스로 → box 공중볼
                 sim.ballZone = AttackingBox(att);
+            }
             else
                 TurnOver(sim, att, DefensiveThird(att));
         }

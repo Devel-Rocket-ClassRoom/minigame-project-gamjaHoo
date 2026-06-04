@@ -51,6 +51,12 @@ namespace FMLite.Domain
         LongThrow,
         Injury,
         Substitution,
+
+        // V1.0 G.1 — 이벤트 종류 확장 (#474)
+        Offside,
+        ThrowIn,
+        KeeperPunch, // GK 펀칭 (크로스 쳐냄)
+        LongShot, // 중거리 슛 (box 밖)
     }
 
     [Serializable]
