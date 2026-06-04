@@ -1,7 +1,11 @@
 // Task 13.8 (Issue #53) — 이적 검색 화면.
-// 필터(포지션/CA) + 검색 결과 목록 + 오퍼 제출 패널 + 활성 오퍼 현황.
+// Stage F (#472): CA 필터 폐기(F.1) + 세부 stat/주급 필터(F.2) + 필터 패널 모달 분리(F.3).
+//   메인 = 이름 검색창 + [필터] 버튼 + 결과 listing + 활성 오퍼.
+//   [필터] → MUIP ModalWindow (포지션/나이/국적/트레잇/세부 stats/주급/시장가/계약) → [적용] → 닫힘+갱신.
+//   활성 오퍼는 *제시 금액*(offer.amount) 표시 — 시장가 아님(F.4 #2).
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using FMLite.Application;
 using FMLite.Core;
@@ -17,19 +21,41 @@ namespace FMLite.UI
     {
         private const string DashboardScene = "DashboardScene";
 
+        // 세부 stat 필터 한 줄 — stat 선택(드롭다운) + 최소값(입력). statDropdown.value==0 → 미사용.
+        [Serializable]
+        public class StatFilterRow
+        {
+            public TMP_Dropdown statDropdown;
+            public TMP_InputField minValueInput;
+        }
+
         [Header("이적 창 상태")]
         [SerializeField]
         private TMP_Text windowStatusText;
 
-        [Header("필터")]
+        [Header("메인 — 검색창 + 필터 버튼")]
+        [SerializeField]
+        private TMP_InputField searchNameInput;
+
+        [SerializeField]
+        private Button filterButton;
+
+        [SerializeField]
+        private Button searchButton;
+
+        [Header("필터 모달 (MUIP ModalWindow)")]
+        [SerializeField]
+        private GameObject filterModal;
+
+        [SerializeField]
+        private Button applyFilterButton;
+
+        [SerializeField]
+        private Button closeFilterButton;
+
+        [Header("필터 — 모달 내부 컨트롤 (CA 필터 폐기: F.1)")]
         [SerializeField]
         private TMP_Dropdown positionDropdown;
-
-        [SerializeField]
-        private TMP_InputField minCAInput;
-
-        [SerializeField]
-        private TMP_InputField maxCAInput;
 
         [SerializeField]
         private TMP_InputField minAgeInput;
@@ -54,6 +80,17 @@ namespace FMLite.UI
 
         [SerializeField]
         private TMP_InputField maxContractMonthsInput;
+
+        [Header("필터 — 주급 범위 (F.2)")]
+        [SerializeField]
+        private TMP_InputField minWageInput;
+
+        [SerializeField]
+        private TMP_InputField maxWageInput;
+
+        [Header("필터 — 세부 stat 임계 (F.2)")]
+        [SerializeField]
+        private StatFilterRow[] statFilterRows = Array.Empty<StatFilterRow>();
 
         [Header("결과 목록")]
         [SerializeField]
@@ -93,25 +130,80 @@ namespace FMLite.UI
 
             InitPositionDropdown();
             InitTraitDropdown();
-            if (minCAInput != null)
-                minCAInput.text = "0";
-            if (maxCAInput != null)
-                maxCAInput.text = "200";
+            InitStatFilterRows();
+
             if (minAgeInput != null)
                 minAgeInput.text = "16";
             if (maxAgeInput != null)
                 maxAgeInput.text = "99";
 
+            WireButtons();
+
+            if (filterModal != null)
+                filterModal.SetActive(false);
             if (offerPanel != null)
                 offerPanel.SetActive(false);
 
             RefreshWindowStatus();
             RefreshActiveOffers();
+            OnSearchClicked();
         }
+
+        private void WireButtons()
+        {
+            if (filterButton != null)
+            {
+                filterButton.onClick.RemoveAllListeners();
+                filterButton.onClick.AddListener(OnFilterClicked);
+            }
+            if (searchButton != null)
+            {
+                searchButton.onClick.RemoveAllListeners();
+                searchButton.onClick.AddListener(OnSearchClicked);
+            }
+            if (applyFilterButton != null)
+            {
+                applyFilterButton.onClick.RemoveAllListeners();
+                applyFilterButton.onClick.AddListener(OnApplyFilterClicked);
+            }
+            if (closeFilterButton != null)
+            {
+                closeFilterButton.onClick.RemoveAllListeners();
+                closeFilterButton.onClick.AddListener(OnCloseFilterClicked);
+            }
+            if (searchNameInput != null)
+            {
+                searchNameInput.onSubmit.RemoveAllListeners();
+                searchNameInput.onSubmit.AddListener(_ => OnSearchClicked());
+            }
+        }
+
+        // ── 필터 모달 ────────────────────────────────────────────────
+
+        public void OnFilterClicked()
+        {
+            if (filterModal != null)
+                filterModal.SetActive(true);
+        }
+
+        public void OnCloseFilterClicked()
+        {
+            if (filterModal != null)
+                filterModal.SetActive(false);
+        }
+
+        public void OnApplyFilterClicked()
+        {
+            if (filterModal != null)
+                filterModal.SetActive(false);
+            OnSearchClicked();
+        }
+
+        // ── 검색 ─────────────────────────────────────────────────────
 
         public void OnSearchClicked()
         {
-            if (_state == null)
+            if (_state == null || resultListParent == null || playerItemPrefab == null)
                 return;
 
             var filter = BuildFilter();
@@ -196,13 +288,11 @@ namespace FMLite.UI
             if (positionDropdown == null)
                 return;
             positionDropdown.ClearOptions();
-            var options = new System.Collections.Generic.List<string>
-            {
-                Localization.Get("filter_all"),
-            };
+            var options = new List<string> { Localization.Get("filter_all") };
             foreach (Position pos in Enum.GetValues(typeof(Position)))
                 options.Add(pos.ToString());
             positionDropdown.AddOptions(options);
+            positionDropdown.value = 0;
         }
 
         private void InitTraitDropdown()
@@ -210,13 +300,29 @@ namespace FMLite.UI
             if (traitDropdown == null)
                 return;
             traitDropdown.ClearOptions();
-            var options = new System.Collections.Generic.List<string>
-            {
-                Localization.Get("filter_all"),
-            };
+            var options = new List<string> { Localization.Get("filter_all") };
             foreach (var t in GameDatabase.AllTraits)
                 options.Add(t.displayName);
             traitDropdown.AddOptions(options);
+            traitDropdown.value = 0;
+        }
+
+        // 세부 stat 드롭다운 = "전체"(0, 미사용) + 49 stat (StatCatalog 순서, 로컬라이즈 라벨).
+        private void InitStatFilterRows()
+        {
+            if (statFilterRows == null)
+                return;
+            foreach (var row in statFilterRows)
+            {
+                if (row?.statDropdown == null)
+                    continue;
+                row.statDropdown.ClearOptions();
+                var options = new List<string> { Localization.Get("filter_all") };
+                foreach (var d in StatCatalog.All)
+                    options.Add(Localization.Get(d.labelKey));
+                row.statDropdown.AddOptions(options);
+                row.statDropdown.value = 0;
+            }
         }
 
         private TransferSearchFilter BuildFilter()
@@ -225,11 +331,6 @@ namespace FMLite.UI
 
             if (positionDropdown != null && positionDropdown.value > 0)
                 filter.position = (Position)(positionDropdown.value - 1);
-
-            if (int.TryParse(minCAInput?.text, out int minCA))
-                filter.minCA = minCA;
-            if (int.TryParse(maxCAInput?.text, out int maxCA))
-                filter.maxCA = maxCA;
 
             if (int.TryParse(minAgeInput?.text, out int minAge))
                 filter.minAge = minAge;
@@ -257,6 +358,32 @@ namespace FMLite.UI
                 filter.minContractMonths = minMonths;
             if (int.TryParse(maxContractMonthsInput?.text, out int maxMonths))
                 filter.maxContractMonths = maxMonths;
+
+            // F.2 주급 범위
+            if (int.TryParse(minWageInput?.text, out int minWage))
+                filter.minWage = minWage;
+            if (int.TryParse(maxWageInput?.text, out int maxWage))
+                filter.maxWage = maxWage;
+
+            // F.2 세부 stat 임계 — 드롭다운 value>0 인 행만, fieldPath → 최소값.
+            if (statFilterRows != null)
+            {
+                foreach (var row in statFilterRows)
+                {
+                    if (row?.statDropdown == null || row.statDropdown.value <= 0)
+                        continue;
+                    int catIdx = row.statDropdown.value - 1;
+                    if (catIdx < 0 || catIdx >= StatCatalog.All.Count)
+                        continue;
+                    if (int.TryParse(row.minValueInput?.text, out int minVal) && minVal > 0)
+                        filter.statThresholds[StatCatalog.All[catIdx].fieldPath] = minVal;
+                }
+            }
+
+            // 이름 검색
+            var name = searchNameInput?.text?.Trim();
+            if (!string.IsNullOrEmpty(name))
+                filter.nameContains = name;
 
             return filter;
         }
@@ -289,8 +416,8 @@ namespace FMLite.UI
 
             if (offerAmountInput != null)
             {
-                // AI Accept 조건 ratio >= balance.aiAcceptRatio (1.20). 시장가 그대로면
-                // ratio ≈ 1/noise < 1.20 → 거의 항상 Reject. 시장가의 130% 를 권장 디폴트로
+                // AI Accept 조건 ratio >= balance.aiAcceptThreshold (1.30). 시장가 그대로면
+                // ratio ≈ 1/noise < 1.30 → 거의 항상 Reject. 시장가의 130% 를 권장 디폴트로
                 // 채워 사용자가 그대로 보내도 합리적으로 Accept 가능 (#170).
                 int suggested = (int)(mv * 1.30);
                 offerAmountInput.text = suggested.ToString();
@@ -321,6 +448,7 @@ namespace FMLite.UI
                 : Localization.Get("transfer_window_closed");
         }
 
+        // 활성 오퍼는 *제시 금액*(offer.amount) 표시 (시장가 아님 — F.4 #2).
         private void RefreshActiveOffers()
         {
             if (activeOffersText == null)
