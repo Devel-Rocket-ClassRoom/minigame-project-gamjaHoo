@@ -40,6 +40,10 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text dragGhostText;
 
+        [Header("Role/Duty popup (H.3)")]
+        [SerializeField]
+        private RoleDutyPopup rolePopup;
+
         // 포지션 적합 색.
         private static readonly Color FitPrimary = new Color32(46, 204, 113, 255); // 초록
         private static readonly Color FitSecondary = new Color32(241, 196, 15, 255); // 노랑
@@ -100,13 +104,45 @@ namespace FMLite.UI
                 var player = pid >= 0 ? _state.GetPlayer(pid) : null;
                 string label = player?.info?.lastName ?? string.Empty;
                 int ca = player?.currentAbility ?? 0;
+                // 포지션 + Duty 약어 (Role/Duty 변경 시 슬롯 갱신 가시화, H.3)
+                string posLabel =
+                    slots != null && i < slots.Count
+                        ? $"{pos} · {DutyShort(slots[i].duty)}"
+                        : pos.ToString();
                 view.SetContent(
-                    pos.ToString(),
+                    posLabel,
                     player != null ? pid : -1,
                     label,
                     ca,
                     player != null ? FitColor(player, pos) : EmptySlot
                 );
+            }
+        }
+
+        // 슬롯 클릭 → Role/Duty 팝업 (H.3). 빈 슬롯도 역할/임무 설정 가능.
+        public void OnSlotClicked(int slotIndex)
+        {
+            var slots = _club?.tactic?.slots;
+            if (rolePopup == null || slots == null || slotIndex < 0 || slotIndex >= slots.Count)
+                return;
+            var formation = GameDatabase.GetFormation(_club.tactic.formationId);
+            var pos =
+                formation?.slotPositions != null && slotIndex < formation.slotPositions.Length
+                    ? formation.slotPositions[slotIndex]
+                    : Position.GK;
+            rolePopup.Open(slots[slotIndex], pos, Refresh);
+        }
+
+        private static string DutyShort(Duty d)
+        {
+            switch (d)
+            {
+                case Duty.Attack:
+                    return "공";
+                case Duty.Defend:
+                    return "수";
+                default:
+                    return "지";
             }
         }
 
