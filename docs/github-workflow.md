@@ -119,6 +119,12 @@ PR 본문에 닫을 이슈 명시 시 **각 이슈 앞에 키워드 필요**. �
 
 > **이슈 close 시 Claude 가 즉시 보드 업데이트** (사용자 명시 요청, 2026-05-20). FM-Lite 작업 패턴 = "같은 날 시작 + 같은 날 완료" 라 `Start = Target = closedAt`.
 
+> **⚠️ STOP — 즉흥 금지 (반복 실수 지점)**: 보드 업데이트를 **시작하기 전에 이 섹션을 먼저 읽고 아래 cheatsheet 를 그대로 복붙**하라. 기억으로 즉흥하면 매번 헤맨다. 특히:
+> - ❌ `gh project item-edit --date ...` / `--field-id PVTF_...` → date 는 **거부됨** ("Issue field values cannot be updated using the updateProjectV2ItemFieldValue mutation"). gh CLI 의 item-edit 는 쓰지 마라.
+> - ❌ `updateIssueFieldValue` 에 Project field ID (`PVTF_...`) → "Issue field with id ... not found". date 는 **Issue field ID `IFD_...`** 만.
+> - ✅ **Status=Done 은 `Closes #N` 머지 자동화로 이미 설정됨** — 수동 불필요 (`gh api graphql` 로 projectItems.fieldValues 확인만).
+> - 정답: date 2개 = `updateIssueFieldValue` + `IFD_...` / Iteration = `updateProjectV2ItemFieldValue` + `PVTIF_...`. (아래 표·cheatsheet)
+
 | 필드 | 값 | API 종류 |
 | --- | --- | --- |
 | **Start date** | `closedAt` 의 date 부분 (`yyyy-MM-dd`) | **Issue field** (조직 차원) |
