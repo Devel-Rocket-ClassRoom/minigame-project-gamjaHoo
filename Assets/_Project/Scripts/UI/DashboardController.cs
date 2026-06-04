@@ -27,12 +27,12 @@ namespace FMLite.UI
         private const string ScheduleScene = "ScheduleScene";
         private const string FacilityScene = "FacilityScene";
         private const string StandingsScene = "StandingsScene";
-        private const string TacticScene = "TacticScene";
-        private const string LineupScene = "LineupScene";
+        private const string TacticLineupScene = "TacticLineupScene"; // 전술/라인업 통합 (구 TacticScene/LineupScene 폐기, H.4)
         private const string MainMenuScene = "MainMenuScene";
         private const string MentoringScene = "MentoringScene";
         private const string SeasonSummaryScene = "SeasonSummaryScene";
         private const string MatchTextScene = "MatchTextScene";
+        private const string MatchPreviewScene = "MatchPreviewScene";
         internal const string SelectedMatchIdKey = "SelectedMatchId";
 
         [Header("요약 정보")]
@@ -153,6 +153,11 @@ namespace FMLite.UI
         {
             continueButton.interactable = false;
             var state = GameManager.Instance.State;
+
+            // H.4: 오늘 미플레이 유저 매치가 있으면 진행 막고 MatchPreviewScene 으로 (매치일 스킵 방지).
+            if (TryRouteToMatchPreview(state))
+                return;
+
             GameLoop.ContinueUntilStop(state, balance);
 
             // 시즌 종료일(5/15) 도달 시 요약 화면으로 전환
@@ -166,14 +171,9 @@ namespace FMLite.UI
                 return;
             }
 
-            // 유저 매치 완료 시 MatchTextScene 으로 전환
-            var userMatch = FindTodayUserMatch(state);
-            if (userMatch?.result != null)
-            {
-                PlayerPrefs.SetInt(SelectedMatchIdKey, userMatch.id);
-                SceneManager.LoadScene(MatchTextScene);
+            // H.4: 진행 후 멈춘 날이 유저 매치일(미플레이)이면 경기 직전 점검 화면으로.
+            if (TryRouteToMatchPreview(state))
                 return;
-            }
 
             // B.2 (design-decisions #66): CounterOffer 강제 NegotiationScene 전환 폐기.
             // InboxRouter 가 InboxItem(Transfer/RequiresAction, 기한 7일, OpenScene:NegotiationScene) 으로 흡수 —
@@ -201,9 +201,10 @@ namespace FMLite.UI
 
         public void OnFacilityClicked() => SceneManager.LoadScene(FacilityScene);
 
-        public void OnTacticClicked() => SceneManager.LoadScene(TacticScene);
+        // 구 전술/라인업 분리 씬 폐기 → 통합 TacticLineupScene 으로 (H.4). 두 핸들러 동일 타깃.
+        public void OnTacticClicked() => SceneManager.LoadScene(TacticLineupScene);
 
-        public void OnLineupClicked() => SceneManager.LoadScene(LineupScene);
+        public void OnLineupClicked() => SceneManager.LoadScene(TacticLineupScene);
 
         public void OnMentoringClicked() => SceneManager.LoadScene(MentoringScene);
 
@@ -603,6 +604,19 @@ namespace FMLite.UI
             names.Count <= 3
                 ? string.Join(", ", names)
                 : Localization.Get("dashboard_count_fmt", names.Count);
+
+        // H.4: 오늘 미플레이(result==null) 유저 매치가 있으면 MatchPreviewScene 으로 라우팅하고 true.
+        private bool TryRouteToMatchPreview(GameState state)
+        {
+            var m = FindTodayUserMatch(state);
+            if (m != null && m.result == null)
+            {
+                PlayerPrefs.SetInt(SelectedMatchIdKey, m.id);
+                SceneManager.LoadScene(MatchPreviewScene);
+                return true;
+            }
+            return false;
+        }
 
         // N.3: 오늘 날짜에 유저 클럽 매치가 있으면 반환
         private static Match FindTodayUserMatch(GameState state)
