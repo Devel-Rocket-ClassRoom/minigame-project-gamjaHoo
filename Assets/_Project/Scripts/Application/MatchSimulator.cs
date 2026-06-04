@@ -127,9 +127,19 @@ namespace FMLite.Application
             // 1단계: 시드 고정 (forward simulation — 결정성은 시드에서만, #17 V0.5)
             var rng = new Random(match.id ^ state.randomSeed);
 
-            // 2단계: starting11 자동 선정 (Tactic = Stage J. 부상/정지 제외)
-            var homeXI = SelectStartingEleven(home, state);
-            var awayXI = SelectStartingEleven(away, state);
+            // 2단계: starting11 — 포메이션 정합 선정 (H.6 LineupSelector). 유저 배정 우선, AI 자동+노이즈.
+            var homeXI = LineupSelector.SelectStartingEleven(
+                home,
+                state,
+                match.id ^ state.randomSeed ^ home.id,
+                balance
+            );
+            var awayXI = LineupSelector.SelectStartingEleven(
+                away,
+                state,
+                match.id ^ state.randomSeed ^ away.id,
+                balance
+            );
 
             // 3단계: 상태 초기화
             var sim = new SimState
@@ -1823,59 +1833,7 @@ namespace FMLite.Application
         }
 
         // ── 헬퍼: starting11 / stats ──────────────────────────────────
-
-        private static List<int> SelectStartingEleven(Club club, GameState state)
-        {
-            if (HasLineup(club.tactic))
-            {
-                var result = new List<int>(11);
-                var used = new HashSet<int>();
-                foreach (var slot in club.tactic.slots)
-                {
-                    if (result.Count >= 11)
-                        break;
-                    var pid = slot.assignedPlayerId;
-                    if (pid < 0 || used.Contains(pid))
-                        continue;
-                    var p = state.GetPlayer(pid);
-                    if (
-                        p == null
-                        || p.state.injury.injuryTypeId != -1
-                        || p.state.suspendedMatches > 0
-                    )
-                        continue;
-                    result.Add(pid);
-                    used.Add(pid);
-                }
-                // 부상/정지로 빈 슬롯은 스쿼드 CA 최상위로 채움
-                if (result.Count < 11)
-                {
-                    var fallback = club
-                        .seniorSquadIds.Where(id => !used.Contains(id))
-                        .Select(id => state.GetPlayer(id))
-                        .Where(p =>
-                            p != null
-                            && p.state.injury.injuryTypeId == -1
-                            && p.state.suspendedMatches <= 0
-                        )
-                        .OrderByDescending(p => p.currentAbility)
-                        .Take(11 - result.Count);
-                    foreach (var p in fallback)
-                        result.Add(p.id);
-                }
-                return result;
-            }
-
-            return club
-                .seniorSquadIds.Select(id => state.GetPlayer(id))
-                .Where(p =>
-                    p != null && p.state.injury.injuryTypeId == -1 && p.state.suspendedMatches <= 0
-                )
-                .OrderByDescending(p => p.currentAbility)
-                .Take(11)
-                .Select(p => p.id)
-                .ToList();
-        }
+        // SelectStartingEleven → LineupSelector (H.6) 로 이동. 포메이션 정합 선정.
 
         private static Dictionary<int, PlayerMatchStat> InitStatsMap(
             List<int> homeXI,

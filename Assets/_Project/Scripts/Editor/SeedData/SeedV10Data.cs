@@ -399,8 +399,48 @@ namespace FMLite.Editor
                 so.id = id;
                 so.displayName = name;
                 so.slotPositions = slots;
+                so.formationStyle = FormationStyleFor(id); // 명성 가중 추첨용 (재생성 보존)
+                so.squadConfig = SquadConfigFor(id, name); // H.6 — 스쿼드가 포메이션 라인 분배 따름 (#483)
                 EditorUtility.SetDirty(so);
             }
+        }
+
+        // 포메이션 스타일 (0=Solid 약체↑ / 1=Balanced / 2=Flamboyant 강팀↑). id: 1=442 2=433 3=352 4=4231 5=4411 6=532.
+        private static int FormationStyleFor(int id) =>
+            id switch
+            {
+                2 => 2, // 4-3-3
+                4 => 2, // 4-2-3-1
+                6 => 0, // 5-3-2
+                _ => 1, // 4-4-2 / 3-5-2 / 4-4-1-1
+            };
+
+        // 포메이션별 25인 스쿼드 분배 (라인 정합). FormationConfig 는 그룹 기반 — AM↔CM·WB↔FB 는 같은 라인.
+        private static FormationConfig SquadConfigFor(int id, string name)
+        {
+            // gk / cb / lb / rb / dmCm / lmLw / rmRw / stCf (+rnd2 = 25)
+            (int cb, int lb, int rb, int dmCm, int lmLw, int rmRw, int stCf) cfg = id switch
+            {
+                2 => (4, 2, 2, 6, 2, 2, 2), // 4-3-3: 중미↑ + 윙어 + CF1
+                3 => (6, 0, 0, 6, 2, 2, 4), // 3-5-2: CB3 스타터(풀백X, 와이드미드)
+                4 => (4, 2, 2, 6, 2, 2, 2), // 4-2-3-1: 2DM+AM(중미↑) + ST1
+                5 => (4, 2, 2, 6, 2, 2, 2), // 4-4-1-1: +AM (중미↑)
+                6 => (6, 2, 2, 6, 0, 0, 4), // 5-3-2: CB3+WB2(풀백 라인) + 중미3
+                _ => (4, 2, 2, 4, 2, 2, 4), // 4-4-2 기본
+            };
+            return new FormationConfig
+            {
+                name = name,
+                gk = 3,
+                cbMin = cfg.cb,
+                lbMin = cfg.lb,
+                rbMin = cfg.rb,
+                dmCmGroupMin = cfg.dmCm,
+                lmLwGroupMin = cfg.lmLw,
+                rmRwGroupMin = cfg.rmRw,
+                stCfGroupMin = cfg.stCf,
+                randomSlots = 2,
+            };
         }
 
         // ── Player Roles (~40) ────────────────────────────────────────────

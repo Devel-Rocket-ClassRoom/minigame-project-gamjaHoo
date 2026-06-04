@@ -275,6 +275,9 @@ namespace FMLite.Domain
         public float offsideProb = 0.18f; // ClearChance(스루패스) 중 오프사이드로 무산되는 비율
         public float throwInChance = 0.25f; // AttackingThird 턴오버 시 스로인 표시 비율 (flavor)
 
+        // V1.0-14 H.6 — AI 자동 라인업 노이즈 (CA 단위 ±). 항상 최적 선발 방지 (#483).
+        public float lineupNoiseSigma = 5f;
+
         [Header("Match 5-Zone — Zone Transition")]
         public float zoneCornerChance = 0.25f; // attacking third 실패 시 corner 확률
         public float zoneCornerToBoxChance = 0.30f; // corner → box 재진입 확률

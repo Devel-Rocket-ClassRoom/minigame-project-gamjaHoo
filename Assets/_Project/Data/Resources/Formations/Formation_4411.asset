@@ -22,8 +22,8 @@ MonoBehaviour:
     cbMin: 4
     lbMin: 2
     rbMin: 2
-    dmCmGroupMin: 4
+    dmCmGroupMin: 6
     lmLwGroupMin: 2
     rmRwGroupMin: 2
-    stCfGroupMin: 4
+    stCfGroupMin: 2
     randomSlots: 2
