@@ -1684,7 +1684,7 @@ namespace FMLite.Application
         // ── I.10: 세트피스 해결 ───────────────────────────────────────
 
         // setPieceTakers[typeIndex] 우선, 미지정(-1) 또는 비출전 시 stat 최상위 폴백.
-        // typeIndex: 0=Penalty, 1=FreeKick, 2=Corner, 3=ThrowIn (LineupController 상수와 동기화)
+        // typeIndex: 0=Penalty, 1=FreeKick, 2=Corner, 3=ThrowIn
         private static Player FindSetPieceTaker(
             SimState sim,
             Side att,
