@@ -81,6 +81,10 @@ namespace FMLite.Application
             public Club awayClub;
             public List<MatchEvent> events = new List<MatchEvent>();
 
+            // V1.0-2 G.6 — 텍스트 변형 시드 선택 (결정성). matchSeed = match.id ^ randomSeed.
+            public int matchSeed;
+            public int eventSeq;
+
             // V1.0-1 — 다음 ResolveShot 이 소비할 찬스 유형 (박스 진입 시 설정).
             public ChanceType homePendingChance = ChanceType.OpenPlay;
             public ChanceType awayPendingChance = ChanceType.OpenPlay;
@@ -148,10 +152,19 @@ namespace FMLite.Application
             // G.3/G.4 — 시너지(활성 strengthBonus product) × 포메이션 매치업 보너스 (매치 시작 1회)
             sim.homeTeamMod = ComputeTeamMod(state, home, away);
             sim.awayTeamMod = ComputeTeamMod(state, away, home);
+            sim.matchSeed = match.id ^ state.randomSeed; // G.6 텍스트 변형 시드
 
             // 킥오프 이벤트
             if (collectEvents)
-                EmitEvent(sim, MatchEventType.KickOff, Side.Home, 0, 0, "match_kickoff", null);
+                EmitEvent(
+                    sim,
+                    MatchEventType.KickOff,
+                    Side.Home,
+                    0,
+                    0,
+                    Vk(sim, "kickoff", 4),
+                    null
+                );
 
             // 4단계: 전반 (1~45+stoppage) — I.11 stoppage 추가.
             int firstHalfStoppage = sim.rng.Next(0, sim.balance.stoppageTimeMax + 1);
@@ -165,7 +178,15 @@ namespace FMLite.Application
             sim.ballZone = Zone.Midfield;
             sim.possession = Side.Away;
             if (collectEvents)
-                EmitEvent(sim, MatchEventType.HalfTime, Side.Home, 0, 0, "match_halftime", null);
+                EmitEvent(
+                    sim,
+                    MatchEventType.HalfTime,
+                    Side.Home,
+                    0,
+                    0,
+                    Vk(sim, "halftime", 3),
+                    null
+                );
 
             // 후반 (46~90+stoppage)
             int secondHalfStoppage = sim.rng.Next(0, sim.balance.stoppageTimeMax + 1);
@@ -177,7 +198,15 @@ namespace FMLite.Application
 
             // 정규시간 종료
             if (collectEvents)
-                EmitEvent(sim, MatchEventType.FullTime, Side.Home, 0, 0, "match_fulltime", null);
+                EmitEvent(
+                    sim,
+                    MatchEventType.FullTime,
+                    Side.Home,
+                    0,
+                    0,
+                    Vk(sim, "fulltime", 4),
+                    null
+                );
 
             // I.11 — 컵 동점 시 연장전 + 승부차기
             int penaltyHomeScore = 0,
@@ -193,7 +222,7 @@ namespace FMLite.Application
                         Side.Home,
                         0,
                         0,
-                        "match_extra_time_kickoff",
+                        Vk(sim, "et_start", 2),
                         null
                     );
                 sim.ballZone = Zone.Midfield;
@@ -216,7 +245,7 @@ namespace FMLite.Application
                         Side.Home,
                         0,
                         0,
-                        "match_extra_time_halftime",
+                        Vk(sim, "halftime", 3),
                         null
                     );
 
@@ -238,7 +267,7 @@ namespace FMLite.Application
                             Side.Home,
                             0,
                             0,
-                            "match_extra_time_end",
+                            Vk(sim, "fulltime", 4),
                             null
                         );
                     (penaltyHomeScore, penaltyAwayScore) = SimulatePenaltyShootout(sim);
@@ -452,7 +481,7 @@ namespace FMLite.Application
                             att,
                             attacker.id,
                             0,
-                            "match_offside_fmt",
+                            Vk(sim, "offside", 3),
                             MakeArgs(sim, attacker.id, 0)
                         );
                     TurnOver(sim, att, DefensiveThird(att));
@@ -472,7 +501,7 @@ namespace FMLite.Application
                         att,
                         attacker.id,
                         0,
-                        "match_dribble_fmt",
+                        Vk(sim, "keypass", 5),
                         MakeArgs(sim, attacker.id, 0)
                     );
             }
@@ -512,7 +541,7 @@ namespace FMLite.Application
                 // V1.0 G.1 — 스로인 (flavor, 메커닉 영향 X). rng 는 항상 소비 (collectEvents 결정성 보존).
                 bool throwIn = sim.rng.NextDouble() < sim.balance.throwInChance;
                 if (throwIn && sim.collectEvents)
-                    EmitEvent(sim, MatchEventType.ThrowIn, att, 0, 0, "match_throw_in_fmt", null);
+                    EmitEvent(sim, MatchEventType.ThrowIn, att, 0, 0, Vk(sim, "throw", 3), null);
                 TurnOver(sim, att, DefensiveThird(att));
             }
         }
@@ -548,7 +577,7 @@ namespace FMLite.Application
                         att,
                         shooter.id,
                         fouler?.id ?? 0,
-                        "match_penalty_awarded_fmt",
+                        Vk(sim, "pk_won", 3),
                         MakeArgs(sim, shooter.id, 0)
                     );
                 ResolvePenalty(sim, att, shooter, gk);
@@ -654,8 +683,8 @@ namespace FMLite.Application
                 {
                     string key =
                         assister != -1 && assister != shooter.id
-                            ? "match_goal_assist_fmt"
-                            : "match_goal_fmt";
+                            ? Vk(sim, "goal", 5)
+                            : Vk(sim, "goal", 5);
                     EmitEvent(
                         sim,
                         MatchEventType.Goal,
@@ -688,9 +717,7 @@ namespace FMLite.Application
                                 ? MatchEventType.KeeperPunch
                                 : MatchEventType.ShotSaved;
                         string key =
-                            type == ChanceType.Header
-                                ? "match_keeper_punch_fmt"
-                                : "match_shot_saved_fmt";
+                            type == ChanceType.Header ? Vk(sim, "save", 5) : Vk(sim, "save", 5);
                         EmitEvent(
                             sim,
                             et,
@@ -714,8 +741,8 @@ namespace FMLite.Application
                                 : MatchEventType.ShotOffTarget;
                         string key =
                             type == ChanceType.LongShot
-                                ? "match_long_shot_fmt"
-                                : "match_shot_off_target_fmt";
+                                ? Vk(sim, "shotoff", 3)
+                                : Vk(sim, "shotoff", 3);
                         EmitEvent(sim, et, att, shooter.id, 0, key, MakeArgs(sim, shooter.id, 0));
                     }
                 }
@@ -875,7 +902,7 @@ namespace FMLite.Application
                     Opposite(sim.possession),
                     fouler.id,
                     fouled.id,
-                    "match_foul_fmt",
+                    Vk(sim, "foul", 3),
                     MakeArgs(sim, fouler.id, fouled.id)
                 );
                 EmitEvent(
@@ -884,7 +911,7 @@ namespace FMLite.Application
                     sim.possession,
                     0,
                     0,
-                    "match_free_kick_fmt",
+                    Vk(sim, "fk_direct", 4),
                     null
                 );
             }
@@ -916,7 +943,7 @@ namespace FMLite.Application
                         foulerSide,
                         foulerId,
                         0,
-                        "match_red_card_fmt",
+                        Vk(sim, "red", 3),
                         MakeArgs(sim, foulerId, 0)
                     );
                 return;
@@ -938,7 +965,7 @@ namespace FMLite.Application
                         foulerSide,
                         foulerId,
                         0,
-                        "match_second_yellow_fmt",
+                        Vk(sim, "2nd_yellow", 2),
                         MakeArgs(sim, foulerId, 0)
                     );
             }
@@ -951,7 +978,7 @@ namespace FMLite.Application
                         foulerSide,
                         foulerId,
                         0,
-                        "match_yellow_card_fmt",
+                        Vk(sim, "yellow", 3),
                         MakeArgs(sim, foulerId, 0)
                     );
             }
@@ -1011,7 +1038,7 @@ namespace FMLite.Application
                     sim.possession,
                     fouled.id,
                     0,
-                    "match_injury_fmt",
+                    Vk(sim, "injury_minor", 3),
                     MakeArgs(sim, fouled.id, 0)
                 );
 
@@ -1066,7 +1093,7 @@ namespace FMLite.Application
                         att,
                         taker.id,
                         0,
-                        "match_penalty_goal_fmt",
+                        Vk(sim, "goal", 5),
                         MakeArgs(sim, taker.id, 0)
                     );
             }
@@ -1082,7 +1109,7 @@ namespace FMLite.Application
                         att,
                         taker.id,
                         0,
-                        "match_penalty_miss_fmt",
+                        Vk(sim, "pk_miss", 3),
                         MakeArgs(sim, taker.id, 0)
                     );
             }
@@ -1228,14 +1255,29 @@ namespace FMLite.Application
             );
         }
 
+        // V1.0-2 G.6 — 이벤트 텍스트 변형 키 시드 선택. match_event_{family}_{1..count}.
+        // 결정성: matchSeed + eventSeq (gameplay rng 미소비). 같은 시드 → 같은 표현 시퀀스.
+        private static string Vk(SimState sim, string family, int count)
+        {
+            unchecked
+            {
+                uint h = (uint)sim.matchSeed * 2654435761u + (uint)(sim.eventSeq++) * 40503u;
+                return $"match_event_{family}_{(int)(h % (uint)count) + 1}";
+            }
+        }
+
         // textArgs 빌더 — actorId/targetId → 선수 이름 (UI 표시용).
+        // {player}/{gk} = actor (변형 텍스트 어휘). save 계열은 actor=gk 로 전달되므로 {gk}=actor 정합.
         private static Dictionary<string, string> MakeArgs(SimState sim, int actorId, int targetId)
         {
             var args = new Dictionary<string, string> { ["minute"] = sim.currentMinute.ToString() };
             if (actorId > 0)
             {
                 var p = sim.gameState.GetPlayer(actorId);
-                args["playerName"] = PlayerDisplayName(p, actorId);
+                string actorName = PlayerDisplayName(p, actorId);
+                args["playerName"] = actorName;
+                args["player"] = actorName; // 변형 텍스트 {player}
+                args["gk"] = actorName; // 변형 텍스트 {gk} (save 계열 actor=gk)
             }
             if (targetId > 0)
             {
@@ -1611,7 +1653,7 @@ namespace FMLite.Application
                     att,
                     taker.id,
                     0,
-                    scored ? "match_penalty_shootout_goal_fmt" : "match_penalty_shootout_miss_fmt",
+                    scored ? Vk(sim, "pso", 3) : Vk(sim, "pso", 3),
                     MakeArgs(sim, taker.id, 0)
                 );
 
@@ -1683,7 +1725,7 @@ namespace FMLite.Application
                     att,
                     taker.id,
                     0,
-                    "match_corner_fmt",
+                    Vk(sim, "corner", 3),
                     MakeArgs(sim, taker.id, 0)
                 );
 
@@ -1760,7 +1802,7 @@ namespace FMLite.Application
                     att,
                     taker.id,
                     0,
-                    "match_long_throw_fmt",
+                    Vk(sim, "throw", 3),
                     MakeArgs(sim, taker.id, 0)
                 );
 
