@@ -6,11 +6,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -57,6 +59,23 @@ namespace FMLite.UI
         [SerializeField]
         private Button skipButton;
 
+        [Header("진행 바 (분)")]
+        [SerializeField]
+        private Image progressFill; // type=Filled. 분 진행률 0..1.
+
+        [Header("라인업 패널")]
+        [SerializeField]
+        private GameObject lineupPanel;
+
+        [SerializeField]
+        private TMP_Text lineupText;
+
+        [SerializeField]
+        private Button lineupToggleButton;
+
+        [SerializeField]
+        private Button lineupCloseButton;
+
         [Header("결과 패널")]
         [SerializeField]
         private GameObject resultPanel;
@@ -79,6 +98,14 @@ namespace FMLite.UI
         private int _awayScore;
         private float _speedMultiplier = 1f;
         private bool _isSkipped;
+        private bool _finished;
+        private int _playIndex;
+        private int _totalMinutes = 90;
+
+        // 추가시간 표기용 진행 단계 (전반/후반/연장 — 45+x, 90+x 등 표시).
+        private bool _secondHalf;
+        private bool _extraTime;
+        private bool _etSecondHalf;
         private Coroutine _playCoroutine;
 
         private void Awake()
@@ -93,9 +120,33 @@ namespace FMLite.UI
                 skipButton.onClick.AddListener(OnSkip);
             if (resultBackButton != null)
                 resultBackButton.onClick.AddListener(OnBackClicked);
+            if (lineupToggleButton != null)
+                lineupToggleButton.onClick.AddListener(ToggleLineupPanel);
+            if (lineupCloseButton != null)
+                lineupCloseButton.onClick.AddListener(() => SetLineupPanel(false));
 
             if (resultPanel != null)
                 resultPanel.SetActive(false);
+            if (lineupPanel != null)
+                lineupPanel.SetActive(false);
+        }
+
+        private void Update()
+        {
+            if (_finished)
+                return;
+            var kb = Keyboard.current;
+            if (kb == null)
+                return;
+            // J.1 단축키: 1/2/3/4 = ×1/×2/×4/스킵 (v1.0-plan §3.20.5).
+            if (kb.digit1Key.wasPressedThisFrame)
+                SetSpeed(1f);
+            else if (kb.digit2Key.wasPressedThisFrame)
+                SetSpeed(2f);
+            else if (kb.digit3Key.wasPressedThisFrame)
+                SetSpeed(4f);
+            else if (kb.digit4Key.wasPressedThisFrame)
+                OnSkip();
         }
 
         private void Start()
@@ -107,6 +158,9 @@ namespace FMLite.UI
             int matchId = PlayerPrefs.GetInt(DashboardController.SelectedMatchIdKey, -1);
             _match = FindMatch(matchId);
 
+            // J.5 — 매치 BGM (에셋/인스턴스 없으면 silent fallback).
+            SoundManager.Instance?.PlayBGM(BgmId.Match);
+
             if (_match?.result == null)
             {
                 ShowResultPanel();
@@ -114,6 +168,9 @@ namespace FMLite.UI
             }
 
             SetupHeader();
+            _totalMinutes = ComputeTotalMinutes();
+            BuildLineupText();
+            UpdateProgress(0);
             _playCoroutine = StartCoroutine(PlayEvents());
         }
 
@@ -137,35 +194,45 @@ namespace FMLite.UI
         {
             var events = _match.events;
 
-            for (int i = 0; i < events.Count; i++)
+            for (_playIndex = 0; _playIndex < events.Count; _playIndex++)
             {
                 if (_isSkipped)
                     break;
 
-                var ev = events[i];
-                SpawnEventItem(ev);
-                UpdateScore(ev);
-                UpdateMinute(ev.minute);
-                ScrollToBottom();
-
-                yield return new WaitForSeconds(BaseDelay / _speedMultiplier);
+                bool shown = ProcessEvent(events[_playIndex]);
+                if (shown)
+                    yield return new WaitForSeconds(BaseDelay / _speedMultiplier);
             }
 
-            // 스킵 시 남은 이벤트 즉시 표시
+            // 스킵 시 남은 이벤트 즉시 처리 (인덱스 기준 — 필터로 표시 항목 수 ≠ 이벤트 수)
             if (_isSkipped)
             {
-                int startIdx = eventListContent != null ? eventListContent.childCount : 0;
-                for (int i = startIdx; i < events.Count; i++)
-                {
-                    var ev = events[i];
-                    SpawnEventItem(ev);
-                    UpdateScore(ev);
-                }
-                UpdateMinute(events.Count > 0 ? events[events.Count - 1].minute : 90);
+                for (; _playIndex < events.Count; _playIndex++)
+                    ProcessEvent(events[_playIndex]);
                 ScrollToBottom();
             }
 
             ShowResultPanel();
+        }
+
+        // 점수/분/진행은 모든 이벤트로 갱신. 텍스트/SFX 는 핵심 이벤트만 (J.2). 표시 여부 반환.
+        private bool ProcessEvent(MatchEvent ev)
+        {
+            UpdateScore(ev);
+            UpdateMinute(ev.minute);
+            UpdateProgress(ev.minute);
+
+            bool show =
+                MatchEventDisplay.ShouldShowText(ev.type) && !string.IsNullOrEmpty(ev.textKey);
+            if (show)
+            {
+                SpawnEventItem(ev);
+                PlayEventSfx(ev.type);
+                ScrollToBottom();
+            }
+
+            UpdatePhase(ev.type);
+            return show;
         }
 
         private void SpawnEventItem(MatchEvent ev)
@@ -173,10 +240,45 @@ namespace FMLite.UI
             if (eventItemPrefab == null || eventListContent == null)
                 return;
 
-            var go = Instantiate(eventItemPrefab, eventListContent);
+            // worldPositionStays=false — 스케일된 캔버스 하위 배치 시 localScale/위치 보존 (UI 표준).
+            var go = Instantiate(eventItemPrefab, eventListContent, false);
             var text = go.GetComponentInChildren<TMP_Text>();
             if (text != null)
                 text.text = FormatEvent(ev);
+        }
+
+        private void UpdatePhase(MatchEventType type)
+        {
+            if (type == MatchEventType.HalfTime)
+                _secondHalf = true;
+            else if (type == MatchEventType.ExtraTimeKickOff)
+                _extraTime = true;
+            else if (type == MatchEventType.ExtraTimeHalfTime)
+                _etSecondHalf = true;
+        }
+
+        private static void PlayEventSfx(MatchEventType type)
+        {
+            var sfx = MatchEventDisplay.SfxFor(type);
+            if (sfx.HasValue)
+                SoundManager.Instance?.PlaySFX(sfx.Value);
+        }
+
+        private void UpdateProgress(int minute)
+        {
+            if (progressFill == null)
+                return;
+            progressFill.fillAmount =
+                _totalMinutes > 0 ? Mathf.Clamp01((float)minute / _totalMinutes) : 0f;
+        }
+
+        private int ComputeTotalMinutes()
+        {
+            int max = 90;
+            var ev = _match?.events;
+            if (ev != null && ev.Count > 0)
+                max = Mathf.Max(max, ev[ev.Count - 1].minute);
+            return max;
         }
 
         private void UpdateScore(MatchEvent ev)
@@ -205,7 +307,19 @@ namespace FMLite.UI
         private void UpdateMinute(int minute)
         {
             if (minuteText != null)
-                minuteText.text = $"{minute}'";
+                minuteText.text = FormatMinute(minute);
+        }
+
+        // 추가시간은 기준 분 + 초과분으로 표기 (전반 45+x / 후반 90+x / 연장 105+x·120+x).
+        private string FormatMinute(int m)
+        {
+            if (!_secondHalf)
+                return m > 45 ? $"45+{m - 45}'" : $"{m}'";
+            if (!_extraTime)
+                return m > 90 ? $"90+{m - 90}'" : $"{m}'";
+            if (!_etSecondHalf)
+                return m > 105 ? $"105+{m - 105}'" : $"{m}'";
+            return m > 120 ? $"120+{m - 120}'" : $"{m}'";
         }
 
         private void ScrollToBottom()
@@ -220,11 +334,22 @@ namespace FMLite.UI
 
         private void ShowResultPanel()
         {
+            _finished = true;
+            UpdateProgress(_totalMinutes);
+
             if (_playCoroutine != null)
                 StopCoroutine(_playCoroutine);
 
+            // 결과 표시 시 라인업 패널은 닫고, 결과 패널을 최상위로 (#497 — 라인업 위에 떠 갇히는 문제 방지).
+            SetLineupPanel(false);
+            if (lineupToggleButton != null)
+                lineupToggleButton.interactable = false;
+
             if (resultPanel != null)
+            {
+                resultPanel.transform.SetAsLastSibling();
                 resultPanel.SetActive(true);
+            }
 
             if (_match?.result == null)
                 return;
@@ -276,9 +401,43 @@ namespace FMLite.UI
             foreach (var ps in sorted)
             {
                 string name = GetPlayerName(ps.playerId);
-                lines.Add(Localization.Get("match_text_rating_fmt", name, ps.rating));
+                lines.Add($"{name}  {ps.rating:0.0}");
             }
             return string.Join("\n", lines);
+        }
+
+        // ── 라인업 패널 (J.4 — 상대/자팀 선발 11) ─────────────────────
+
+        private void ToggleLineupPanel()
+        {
+            if (lineupPanel != null)
+                SetLineupPanel(!lineupPanel.activeSelf);
+        }
+
+        private void SetLineupPanel(bool show)
+        {
+            if (lineupPanel != null)
+                lineupPanel.SetActive(show);
+        }
+
+        private void BuildLineupText()
+        {
+            if (lineupText == null || _match?.result == null)
+                return;
+
+            var home = _state.GetClub(_match.homeClubId)?.name ?? "?";
+            var away = _state.GetClub(_match.awayClubId)?.name ?? "?";
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"<b>{home}</b>");
+            foreach (var id in _match.result.homeStarting11)
+                sb.AppendLine(GetPlayerName(id));
+            sb.AppendLine();
+            sb.AppendLine($"<b>{away}</b>");
+            foreach (var id in _match.result.awayStarting11)
+                sb.AppendLine(GetPlayerName(id));
+
+            lineupText.text = sb.ToString();
         }
 
         // ── 헬퍼 ─────────────────────────────────────────────────────

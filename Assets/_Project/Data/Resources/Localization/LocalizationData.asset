@@ -620,8 +620,8 @@ MonoBehaviour:
     korean: "{player}\uAC00 \uBC15\uC2A4 \uC548\uC73C\uB85C \uC815\uD655\uD55C \uD06C\uB85C\uC2A4!"
     english: '{player} whips in a perfect cross!'
   - key: match_event_keypass_3
-    korean: "{player}\uC758 \uD658\uC0C1\uC801\uC778 \uC5B4\uC2DC\uC2A4\uD2B8!"
-    english: A sublime assist from {player}!
+    korean: "{player}\uC758 \uD658\uC0C1\uC801\uC778 \uD0A4\uD328\uC2A4!"
+    english: A sublime key pass from {player}!
   - key: match_event_keypass_4
     korean: "{player}\uC758 \uBC31\uD790\uB85C \uCC2C\uC2A4 \uBA54\uC774\uD0B9!"
     english: '{player} backheels it into space!'

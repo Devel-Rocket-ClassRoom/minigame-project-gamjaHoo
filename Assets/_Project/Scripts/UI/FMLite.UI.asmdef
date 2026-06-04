@@ -8,7 +8,8 @@
         "FMLite.Persistence",
         "FMLite.Utils",
         "Unity.TextMeshPro",
-        "ModernUIPack"
+        "ModernUIPack",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
