@@ -895,6 +895,22 @@ namespace FMLite.Application
                         StringComparison.OrdinalIgnoreCase
                     ) >= 0
                 )
+                // Stage F (#472): 주급 범위. 계약 없는 선수(무소속) = 주급 0 으로 간주.
+                .Where(p =>
+                {
+                    int wage = p.contract?.weeklyWage ?? 0;
+                    return wage >= filter.minWage && wage <= filter.maxWage;
+                })
+                // Stage F (#472): 세부 stat 임계 — 모든 항목 AND (각 stat 이 최소값 이상).
+                .Where(p =>
+                {
+                    if (filter.statThresholds == null || filter.statThresholds.Count == 0)
+                        return true;
+                    foreach (var kv in filter.statThresholds)
+                        if (StatCatalog.Read(p.stats, kv.Key) < kv.Value)
+                            return false;
+                    return true;
+                })
                 .ToList();
         }
 
@@ -978,5 +994,13 @@ namespace FMLite.Application
         public int minContractMonths = 0;
         public int maxContractMonths = int.MaxValue;
         public string nameContains = null; // null = 전체
+
+        // Stage F (#472): 세부 stat 임계 — fieldPath("technical.passing") → 최소값. 모든 항목 AND.
+        // StatCatalog 로 값 조회 (실제 수치 기준). Not-Scouted 선수도 필터링되나 표시는 정성적 라벨.
+        public Dictionary<string, int> statThresholds = new();
+
+        // Stage F (#472): 주급 범위 (주당). minWage=0 / maxWage=int.MaxValue = 전체.
+        public int minWage = 0;
+        public int maxWage = int.MaxValue;
     }
 }
