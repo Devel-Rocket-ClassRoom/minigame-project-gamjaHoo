@@ -57,20 +57,57 @@ namespace FMLite.Application
                         continue;
                     }
 
-                    // 유저 클럽 매치는 이벤트 수집 (N.3 MatchTextScene 표시용)
+                    // H.4: 유저 매치는 여기서 시뮬하지 않고 MatchPreviewScene "매치 시작" 시점에
+                    // SimulateUserMatch 로 온디맨드 처리 (경기 직전 점검 게이트). 시드 결정성 유지.
                     bool isUserMatch =
                         match.homeClubId == state.userClubId
                         || match.awayClubId == state.userClubId;
-                    var result = MatchSimulator.Simulate(
-                        match,
-                        state,
-                        balance,
-                        collectEvents: isUserMatch
-                    );
+                    if (isUserMatch)
+                        continue;
+
+                    var result = MatchSimulator.Simulate(match, state, balance, collectEvents: false);
                     MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
                     BoardSystem.ProcessMatchResult(state, balance, match, league);
                 }
             }
+        }
+
+        // H.4: 유저 매치 온디맨드 시뮬 (MatchPreviewScene "매치 시작"). SimulateDay 와 동일 후처리.
+        // 이벤트 수집(collectEvents:true) — MatchTextScene 분 단위 표시용.
+        public static void SimulateUserMatch(Match match, GameState state, GameBalanceSO balance)
+        {
+            if (state == null)
+                throw new ArgumentNullException(nameof(state));
+            if (balance == null)
+                throw new ArgumentNullException(nameof(balance));
+            if (match == null || match.result != null)
+                return; // 이미 시뮬됨 / 없음
+            if (state.GetClub(match.homeClubId) == null || state.GetClub(match.awayClubId) == null)
+            {
+                Debug.LogWarning($"[BackgroundSimulator] user match.id={match.id} 클럽 누락 — 시뮬 스킵");
+                return;
+            }
+
+            var result = MatchSimulator.Simulate(match, state, balance, collectEvents: true);
+            MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
+            var league = FindLeagueOf(state, match);
+            if (league != null)
+                BoardSystem.ProcessMatchResult(state, balance, match, league);
+        }
+
+        private static League FindLeagueOf(GameState state, Match match)
+        {
+            if (state?.leagues == null)
+                return null;
+            foreach (var league in state.leagues)
+            {
+                if (league?.schedule == null)
+                    continue;
+                foreach (var m in league.schedule)
+                    if (ReferenceEquals(m, match))
+                        return league;
+            }
+            return null;
         }
     }
 }

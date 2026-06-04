@@ -49,14 +49,14 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void SideBarScenes_Has10_InExpectedOrder()
+        public void SideBarScenes_Has9_InExpectedOrder()
         {
+            // H.4: 구 TacticScene + LineupScene 버튼 폐기 → TacticLineupScene 통합 (10→9).
             var expected = new[]
             {
                 "DashboardScene",
                 "SquadScene",
-                "TacticScene",
-                "LineupScene",
+                "TacticLineupScene",
                 "TransferScene",
                 "ScheduleScene",
                 "StandingsScene",
@@ -65,6 +65,18 @@ namespace FMLite.Tests
                 "MentoringScene",
             };
             CollectionAssert.AreEqual(expected, GlobalNavController.SideBarScenes);
+        }
+
+        [Test]
+        public void GetMenuIndex_TacticLineup_Returns2_And_DeprecatedScenesMinus1()
+        {
+            Assert.AreEqual(
+                2,
+                GlobalNavController.GetMenuIndex(GlobalNavController.TacticLineupScene)
+            );
+            // 구 분리 씬은 사이드바에서 폐기 → -1
+            Assert.AreEqual(-1, GlobalNavController.GetMenuIndex("TacticScene"));
+            Assert.AreEqual(-1, GlobalNavController.GetMenuIndex("LineupScene"));
         }
 
         [Test]

@@ -220,6 +220,67 @@ namespace FMLite.Tests
                 Assert.IsNotNull(m.result, $"T5: GameLoop.AdvanceDay 가 match.id={m.id} 처리");
         }
 
+        // ── T7. H.4 — SimulateDay 가 유저 매치 스킵 ──────────────────
+
+        [Test]
+        public void T7_SimulateDay_SkipsUserMatch()
+        {
+            var date = new DateTime(2025, 8, 15);
+            var state = BuildLeague(clubCount: 4, matchDate: date, seed: 42);
+            state.currentDate = date;
+            state.userClubId = 1; // club1 = match1 홈팀
+
+            BackgroundSimulator.SimulateDay(state, _balance);
+
+            var league = state.leagues[0];
+            var userMatch = league.schedule.First(m =>
+                m.homeClubId == 1 || m.awayClubId == 1
+            );
+            Assert.IsNull(userMatch.result, "T7: 유저 매치는 SimulateDay 에서 미시뮬");
+
+            foreach (
+                var m in league.schedule.Where(m =>
+                    m.date.Date == date && m.homeClubId != 1 && m.awayClubId != 1
+                )
+            )
+                Assert.IsNotNull(m.result, $"T7: 비유저 매치 id={m.id} 는 시뮬됨");
+        }
+
+        // ── T8. H.4 — SimulateUserMatch 온디맨드 시뮬 + 후처리 ────────
+
+        [Test]
+        public void T8_SimulateUserMatch_FillsResultEventsAndStandings()
+        {
+            var date = new DateTime(2025, 8, 15);
+            var state = BuildLeague(clubCount: 4, matchDate: date, seed: 42);
+            state.currentDate = date;
+            state.userClubId = 1;
+
+            BackgroundSimulator.SimulateDay(state, _balance); // 유저 매치 스킵
+            var league = state.leagues[0];
+            var userMatch = league.schedule.First(m =>
+                m.homeClubId == 1 || m.awayClubId == 1
+            );
+            Assert.IsNull(userMatch.result, "T8 사전: 유저 매치 미시뮬");
+
+            BackgroundSimulator.SimulateUserMatch(userMatch, state, _balance);
+
+            Assert.IsNotNull(userMatch.result, "T8: SimulateUserMatch 가 result 채움");
+            Assert.GreaterOrEqual(
+                userMatch.result.playerStats.Count,
+                22,
+                "T8: playerStats 수집 (후처리)"
+            );
+            Assert.Greater(
+                userMatch.result.events.Count,
+                0,
+                "T8: collectEvents=true → 분 단위 이벤트 수집"
+            );
+
+            var entry = league.standings.entries.First(e => e.clubId == 1);
+            Assert.AreEqual(1, entry.played, "T8: 유저 클럽 standings played=1 갱신");
+        }
+
         // ── Helpers ───────────────────────────────────────────────────
 
         // N팀 리그, 모든 매치 date 동일 (단일 라운드 시나리오용 단순화).
