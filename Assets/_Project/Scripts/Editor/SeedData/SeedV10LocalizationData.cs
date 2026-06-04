@@ -99,6 +99,9 @@ namespace FMLite.Editor
                 E("dashboard_form_fmt", "상대 폼 {0}", "Form: {0}"),
                 E("dashboard_last_result_fmt", "직전 결과 {0}", "Last: {0}"),
                 E("dashboard_h2h_fmt", "전적 {0}", "H2H: {0}"),
+                E("dashboard_no_record", "기록 없음", "No record"),
+                E("dashboard_morale_warning_fmt", "불만 {0}", "Unhappy: {0}"),
+                E("dashboard_injury_fmt", "부상·결장 {0}", "Out: {0}"),
             };
 
         // GlobalNav 라벨 (#463) — 사이드바 10 + 탑바 5. SideBar 키는 GlobalNavController.SideBarScenes 순서.

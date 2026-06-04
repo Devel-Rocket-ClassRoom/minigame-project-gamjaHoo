@@ -1558,3 +1558,12 @@ MonoBehaviour:
   - key: dashboard_h2h_fmt
     korean: "\uC804\uC801 {0}"
     english: 'H2H: {0}'
+  - key: dashboard_no_record
+    korean: "\uAE30\uB85D \uC5C6\uC74C"
+    english: No record
+  - key: dashboard_morale_warning_fmt
+    korean: "\uBD88\uB9CC {0}"
+    english: 'Unhappy: {0}'
+  - key: dashboard_injury_fmt
+    korean: "\uBD80\uC0C1\xB7\uACB0\uC7A5 {0}"
+    english: 'Out: {0}'

@@ -455,26 +455,36 @@ namespace FMLite.UI
         {
             if (nextMatch == null)
             {
-                if (opponentFormText != null) opponentFormText.text = "";
-                if (lastResultText != null) lastResultText.text = "";
-                if (h2hText != null) h2hText.text = "";
+                // 다음 매치 없음 — 빈 텍스트로 두지 않고 행 자체를 접는다 (레이아웃 빈 줄 방지)
+                if (opponentFormText != null) opponentFormText.gameObject.SetActive(false);
+                if (lastResultText != null) lastResultText.gameObject.SetActive(false);
+                if (h2hText != null) h2hText.gameObject.SetActive(false);
                 return;
             }
             bool isHome = nextMatch.homeClubId == state.userClubId;
             int opponentId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
 
             if (opponentFormText != null)
+            {
+                opponentFormText.gameObject.SetActive(true);
                 opponentFormText.text = Localization.Get(
                     "dashboard_form_fmt",
                     OpponentForm(state, opponentId)
                 );
+            }
             if (lastResultText != null)
+            {
+                lastResultText.gameObject.SetActive(true);
                 lastResultText.text = Localization.Get(
                     "dashboard_last_result_fmt",
                     LastResultVs(state, opponentId)
                 );
+            }
             if (h2hText != null)
+            {
+                h2hText.gameObject.SetActive(true);
                 h2hText.text = Localization.Get("dashboard_h2h_fmt", H2HRecord(state, opponentId));
+            }
         }
 
         private static string OpponentForm(GameState state, int opponentId)
@@ -566,8 +576,8 @@ namespace FMLite.UI
             var userClub = state.GetClub(state.userClubId);
             if (userClub == null)
             {
-                if (moraleWarningText != null) moraleWarningText.text = "";
-                if (injuryText != null) injuryText.text = "";
+                if (moraleWarningText != null) moraleWarningText.gameObject.SetActive(false);
+                if (injuryText != null) injuryText.gameObject.SetActive(false);
                 return;
             }
 
@@ -590,14 +600,26 @@ namespace FMLite.UI
             }
 
             if (moraleWarningText != null)
-                moraleWarningText.text = unhappy.Count > 0
-                    ? Localization.Get("dashboard_morale_warning_fmt", FormatNameList(unhappy))
-                    : "";
+            {
+                bool has = unhappy.Count > 0;
+                moraleWarningText.gameObject.SetActive(has);
+                if (has)
+                    moraleWarningText.text = Localization.Get(
+                        "dashboard_morale_warning_fmt",
+                        FormatNameList(unhappy)
+                    );
+            }
 
             if (injuryText != null)
-                injuryText.text = unavailable.Count > 0
-                    ? Localization.Get("dashboard_injury_fmt", FormatNameList(unavailable))
-                    : "";
+            {
+                bool has = unavailable.Count > 0;
+                injuryText.gameObject.SetActive(has);
+                if (has)
+                    injuryText.text = Localization.Get(
+                        "dashboard_injury_fmt",
+                        FormatNameList(unavailable)
+                    );
+            }
         }
 
         private static string FormatNameList(List<string> names) =>
