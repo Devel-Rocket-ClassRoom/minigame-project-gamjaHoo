@@ -23,9 +23,7 @@ namespace FMLite.UI
         // ── 씬 이름 상수 ─────────────────────────────────────────────
         public const string DashboardScene = "DashboardScene";
         public const string SquadScene = "SquadScene";
-        public const string TacticScene = "TacticScene"; // deprecated — TacticLineupScene 으로 통합 (H.1/H.4)
-        public const string LineupScene = "LineupScene"; // deprecated
-        public const string TacticLineupScene = "TacticLineupScene"; // 전술/라인업 통합 (H.1)
+        public const string TacticLineupScene = "TacticLineupScene"; // 전술/라인업 통합 (H.1, 구 TacticScene/LineupScene 폐기)
         public const string TransferScene = "TransferScene";
         public const string ScheduleScene = "ScheduleScene";
         public const string StandingsScene = "StandingsScene";
