@@ -39,6 +39,10 @@
 - **PR 본문에 `Closes #N` 반드시 명시** — 없으면 머지 후 이슈가 자동 close 안 됨. 수동 close + 보드 메타데이터 처리 필요.
 - **커밋 메시지에 `Co-authored-by: Claude ...` 트레일러 추가 금지**. 사용자가 명시적으로 요청 안 했음.
 - **PR 본문에 "🤖 Generated with Claude Code" 같은 footer 금지** (위와 같은 이유).
+- **⚠️ 머지/close 직후 보드 메타데이터 — 즉흥 금지, `github-workflow.md` §2 cheatsheet 그대로 복붙**. 매번 헤매는 지점. 보드 작업 _시작 전_ 에 §2 (또는 메모리 `feedback_issue_close_workflow.md`) 를 **먼저 읽어라**.
+  - **Start / Target date = Issue field** → `gh api graphql ... updateIssueFieldValue` + `issueField.fieldId = "IFD_..."` (Start `IFD_kgDOAk3m_w` / Target `IFD_kgDOAk3nAA`). **`gh project item-edit --date` 와 `PVTF_...` ID 는 거부됨** ("Issue field values cannot be updated...", "Issue field with id ... not found") — 둘 다 쓰지 마라.
+  - **Iteration = Project field** → `updateProjectV2ItemFieldValue` + `fieldId="PVTIF_lADODykJwc4BYAHmzhTWM5Q"` + `value:{iterationId}` (보드 item ID 필요). (Iteration 은 `updateIssueFieldValue` 입력에 값 옵션이 없어 불가.)
+  - **Status=Done 은 `Closes #N` 머지 자동화로 이미 설정됨** — 수동 처리 불필요 (확인만).
 
 ### Unity 환경
 
