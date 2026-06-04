@@ -2352,6 +2352,141 @@ public class StatSnapshot {
 
 ---
 
+## 72. 슈퍼유망주 — 효과 없는 동적 파생 라벨 (V1.0 플레이테스트)
+
+**결정:** `슈퍼유망주`(trait id=14) 를 **랜덤 부여 + 영구 보유 + 성장/시장가 효과** 에서 **나이·CA 기반 동적 파생 라벨 (효과 없음)** 으로 전환.
+
+- 부여 조건: `age ≤ superProspectMaxAge(21) && currentAbility ≥ superProspectMinCA(110)`.
+- **매월 재평가** (`GrowthSystem.Tick`): 조건 충족 & 미보유 → 부여 / 조건 실패(22세 도달 또는 CA 미달) & 보유 → **회수**.
+- **효과 제거**: 기존 `GrowthRateModifier 1.5 + MarketValueModifier 1.2` → 빈 effects. 순수 표시 라벨.
+- `PlayerGenerator` 랜덤 trait 풀에서 id=14 **제외** (생성 시 무작위 부여 X).
+
+**이유:**
+- 노장에게 "슈퍼유망주" 가 붙던 버그 = 나이 무관 랜덤 부여 + 회수 로직 부재.
+- "잠재 라벨" 과 "성장 가속" 을 한 trait 에 이중으로 묶었던 것을 분리 — 성장 가속은 늦깎이형 / PA 곡선이 담당. 라벨은 관찰 가능 사실(어린 나이 + 높은 CA)에서 파생되므로 가시성도 자연(#73 의 CA 가시성 따름).
+- 수치 외부화(#11): `superProspectMinCA` / `superProspectMaxAge` = `GameBalanceSO` (int 라 epsilon 불필요).
+
+**영향 범위:** `GrowthSystem.Tick` (슈퍼유망주 재평가 단계) / `PlayerGenerator.SelectTraits` (풀 제외) / `GameBalanceSO` 신규 2필드 / `SeedV10Data.GenerateTraitsV10` id=14 effects 비움 (에셋 chore) / `algorithms.md` V1.0-11 보강.
+
+**확인 (사용자, 2026-06-05):** CA≥110 & 21세 이하, 매월 재평가·회수, 효과 없음.
+
+### V1.x 보완 포인트
+- 나이별 차등 임계 (17세 95 / 21세 115 등) — 현재 절대 110.
+- 라벨 단계 확장 (fringe prospect / breakthrough 등).
+
+---
+
+## 73. Trait 가시성 3-tier + trait 검색 폐지 (V1.0 플레이테스트)
+
+**결정:** `TraitSO` 에 `visibility` enum 신규 — `Concealed` / `Public` / `ScoutGated`. trait 기반 검색은 폐지.
+
+| Tier | 노출 | trait |
+|---|---|---|
+| **Concealed** (영구 비노출, 내부 메커닉) | 자기팀 포함 어떤 화면에도 X | 1 늦깎이형, 2 조숙형 |
+| **Public** (항상) | 스카우팅 무관 표시 | 6 만능형, 8 무리한패스, 9 와이드플레이어, 15 멀티포지션, 16 골결정력, 17 수비형윙백, 19 페널티스페셜리스트, 20 프리킥마이스터 |
+| **ScoutGated** | 자기팀/완전정찰 표시, 미정찰 가려짐 | 3 부상취약, 4 멘탈강자, 5 빅매치형, 7 클러치형, 10 자국인우대, 11 유리몸, 12 철인, 13 멘탈약자, 18 정신적리더 |
+
+- 14 슈퍼유망주 = CA 파생 라벨 → CA 가시성을 따름(#72).
+- **스카우팅 공개 규칙**: `ScoutingSystem` 이 `ScoutReport.revealedTraitIds`(기존 미사용 필드) 를 `scoutLevel`(0~100) 비례로 채움 — 공개 수 `n = round(scoutLevel/100 × 해당선수 ScoutGated trait 수)`, 결정적 순서. 자기팀 = scoutLevel 100 → 전부. 미정찰 = 0 + "추가 정찰 필요" 표시(정확 보유 수 비노출 — 정보 누설 방지).
+- **검색 폐지**: `TransferController` trait 드롭다운 + `TransferSystem.SearchPlayers` `filter.traitId` 제거.
+
+**이유:** 트레잇 검색 = 스카우팅 시스템 무력화(사기). 늦깎이/조숙형 등 성장 궤적·잠재는 "신이 아닌 이상 알 수 없음" → Concealed. 멘탈/부상 성향은 조사·시간으로 알게 됨 → ScoutGated. 기록/플레이 스타일은 공개 관찰 가능 → Public.
+
+**영향 범위:** `TraitSO.visibility` 신규 enum 필드 / `ScoutingSystem` revealedTraitIds 채우기 / `PlayerProfileController.BuildTraitsText` (Concealed 제외 + 비자기팀 revealedTraitIds 만) / `TransferController`·`TransferSystem` trait 검색 제거 / `SeedV10Data` visibility 세팅 (에셋 chore) / `algorithms.md` V1.0-15 신규 / Localization "미정찰" 키.
+
+**확인 (사용자, 2026-06-05):** 3-tier 분류 + scoutLevel 비례 공개 + 검색 폐지.
+
+### V1.x 보완 포인트
+- 부분 정찰 시 "대략적 표현"(예: "압박에 강할 수도") — 현재 공개/비공개 이분.
+- 스카우트 staff 별 정찰 정확도 차등.
+
+---
+
+## 74. 구단 재정 밸런싱 — 주급 차감 + 수입/임금 비율 정상화 + 시설비 상향 (V1.0 플레이테스트)
+
+**결정:** "자금이 너무 넉넉" 의 근본 = **상시 유출(주급) 부재 + 수입이 임금 대비 과소**. 단순 가격 상향이 아니라 현금흐름 정상화로 해결.
+
+- **(1) 주급 월 차감 신설**: `Day==1` (DailyProcessor 훅) 에 `Σ(스쿼드 주급) × (52/12)` 를 `finance.money` 에서 차감. 대상 = 전 구단(isActiveSimulation).
+- **(2) 수입 재스케일 + 분산**: 목표 *전형적 구단 연 매출 ≈ 연 임금 ÷ 0.63* (≈임금×1.6 — EPL 임금/매출 63% 앵커). TV 수입 대폭 상향, matchday 는 홈경기마다/월별 분산, 상금 시즌말.
+- **(3) 시설비 상향**: 목표 *전 시설 풀업 ≈ 한 시즌 이적예산급* 부담 (현재 자금의 0.2~1% → 의미 있는 %). `FacilityLevelSO` 비용 곡선 재산정.
+- **(4) 시작 자금**: rep 차등 유지(= 구단마다 다름, 정상 동작), 절대액은 측정 후 결정.
+- **(5) 측정 하네스**: 시즌 1회 완주 후 구단별 순현금흐름 측정. 합격 기준 = *중위 구단 시즌당 본전±(성적 따라 흑/적자), 돈으로 전원 영입 불가*. 사용자 Test Runner 1~2회 미세조정 (G.5 패턴).
+
+**이유:** 주급이 어디서도 안 빠지고(유출 0) 수입만 누적 → 자금 영구 증가. 현실 EPL 은 매출 > 임금(임금 63%) 이나 우리는 수입(rep50 ≈ 연 4.3M) ≪ 임금(≈ 연 32.5M) 으로 비율 역전. 시설비만 올려도 시작자금이 커서 무의미 → 유출 신설이 본질. 수치 외부화(#11) + float 비교 epsilon.
+
+**영향 범위:** `WageSystem`(또는 FinanceSystem 월처리) 신규 / DailyProcessor Day==1 훅 / `FinanceSystem` 수입 재스케일+분산 / `FacilityLevelSO` 비용 곡선 / `GameBalanceSO` 재정 필드 재산정 / `GameBalance.asset`+Facility 에셋 reseed (chore) / `algorithms.md` V1.0-16 신규 + 측정 하네스 / `MatchPostProcessor`(matchday 분산 시).
+
+**확인 (사용자, 2026-06-05):** 유출 신설+비율 정상화 방향 / 주급 월차감·전 구단 / AI=ratio·명성은 선수수락에만(#75) / 측정 기준 동의.
+
+### V1.x 보완 포인트
+- 부채/이자, 스폰서·중계권 협상, 인플레이션(시즌별 시장가↑), 운영비(스태프·시설 유지비) 세분.
+
+---
+
+## 75. 이적 시장 현실성 — 선수 개인협상에 영입구단 명성 격차 반영 (V1.0 플레이테스트)
+
+**결정:** 구단(`AiRespondToOffer`)은 이적료 ratio 로만 움직이되(현행 유지), **선수 개인협상 수락(`ComputePlayerAcceptChance`)에 영입 구단 명성 격차 항 추가**.
+
+- `playerExpectedRep` = CA → 명성 스케일 매핑(외부화). `gap = playerExpectedRep − buyingClub.reputation`.
+- `acceptChance −= clamp(gap × repGapWeight × (ambition/50), 0, repGapMaxPenalty)` — 야망 높을수록 까다로움.
+- **임금 보상 가능**: 기존 wageRatio 항이 높으면 상쇄 → 약체도 고임금이면 영입 가능("엄청난 요구").
+
+**이유:** 현재 구단·선수 평가 둘 다 영입구단 명성 미반영 → "명성 낮은 팀도 돈만 주면 선수가 옴". FM 정합 — 선수는 구단 명성/야망 수준이 자기 기대에 못 미치면 거절, 단 임금으로 보상 가능. "구단=돈, 선수=명성도" 분리는 사용자 지시. 부동소수점 epsilon(#11).
+
+**영향 범위:** `TransferSystem.ComputePlayerAcceptChance`(명성격차 항) / `GameBalanceSO` `repGapWeight`/`repGapMaxPenalty`/CA→rep 매핑 계수 / `algorithms.md` 3.1 Transfer Flow(또는 V1.0-16) / `EstimatePlayerAcceptChance` 미리보기 정합.
+
+**확인 (사용자, 2026-06-05):** 동의 (방향 + 구단/선수 분리).
+
+### V1.x 보완 포인트
+- 스쿼드 평균 CA(선수단 수준) 직접 반영 — 현재 club.reputation 근사.
+- 유럽대항전 출전 / 감독 명성 / 라이벌 관계 등 추가 변수.
+
+---
+
+## 76. 인박스 대확장 — League 카테고리 신규 + 핵심 신규 이벤트 (V1.0 플레이테스트)
+
+**결정:** 인박스가 한산 → FM 식 자잘한 상시 알림 확충. **핵심 범위만 V1.0** (정찰리포트/마일스톤/출전정지/경기결과요약은 후속).
+
+- **`InboxCategory.League` 신규** (enum **끝에 append** — 직렬화 int 시프트 회피). 순위 변동/역전을 여기로.
+- **Tier 1 (이벤트 존재, 라우팅만)**: 부상발생(`PlayerInjuredEvent` → Match), 월간/시즌 시상(SeasonAwardSystem → Award 카테고리 — #66 V1.x 노트의 Award 라우팅을 V1.0 로 당김), 유스 성장(`PlayerStatChangedEvent` → Youth).
+- **Tier 2 핵심 (신규 이벤트)**: 선수 불만(`PlayerUnhappyEvent`/Morale), 피로 누적(`PlayerFatiguedEvent`/Morale), 순위 변동(`StandingsChangedEvent`/League), 부상 복귀(`PlayerRecoveredEvent`/Match), 계약 만료 임박(`ContractExpiringEvent`/Transfer).
+- 정책: 전부 `deadline=null`, 대부분 `priority=Low`, Q1(기한만료 무효)·Q2(시즌종료 시 읽은 것 삭제) 유지. 카테고리 탭+우선순위 정렬(Stage B)로 폭주해도 중요 알림 안 묻힘.
+
+**이유:** `InboxRouter` 가 10 이벤트만 구독 → 한산. 사용자: "FM 처럼 자잘하게 많이". 비용 차 커서 Tier 분리(라우팅만 vs 신규 이벤트), V1.0 은 핵심만.
+
+**영향 범위:** `InboxCategory` enum +League / `InboxRouter` 구독 확장 / 신규 이벤트 5종 `event-bus-catalog.md` 등재 + 발화 지점(DailyProcessor/MatchPostProcessor/월처리) / Localization 신규 키 / `design-decisions #66` 확장.
+
+**확인 (사용자, 2026-06-05):** League 카테고리 신규(Match 아님) / 핵심만.
+
+### V1.x 보완 포인트
+- 정찰 리포트(다음 상대 분석), 마일스톤(연승/무패/연속 클린시트), 출전정지, 경기결과 요약, 훈련 결과 알림.
+
+---
+
+## 77. V1.0 플레이테스트 UX 보강 묶음 — 네비/프로필 액션/단축키/보드 보상/squad/리더보드/폴리싱
+
+**결정:** 플레이 직결 잔여 항목 일괄 (각 subsection 은 독립 작업이나 한 묶음으로 추적).
+
+- **(77-1) 글로벌 선수명 링크 + 프로필 가시성 게이팅**: 모든 씬의 선수 이름 클릭 → 그 선수 PlayerProfile (드롭다운/필터 내 이름 제외). `PlayerNameLinkController`(V0.5 인프라, 미배선) 를 이름 표시 지점에 일괄 부착. `PlayerProfileController` 에 **자기팀/타팀 분기 + 스카우팅 가시성 게이팅(#73)** + PreviousScene 복귀.
+- **(77-2) 프로필 액션 버튼**: 자기팀 선수 = [재계약](→ `TransferSystem.RenewContract` 모달 — 로직 기구현). **[콜업]은 유스 선수에게만** 노출(→ `YouthSystem.PromotePlayer`). 둘 다 "선수 정보창" 진입 후 버튼.
+- **(77-3) 전역 단축키**: `GlobalNavController`(씬별 인스턴스)에 **Esc=뒤로 / Ctrl+S=저장**(컨텐츠 씬), **Space=Continue**(Dashboard 한정). 매치씬 1/2/3/4 유지. Options 단축키 안내(X.6)와 일치.
+- **(77-4) 보드 약속 이행 보상**: `BoardSystem` 이행 경로에 `boardConfidence += boardPromiseFulfillReward` + **managerReputation 가산**(둘 다, 외부화). 현재 거절 페널티만 존재.
+- **(77-5) WB/AM squad 생성**: 기존 `FormationConfig` 구조 보존하며 **WB/AM 을 1급 슬롯으로 편입**(GK/CB/LB/RB 패턴 동일) + Formation 에셋 재생성. 현재 randomSlots 운에만 의존하던 결함 해소. (#71 라인업 선정과 별개 — 이건 ClubGenerator 스쿼드 구성.)
+- **(77-6) 리그 개인 리더보드**: `SeasonAwardSystem.BuildLeagueStats` 를 시즌중 조회 public 쿼리로 일반화(득점/도움/평점 + GK 클린시트 + 출전). StandingsScene 탭/섹션(자국 선수 강조). SeasonSummary 폴리싱도 사용.
+- **(77-7) 씬 폴리싱**: Dashboard/MainMenu/ClubSelect/Gacha/SeasonSummary MUIP 폴리싱 + SeasonSummary 정보 보강. MUIP 함정(ButtonManager 텍스트 리셋 / CustomDropdown→TMP_Dropdown / UIManagerInputField 제거) 회피. **항목 3 UIManagerInputField NRE 동일 원인 핫픽스 포함.**
+
+**이유:** 전부 V0.5/V1.0 의 미배선·갭·플레이 직결 폴리싱. 콜업/재계약은 로직 기구현 → UI 배선만. 단축키는 안내만 있고 미구현. 보드 이행 보상 부재. WB/AM 분배표 누락. 리더보드 = 재미 요소(데이터 기존).
+
+**영향 범위:** `PlayerNameLinkController` 배선 / `PlayerProfileController`(분기·게이팅·버튼) / `GlobalNavController`(단축키) / `BoardSystem`(보상)+`GameBalanceSO` / `ClubGenerator`+`FormationConfig`+Formation 에셋 / `LeaderboardSystem` 쿼리+StandingsScene / 5씬 폴리싱 / `data-flows.md`(네비/단축키) / `v1.0-tasks.md` Stage R·S.
+
+**확인 (사용자, 2026-06-05):** 안A(구조보존 WB/AM) / 리더보드 5종 / 보드 보상=confidence+reputation / 단축키 매핑 / 콜업=유스한정·재계약=프로필 정보창 / 폴리싱 핵심.
+
+### V1.x 보완 포인트
+- 선수명 링크에 호버 미니카드(즉시 요약) — 현재 클릭 진입.
+- 단축키 사용자 매핑(Options) / 마일스톤·정찰리포트 알림.
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2384,3 +2519,4 @@ public class StatSnapshot {
 | 2026-06-04 | #71 추가 | #474 후속 (Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합+노이즈. `StartingEleven_*` 기존 실패 2건 근본원인 = 포지션 무시 폴백. PR1 에선 명세만 + 테스트 [Ignore]. `algorithms.md` V1.0-14. |
 | 2026-06-04 | #70 추가 | Stage G (#474) — 매치 엔진 xG 찬스-퀄리티 레이어 + 평점 재설계. (1) G.5 재밸런싱 = 블런트 4-파라미터 튜닝 폐기 → chanceType(ClearChance/OpenPlay/Header/LongShot/DirectFreeKick)별 baseXG, 기록 xG=찬스품질, 골=xG×finishMod×gkMod. E[goals]≈ΣxG 로 2.7 직접 산정. (2) 평점 전면 재설계 (FM 리서치 정합) — 포지션이 평점을 만든다: 패스성공률 티어/수비액션·클리어 가치↑/DF 무실점·실점 공유/xG 보정(clinical +/빅찬스 미스 −, 사용자 #74 요청)/goalBonus 1.0→0.8. (3) G.2 신체영향(헤더·agility·pace·발일치) xG 통합 (4) G.1 이벤트(Offside/ThrowIn/KeeperPunch/LongShot). 신규 통계 xg/bigChancesMissed/clearances + MatchResult.shotMap/zoneOccupancy(AA.1/AA.2 선당김). `algorithms.md` V1.0-1 재작성. 5-Zone 구조·인터페이스·결정성 유지. |
 | 2026-06-03 | #69 추가 | Stage F 선행 (#469) — 이적 흐름 FM 2단계 재구성. (1) 이적료 협상(역제안): `AiRespondToOffer` 의 `ratio≥1.30` 위장 CounterOffer → `Negotiating`(구단 합의). (2) 선수 개인협상: `Negotiating` 단계를 실제 인터랙티브 구현 — 신규 `RespondToPersonalTerms`(반복 협상, `maxPersonalNegotiationRounds=4`) + `PlayerNegotiationController`/`PlayerNegotiationScene`(신규). AI 구매 구단은 `AutoResolveAiPersonalTerms` 자동. 오퍼=이적료만(`TransferController`). 오퍼 결과 인박스(Negotiating/Accepted/Rejected) + EventScheduler Negotiating 정지. `offerItemPrefab` 미연결(#4) 수정. 신규 로컬라이즈 키 (`inbox_personal_negotiation_fmt` / `pnego_*` / `inbox_offer_*`) — 시드 갱신 별도 chore. `PersonalTermsResult` enum / `TransferOffer.personalNegotiationRound` 신규. |
+| 2026-06-05 | #72~#77 추가 | V1.0 플레이테스트 피드백 18항목 트리아지 후 결정 (`v1.0-plan` 외 별도 — 코드 조사 5클러스터 + FM 웹 리서치 기반). #72 슈퍼유망주 동적 라벨(효과 X, CA≥110·21세 이하 매월 재평가·회수). #73 Trait 가시성 3-tier(Concealed/Public/ScoutGated)+검색 폐지(스카우팅 무력화 회피). #74 재정 밸런싱(주급 월차감 신설+수입/임금 63% 비율 정상화+시설비 상향+측정 하네스 — 단순 가격상향 아닌 현금흐름 정상화). #75 명성 기반 선수 수락(구단=ratio 유지, 선수 개인협상에 영입구단 명성격차 항, 임금 보상 가능). #76 인박스 대확장(`InboxCategory.League` append + Tier1 라우팅[부상/시상/유스성장]+Tier2 핵심 신규이벤트[불만/피로/순위변동/부상복귀/계약만료], 핵심만 V1.0). #77 UX 보강 묶음(글로벌 선수명 링크+프로필 가시성 게이팅 / 프로필 액션버튼[재계약 자기팀·콜업 유스한정] / 전역 단축키[Esc·Ctrl+S 컨텐츠씬·Space Dashboard] / 보드 이행 보상[confidence+reputation] / WB·AM squad 1급 슬롯 편입[구조보존] / 리그 리더보드[득점·도움·평점·클린시트·출전] / 5씬 MUIP 폴리싱+항목3 UIManagerInputField NRE 핫픽스). `algorithms.md` V1.0-11/15/16 + 3.1, `event-bus-catalog.md` 신규 이벤트, `v1.0-tasks.md` Stage R/S 와 짝. |

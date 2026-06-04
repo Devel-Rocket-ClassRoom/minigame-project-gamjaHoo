@@ -113,7 +113,7 @@ public class MatchFinishedEvent {
 
 #### PlayerInjuredEvent (V0.5 I.2)
 - **Publisher:** `MatchSimulator` (분 단위 step 에서 부상 발생 시 즉시 발행)
-- **Subscribers:** UI (알림), SquadView
+- **Subscribers:** UI (알림), SquadView / **InboxRouter → InboxItem(Match/Medium) [V1.0 #76 Tier1 — 라우팅만 추가]**
 - **Payload:** 선수 ID, 부상 정보
 - **Trigger:** 매치 분 단위 시뮬레이션 중 `injuryBaseRate × ComputeInjuryRate × injuryProneness/50` 확률 충족
 
@@ -126,7 +126,7 @@ public class PlayerInjuredEvent {
 
 #### PlayerInjuryRecoveredEvent (V0.5 D.4)
 - **Publisher:** `InjurySystem.ProcessRecovery` (DailyProcessor 호출)
-- **Subscribers:** UI (인박스 알림), SquadView (출전 가능 상태 갱신)
+- **Subscribers:** **InboxRouter → InboxItem(Match/Low, 부상 복귀) [V1.0 #76 Tier1 — 라우팅만 추가]** / SquadView (출전 가능 상태 갱신)
 - **Payload:** 선수 ID
 - **Trigger:** `expectedReturn` 도래 → 부상 sentinel 리셋
 
@@ -138,7 +138,7 @@ public class PlayerInjuryRecoveredEvent {
 
 #### PlayerStatChangedEvent (V0.5 D.4)
 - **Publisher:** `GrowthSystem.Tick` (매월 1일)
-- **Subscribers:** UI (선수 프로필 알림 — V1.0 인박스 / 토스트)
+- **Subscribers:** **InboxRouter → InboxItem(Youth/Low, 유스 성장 추세 — 유스 선수 한정) [V1.0 #76 Tier1 — 라우팅만 추가]** / UI (선수 프로필 토스트)
 - **Payload:** 선수 ID, stat 이름, 이전 값, 새 값
 - **Trigger:** Growth/Decline 발생 중 **size ≥ 2** (큰 점프만 발행 — `+1` 노이즈 회피)
 
@@ -435,6 +435,66 @@ public class FacilityUpgradeCompletedEvent {
 
 ---
 
+## V1.0 플레이테스트 인박스 확장 이벤트 (`#76` / Stage R)
+
+> 인박스 확충(FM 식 자잘한 상시 알림). **`InboxCategory.League` 신규** — enum **끝에 append** (직렬화 int 시프트 회피). **Tier1** = 기존 이벤트 라우팅만(위 `PlayerInjuredEvent` / `PlayerInjuryRecoveredEvent` / `PlayerStatChangedEvent` + `SeasonAwardSystem` 월간·시즌 시상 → **Award 카테고리**, #66 V1.x 노트의 Award 라우팅을 V1.0 로 당김). **Tier2 핵심** = 아래 신규 이벤트 4종. 전부 `deadline=null`, 대부분 `priority=Low` (Q1 기한만료 무효 / Q2 시즌종료 시 읽은 것 삭제). 정찰리포트·마일스톤·출전정지·경기결과요약은 **후속**.
+
+#### PlayerUnhappyEvent (V1.0 #76, Morale)
+- **Publisher:** `MoraleSystem` (happiness 임계 하락 시)
+- **Subscribers:** InboxRouter → InboxItem(Morale/Medium)
+- **Payload:** playerId, reason(키), happiness
+- **Trigger:** `player happiness < unhappyThreshold` (외부화)
+
+```csharp
+public class PlayerUnhappyEvent {
+    public int playerId;
+    public string reasonKey;
+    public int happiness;
+}
+```
+
+#### PlayerFatiguedEvent (V1.0 #76, Morale)
+- **Publisher:** `DailyProcessor` / `MatchPostProcessor` (fatigue 임계 초과)
+- **Subscribers:** InboxRouter → InboxItem(Morale/Low)
+- **Payload:** playerId, fatigue
+- **Trigger:** `fatigue > fatigueAlertThreshold` (외부화; #54 fatigue>50 경기력↓ 와 정합)
+
+```csharp
+public class PlayerFatiguedEvent {
+    public int playerId;
+    public int fatigue;
+}
+```
+
+#### StandingsChangedEvent (V1.0 #76, League)
+- **Publisher:** `MatchPostProcessor` (매치데이 순위 재계산 후, 유저 구단 순위 변동 시)
+- **Subscribers:** InboxRouter → InboxItem(League/Low)
+- **Payload:** clubId, oldPosition, newPosition
+- **Trigger:** 유저 구단 리그 순위 변동 (역전 등). 빈번 발행 회피 위해 유저 구단 한정 + 실제 변동 시만.
+
+```csharp
+public class StandingsChangedEvent {
+    public int clubId;
+    public int oldPosition;
+    public int newPosition;
+}
+```
+
+#### ContractExpiringEvent (V1.0 #76, Transfer)
+- **Publisher:** `DailyProcessor` Day==1 (자기 구단 계약 만료 임박 스캔)
+- **Subscribers:** InboxRouter → InboxItem(Transfer/Medium)
+- **Payload:** playerId, monthsRemaining
+- **Trigger:** 자기 구단 선수 계약 잔여 ≤ `contractExpiryAlertMonths`(6, 외부화). 선수당 1회만(중복 발행 가드).
+
+```csharp
+public class ContractExpiringEvent {
+    public int playerId;
+    public int monthsRemaining;
+}
+```
+
+---
+
 ## V0.5+ Events (Future)
 
 V0.5 작업 시 추가될 이벤트들:
@@ -553,3 +613,4 @@ public class PlayerUpdatedEvent {
 | 2026-05-27 | V0.5 I.2 — PlayerInjuredEvent 본격 도입. MatchSimulator 분 단위 step 에서 부상 발생 시 즉시 발행. 기존 "V0.5+ MatchPostProcessor" placeholder → MatchSimulator 발행으로 정정 (구조적으로 분 단위 이벤트 발생 위치가 자연). MatchEvents.cs 에 코드 추가 (이전엔 catalog 만 있고 코드 없었음). |
 | 2026-05-27 | Stage I 5-zone Markov 재설계 (이슈 #319 Sub-A) — Future 섹션에 CupRoundCompletedEvent / CupWonEvent (Stage Q.3) 추가. MatchEvent (Match.events 내부 로그, ≠ EventBus) 와 EventBus 이벤트 구분 노트 추가 — 5-zone type enum 확장 (Corner/FreeKick/Penalty*/Dribble/Clearance 등) 은 MatchEvents.cs 코드 (Sub-B), collectEvents 플래그 분기. |
 | 2026-05-31 | Task A.1 Sub-A — YouthPromotionSuggestedEvent 누락 항목 추가 (Youth Events 섹션). YouthIntakeAvailableEvent subscriber 갱신 — V0.5 GameManager 정지 신호 제거 / V1.0 InboxRouter 흡수 (#66 Q3). ContractRenewedEvent / ContractRenewalRejectedEvent subscriber 갱신 — "V1.0 현재 없음" → InboxRouter(Transfer/Low|High). |
+| 2026-06-05 | V1.0 인박스 대확장 (#76 / Stage R). **Tier1 라우팅 추가** — `PlayerInjuredEvent`(Match/Medium) / `PlayerInjuryRecoveredEvent`(Match/Low, 부상복귀) / `PlayerStatChangedEvent`(Youth/Low, 유스 성장 추세 한정) subscriber 에 InboxRouter 명시 + SeasonAwardSystem 월간·시즌 시상 → Award 카테고리(V1.0 당김). **Tier2 신규 이벤트 4종** — `PlayerUnhappyEvent`(Morale) / `PlayerFatiguedEvent`(Morale) / `StandingsChangedEvent`(League) / `ContractExpiringEvent`(Transfer). `InboxCategory.League` enum 끝 append. 정책 deadline=null·Low·Q1/Q2 유지. 정찰리포트/마일스톤/출전정지/경기결과요약은 후속. design-decisions #76 연동. |
