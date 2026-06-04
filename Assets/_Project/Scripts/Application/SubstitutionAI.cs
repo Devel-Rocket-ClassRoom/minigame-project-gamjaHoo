@@ -199,6 +199,9 @@ namespace FMLite.Application
             {
                 string pOutName = PlayerName(ctx.state, playerOutId);
                 string pInName = PlayerName(ctx.state, playerInId);
+                // V1.0-2 G.6 — 교체 텍스트 변형 (sub 4종, 시드 결정성).
+                int subVariant =
+                    ((ctx.state.randomSeed ^ ctx.currentMinute ^ playerOutId) & 0x7fffffff) % 4 + 1;
                 ctx.events.Add(
                     new MatchEvent
                     {
@@ -207,7 +210,7 @@ namespace FMLite.Application
                         side = ctx.isHome ? 0 : 1,
                         actorPlayerId = playerInId,
                         targetPlayerId = playerOutId,
-                        textKey = "match_substitution_fmt",
+                        textKey = "match_event_sub_" + subVariant,
                         textArgs = new System.Collections.Generic.Dictionary<string, string>
                         {
                             ["minute"] = ctx.currentMinute.ToString(),

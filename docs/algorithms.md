@@ -4173,6 +4173,12 @@ return Localization.Get(key, playerName, ...);
 
 → 같은 매치 시드 = 같은 표현 시퀀스 (결정성).
 
+**실제 구현 (#481, G.6):**
+- `MatchSimulator.Vk(family, count)` → `match_event_{family}_{v+1}`, `v = (matchSeed*P1 + eventSeq++*P2) % count`. **matchSeed = match.id ^ randomSeed**, eventSeq = 발화 순번. **gameplay rng 미소비** (점유/슛 결정성 무영향) + 같은 시드 → 같은 변형 시퀀스.
+- 28 패밀리 매핑 (goal·save·keypass 5 / shoton·kickoff·fulltime·fk_direct·sub 4 / yellow·red·foul·corner·throw·offside·shotoff·pk_*·pso·injury_* 3 / 2nd_yellow·et_start 2). SubstitutionAI 도 `match_event_sub_{n}` 변형.
+- **placeholder 어휘 정합**: 변형 텍스트 `{player}`(주체)/`{gk}`(키퍼, save 계열 actor=gk)/`{playerIn}·{playerOut}`(교체). `MakeArgs` 가 `player`/`gk` 별칭 제공.
+- **viewMode 폐기는 Stage J.2 (MatchTextScene UI)** 로 이관.
+
 **이벤트 종류 × 변형 (V1.0 카탈로그):**
 
 | 이벤트 | 변형 수 | KO 키 |
@@ -5136,6 +5142,7 @@ INPUT: club (formationId), state, rng(=match seed 파생)
 | 2026-06-02 | V1.0-12.2/12.3 정정 | Sub-C (#457) 플레이테스트 결정 — (1) 화살표 글리프 ↑↓↗↘ NotoSansKR 미지원 → 부호付 증감값(+2/0/-1)+색. (2) **2×2 그리드 폐지 → FM식 풀-높이 컬럼** (상단 stat 4컬럼 밴드 + 하단 info 스트립), 행 32px/폰트 24 로 가독성 개선. (3) 호버 툴팁 제거 (49행 산만). |
 | 2026-06-02 | V1.0-12 폴리싱 | Sub-C (#457) 종합 폴리싱 — (1) StatRowView 게이지 바 (값/100 fill, 등급색, 행 하단 언더라인 ignoreLayout). (2) 신체 bio(키/몸무게/주발/약발)를 헤더→**신체 컬럼 하단 정보 행**으로 이동 (FM식, `SetupText` + `label_*` 키) → 신체 컬럼 빈공간 해소. (3) 면담 다이얼로그 z-order 맨앞(SetAsLastSibling) — 가림 버그 수정. (4) 패널/버튼 MUIP 라운드 스프라이트. |
 | 2026-06-02 | V1.0-13 신규 | Stage D (#459) — CurrentAbility 재계산 (앵커 + 포지션 관련 평균 RelevantMean). CA 고정 문제 해소, 라운드트립으로 t=0 밸런스 점프 0. + 성장 체감 튜닝: (a) growthBaseChance 0.01→0.06, (c) 출전 기반 성장 보너스 (PlayerState.appearancesAtLastGrowthTick + growthPlaytimeCoeff/Cap). CaCalculator/Player.caAnchor/PlayerGenerator/GrowthSystem/GameBalance 연동. D.1 Squad 검색 제거 동반. |
+| 2026-06-04 | V1.0-2 구현 (#481) | G.6 매치 텍스트 변형 + 시드 선택. `MatchSimulator.Vk`(matchSeed+eventSeq, gameplay rng 미소비) 로 28 패밀리 `match_event_{family}_{n}` 선택. SubstitutionAI sub 변형. MakeArgs `{player}`/`{gk}` 어휘 정합. 변형 텍스트는 A.5 시드. EditMode T28(결정성/형식/다양성). viewMode 폐기는 Stage J.2 이관. Stage G 완료. |
 | 2026-06-04 | V1.0-3/V1.0-9 통합 구현 (#478) | G.3 시너지 + G.4 포메이션 상성 실제 통합. SynergyCondition 확장(List<Position>/minCount/requireSameNationality/stat-AND fieldPath). teamMod = Π(시너지)×매치업, **xG 비율에만 적용**(blanket Eff 폭주·비단조 회피 — 측정 확인). `ResolveShotXg` rng 결정성 수정(outcome 무관 2회 소비). 시드 생성기 `Generate V1.0 Synergy+Matchup`(10+36). MatchPreviewScene 표시는 Stage H 이관. PR1 밸런스 무영향(2.76→2.66). |
 | 2026-06-04 | V1.0-14 신규 | #474 후속 (design-decisions #71, Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합 + lineupNoiseSigma. StartingEleven_* 테스트 [Ignore] (구현 시 재작성). |
 | 2026-06-04 | V1.0-1 전면 재작성 | Stage G (#474, design-decisions #70) — "5-Zone 골 빈도 P0 밸런싱(블런트 튜닝)" → **xG 찬스-퀄리티 레이어 + 평점 재설계**. chanceType별 baseXG / 골=xG×finishMod×gkMod / E[goals]≈ΣxG 직접 산정(2.7). 평점 FM 정합 재설계(포지션 가중·패스성공률·DF 무실점공유·xG 보정 clinical/빅찬스미스, 사용자 #74). G.2 신체영향 통합 + G.1 이벤트(Offside/ThrowIn/KeeperPunch/LongShot). 신규 PlayerMatchStat.xg/bigChancesMissed/clearances + MatchResult.shotMap/zoneOccupancy(AA.1/AA.2 선당김). 5-Zone 구조·인터페이스·결정성 유지. |

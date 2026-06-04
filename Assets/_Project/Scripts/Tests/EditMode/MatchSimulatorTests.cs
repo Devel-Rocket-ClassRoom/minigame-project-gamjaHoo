@@ -398,6 +398,43 @@ namespace FMLite.Tests
                 && (Mathf.Approximately(p.x, 0.84f) || Mathf.Approximately(p.x, 0.90f))
             );
 
+        // ── T28. G.6 매치 텍스트 변형 — 결정성 + 형식 + 다양성 (#481) ────────
+        [Test]
+        public void T28_MatchText_VariantsDeterministicFormatAndVaried()
+        {
+            var (s1, m1) = BuildState(seed: 42, matchId: 7);
+            var (s2, m2) = BuildState(seed: 42, matchId: 7);
+            var r1 = MatchSimulator.Simulate(m1, s1, _balance, collectEvents: true);
+            var r2 = MatchSimulator.Simulate(m2, s2, _balance, collectEvents: true);
+
+            // 결정성: 같은 시드 → 같은 textKey 시퀀스
+            CollectionAssert.AreEqual(
+                r1.events.Select(e => e.textKey).ToList(),
+                r2.events.Select(e => e.textKey).ToList(),
+                "T28: 같은 시드 동일 표현 시퀀스"
+            );
+
+            // 형식: 모든 텍스트 이벤트 = match_event_* 변형 (구 _fmt 잔존 X)
+            foreach (var e in r1.events)
+                Assert.IsTrue(
+                    string.IsNullOrEmpty(e.textKey) || e.textKey.StartsWith("match_event_"),
+                    $"T28: 변형 키 형식 위반 ({e.textKey})"
+                );
+
+            // 다양성: 여러 매치에서 goal 변형이 2종 이상
+            var goalVariants = new HashSet<string>();
+            var sg = new System.Random(7);
+            for (int i = 0; i < 60; i++)
+            {
+                var (s, m) = BuildState(seed: sg.Next(), matchId: i + 1);
+                var r = MatchSimulator.Simulate(m, s, _balance, collectEvents: true);
+                foreach (var e in r.events)
+                    if (e.textKey != null && e.textKey.StartsWith("match_event_goal_"))
+                        goalVariants.Add(e.textKey);
+            }
+            Assert.GreaterOrEqual(goalVariants.Count, 2, "T28: 골 텍스트 변형 다양성 (≥2종)");
+        }
+
         // ── T4. 점유율 ───────────────────────────────────────────────
 
         [Test]
