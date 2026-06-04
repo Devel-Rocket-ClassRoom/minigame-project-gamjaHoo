@@ -19,11 +19,11 @@ MonoBehaviour:
   squadConfig:
     name: 3-5-2
     gk: 3
-    cbMin: 4
-    lbMin: 2
-    rbMin: 2
-    dmCmGroupMin: 5
+    cbMin: 6
+    lbMin: 0
+    rbMin: 0
+    dmCmGroupMin: 6
     lmLwGroupMin: 2
     rmRwGroupMin: 2
-    stCfGroupMin: 3
+    stCfGroupMin: 4
     randomSlots: 2
