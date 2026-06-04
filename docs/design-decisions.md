@@ -2298,6 +2298,60 @@ public class StatSnapshot {
 
 ---
 
+## 70. 매치 엔진 xG 찬스-퀄리티 레이어 + 평점 재설계 (V1.0 — Stage G, #474)
+
+**결정:** Stage G.5 재밸런싱을 "블런트 4-파라미터 튜닝" 대신 **찬스-퀄리티(xG) 레이어**로 구현. 동시에 전체 평점 시스템(I.4)을 FM 정합 + 포지션 가중으로 재설계. 5-Zone Markov 구조 / `Simulate(...)` 인터페이스 / 결정성(시드)은 유지 — 바뀌는 건 ResolveShot 전환 모델 + ComputeRatings + MatchResult 출력.
+
+**배경 (사용자 결정 2026-06-04):** "매치는 게임 핵심부 — 명세만 따르지 말고 더 FM 다운 방안 있으면 제안." → xG 레이어 채택. + "빅찬스 미스 평점 급락" + "전체 평점 시스템 깊게 검토·수정."
+
+**(1) xG 찬스-퀄리티 (`algorithms.md` V1.0-1):**
+- V0.5 평탄 전환 (`conversion = 0.30 + (shoot-gk)/150`) → 박스 도달 = 동급 찬스 = 과득점 근본원인.
+- chanceType (ClearChance/OpenPlay/Header/LongShot/DirectFreeKick) 별 `baseXG`. 기록되는 `shot.xG` = 찬스 품질(situation, 슈터 무관). 실제 골 = `xG × finishMod × gkMod`.
+- **밸런싱이 수학**: E[goals] ≈ Σ xG. 팀당 ΣxG ≈ 1.35 → 2.7/경기 직접 산정 (시행착오 X).
+- FM 원리 차용 (리서치): "슛 가치는 어떻게 만들어졌나(스루패스/위치/압박)로 결정."
+
+**(2) 평점 재설계 (`algorithms.md` V1.0-1 평점 subsection):**
+- 현 I.4 결함: 포지션 무가중(수비/미드 저평점) / 패스·점유 기여 0 / 실점책임 GK 독점 / 부진 감점 부족.
+- FM 원리(리서치): "포지션이 평점을 만든다" — 수비수 태클·인터셉트·무실점, 미드 패스성공률·키패스, 공격수 슛퀄·골.
+- **인위적 라인 곱셈 대신 각 포지션 액션을 충분히 가치화** → 포지션 특성 자연 발현. 라인 게이팅은 무실점/실점(GK+DF)에만.
+- 신규: 패스 성공률 티어 보너스, 수비 액션·클리어런스 가치 ↑, DF 무실점/실점 공유, xG 보정(clinical finish +/빅찬스 미스 −), `ratingGoalBonus` 1.0→0.8.
+
+**(3) G.2 신체 영향 통합:** 헤더(키×헤딩×점프) / agility(키 역상관) / pace+weakFoot / PK·FK 발 일치 — V1.0-8.3을 xG/zone resolution에 통합.
+
+**(4) G.1 이벤트 확장:** Offside / ThrowIn / KeeperPunch / LongShot — MatchEventType 추가 (텍스트는 G.6 후속).
+
+**신규 통계:** `PlayerMatchStat.xg / bigChancesMissed / clearances`. `MatchResult.shotMap(ShotPin{side,x,y,xg,outcome}) / zoneOccupancy[5]` — AA.1/AA.2 선당김 (히트맵·슛맵 데이터 엔진에서 생성).
+
+**영향 범위:** `MatchSimulator` ResolveShot/ComputeRatings 재구성 (zone 구조 유지) / `MatchResult`·`PlayerMatchStat`·`Match.MatchEventType` 확장 / `GameBalanceSO` xG·평점 파라미터 신규 / `MatchSimulatorTests` 임계치 갱신 + 측정 하네스 / `GameBalance.asset` reseed (Sub-C).
+
+**V1.x 보완 포인트:**
+- xG 좌표(x,y) 정밀화 — V1.0은 chanceType별 대표 위치 근사. V1.x 실제 슛 위치 모델.
+- 15-zone 정밀화 / 카운터어택 명시적 chanceType / 듀얼·헤더 승률 통계 → 평점 추가 반영.
+- 평점 롤(Role) 별 기대치 차등 (현 V1.0은 라인 단위) — FM 처럼 Role 별 KPI 가중.
+
+---
+
+## 71. 포메이션 기반 라인업 선정 + AI 자동 라인업 (노이즈) (V1.0 — Stage H, #474 후속)
+
+**결정:** 매치 라인업 선정을 **포메이션 정합**으로 재작성. 현 `SelectStartingEleven` 의 "포지션 무시 CA top-11 폴백" 폐기. **미구현 — Stage H 에서 구현** (`algorithms.md` V1.0-14 명세 예약).
+
+**배경 (사용자 결정 2026-06-04):** Stage G(#474) 검증 중 발견된 `StartingEleven_*` 테스트 기존 실패의 근본 원인 = CA top-11 폴백이 포지션을 무시 (GK 여럿·수비 0 같은 비현실 XI 가능). 지금 고치지 말고 **알고리즘 자체를 새로** 설계하기로.
+
+**정책:**
+1. **유저 팀**: 라인업(11 슬롯 배정) 미지정 시 **매치 시뮬레이션 차단** — 라인업 의사결정을 강제 (FM 표준). MatchSimulator 자동 폴백 금지.
+2. **AI 팀**: 포메이션(`FormationSO.slotPositions`)에 맞춰 자동 배치. 적정 CA 우선 + **노이즈**(`lineupNoiseSigma`)로 항상 최적은 아니게. **세부 stat/trait/시너지/매치업 풀최적화 배제** (AI 완벽 라인업 = 밸런스 붕괴). 단 상식 범위 — 일부러 약체 선발 X.
+
+**이유:**
+- 포지션 무시 라인업은 비현실적 + 전술/스카우트/육성 의사결정 무의미화.
+- 유저 강제 라인업 = FM 핵심 루프 (전술이 결과에 영향).
+- AI 노이즈 = 리그 다양성 + 유저 우위 여지 (AI가 매번 최적이면 추월 불가).
+
+**영향 범위 (Stage H):** `MatchSimulator.SelectStartingEleven` (유저 검증 / AI `AiAutoLineup` 분리) / 매치 진입 게이트 (유저 라인업 차단) / `GameBalanceSO.lineupNoiseSigma` / `MatchSimulatorTests.StartingEleven_*` 재작성 (그때까지 `[Ignore]`).
+
+**현 처리:** PR1(#474)에서는 명세만 추가. 실패 테스트 2건(`StartingEleven_TopByCAExcludingInjured` / `_ExcludesSuspendedPlayers`)은 `[Ignore]` 처리 (구 폴백 동작 검증 → 폐기 예정).
+
+---
+
 ## Change Log
 
 | Date | Decision | Note |
@@ -2326,4 +2380,6 @@ public class StatSnapshot {
 | 2026-05-31 | #66 추가 | Task A.1 Sub-A — Inbox 도메인 + 정책 (V1.0). InboxItem 도메인 클래스 / GameState 확장 / InboxRouter (10 이벤트 흡수) / 정책 Q1(기한 만료 비효과) + Q2(시즌 종료 정리) + Q3(YouthIntakeAvailableEvent 정지 제거). `algorithms.md` V1.0-7 참조 번호 #68 → #66 정정. |
 | 2026-05-31 | #67 추가 | Task A.2 Sub-A — Player.physical 신체 조건 도메인 (V1.0). PhysicalAttributes 클래스 + PlayerGenerator GeneratePhysical 단계. `algorithms.md` V1.0-8 참조 번호 #70 → #67 정정. 명명 혼동 주의 (`stats.physical` vs `Player.physical`). |
 | 2026-05-31 | #68 추가 | Task A.3 Sub-A — Player.growthHistory + GrowthSystem 월별 스냅샷 (V1.0). StatSnapshot 도메인 / Stats.Clone() / GrowthSystem.Tick 스냅샷 단계 + GetStatChange 헬퍼. `algorithms.md` V1.0-11 신규. |
+| 2026-06-04 | #71 추가 | #474 후속 (Stage H) — 포메이션 기반 라인업 선정 + AI 자동 라인업(노이즈) 명세 예약. 현 CA-top11 포지션무시 폴백 폐기 예정 / 유저 라인업 미지정 시 매치 차단 / AI 포메이션 정합+노이즈. `StartingEleven_*` 기존 실패 2건 근본원인 = 포지션 무시 폴백. PR1 에선 명세만 + 테스트 [Ignore]. `algorithms.md` V1.0-14. |
+| 2026-06-04 | #70 추가 | Stage G (#474) — 매치 엔진 xG 찬스-퀄리티 레이어 + 평점 재설계. (1) G.5 재밸런싱 = 블런트 4-파라미터 튜닝 폐기 → chanceType(ClearChance/OpenPlay/Header/LongShot/DirectFreeKick)별 baseXG, 기록 xG=찬스품질, 골=xG×finishMod×gkMod. E[goals]≈ΣxG 로 2.7 직접 산정. (2) 평점 전면 재설계 (FM 리서치 정합) — 포지션이 평점을 만든다: 패스성공률 티어/수비액션·클리어 가치↑/DF 무실점·실점 공유/xG 보정(clinical +/빅찬스 미스 −, 사용자 #74 요청)/goalBonus 1.0→0.8. (3) G.2 신체영향(헤더·agility·pace·발일치) xG 통합 (4) G.1 이벤트(Offside/ThrowIn/KeeperPunch/LongShot). 신규 통계 xg/bigChancesMissed/clearances + MatchResult.shotMap/zoneOccupancy(AA.1/AA.2 선당김). `algorithms.md` V1.0-1 재작성. 5-Zone 구조·인터페이스·결정성 유지. |
 | 2026-06-03 | #69 추가 | Stage F 선행 (#469) — 이적 흐름 FM 2단계 재구성. (1) 이적료 협상(역제안): `AiRespondToOffer` 의 `ratio≥1.30` 위장 CounterOffer → `Negotiating`(구단 합의). (2) 선수 개인협상: `Negotiating` 단계를 실제 인터랙티브 구현 — 신규 `RespondToPersonalTerms`(반복 협상, `maxPersonalNegotiationRounds=4`) + `PlayerNegotiationController`/`PlayerNegotiationScene`(신규). AI 구매 구단은 `AutoResolveAiPersonalTerms` 자동. 오퍼=이적료만(`TransferController`). 오퍼 결과 인박스(Negotiating/Accepted/Rejected) + EventScheduler Negotiating 정지. `offerItemPrefab` 미연결(#4) 수정. 신규 로컬라이즈 키 (`inbox_personal_negotiation_fmt` / `pnego_*` / `inbox_offer_*`) — 시드 갱신 별도 chore. `PersonalTermsResult` enum / `TransferOffer.personalNegotiationRound` 신규. |

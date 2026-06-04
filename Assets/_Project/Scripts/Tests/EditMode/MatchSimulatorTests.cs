@@ -82,6 +82,8 @@ namespace FMLite.Tests
 
         // ── starting11 자동 선정 ──────────────────────────────────────
 
+        // 구 CA-top11 포지션무시 폴백 검증 — V1.0-14(Stage H) 포메이션 기반 라인업으로 재작성 예정 (#474 후속, design-decisions #71).
+        [Ignore("Pending V1.0-14 포메이션 기반 라인업 재작성 (Stage H, design-decisions #71)")]
         [Test]
         public void StartingEleven_TopByCAExcludingInjured()
         {
@@ -118,6 +120,8 @@ namespace FMLite.Tests
             Assert.AreEqual(11, result.homeStarting11.Count);
         }
 
+        // 구 폴백 동작 검증 — V1.0-14(Stage H) 라인업 재작성 시 suspended 제외 정합 포함해 재작성 (#474 후속).
+        [Ignore("Pending V1.0-14 포메이션 기반 라인업 재작성 (Stage H, design-decisions #71)")]
         [Test]
         public void StartingEleven_ExcludesSuspendedPlayers()
         {
@@ -181,9 +185,218 @@ namespace FMLite.Tests
             }
             double avg = (double)totalGoals / N;
             Assert.Greater(totalGoals, 0, "T3: 골 발생");
-            // 5-zone — 균등팀 평균 골수 합리 범위 (튜닝 여지 ±). EPL ~2.7.
-            Assert.That(avg, Is.InRange(1.0, 6.0), $"T3: 평균 골수 (실측 {avg:F2}/매치)");
+            // V1.0 xG 모델 (#474) — 튜닝 후 실측 ~2.76. EPL 2.7 정합 (sampling 여유 포함).
+            Assert.That(avg, Is.InRange(2.2, 3.3), $"T3: 평균 골수 (실측 {avg:F2}/매치)");
         }
+
+        // ── T20. xG 슛맵 채워짐 + 유효 + 결정성 (#474) ────────────────────
+        [Test]
+        public void T20_Xg_ShotMapPopulatedAndDeterministic()
+        {
+            var (s1, m1) = BuildState(seed: 42, matchId: 7);
+            var (s2, m2) = BuildState(seed: 42, matchId: 7);
+            var r1 = MatchSimulator.Simulate(m1, s1, _balance, collectEvents: true);
+            var r2 = MatchSimulator.Simulate(m2, s2, _balance, collectEvents: true);
+
+            Assert.Greater(r1.shotMap.Count, 0, "T20: 슛맵 채워짐");
+            foreach (var pin in r1.shotMap)
+            {
+                Assert.That(pin.xg, Is.InRange(0f, 0.96f), "T20: xg 범위");
+                Assert.That(pin.x, Is.InRange(0f, 1f), "T20: x 범위");
+                Assert.That(pin.y, Is.InRange(0f, 1f), "T20: y 범위");
+            }
+            Assert.AreEqual(r1.shotMap.Count, r2.shotMap.Count, "T20: shotMap 결정적");
+            Assert.AreEqual(r1.shotMap[0].xg, r2.shotMap[0].xg, 1e-6f, "T20: 첫 핀 xg 결정적");
+            // 모든 골은 Goal outcome 핀을 정확히 하나 생성 → Goal 핀 수 = 총 득점.
+            int goalPins = r1.shotMap.Count(p => p.outcome == ShotOutcome.Goal);
+            Assert.AreEqual(r1.homeScore + r1.awayScore, goalPins, "T20: Goal 핀 = 득점수");
+        }
+
+        // ── T21. xG ≈ 득점 (밸런싱 전제) + 측정 하네스 (#474) ─────────────
+        [Test]
+        public void T21_Xg_SumApproximatesGoals_Measurement()
+        {
+            var seedGen = new System.Random(7);
+            const int N = 200;
+            int totalGoals = 0;
+            double totalXg = 0;
+            int totalShots = 0,
+                totalPens = 0,
+                totalPenGoals = 0;
+            var perMatch = new List<int>(N);
+            for (int i = 0; i < N; i++)
+            {
+                var (state, match) = BuildState(seed: seedGen.Next(), matchId: i + 1);
+                var r = MatchSimulator.Simulate(match, state, _balance);
+                int g = r.homeScore + r.awayScore;
+                totalGoals += g;
+                perMatch.Add(g);
+                totalXg += r.playerStats.Sum(ps => ps.xg);
+                totalShots += r.playerStats.Sum(ps => ps.shots);
+                // PK 핀 = x≈0.88 (jitter 없음) — 빈도/득점 분해 (튜닝용).
+                var pens = r.shotMap.Where(p => Mathf.Approximately(p.x, 0.88f)).ToList();
+                totalPens += pens.Count;
+                totalPenGoals += pens.Count(p => p.outcome == ShotOutcome.Goal);
+            }
+            double avgGoals = (double)totalGoals / N;
+            double avgXg = totalXg / N;
+            double std = System.Math.Sqrt(perMatch.Sum(g => (g - avgGoals) * (g - avgGoals)) / N);
+            Debug.Log(
+                $"[T21 측정] 평균골={avgGoals:F2} 평균ΣxG={avgXg:F2} std={std:F2} "
+                    + $"슛/팀={(double)totalShots / N / 2:F1} PK/경기={(double)totalPens / N:F2} "
+                    + $"PK골/경기={(double)totalPenGoals / N:F2} (목표 avg 2.7±0.3 / std<1.5)"
+            );
+            // xG-밸런싱 전제: 균등팀 finishMod×gkMod≈1 → 평균 득점 ≈ 평균 ΣxG.
+            Assert.That(
+                avgGoals,
+                Is.EqualTo(avgXg).Within(0.6),
+                $"T21: 평균골({avgGoals:F2}) ≈ ΣxG({avgXg:F2}) — xG-밸런싱 전제"
+            );
+        }
+
+        // ── T22. zoneOccupancy 채워짐 (AA.4 선당김) ───────────────────────
+        [Test]
+        public void T22_ZoneOccupancy_Populated()
+        {
+            var (state, match) = BuildState(seed: 3, matchId: 3);
+            var r = MatchSimulator.Simulate(match, state, _balance);
+            Assert.AreEqual(5, r.zoneOccupancy.Length, "T22: zone 5칸");
+            Assert.Greater(r.zoneOccupancy.Sum(), 0, "T22: zone 점유 누적");
+            Assert.GreaterOrEqual(
+                r.zoneOccupancy[2],
+                r.zoneOccupancy[0],
+                "T22: 미드필드(2) 점유 ≥ HomeBox(0)"
+            );
+        }
+
+        // ── T23. 평점: 빅찬스 미스 급락 (#74) ─────────────────────────────
+        [Test]
+        public void T23_Rating_BigChanceMissDrops()
+        {
+            var baseStat = new PlayerMatchStat { playerId = 1 };
+            var missStat = new PlayerMatchStat
+            {
+                playerId = 2,
+                bigChancesMissed = 1,
+                xg = 0.40f,
+                shots = 1,
+            };
+            float baseR = MatchSimulator.ComputePlayerRating(baseStat, Line.AT, 0, 0, _balance);
+            float missR = MatchSimulator.ComputePlayerRating(missStat, Line.AT, 0, 0, _balance);
+            Assert.Less(missR, baseR, "T23: 빅찬스 미스 → 평점 하락");
+            Assert.That(baseR - missR, Is.GreaterThan(0.6f), "T23: 0.40xG 미스 급락폭 (≈0.74)");
+        }
+
+        // ── T24. 평점: clinical finish (저 xG 골) 가산 ────────────────────
+        [Test]
+        public void T24_Rating_ClinicalFinishRewarded()
+        {
+            var clinical = new PlayerMatchStat { goals = 1, shotsOnTarget = 1, xg = 0.05f };
+            var tapIn = new PlayerMatchStat { goals = 1, shotsOnTarget = 1, xg = 0.70f };
+            float cR = MatchSimulator.ComputePlayerRating(clinical, Line.AT, 1, 0, _balance);
+            float tR = MatchSimulator.ComputePlayerRating(tapIn, Line.AT, 1, 0, _balance);
+            Assert.Greater(cR, tR, "T24: 같은 골이라도 저 xG(어려운) 마무리 평점↑");
+        }
+
+        // ── T25. 평점: 포지션 가중 + 패스성공률 + 무실점 (FM 정합) ────────
+        [Test]
+        public void T25_Rating_PositionPassCleanSheet()
+        {
+            // 무실점 DF > 2실점 DF
+            var df = new PlayerMatchStat { tackles = 2, interceptions = 1 };
+            float clean = MatchSimulator.ComputePlayerRating(df, Line.DF, 1, 0, _balance);
+            float concede = MatchSimulator.ComputePlayerRating(df, Line.DF, 1, 2, _balance);
+            Assert.Greater(clean, concede, "T25: 무실점 수비수 > 실점 수비수");
+
+            // 패스 성공률 티어
+            var hiPass = new PlayerMatchStat { passes = 50, passesCompleted = 47 }; // 94%
+            var loPass = new PlayerMatchStat { passes = 50, passesCompleted = 32 }; // 64%
+            float hi = MatchSimulator.ComputePlayerRating(hiPass, Line.MF, 0, 0, _balance);
+            float lo = MatchSimulator.ComputePlayerRating(loPass, Line.MF, 0, 0, _balance);
+            Assert.Greater(hi, lo, "T25: 높은 패스성공률 > 낮은");
+
+            // GK 선방 + 무실점 > base
+            var gk = new PlayerMatchStat { saves = 4 };
+            float gkR = MatchSimulator.ComputePlayerRating(gk, Line.GK, 0, 0, _balance);
+            Assert.Greater(gkR, _balance.ratingBase, "T25: 선방+무실점 GK > base");
+
+            // 화려한 공격 없이도 호수비 무실점 CB ≥ 7.0 (FM '7.5 CB' 재현)
+            var cbStat = new PlayerMatchStat
+            {
+                tackles = 4,
+                interceptions = 3,
+                clearances = 5,
+                passes = 40,
+                passesCompleted = 37,
+            };
+            float cb = MatchSimulator.ComputePlayerRating(cbStat, Line.DF, 1, 0, _balance);
+            Assert.GreaterOrEqual(cb, 7.0f, "T25: 호수비 무실점 CB ≥ 7.0 (포지션 가중)");
+        }
+
+        // ── T26. G.2 신체: 공중 우세 공격진 헤더 득점 ↑ (페어드 시드) ──────
+        [Test]
+        public void T26_Physical_AerialStrengthScoresMore_Paired()
+        {
+            // 키 고정(185) → agility 영향 동일, heading/jump 만 대조 (헤더 xG 격리).
+            var seedGen = new System.Random(123);
+            int strongGoals = 0,
+                weakGoals = 0;
+            const int N = 150;
+            for (int i = 0; i < N; i++)
+            {
+                int seed = seedGen.Next();
+                var (sS, mS) = BuildState(seed: seed, matchId: i + 1);
+                SetHomeForwards(sS, height: 185, agility: 50, heading: 90, jump: 90);
+                strongGoals += MatchSimulator.Simulate(mS, sS, _balance).homeScore;
+
+                var (sW, mW) = BuildState(seed: seed, matchId: i + 1);
+                SetHomeForwards(sW, height: 185, agility: 50, heading: 35, jump: 35);
+                weakGoals += MatchSimulator.Simulate(mW, sW, _balance).homeScore;
+            }
+            Debug.Log($"[T26] 강공중 home골={strongGoals} 약공중 home골={weakGoals}");
+            Assert.Greater(strongGoals, weakGoals, "T26: 헤더 우수 공격진 헤더 찬스 득점 우세");
+        }
+
+        // ── T27. G.2 신체: 키 작은(민첩) 공격진 드리블 박스진입 우세 (페어드) ─
+        [Test]
+        public void T27_Physical_AgilityShortDribbleAdvantage_Paired()
+        {
+            // 골은 전환 노이즈 + 헤더 보상(실패→코너→헤더)으로 둔감 →
+            // 드리블 진입 직접 지표 = OpenPlay(x≈0.84)/Clear(x≈0.90) 슛맵 핀 수로 격리 측정.
+            // heading/jump 낮춰 양쪽 헤더 xG floor 동일, height(165 vs 205)로 agilityEff 만 대조.
+            var seedGen = new System.Random(321);
+            int shortEntries = 0,
+                tallEntries = 0;
+            const int N = 250;
+            for (int i = 0; i < N; i++)
+            {
+                int seed = seedGen.Next();
+                var (sShort, mShort) = BuildState(seed: seed, matchId: i + 1);
+                SetHomeForwards(sShort, height: 165, agility: 90, heading: 25, jump: 25);
+                shortEntries += CountHomeDribbleEntries(
+                    MatchSimulator.Simulate(mShort, sShort, _balance)
+                );
+
+                var (sTall, mTall) = BuildState(seed: seed, matchId: i + 1);
+                SetHomeForwards(sTall, height: 205, agility: 90, heading: 25, jump: 25);
+                tallEntries += CountHomeDribbleEntries(
+                    MatchSimulator.Simulate(mTall, sTall, _balance)
+                );
+            }
+            Debug.Log($"[T27] 단신민첩 진입={shortEntries} 장신 진입={tallEntries}");
+            Assert.Greater(
+                shortEntries,
+                tallEntries,
+                "T27: 키 작은 민첩 공격진 드리블 박스진입(OpenPlay/Clear) 우세"
+            );
+        }
+
+        // home(side=0) 드리블 진입 슛 = OpenPlay(x≈0.84) + ClearChance(x≈0.90) 핀.
+        private static int CountHomeDribbleEntries(MatchResult r) =>
+            r.shotMap.Count(p =>
+                p.side == 0
+                && (Mathf.Approximately(p.x, 0.84f) || Mathf.Approximately(p.x, 0.90f))
+            );
 
         // ── T4. 점유율 ───────────────────────────────────────────────
 
@@ -1024,6 +1237,34 @@ namespace FMLite.Tests
             s.physical.ApplyToAll(_ => v);
             s.gk.ApplyToAll(_ => v);
             return s;
+        }
+
+        // G.2 테스트용 — home AT 라인 선수들의 신체조건/공중 stat 설정 (#474).
+        private static void SetHomeForwards(
+            GameState state,
+            int height,
+            int agility,
+            int heading,
+            int jump
+        )
+        {
+            var home = state.GetClub(1);
+            foreach (var id in home.seniorSquadIds)
+            {
+                var p = state.GetPlayer(id);
+                if (p == null || StartingSquadGacha.LineOf(p.info.primaryPosition) != Line.AT)
+                    continue;
+                p.physical = new PhysicalAttributes
+                {
+                    height = height,
+                    weight = 78,
+                    preferredFoot = Foot.Right,
+                    weakFootAbility = 3,
+                };
+                p.stats.physical.agility = agility;
+                p.stats.physical.jumpingReach = jump;
+                p.stats.technical.heading = heading;
+            }
         }
     }
 }

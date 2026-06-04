@@ -156,7 +156,7 @@ MonoBehaviour:
   longThrowChance: 0.1
   longThrowBoxChance: 0.6
   foulProbability: 0.12
-  penaltyProbability: 0.08
+  penaltyProbability: 0.013
   yellowCardProbability: 0.3
   redCardProbability: 0.04
   matchInjuryProbability: 0.03
@@ -164,10 +164,10 @@ MonoBehaviour:
   yellowSuspensionThreshold: 5
   redSuspensionMatches: 2
   ratingBase: 6.5
-  ratingGoalBonus: 1
+  ratingGoalBonus: 0.8
   ratingAssistBonus: 0.5
-  ratingKeyPassBonus: 0.1
-  ratingDefActionBonus: 0.05
+  ratingKeyPassBonus: 0.12
+  ratingDefActionBonus: 0.08
   ratingShotOnTargetBonus: 0.1
   ratingYellowPenalty: -0.3
   ratingRedPenalty: -1.5
