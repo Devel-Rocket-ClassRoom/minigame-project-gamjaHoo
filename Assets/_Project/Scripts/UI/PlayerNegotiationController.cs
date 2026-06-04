@@ -100,9 +100,7 @@ namespace FMLite.UI
                 foreach (Transform child in offerListParent)
                     Destroy(child.gameObject);
 
-            if (_state == null)
-                return;
-
+            // _state null 이어도 EmptyLabel 은 표시해야 함 (GetRelevantOffers 는 null-safe).
             var relevant = GetRelevantOffers();
 
             if (emptyLabel != null)
@@ -110,6 +108,12 @@ namespace FMLite.UI
 
             foreach (var offer in relevant)
                 SpawnOfferItem(offer);
+
+            // 동적 생성 직후 레이아웃 강제 재빌드 — 안 하면 다음 Canvas 업데이트(클릭/호버 등)
+            // 전까지 VLG+ContentSizeFitter 가 행 크기·위치를 정착시키지 않아 행이 보이지 않음
+            // (R.12 "가만히 있다 클릭하면 복불복으로 뜸" 증상의 근본 원인).
+            if (offerListParent is RectTransform contentRect)
+                LayoutRebuilder.ForceRebuildLayoutImmediate(contentRect);
         }
 
         private List<TransferOffer> GetRelevantOffers()
