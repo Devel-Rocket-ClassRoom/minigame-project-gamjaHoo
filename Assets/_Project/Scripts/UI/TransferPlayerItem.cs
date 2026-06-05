@@ -7,6 +7,7 @@ using FMLite.Application;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace FMLite.UI
@@ -44,10 +45,14 @@ namespace FMLite.UI
             bool scouted = ScoutingVisibility.IsScouted(userClub, player.id);
 
             if (nameText != null)
+            {
                 nameText.text =
                     player.info != null
                         ? $"{player.info.firstName} {player.info.lastName}"
                         : $"id={player.id}";
+                // R.6 (#77-1): 이름 클릭 → 선수 프로필 (타팀 = 스카우팅 게이팅).
+                WireNameLink(player.id);
+            }
 
             if (positionText != null)
                 positionText.text = player.info?.primaryPosition.ToString() ?? "-";
@@ -71,6 +76,30 @@ namespace FMLite.UI
                 return;
             offerButton.onClick.RemoveAllListeners();
             offerButton.onClick.AddListener(() => onOffer(player.id));
+        }
+
+        // R.6 (#77-1): 이름 TMP 에 런타임 Button 부착 → PlayerProfileScene 진입.
+        private void WireNameLink(int playerId)
+        {
+            var go = nameText.gameObject;
+            // 프리팹 Name TMP 는 raycastTarget=false → 클릭 받도록 활성화.
+            nameText.raycastTarget = true;
+            var btn = go.GetComponent<Button>();
+            if (btn == null)
+                btn = go.AddComponent<Button>();
+            btn.targetGraphic = nameText;
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(() => NavigateToProfile(playerId));
+        }
+
+        private static void NavigateToProfile(int playerId)
+        {
+            PlayerPrefs.SetInt(SquadController.SelectedPlayerIdKey, playerId);
+            PlayerPrefs.SetString(
+                PlayerNameLinkController.PreviousSceneKey,
+                SceneManager.GetActiveScene().name
+            );
+            SceneManager.LoadScene("PlayerProfileScene");
         }
 
         // 명단 ∈: 정확 수치 (예: "145")
