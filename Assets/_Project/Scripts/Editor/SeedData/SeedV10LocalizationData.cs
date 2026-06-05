@@ -1227,6 +1227,23 @@ namespace FMLite.Editor
                     "멘토링 그룹 {0} · 멘티 {1}명",
                     "Mentoring Groups {0} · Mentees {1}"
                 ),
+                // ── Mentoring Scene (V1.0 Stage I) ─────────────────────────
+                E("mentoring_title", "멘토링", "Mentoring"),
+                E("mentoring_mentor_fmt", "{0} · 멘토", "{0} · Mentor"),
+                E("mentoring_step_fmt", "{0}/월", "{0}/mo"),
+                E("mentoring_step_done", "완료", "Done"),
+                E("mentoring_attr_professionalism", "전문성", "Profess."),
+                E("mentoring_attr_ambition", "야망", "Ambition"),
+                E("mentoring_attr_loyalty", "충성도", "Loyalty"),
+                E("mentoring_recommend", "추천 멘토", "Recommend"),
+                E("mentoring_create_group", "새 그룹", "New Group"),
+                E("mentoring_create_title", "멘토링 그룹 만들기", "Create Mentoring Group"),
+                E("mentoring_confirm", "그룹 생성", "Create"),
+                E("mentoring_cancel", "취소", "Cancel"),
+                E("mentoring_dissolve", "해체", "Dissolve"),
+                E("mentoring_no_groups", "활성 멘토링 그룹이 없습니다", "No active mentoring groups"),
+                E("mentoring_mentor_select", "멘토 선택", "Select Mentor"),
+                E("mentoring_mentee_select", "멘티 선택 (최대 3명)", "Select Mentees (max 3)"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

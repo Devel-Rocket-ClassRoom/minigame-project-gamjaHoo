@@ -1510,6 +1510,17 @@ public class ScoutReport {
 
 **영향 범위:** `Facilities` 8 필드 / `MentoringGroup.cs` 신규 / `Club.season.mentoringGroups` / `YouthSystem.cs` 갱신 (CA 캡 / 풀 전체) / `MentoringSystem.cs` 신규 / `algorithms.md` #4 V0.5 갱신 / UI `MentoringScene` 신규 / `YouthPromotionSuggestedEvent / YouthSignedByOtherEvent` 신규.
 
+### V1.0 갱신 (Stage I, #524) — 수렴 모델 = 격차 비례
+
+**변경 (사용자 피드백):** 고정 `±mentoringRateModifier`/월 수렴 폐기 → **격차 비례 수렴**.
+- 월 스텝 = `clamp(round(|mentor−mentee| × mentoringConvergenceFraction), 1, min(rateCap, |gap|))`. 부호는 mentor 방향.
+- `mentoringConvergenceFraction = 0.15` (신규), `mentoringRateModifier = 5` 는 이제 **상한(cap)** 으로 의미 전환.
+- **차이 클수록 빠르고 멘토 수치에 가까울수록 느려짐**, 상한 = 멘토의 해당 수치 (초과 불가), 최소 1/월 (결국 도달).
+- **이유:** 고정값은 "멘티가 항상 +5" 라 사기적이고 비현실적. 격차 비례 = FM식 체감 + 밸런스(저능력 멘티는 빠르게 따라잡고, 거의 따라잡으면 둔화).
+- **대상 Hidden Attrs (V1.0 확정):** `professionalism / ambition / loyalty` 3종 (구 명세의 `determination` 은 도메인에 없음 — 정정).
+- **UI (`MentoringScene`):** 멘토 단일선택 리스트(`MentorSelectItem`, 드롭다운 폐기) + 멘티 토글 + 멘티별 진행률 바 3개(`MenteeProgressRow`, 즉시 표시) + `+N/월`. 멘토 추천 = `MentorRecommender` (leadership + age + 계약 + Hidden 평균).
+- **영향:** `MentoringSystem.cs` (ProjectedMonthlyStep/ConvergencePercent 공개 헬퍼) / `GameBalanceSO.mentoringConvergenceFraction` + Mentor 추천 4필드 / `MentorRecommender.cs` / `MentorSelectItem.cs` / `MenteeProgressRow.cs` 신규.
+
 ### V0.5+ 보완 포인트 (V1.0)
 
 - **추가 스카우트 (data-flows #4 [3-c])** — 비용 차감 + 정보 정확도 ↑. V1.0.

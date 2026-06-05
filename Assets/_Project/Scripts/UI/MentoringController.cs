@@ -31,9 +31,12 @@ namespace FMLite.UI
         [SerializeField]
         private GameObject createPanel;
 
-        [Header("Mentor (MUIP CustomDropdown)")]
+        [Header("Mentor (단일선택 리스트)")]
         [SerializeField]
-        private CustomDropdown mentorDropdown;
+        private Transform mentorListParent;
+
+        [SerializeField]
+        private MentorSelectItem mentorItemPrefab;
 
         [SerializeField]
         private Transform menteeToggleParent;
@@ -48,6 +51,9 @@ namespace FMLite.UI
         [SerializeField]
         private ButtonManager cancelCreateButton;
 
+        [SerializeField]
+        private ButtonManager recommendMentorButton;
+
         [Header("공통 (MUIP ButtonManager)")]
         [SerializeField]
         private ButtonManager createGroupButton;
@@ -60,6 +66,8 @@ namespace FMLite.UI
         private readonly List<int> _mentorCandidateIds = new();
         private readonly List<int> _menteeCandidateIds = new();
         private readonly HashSet<int> _selectedMenteeIds = new();
+        private readonly List<MentorSelectItem> _mentorItems = new();
+        private int _selectedMentorId = -1;
 
         private void Start()
         {
@@ -82,6 +90,8 @@ namespace FMLite.UI
                 confirmCreateButton.clickEvent.AddListener(OnConfirmCreateClicked);
             if (cancelCreateButton != null)
                 cancelCreateButton.clickEvent.AddListener(OnCancelCreateClicked);
+            if (recommendMentorButton != null)
+                recommendMentorButton.clickEvent.AddListener(OnRecommendMentorClicked);
 
             Refresh();
         }
@@ -99,18 +109,19 @@ namespace FMLite.UI
         {
             if (_state == null || _userClub == null)
                 return;
-            if (mentorDropdown == null || _mentorCandidateIds.Count == 0)
+            if (_selectedMentorId < 0 || !_mentorCandidateIds.Contains(_selectedMentorId))
                 return;
             if (_selectedMenteeIds.Count == 0)
                 return;
 
-            int idx = mentorDropdown.selectedItemIndex;
-            if (idx < 0 || idx >= _mentorCandidateIds.Count)
-                return;
-            int mentorId = _mentorCandidateIds[idx];
             try
             {
-                MentoringSystem.AddGroup(_userClub, mentorId, _selectedMenteeIds.ToList(), _state);
+                MentoringSystem.AddGroup(
+                    _userClub,
+                    _selectedMentorId,
+                    _selectedMenteeIds.ToList(),
+                    _state
+                );
             }
             catch (System.Exception e)
             {
@@ -127,6 +138,31 @@ namespace FMLite.UI
         {
             if (createPanel != null)
                 createPanel.SetActive(false);
+        }
+
+        // I.3 — leadership + 나이 + 계약 잔여 + Hidden 평균 최고 후보를 리스트에서 자동 선택.
+        public void OnRecommendMentorClicked()
+        {
+            if (_mentorCandidateIds.Count == 0)
+                return;
+
+            int recommendedId = MentorRecommender.RecommendMentor(
+                _mentorCandidateIds,
+                _state,
+                GameDatabase.GameBalance
+            );
+            if (recommendedId < 0)
+                return;
+
+            SelectMentor(recommendedId);
+        }
+
+        private void SelectMentor(int mentorId)
+        {
+            _selectedMentorId = mentorId;
+            foreach (var item in _mentorItems)
+                if (item != null)
+                    item.SetSelected(item.PlayerId == mentorId);
         }
 
         public void OnBackClicked() => SceneManager.LoadScene(DashboardScene);
@@ -146,12 +182,16 @@ namespace FMLite.UI
             foreach (Transform child in groupListParent)
                 Destroy(child.gameObject);
 
+            var balance = GameDatabase.GameBalance;
+            int rateCap = balance != null ? balance.mentoringRateModifier : 5;
+            float fraction = balance != null ? balance.mentoringConvergenceFraction : 0.15f;
+
             foreach (var group in _userClub.season.mentoringGroups)
             {
                 var item = Instantiate(groupItemPrefab, groupListParent);
                 var ctrl = item.GetComponent<MentoringGroupItem>();
                 if (ctrl != null)
-                    ctrl.Setup(group, _state, OnDissolveClicked);
+                    ctrl.Setup(group, _state, rateCap, fraction, OnDissolveClicked);
             }
         }
 
@@ -171,8 +211,15 @@ namespace FMLite.UI
 
             var allIds = _userClub.seniorSquadIds.Concat(_userClub.youthSquadIds).ToList();
 
-            // 멘토 후보: 그룹 미참여 + 나이 25세 이상 권장 (강제 아님)
-            var mentorOptions = new List<string>();
+            // 멘토 후보: 그룹 미참여. 단일선택 리스트로 표시.
+            _mentorItems.Clear();
+            _selectedMentorId = -1;
+            if (mentorListParent != null)
+            {
+                foreach (Transform child in mentorListParent)
+                    Destroy(child.gameObject);
+            }
+
             foreach (var id in allIds)
             {
                 if (usedMentors.Contains(id))
@@ -181,18 +228,18 @@ namespace FMLite.UI
                 if (p == null)
                     continue;
                 _mentorCandidateIds.Add(id);
-                mentorOptions.Add(PlayerLabel(p));
+
+                if (mentorItemPrefab != null && mentorListParent != null)
+                {
+                    var item = Instantiate(mentorItemPrefab, mentorListParent);
+                    item.Setup(id, PlayerLabel(p), SelectMentor);
+                    _mentorItems.Add(item);
+                }
             }
 
-            if (mentorDropdown != null)
-            {
-                mentorDropdown.dropdownItems.Clear();
-                foreach (var opt in mentorOptions)
-                    mentorDropdown.CreateNewItemFast(opt, null);
-                mentorDropdown.selectedItemIndex = 0;
-                mentorDropdown.SetupDropdown();
-                Canvas.ForceUpdateCanvases();
-            }
+            // 기본 선택 = 첫 후보
+            if (_mentorCandidateIds.Count > 0)
+                SelectMentor(_mentorCandidateIds[0]);
 
             // 멘티 후보: 그룹 미참여
             if (menteeToggleParent != null)
