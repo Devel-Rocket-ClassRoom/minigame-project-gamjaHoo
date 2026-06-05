@@ -19,6 +19,8 @@ namespace FMLite.UI
     {
         private const string ClubSelectScene = "ClubSelectScene";
         private const string DashboardScene = "DashboardScene";
+        private const string OptionsScene = "OptionsScene";
+        private const string MainMenuScene = "MainMenuScene";
 
         [Header("패널")]
         [SerializeField]
@@ -57,8 +59,20 @@ namespace FMLite.UI
 
         private void Start()
         {
+            EnsureCoreInitialized();
             ShowMainPanel();
             CheckSackedFlag();
+        }
+
+        // 앱 진입점(MainMenuScene = build 0)에서 Localization/Options 초기화.
+        // 정적 LocalizationSystem 은 씬 전환에도 유지 → 게임 미시작 상태로 OptionsScene 진입해도
+        // LocalizedText 가 키 원문이 아닌 번역 텍스트를 표시. (게임 시작 시 재초기화는 무해)
+        private static void EnsureCoreInitialized()
+        {
+            if (GameDatabase.LocalizationData == null)
+                GameDatabase.LoadAll();
+            OptionsManager.EnsureInitialized();
+            LocalizationSystem.Initialize(GameDatabase.LocalizationData, OptionsManager.Language);
         }
 
         private void CheckSackedFlag()
@@ -93,6 +107,22 @@ namespace FMLite.UI
         public void OnCancelClicked()
         {
             ShowMainPanel();
+        }
+
+        // S.2 (#77-7) — 메인 메뉴에서 옵션 진입 (복귀 = MainMenuScene).
+        public void OnOptionsClicked()
+        {
+            PlayerPrefs.SetString(OptionsController.PreviousSceneKey, MainMenuScene);
+            SceneManager.LoadScene(OptionsScene);
+        }
+
+        public void OnQuitClicked()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         public void OnConfirmNewGame()
