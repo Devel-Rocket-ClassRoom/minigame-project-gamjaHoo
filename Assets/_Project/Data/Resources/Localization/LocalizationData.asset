@@ -136,6 +136,43 @@ MonoBehaviour:
   - key: scout_tier_very_low
     korean: "\uB9E4\uC6B0 \uB0AE\uC74C"
     english: Very Low
+  - key: profile_not_scouted
+    korean: "\uC2A4\uCE74\uC6B0\uD305\uB418\uC9C0 \uC54A\uC74C \u2014 \uCD94\uAC00
+      \uC815\uCC30 \uD544\uC694"
+    english: "Not scouted \u2014 further scouting required"
+  - key: btn_renew
+    korean: "\uC7AC\uACC4\uC57D"
+    english: Renew
+  - key: btn_callup
+    korean: "\uCF5C\uC5C5"
+    english: Call up
+  - key: btn_decline
+    korean: "\uAC70\uC808"
+    english: Decline
+  - key: renew_title
+    korean: "\uC7AC\uACC4\uC57D \uC81C\uC548"
+    english: Contract Renewal
+  - key: renew_suggested_fmt
+    korean: "\uC81C\uC548 \uC8FC\uAE09: {0}"
+    english: 'Suggested wage: {0}'
+  - key: renew_length_years_fmt
+    korean: "\uACC4\uC57D \uAE30\uAC04: {0}\uB144"
+    english: 'Length: {0} yr'
+  - key: renew_confirm
+    korean: "\uC81C\uC548"
+    english: Offer
+  - key: renew_close
+    korean: "\uB2EB\uAE30"
+    english: Close
+  - key: renew_invalid_wage
+    korean: "\uC8FC\uAE09\uC744 \uC62C\uBC14\uB974\uAC8C \uC785\uB825\uD558\uC138\uC694"
+    english: Enter a valid wage
+  - key: renew_accepted
+    korean: "\uC7AC\uACC4\uC57D \uC218\uB77D!"
+    english: Renewal accepted!
+  - key: renew_rejected
+    korean: "\uC7AC\uACC4\uC57D \uAC70\uC808\uB428"
+    english: Renewal rejected
   - key: reputation_fmt
     korean: "\uBA85\uC131 {0}"
     english: Reputation {0}

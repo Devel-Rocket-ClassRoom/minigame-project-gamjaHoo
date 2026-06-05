@@ -29,6 +29,10 @@ namespace FMLite.UI
         private TMP_Text positionAgeText;
 
         [Header("능력치 그리드 (C.1 — StatRowView prefab 인스턴스화)")]
+        [Tooltip("R.6 — 4 stat 그리드 공통 부모. 타팀 미정찰 선수는 비활성.")]
+        [SerializeField]
+        private GameObject statsRoot;
+
         [SerializeField]
         private GameObject statRowPrefab;
 
@@ -62,6 +66,14 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text careerText;
 
+        [Header("R.6 — 스카우팅 게이팅")]
+        [Tooltip("타팀 미정찰 선수에게 '스카우팅되지 않음' 안내. reveal=false 시 활성.")]
+        [SerializeField]
+        private GameObject notScoutedNotice;
+
+        [SerializeField]
+        private TMP_Text notScoutedText;
+
         [Header("네비 (MUIP 버튼)")]
         [SerializeField]
         private Button backButton;
@@ -73,12 +85,17 @@ namespace FMLite.UI
         [SerializeField]
         private InterviewDialogController interviewDialog;
 
-        [Header("1군 승격 (V0.5 L.5)")]
+        [Header("재계약 (R.7 #77-2)")]
         [SerializeField]
-        private Button promoteButton;
+        private Button renewButton;
 
         [SerializeField]
-        private Button declinePromotionButton;
+        private ContractRenewalDialogController renewDialog;
+
+        [Header("콜업 (R.7 #77-2)")]
+        [Tooltip("R.7 — 자기팀 유스 선수면 항상 노출 (콜업).")]
+        [SerializeField]
+        private Button promoteButton;
 
         private int _currentPlayerId = -1;
 
@@ -102,11 +119,16 @@ namespace FMLite.UI
                 backButton.onClick.RemoveAllListeners();
                 backButton.onClick.AddListener(OnBackClicked);
             }
+            bool debugMode = GameDatabase.GameBalance != null && GameDatabase.GameBalance.isDebugMode;
+            // R.6 (#77-1): 자기팀/정찰 선수만 상세(49 stat / 트레잇 / 내부 상태) 노출.
+            // 타팀 미정찰은 게이팅. debugMode 는 계약 재무 정보에도 사용.
+            var userClub = state.GetClub(state.userClubId);
+            bool reveal = ScoutingVisibility.CanRevealDetails(userClub, player, debugMode);
+
             ConfigureInterviewButton(player, state);
             ConfigurePromotionButtons(player, state);
+            ConfigureRenewButton(player, state);
 
-            bool debugMode = GameDatabase.GameBalance != null && GameDatabase.GameBalance.isDebugMode;
-            // stats는 항상 정확 수치 노출 (B.5); debugMode는 계약 재무 정보에만 사용
             int age =
                 player.info != null
                     ? (int)((state.currentDate - player.info.birthDate).TotalDays / 365.25)
@@ -130,19 +152,56 @@ namespace FMLite.UI
                 positionAgeText.text = string.IsNullOrEmpty(nat) ? posAge : $"{posAge} · {nat}";
             }
 
-            PopulateStatGrids(player);
-
-            if (traitsText != null)
-                traitsText.text = BuildTraitsText(player);
-
+            // 공개 정보 (스카우팅 무관 항상 표시): 계약 만료 / 커리어.
             if (contractText != null)
                 contractText.text = BuildContractText(player, debugMode);
 
-            if (stateText != null)
-                stateText.text = BuildStateText(player, state);
-
             if (careerText != null)
                 careerText.text = BuildCareerText(player, state);
+
+            // R.6 게이팅 — stat 그리드 / 트레잇 / 내부 상태는 reveal 일 때만.
+            if (statsRoot != null)
+                statsRoot.SetActive(reveal);
+            if (notScoutedNotice != null)
+                notScoutedNotice.SetActive(!reveal);
+
+            if (reveal)
+            {
+                PopulateStatGrids(player);
+                if (traitsText != null)
+                    traitsText.text = BuildTraitsText(player);
+                if (stateText != null)
+                    stateText.text = BuildStateText(player, state);
+            }
+            else
+            {
+                if (notScoutedText != null)
+                    notScoutedText.text = Localization.Get("profile_not_scouted");
+                if (traitsText != null)
+                    traitsText.text = string.Empty;
+                if (stateText != null)
+                    stateText.text = string.Empty;
+            }
+        }
+
+        // ── 재계약 (R.7 #77-2) ─────────────────────────────────────────
+
+        public void OnRenewClicked()
+        {
+            if (renewDialog == null || _currentPlayerId == -1)
+                return;
+            renewDialog.Show(_currentPlayerId);
+        }
+
+        private void ConfigureRenewButton(Player player, GameState state)
+        {
+            if (renewButton == null)
+                return;
+            // 자기 구단 선수만 재계약 (senior / youth 무관).
+            bool isOwnClub = player.currentClubId == state.userClubId;
+            renewButton.gameObject.SetActive(isOwnClub);
+            renewButton.onClick.RemoveAllListeners();
+            renewButton.onClick.AddListener(OnRenewClicked);
         }
 
         public void OnBackClicked()
@@ -171,7 +230,7 @@ namespace FMLite.UI
             interviewButton.onClick.AddListener(OnInterviewClicked);
         }
 
-        // ── 1군 승격 (V0.5 L.5) ────────────────────────────────────────────
+        // ── 콜업 / 1군 승격 (V0.5 L.5 + R.7 #77-2) ──────────────────────────
 
         public void OnPromoteClicked()
         {
@@ -180,40 +239,22 @@ namespace FMLite.UI
                 return;
             YouthSystem.PromotePlayer(_currentPlayerId, state);
             promoteButton?.gameObject.SetActive(false);
-            declinePromotionButton?.gameObject.SetActive(false);
-        }
-
-        public void OnDeclinePromotionClicked()
-        {
-            var state = GameManager.Instance?.State;
-            if (state == null || _currentPlayerId == -1)
-                return;
-            YouthSystem.DeclinePromotion(_currentPlayerId, state);
-            promoteButton?.gameObject.SetActive(false);
-            declinePromotionButton?.gameObject.SetActive(false);
         }
 
         private void ConfigurePromotionButtons(Player player, GameState state)
         {
-            bool showPromotion = false;
+            // R.7 (#77-2): [콜업] = 자기팀 유스 선수면 항상 노출 (pending 제안 한정 아님).
+            bool isOwnYouth = false;
             if (player.currentClubId == state.userClubId)
             {
                 var club = state.GetClub(state.userClubId);
-                showPromotion = club != null
-                    && club.youthSquadIds.Contains(player.id)
-                    && club.season.pendingPromotionPlayerIds.Contains(player.id);
+                isOwnYouth = club != null && club.youthSquadIds.Contains(player.id);
             }
             if (promoteButton != null)
             {
-                promoteButton.gameObject.SetActive(showPromotion);
+                promoteButton.gameObject.SetActive(isOwnYouth);
                 promoteButton.onClick.RemoveAllListeners();
                 promoteButton.onClick.AddListener(OnPromoteClicked);
-            }
-            if (declinePromotionButton != null)
-            {
-                declinePromotionButton.gameObject.SetActive(showPromotion);
-                declinePromotionButton.onClick.RemoveAllListeners();
-                declinePromotionButton.onClick.AddListener(OnDeclinePromotionClicked);
             }
         }
 

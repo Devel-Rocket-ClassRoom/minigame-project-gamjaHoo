@@ -224,6 +224,24 @@ namespace FMLite.Editor
                 E("scout_tier_average", "중간", "Average"),
                 E("scout_tier_low", "낮음", "Low"),
                 E("scout_tier_very_low", "매우 낮음", "Very Low"),
+                // ── Profile scouting gate (R.6 #77-1) ──────────────────────
+                E(
+                    "profile_not_scouted",
+                    "스카우팅되지 않음 — 추가 정찰 필요",
+                    "Not scouted — further scouting required"
+                ),
+                // ── Profile actions: renew / call-up (R.7 #77-2) ───────────
+                E("btn_renew", "재계약", "Renew"),
+                E("btn_callup", "콜업", "Call up"),
+                E("btn_decline", "거절", "Decline"),
+                E("renew_title", "재계약 제안", "Contract Renewal"),
+                E("renew_suggested_fmt", "제안 주급: {0}", "Suggested wage: {0}"),
+                E("renew_length_years_fmt", "계약 기간: {0}년", "Length: {0} yr"),
+                E("renew_confirm", "제안", "Offer"),
+                E("renew_close", "닫기", "Close"),
+                E("renew_invalid_wage", "주급을 올바르게 입력하세요", "Enter a valid wage"),
+                E("renew_accepted", "재계약 수락!", "Renewal accepted!"),
+                E("renew_rejected", "재계약 거절됨", "Renewal rejected"),
                 // ── Club select ────────────────────────────────────────────
                 E("reputation_fmt", "명성 {0}", "Reputation {0}"),
                 // ── Fixture ────────────────────────────────────────────────

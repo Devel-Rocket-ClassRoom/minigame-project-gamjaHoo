@@ -132,6 +132,48 @@ namespace FMLite.Tests
             );
         }
 
+        // ── CanRevealDetails (R.6 #77-1) ─────────────────────────────
+
+        [Test]
+        public void CanRevealDetails_OwnClubPlayer_ReturnsTrue()
+        {
+            var club = NewClub(); // id=1
+            var player = new Player { id = 50, currentClubId = 1 };
+            Assert.IsTrue(ScoutingVisibility.CanRevealDetails(club, player));
+        }
+
+        [Test]
+        public void CanRevealDetails_OtherClubNotScouted_ReturnsFalse()
+        {
+            var club = NewClub();
+            var player = new Player { id = 50, currentClubId = 2 }; // 타팀, 미정찰
+            Assert.IsFalse(ScoutingVisibility.CanRevealDetails(club, player));
+        }
+
+        [Test]
+        public void CanRevealDetails_OtherClubScouted_ReturnsTrue()
+        {
+            var club = NewClub();
+            club.scoutingKnowledge[50] = new ScoutReport { playerId = 50, scoutLevel = 20 };
+            var player = new Player { id = 50, currentClubId = 2 }; // 타팀, 정찰됨
+            Assert.IsTrue(ScoutingVisibility.CanRevealDetails(club, player));
+        }
+
+        [Test]
+        public void CanRevealDetails_DebugMode_AlwaysTrue()
+        {
+            var club = NewClub();
+            var player = new Player { id = 50, currentClubId = 2 };
+            Assert.IsTrue(ScoutingVisibility.CanRevealDetails(club, player, isDebugMode: true));
+        }
+
+        [Test]
+        public void CanRevealDetails_NullPlayer_ReturnsFalse()
+        {
+            var club = NewClub();
+            Assert.IsFalse(ScoutingVisibility.CanRevealDetails(club, null));
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────────────────
 
         private static Club NewClub() =>

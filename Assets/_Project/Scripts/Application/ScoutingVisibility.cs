@@ -35,6 +35,19 @@ namespace FMLite.Application
             return userClub.scoutingKnowledge.ContainsKey(playerId);
         }
 
+        // R.6 (#77-1) — 프로필 상세(49 stat / 트레잇 / 내부 상태) 노출 가능 여부.
+        // 자기팀 선수는 항상 노출, 타팀은 스카우팅 명단 ∈ 일 때만. 미정찰 타팀은 게이팅.
+        public static bool CanRevealDetails(Club userClub, Player player, bool isDebugMode = false)
+        {
+            if (isDebugMode)
+                return true;
+            if (player == null || userClub == null)
+                return false;
+            if (player.currentClubId == userClub.id)
+                return true;
+            return IsScouted(userClub, player.id, isDebugMode);
+        }
+
         // 비율 (value / max) 기반 5단계 라벨.
         // CA: max=200, stat: max=100, hidden: max=100 (단 hidden 은 명단 ∉ 시 표시 X — UI 가 처리).
         public static ScoutTier GetTier(int value, int max)
