@@ -52,6 +52,10 @@ namespace FMLite.UI
                     return SfxId.CardYellow;
                 case MatchEventType.RedCard:
                     return SfxId.CardRed;
+                case MatchEventType.PenaltyAwarded:
+                    // 파울 휘슬은 일반 파울(매분 다발)엔 안 울리고 — 페널티(드묾·중대) 에만.
+                    // 일반 파울은 무음, 카드 동반 파울만 카드 휘슬로 표현.
+                    return SfxId.Foul;
                 case MatchEventType.Injury:
                     return SfxId.Injury;
                 case MatchEventType.Substitution:
