@@ -68,6 +68,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MatchPreviewScene.unity
     guid: 6918ed920c9801a4791ecbc2f3bf40d1
+  - enabled: 1
+    path: Assets/Scenes/MatchResultDashboard.unity
+    guid: 39d7c0c0bb36f7840ad9ea2d2f3499e8
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

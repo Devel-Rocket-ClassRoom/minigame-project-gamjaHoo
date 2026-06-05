@@ -1604,3 +1604,126 @@ MonoBehaviour:
   - key: dashboard_injury_fmt
     korean: "\uBD80\uC0C1\xB7\uACB0\uC7A5 {0}"
     english: 'Out: {0}'
+  - key: mrd_tab_overview
+    korean: "\uAC1C\uC694"
+    english: Overview
+  - key: mrd_tab_ratings
+    korean: "\uD3C9\uC810"
+    english: Ratings
+  - key: mrd_tab_stats
+    korean: "\uD1B5\uACC4"
+    english: Stats
+  - key: mrd_tab_heatmap
+    korean: "\uD788\uD2B8\uB9F5"
+    english: Heatmap
+  - key: mrd_tab_shotmap
+    korean: "\uC29B\uB9F5"
+    english: Shot Map
+  - key: mrd_tab_events
+    korean: "\uC774\uBCA4\uD2B8"
+    english: Events
+  - key: mrd_back
+    korean: "\uB4A4\uB85C"
+    english: Back
+  - key: mrd_goals
+    korean: "\uB4DD\uC810"
+    english: Goals
+  - key: mrd_none
+    korean: "\uC5C6\uC74C"
+    english: None
+  - key: mrd_cards
+    korean: "\uCE74\uB4DC"
+    english: Cards
+  - key: mrd_card_yellow
+    korean: "\uC610\uB85C"
+    english: Yellow
+  - key: mrd_card_second_yellow
+    korean: "\uACBD\uACE0\uB204\uC801 \uD1F4\uC7A5"
+    english: Second Yellow
+  - key: mrd_card_red
+    korean: "\uB808\uB4DC"
+    english: Red
+  - key: mrd_injuries
+    korean: "\uBD80\uC0C1"
+    english: Injuries
+  - key: mrd_injury
+    korean: "\uBD80\uC0C1"
+    english: Injury
+  - key: mrd_subs
+    korean: "\uAD50\uCCB4"
+    english: Substitutions
+  - key: mrd_stat_possession
+    korean: "\uC810\uC720\uC728"
+    english: Possession
+  - key: mrd_stat_shots
+    korean: "\uC29B"
+    english: Shots
+  - key: mrd_stat_shots_on
+    korean: "\uC720\uD6A8\uC29B"
+    english: On Target
+  - key: mrd_stat_corners
+    korean: "\uCF54\uB108"
+    english: Corners
+  - key: mrd_stat_fouls
+    korean: "\uD30C\uC6B8"
+    english: Fouls
+  - key: mrd_stat_tackles
+    korean: "\uD0DC\uD074"
+    english: Tackles
+  - key: mrd_stat_pass_pct
+    korean: "\uD328\uC2A4 \uC131\uACF5\uB960"
+    english: Pass %
+  - key: mrd_zone_home_box
+    korean: "\uD648 \uBC15\uC2A4"
+    english: Home Box
+  - key: mrd_zone_home_third
+    korean: "\uD648 \uC9C4\uC601"
+    english: Home Third
+  - key: mrd_zone_midfield
+    korean: "\uBBF8\uB4DC\uD544\uB4DC"
+    english: Midfield
+  - key: mrd_zone_away_third
+    korean: "\uC6D0\uC815 \uC9C4\uC601"
+    english: Away Third
+  - key: mrd_zone_away_box
+    korean: "\uC6D0\uC815 \uBC15\uC2A4"
+    english: Away Box
+  - key: mrd_heatmap_legend
+    korean: "\uBCFC \uC810\uC720 \uBD84\uD3EC  \xB7  \uC0C9\uC774 \uB728\uAC70\uC6B8\uC218\uB85D(\uBD89\uC744\uC218\uB85D)
+      \uBCFC\uC774 \uC624\uB798 \uBA38\uBB38 \uC9C0\uC5ED  \xB7  \u2190 \uD648 \uACE8\uBB38
+      / \uC6D0\uC815 \uACE8\uBB38 \u2192"
+    english: "Ball possession by zone  \xB7  Hotter color = more time on the ball 
+      \xB7  \u2190 Home goal / Away goal \u2192"
+  - key: mrd_home_short
+    korean: "\uD648"
+    english: Home
+  - key: mrd_away_short
+    korean: "\uC6D0\uC815"
+    english: Away
+  - key: mrd_team_home_dir
+    korean: "{0} (\uD648) \u25B6"
+    english: "{0} (Home) \u25B6"
+  - key: mrd_team_away_dir
+    korean: "\u25C0 {0} (\uC6D0\uC815)"
+    english: "\u25C0 {0} (Away)"
+  - key: mrd_shotmap_legend
+    korean: "<color=#E06666>\u25CF \uD648</color>  <color=#6FA8DC>\u25CF \uC6D0\uC815</color>   
+      \uD070 \uC810=\uACE8(\uD770 \uD14C\uB450\uB9AC) \xB7 <color=#999999>\uD68C\uC0C9=\uC120\uBC29</color>
+      \xB7 \uC791\uC740 \uC810=\uBE57\uB098\uAC10"
+    english: "<color=#E06666>\u25CF Home</color>  <color=#6FA8DC>\u25CF Away</color>   
+      Large=Goal (ringed) \xB7 <color=#999999>Gray=Saved</color> \xB7 Small=Off target"
+  - key: mrd_no_events
+    korean: "\uD45C\uC2DC\uD560 \uC774\uBCA4\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    english: No events to display.
+  - key: mrd_assist
+    korean: "\uC5B4\uC2DC\uC2A4\uD2B8"
+    english: Assist
+  - key: mrd_shot_goal
+    korean: "\uACE8"
+    english: Goal
+  - key: mrd_shot_saved
+    korean: "\uC120\uBC29"
+    english: Saved
+  - key: mrd_shot_off
+    korean: "\uBE57\uB098\uAC10"
+    english: Off Target
