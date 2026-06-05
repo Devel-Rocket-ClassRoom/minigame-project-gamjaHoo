@@ -112,7 +112,7 @@ namespace FMLite.UI
             if (autoSaveSwitch != null)
             {
                 autoSaveSwitch.isOn = OptionsManager.AutoSave;
-                autoSaveSwitch.UpdateUI();
+                SafeUpdateUI(() => autoSaveSwitch.UpdateUI(), "SwitchManager");
             }
         }
 
@@ -121,7 +121,24 @@ namespace FMLite.UI
             if (s == null || s.mainSlider == null)
                 return;
             s.mainSlider.value = v;
-            s.UpdateUI();
+            SafeUpdateUI(() => s.UpdateUI(), "SliderManager");
+        }
+
+        // MUIP 의 UpdateUI 는 빌드 초기화 순서에 따라 내부 NRE 가능 (SwitchManager.UpdateUI 등).
+        // 이 예외가 LoadValuesIntoUI → Start 를 중단시키면 이후 WireEvents 가 실행되지 않아
+        // 저장/뒤로 버튼 onClick 이 배선되지 않는다(빌드 전용 버그). 예외를 격리해 Start 진행 보장.
+        private static void SafeUpdateUI(System.Action update, string label)
+        {
+            try
+            {
+                update();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning(
+                    $"[OptionsController] MUIP {label}.UpdateUI 실패(빌드 초기화 순서) — 무시: {e.Message}"
+                );
+            }
         }
 
         // ── 이벤트 와이어링 ──────────────────────────────────────────
