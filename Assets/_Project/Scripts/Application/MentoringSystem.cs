@@ -38,7 +38,12 @@ namespace FMLite.Application
                         if (mentee?.hiddenAttrs == null)
                             continue;
 
-                        ConvergeAttrs(mentor.hiddenAttrs, mentee.hiddenAttrs, balance.mentoringRateModifier);
+                        ConvergeAttrs(
+                            mentor.hiddenAttrs,
+                            mentee.hiddenAttrs,
+                            balance.mentoringRateModifier,
+                            balance.mentoringConvergenceFraction
+                        );
                     }
                 }
             }
@@ -98,30 +103,67 @@ namespace FMLite.Application
                 throw new InvalidOperationException($"groupId={groupId} 를 찾을 수 없음");
         }
 
-        // ── 내부 ───────────────────────────────────────────────────────
+        // ── I.2 진행률 헬퍼 (UI 용, 순수 함수) ─────────────────────────
 
-        private static void ConvergeAttrs(HiddenAttributes mentor, HiddenAttributes mentee, int rate)
-        {
-            mentee.professionalism = Math.Clamp(
-                mentee.professionalism + Delta(mentor.professionalism, mentee.professionalism, rate),
-                1, 100
-            );
-            mentee.ambition = Math.Clamp(
-                mentee.ambition + Delta(mentor.ambition, mentee.ambition, rate),
-                1, 100
-            );
-            mentee.loyalty = Math.Clamp(
-                mentee.loyalty + Delta(mentor.loyalty, mentee.loyalty, rate),
-                1, 100
-            );
-        }
-
-        private static int Delta(int mentorVal, int menteeVal, int rate)
+        // 이번 달 수렴 스텝 (mentor 방향). 격차 비례 (차이 클수록 빠름) + rateCap 상한.
+        // RunMentoring 의 ConvergeAttrs 와 동일 로직.
+        public static int ProjectedMonthlyStep(
+            int mentorVal,
+            int menteeVal,
+            int rateCap,
+            float fraction
+        )
         {
             int diff = mentorVal - menteeVal;
             if (diff == 0)
                 return 0;
-            return (diff > 0 ? 1 : -1) * Math.Min(Math.Abs(diff), rate);
+            int mag = Math.Abs(diff);
+            // 격차 비례: |diff| × fraction, 반올림. 최소 1 (멘토 수치까지 결국 도달).
+            int raw = (int)Math.Round(mag * (double)fraction, MidpointRounding.AwayFromZero);
+            int step = Math.Clamp(raw, 1, Math.Min(Math.Max(rateCap, 1), mag));
+            return (diff > 0 ? 1 : -1) * step;
+        }
+
+        // 수렴 진행률 % — mentee 가 mentor(목표=상한)에 얼마나 근접했나. mentee >= mentor 면 100.
+        public static float ConvergencePercent(int mentorVal, int menteeVal)
+        {
+            if (mentorVal <= 0 || menteeVal >= mentorVal)
+                return 100f;
+            return Math.Clamp((float)menteeVal / mentorVal * 100f, 0f, 100f);
+        }
+
+        // ── 내부 ───────────────────────────────────────────────────────
+
+        private static void ConvergeAttrs(
+            HiddenAttributes mentor,
+            HiddenAttributes mentee,
+            int rateCap,
+            float fraction
+        )
+        {
+            mentee.professionalism = Math.Clamp(
+                mentee.professionalism
+                    + ProjectedMonthlyStep(
+                        mentor.professionalism,
+                        mentee.professionalism,
+                        rateCap,
+                        fraction
+                    ),
+                1,
+                100
+            );
+            mentee.ambition = Math.Clamp(
+                mentee.ambition
+                    + ProjectedMonthlyStep(mentor.ambition, mentee.ambition, rateCap, fraction),
+                1,
+                100
+            );
+            mentee.loyalty = Math.Clamp(
+                mentee.loyalty
+                    + ProjectedMonthlyStep(mentor.loyalty, mentee.loyalty, rateCap, fraction),
+                1,
+                100
+            );
         }
     }
 }

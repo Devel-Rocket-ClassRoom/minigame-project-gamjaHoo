@@ -378,7 +378,17 @@ namespace FMLite.Domain
         public int youthIntakeSecondDay = 15; // 보조 인스펙션: 1/15 (시즌 중간)
 
         [Header("Mentoring System (V0.5 L.4)")]
-        public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 최대 (algorithms.md V0.5-4)
+        public int mentoringRateModifier = 5; // 월 Hidden Attr 변동폭 상한 (cap, algorithms.md V0.5-4)
+
+        // V1.0 I.2 — 격차 비례 수렴: 월 스텝 = |멘토-멘티| × fraction (최소 1, rateCap 상한).
+        // 차이 클수록 빠르고 멘토 수치에 가까울수록 느려짐 (고정 +rate 폐기).
+        public float mentoringConvergenceFraction = 0.15f;
+
+        [Header("Mentor Recommendation (V1.0 I.3)")]
+        public float mentorAgeCap = 35f; // 나이 가산 상한 (CaptainSystem 패턴)
+        public float mentorAgeWeight = 0.5f; // 나이(상한) 가중치
+        public float mentorContractWeight = 1.0f; // 계약 잔여 연수 가중치
+        public float mentorHiddenWeight = 0.5f; // 전수 대상 Hidden Attr(prof/amb/loy) 평균 가중치
 
         [Header("Youth Promotion (V0.5 L.5)")]
         public int youthPromotionAge = 18;

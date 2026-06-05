@@ -1,7 +1,10 @@
 // MentoringGroupItem.cs
-// MentoringScene — 그룹 목록의 단일 아이템 (멘토 이름 + 멘티 목록 + 해체 버튼).
+// MentoringScene — 그룹 목록의 단일 아이템.
+// 멘토 헤더 + 멘티별 진행률 행(MenteeProgressRow) + 해체 버튼.
+// V1.0 I.2 — 멘티 Hidden Attr 수렴 진행률 시각화 추가.
 
 using System;
+using FMLite.Application;
 using FMLite.Domain;
 using TMPro;
 using UnityEngine;
@@ -14,31 +17,32 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text mentorLabel;
 
+        [Header("멘티 진행률 행 (동적 생성)")]
         [SerializeField]
-        private TMP_Text menteesLabel;
+        private Transform menteeRowParent;
+
+        [SerializeField]
+        private MenteeProgressRow menteeRowPrefab;
 
         [SerializeField]
         private Button dissolveButton;
 
-        public void Setup(MentoringGroup group, GameState state, Action<int> onDissolve)
+        public void Setup(
+            MentoringGroup group,
+            GameState state,
+            int rateCap,
+            float fraction,
+            Action<int> onDissolve
+        )
         {
             var mentor = state.GetPlayer(group.mentorPlayerId);
             if (mentorLabel != null)
                 mentorLabel.text =
                     mentor != null
-                        ? $"{mentor.info?.lastName ?? $"P{mentor.id}"} (멘토)"
+                        ? Localization.Get("mentoring_mentor_fmt", PlayerName(mentor))
                         : $"ID {group.mentorPlayerId}";
 
-            if (menteesLabel != null)
-            {
-                var names = new System.Collections.Generic.List<string>();
-                foreach (var id in group.menteePlayerIds)
-                {
-                    var p = state.GetPlayer(id);
-                    names.Add(p != null ? (p.info?.lastName ?? $"P{id}") : $"ID {id}");
-                }
-                menteesLabel.text = string.Join(", ", names);
-            }
+            BuildMenteeRows(group, state, mentor?.hiddenAttrs, rateCap, fraction);
 
             if (dissolveButton != null)
             {
@@ -47,5 +51,35 @@ namespace FMLite.UI
                 dissolveButton.onClick.AddListener(() => onDissolve(groupId));
             }
         }
+
+        private void BuildMenteeRows(
+            MentoringGroup group,
+            GameState state,
+            HiddenAttributes mentorAttrs,
+            int rateCap,
+            float fraction
+        )
+        {
+            if (menteeRowParent == null || menteeRowPrefab == null)
+                return;
+
+            foreach (Transform child in menteeRowParent)
+                Destroy(child.gameObject);
+
+            foreach (var id in group.menteePlayerIds)
+            {
+                var mentee = state.GetPlayer(id);
+                var row = Instantiate(menteeRowPrefab, menteeRowParent);
+                row.Setup(
+                    mentee != null ? PlayerName(mentee) : $"ID {id}",
+                    mentorAttrs,
+                    mentee?.hiddenAttrs,
+                    rateCap,
+                    fraction
+                );
+            }
+        }
+
+        private static string PlayerName(Player p) => p.info?.lastName ?? $"P{p.id}";
     }
 }

@@ -1463,6 +1463,54 @@ MonoBehaviour:
   - key: youth_mentoring_summary_fmt
     korean: "\uBA58\uD1A0\uB9C1 \uADF8\uB8F9 {0} \xB7 \uBA58\uD2F0 {1}\uBA85"
     english: "Mentoring Groups {0} \xB7 Mentees {1}"
+  - key: mentoring_title
+    korean: "\uBA58\uD1A0\uB9C1"
+    english: Mentoring
+  - key: mentoring_mentor_fmt
+    korean: "{0} \xB7 \uBA58\uD1A0"
+    english: "{0} \xB7 Mentor"
+  - key: mentoring_step_fmt
+    korean: "{0}/\uC6D4"
+    english: '{0}/mo'
+  - key: mentoring_step_done
+    korean: "\uC644\uB8CC"
+    english: Done
+  - key: mentoring_attr_professionalism
+    korean: "\uC804\uBB38\uC131"
+    english: Profess.
+  - key: mentoring_attr_ambition
+    korean: "\uC57C\uB9DD"
+    english: Ambition
+  - key: mentoring_attr_loyalty
+    korean: "\uCDA9\uC131\uB3C4"
+    english: Loyalty
+  - key: mentoring_recommend
+    korean: "\uCD94\uCC9C \uBA58\uD1A0"
+    english: Recommend
+  - key: mentoring_create_group
+    korean: "\uC0C8 \uADF8\uB8F9"
+    english: New Group
+  - key: mentoring_create_title
+    korean: "\uBA58\uD1A0\uB9C1 \uADF8\uB8F9 \uB9CC\uB4E4\uAE30"
+    english: Create Mentoring Group
+  - key: mentoring_confirm
+    korean: "\uADF8\uB8F9 \uC0DD\uC131"
+    english: Create
+  - key: mentoring_cancel
+    korean: "\uCDE8\uC18C"
+    english: Cancel
+  - key: mentoring_dissolve
+    korean: "\uD574\uCCB4"
+    english: Dissolve
+  - key: mentoring_no_groups
+    korean: "\uD65C\uC131 \uBA58\uD1A0\uB9C1 \uADF8\uB8F9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+    english: No active mentoring groups
+  - key: mentoring_mentor_select
+    korean: "\uBA58\uD1A0 \uC120\uD0DD"
+    english: Select Mentor
+  - key: mentoring_mentee_select
+    korean: "\uBA58\uD2F0 \uC120\uD0DD (\uCD5C\uB300 3\uBA85)"
+    english: Select Mentees (max 3)
   - key: nav_dashboard
     korean: "\uB300\uC2DC\uBCF4\uB4DC"
     english: Dashboard
