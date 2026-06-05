@@ -279,6 +279,12 @@ namespace FMLite.Editor
                     "피지컬 성장 ×{0}",
                     "Physical ×{0}"
                 ),
+                // ── Facility (V1.0 L.1/L.2 #526 — 카드 재작업) ──────────────
+                E("facility_scene_title", "시설", "Facilities"),
+                E("facility_upgrade_button", "업그레이드", "Upgrade"),
+                E("facility_upgrade_inprogress", "진행 중", "In Progress"),
+                E("facility_progress_dday_fmt", "D-{0}", "D-{0}"),
+                E("facility_progress_today", "오늘 완료", "Done today"),
                 // ── Scouting Tier (V0.5 E.3 — 정성적 라벨 5단계) ─────────────
                 E("scout_tier_very_high", "매우 높음", "Very High"),
                 E("scout_tier_high", "높음", "High"),

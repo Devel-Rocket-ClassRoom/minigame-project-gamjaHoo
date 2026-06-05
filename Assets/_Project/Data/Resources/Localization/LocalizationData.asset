@@ -121,6 +121,21 @@ MonoBehaviour:
   - key: facility_effect_gym_fmt
     korean: "\uD53C\uC9C0\uCEEC \uC131\uC7A5 \xD7{0}"
     english: "Physical \xD7{0}"
+  - key: facility_scene_title
+    korean: "\uC2DC\uC124"
+    english: Facilities
+  - key: facility_upgrade_button
+    korean: "\uC5C5\uADF8\uB808\uC774\uB4DC"
+    english: Upgrade
+  - key: facility_upgrade_inprogress
+    korean: "\uC9C4\uD589 \uC911"
+    english: In Progress
+  - key: facility_progress_dday_fmt
+    korean: D-{0}
+    english: D-{0}
+  - key: facility_progress_today
+    korean: "\uC624\uB298 \uC644\uB8CC"
+    english: Done today
   - key: scout_tier_very_high
     korean: "\uB9E4\uC6B0 \uB192\uC74C"
     english: Very High
