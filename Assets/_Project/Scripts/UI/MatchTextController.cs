@@ -165,8 +165,8 @@ namespace FMLite.UI
             int matchId = PlayerPrefs.GetInt(DashboardController.SelectedMatchIdKey, -1);
             _match = FindMatch(matchId);
 
-            // J.5 — 매치 BGM (에셋/인스턴스 없으면 silent fallback).
-            SoundManager.Instance?.PlayBGM(BgmId.Match);
+            // Stage Y — MatchTextScene 진입 시 BGM 끄고 관중 앰비언스만.
+            // SoundManager 가 SceneManager.sceneLoaded 중앙 구독으로 자동 처리 (여기서 호출 불필요).
 
             if (_match?.result == null)
             {
@@ -218,16 +218,19 @@ namespace FMLite.UI
             // 스킵 시 남은 이벤트 즉시 처리 (인덱스 기준 — 필터로 표시 항목 수 ≠ 이벤트 수)
             if (_isSkipped)
             {
+                // 이벤트 SFX 억제 — 일괄 처리라 휘슬/골/카드가 한꺼번에 폭주하면 정신없음.
                 for (; _playIndex < events.Count; _playIndex++)
-                    ProcessEvent(events[_playIndex]);
+                    ProcessEvent(events[_playIndex], allowSfx: false);
                 ScrollToBottom();
+                // 스킵 종료 신호로 종료 휘슬만 1회.
+                SoundManager.Instance?.PlaySFX(SfxId.MatchFulltime);
             }
 
             ShowResultPanel();
         }
 
         // 점수/분/진행은 모든 이벤트로 갱신. 텍스트/SFX 는 핵심 이벤트만 (J.2). 표시 여부 반환.
-        private bool ProcessEvent(MatchEvent ev)
+        private bool ProcessEvent(MatchEvent ev, bool allowSfx = true)
         {
             UpdateScore(ev);
             UpdateMinute(ev.minute);
@@ -238,7 +241,8 @@ namespace FMLite.UI
             if (show)
             {
                 SpawnEventItem(ev);
-                PlayEventSfx(ev.type);
+                if (allowSfx)
+                    PlayEventSfx(ev.type);
                 ScrollToBottom();
             }
 

@@ -1,10 +1,10 @@
 // SoundManagerTests.cs
-// Task A.7 DoD:
+// Task A.7 + Stage Y DoD:
 //   T1  VolumeToDb 변환 — 100→0dB / 0→MuteDb(-80) / 10→약 -20dB
 //   T2  Singleton — 인스턴스화 정상 / 두 번째 인스턴스 Destroy
-//   T3  PlaySFX(null clip) → 예외 X (silent fallback)
-//   T4  PlayBGM(null clip) → 예외 X (silent fallback)
-//   T5  SfxId 12종 / BgmId 3종 enum count 검증
+//   T3  PlaySFX(미부트스트랩) → 예외 X (silent fallback) — Goal 레이어 / Foul 포함
+//   T4  StopBGM / ApplyOptionsVolume(미부트스트랩) → 예외 X (silent fallback)
+//   T5  SfxId 13종 enum count 검증 (Stage Y: Foul 추가)
 
 using System;
 using FMLite.Application;
@@ -43,27 +43,27 @@ namespace FMLite.Tests
         // ── T3. PlaySFX silent fallback ─────────────────────────────
 
         [Test]
-        public void T3_PlaySFX_NullClip_NoException()
+        public void T3_PlaySFX_NotBootstrapped_NoException()
         {
             _go = new GameObject("SoundManager");
             var sm = _go.AddComponent<SoundManager>();
 
-            // clip 미할당 상태 — 예외 X
+            // 소스 미생성(EditMode) 상태 — 예외 X
             Assert.DoesNotThrow(() => sm.PlaySFX(SfxId.ButtonClick), "T3: silent fallback");
-            Assert.DoesNotThrow(() => sm.PlaySFX(SfxId.Goal), "T3: silent fallback");
+            Assert.DoesNotThrow(() => sm.PlaySFX(SfxId.Goal), "T3: Goal 레이어 silent fallback");
+            Assert.DoesNotThrow(() => sm.PlaySFX(SfxId.Foul), "T3: Foul silent fallback");
         }
 
-        // ── T4. PlayBGM silent fallback ─────────────────────────────
+        // ── T4. BGM 어댑터 silent fallback ──────────────────────────
 
         [Test]
-        public void T4_PlayBGM_NullClip_NoException()
+        public void T4_Bgm_NotBootstrapped_NoException()
         {
             _go = new GameObject("SoundManager");
             var sm = _go.AddComponent<SoundManager>();
 
-            Assert.DoesNotThrow(() => sm.PlayBGM(BgmId.MainMenu), "T4: silent fallback");
-            Assert.DoesNotThrow(() => sm.PlayBGM(BgmId.Match), "T4: silent fallback");
             Assert.DoesNotThrow(() => sm.StopBGM(), "T4: StopBGM safe");
+            Assert.DoesNotThrow(() => sm.ApplyOptionsVolume(), "T4: 믹서 null 무해");
         }
 
         // ── T5. Enum count 검증 ──────────────────────────────────────
@@ -71,8 +71,7 @@ namespace FMLite.Tests
         [Test]
         public void T5_Enum_Counts_MatchSpec()
         {
-            Assert.AreEqual(12, Enum.GetValues(typeof(SfxId)).Length, "T5: SFX 12종");
-            Assert.AreEqual(3, Enum.GetValues(typeof(BgmId)).Length, "T5: BGM 3곡");
+            Assert.AreEqual(13, Enum.GetValues(typeof(SfxId)).Length, "T5: SFX 13종 (Foul 추가)");
         }
     }
 }
