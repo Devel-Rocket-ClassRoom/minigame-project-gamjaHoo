@@ -673,6 +673,7 @@ namespace FMLite.Application
             );
 
             ShotOutcome outcome;
+            int recordedAssist = -1; // 슛맵 핀 어시스트 (골 한정).
             if (convRoll < conversion)
             {
                 // GOAL
@@ -687,6 +688,8 @@ namespace FMLite.Application
                 int assister = GetPendingAssist(sim, att);
                 if (assister != -1 && assister != shooter.id && sim.stats.ContainsKey(assister))
                     sim.stats[assister].assists++;
+                if (assister != -1 && assister != shooter.id)
+                    recordedAssist = assister;
                 ClearPendingAssist(sim, att);
 
                 if (sim.collectEvents)
@@ -759,7 +762,7 @@ namespace FMLite.Application
                 ClearPendingAssist(sim, att);
             }
 
-            RecordShotPin(sim, att, type, xg, outcome);
+            RecordShotPin(sim, att, type, xg, outcome, shooter.id, recordedAssist);
         }
 
         // chanceType별 기본 xG (찬스 품질).
@@ -825,7 +828,9 @@ namespace FMLite.Application
             Side att,
             ChanceType type,
             double xg,
-            ShotOutcome outcome
+            ShotOutcome outcome,
+            int shooterId,
+            int assistId
         )
         {
             float x,
@@ -862,6 +867,8 @@ namespace FMLite.Application
                     y = Clamp01(y),
                     xg = (float)xg,
                     outcome = outcome,
+                    shooterId = shooterId,
+                    assistId = assistId,
                 }
             );
         }
@@ -1133,6 +1140,8 @@ namespace FMLite.Application
                     y = 0.5f,
                     xg = (float)conv,
                     outcome = scored ? ShotOutcome.Goal : ShotOutcome.Saved,
+                    shooterId = taker.id,
+                    assistId = -1,
                 }
             );
         }

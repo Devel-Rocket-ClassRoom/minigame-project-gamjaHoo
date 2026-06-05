@@ -50,6 +50,10 @@ namespace FMLite.Domain
         public float y; // 0~1 (피치 폭 방향, 중앙 = 0.5)
         public float xg; // 찬스 품질 (situation, 슈터 무관)
         public ShotOutcome outcome;
+
+        // V1.0 (AA 슛맵 호버 툴팁) — 슈터 / 어시스트. -1 = 없음.
+        public int shooterId = -1;
+        public int assistId = -1;
     }
 
     [Serializable]

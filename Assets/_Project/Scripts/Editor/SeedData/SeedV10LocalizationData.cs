@@ -56,8 +56,69 @@ namespace FMLite.Editor
             entries.AddRange(BuildV10PlayerProfile());
             entries.AddRange(BuildV10Nav());
             entries.AddRange(BuildV10CompletedSceneLabels());
+            entries.AddRange(BuildV10MatchResultDashboard());
             return entries;
         }
+
+        // Stage AA — 매치 결과 대시보드 (MatchResultController). 탭/라벨/범례 키 (KO/EN).
+        private static List<LocalizationEntry> BuildV10MatchResultDashboard() =>
+            new List<LocalizationEntry>
+            {
+                // 탭 + 네비
+                E("mrd_tab_overview", "개요", "Overview"),
+                E("mrd_tab_ratings", "평점", "Ratings"),
+                E("mrd_tab_stats", "통계", "Stats"),
+                E("mrd_tab_heatmap", "히트맵", "Heatmap"),
+                E("mrd_tab_shotmap", "슛맵", "Shot Map"),
+                E("mrd_tab_events", "이벤트", "Events"),
+                E("mrd_back", "뒤로", "Back"),
+                // 개요
+                E("mrd_goals", "득점", "Goals"),
+                E("mrd_none", "없음", "None"),
+                E("mrd_cards", "카드", "Cards"),
+                E("mrd_card_yellow", "옐로", "Yellow"),
+                E("mrd_card_second_yellow", "경고누적 퇴장", "Second Yellow"),
+                E("mrd_card_red", "레드", "Red"),
+                E("mrd_injuries", "부상", "Injuries"),
+                E("mrd_injury", "부상", "Injury"),
+                E("mrd_subs", "교체", "Substitutions"),
+                // 통계
+                E("mrd_stat_possession", "점유율", "Possession"),
+                E("mrd_stat_shots", "슛", "Shots"),
+                E("mrd_stat_shots_on", "유효슛", "On Target"),
+                E("mrd_stat_corners", "코너", "Corners"),
+                E("mrd_stat_fouls", "파울", "Fouls"),
+                E("mrd_stat_tackles", "태클", "Tackles"),
+                E("mrd_stat_pass_pct", "패스 성공률", "Pass %"),
+                // 히트맵
+                E("mrd_zone_home_box", "홈 박스", "Home Box"),
+                E("mrd_zone_home_third", "홈 진영", "Home Third"),
+                E("mrd_zone_midfield", "미드필드", "Midfield"),
+                E("mrd_zone_away_third", "원정 진영", "Away Third"),
+                E("mrd_zone_away_box", "원정 박스", "Away Box"),
+                E(
+                    "mrd_heatmap_legend",
+                    "볼 점유 분포  ·  색이 뜨거울수록(붉을수록) 볼이 오래 머문 지역  ·  ← 홈 골문 / 원정 골문 →",
+                    "Ball possession by zone  ·  Hotter color = more time on the ball  ·  ← Home goal / Away goal →"
+                ),
+                // 슛맵
+                E("mrd_home_short", "홈", "Home"),
+                E("mrd_away_short", "원정", "Away"),
+                E("mrd_team_home_dir", "{0} (홈) ▶", "{0} (Home) ▶"),
+                E("mrd_team_away_dir", "◀ {0} (원정)", "◀ {0} (Away)"),
+                E(
+                    "mrd_shotmap_legend",
+                    "<color=#E06666>● 홈</color>  <color=#6FA8DC>● 원정</color>    큰 점=골(흰 테두리) · <color=#999999>회색=선방</color> · 작은 점=빗나감",
+                    "<color=#E06666>● Home</color>  <color=#6FA8DC>● Away</color>    Large=Goal (ringed) · <color=#999999>Gray=Saved</color> · Small=Off target"
+                ),
+                // 이벤트
+                E("mrd_no_events", "표시할 이벤트가 없습니다.", "No events to display."),
+                // 슛맵 호버 툴팁
+                E("mrd_assist", "어시스트", "Assist"),
+                E("mrd_shot_goal", "골", "Goal"),
+                E("mrd_shot_saved", "선방", "Saved"),
+                E("mrd_shot_off", "빗나감", "Off Target"),
+            };
 
         // 완료 V1.0 씬 하드코딩 라벨 로컬라이즈 (#467) — Dashboard/Squad/PlayerProfile/YouthManagement/Options.
         // 공통 라벨(컬럼/탭)은 공유 키. 동적 텍스트(컨트롤러 Localization.Get)는 제외.

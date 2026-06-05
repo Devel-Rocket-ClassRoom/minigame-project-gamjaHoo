@@ -21,6 +21,7 @@ namespace FMLite.UI
     public class MatchTextController : MonoBehaviour
     {
         private const string DashboardScene = "DashboardScene";
+        private const string MatchResultDashboardScene = "MatchResultDashboard";
         private const float BaseDelay = 0.8f;
 
         [Header("헤더")]
@@ -92,6 +93,10 @@ namespace FMLite.UI
         [SerializeField]
         private Button resultBackButton;
 
+        // AA.6 — 결과 패널에서 MatchResultDashboard(6탭 대시보드) 진입.
+        [SerializeField]
+        private Button resultDashboardButton;
+
         private GameState _state;
         private Match _match;
         private int _homeScore;
@@ -120,6 +125,8 @@ namespace FMLite.UI
                 skipButton.onClick.AddListener(OnSkip);
             if (resultBackButton != null)
                 resultBackButton.onClick.AddListener(OnBackClicked);
+            if (resultDashboardButton != null)
+                resultDashboardButton.onClick.AddListener(OnViewResultDashboard);
             if (lineupToggleButton != null)
                 lineupToggleButton.onClick.AddListener(ToggleLineupPanel);
             if (lineupCloseButton != null)
@@ -175,6 +182,10 @@ namespace FMLite.UI
         }
 
         public void OnBackClicked() => SceneManager.LoadScene(DashboardScene);
+
+        // AA.6 — [결과 보기] → MatchResultDashboard. SelectedMatchId 는 이미 PlayerPrefs 에 설정됨.
+        public void OnViewResultDashboard() =>
+            SceneManager.LoadScene(MatchResultDashboardScene);
 
         // ── 속도 제어 ─────────────────────────────────────────────────
 
