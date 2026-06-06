@@ -28,7 +28,7 @@ namespace FMLite.Application
                 if (league == null)
                     continue;
 
-                var acc = BuildLeagueStats(league);
+                var acc = LeaderboardSystem.BuildLeagueStats(league);
                 if (acc.Count == 0)
                     continue;
 
@@ -103,9 +103,7 @@ namespace FMLite.Application
                     .ToList();
                 if (gkCandidates.Count > 0)
                 {
-                    var gg = gkCandidates
-                        .OrderByDescending(p => CountCleanSheets(p.id, league))
-                        .First();
+                    var gg = gkCandidates.OrderByDescending(p => acc[p.id].cleanSheets).First();
                     awards.Add(MakeSingle(AwardType.GoldenGlove, league, now, gg.id));
                 }
             }
@@ -255,39 +253,14 @@ namespace FMLite.Application
             };
 
         // 리그 전 경기 집계 → playerId별 스탯
-        private static Dictionary<int, StatAcc> BuildLeagueStats(League league)
-        {
-            var acc = new Dictionary<int, StatAcc>();
-            foreach (var match in league.schedule)
-            {
-                if (match?.result == null)
-                    continue;
-                var result = match.result;
-                foreach (var ps in result.playerStats)
-                {
-                    if (!acc.TryGetValue(ps.playerId, out var entry))
-                    {
-                        entry = new StatAcc();
-                        acc[ps.playerId] = entry;
-                    }
-                    entry.apps++;
-                    entry.goals += ps.goals;
-                    entry.assists += ps.assists;
-                    entry.ratingSum += ps.rating;
-                }
-            }
-            return acc;
-        }
-
         // BestEleven: GK=1, DF=4, MF=4, AT=2 (4-4-2)
         private static List<int> SelectBestEleven(
             List<Player> players,
-            Dictionary<int, StatAcc> acc,
+            Dictionary<int, PlayerLeagueStats> acc,
             DateTime now
         )
         {
-            float AvgRating(Player p) =>
-                acc.TryGetValue(p.id, out var a) && a.apps > 0 ? a.ratingSum / a.apps : 0f;
+            float AvgRating(Player p) => acc.TryGetValue(p.id, out var a) ? a.AvgRating : 0f;
 
             var gk = players.Where(p => IsGk(p)).OrderByDescending(AvgRating).Take(1).ToList();
             var df = players.Where(p => IsDf(p)).OrderByDescending(AvgRating).Take(4).ToList();
@@ -325,23 +298,6 @@ namespace FMLite.Application
         {
             var pos = p.info?.primaryPosition;
             return pos == Position.ST || pos == Position.CF;
-        }
-
-        // GK 무실점 경기 수
-        private static int CountCleanSheets(int playerId, League league)
-        {
-            int count = 0;
-            foreach (var match in league.schedule)
-            {
-                if (match?.result == null)
-                    continue;
-                var r = match.result;
-                if (r.homeStarting11.Contains(playerId) && r.awayScore == 0)
-                    count++;
-                else if (r.awayStarting11.Contains(playerId) && r.homeScore == 0)
-                    count++;
-            }
-            return count;
         }
 
         // 직전 월 클럽 승률
@@ -411,14 +367,6 @@ namespace FMLite.Application
             if (date.DayOfYear < p.info.birthDate.DayOfYear)
                 age--;
             return age;
-        }
-
-        private class StatAcc
-        {
-            public int apps;
-            public int goals;
-            public int assists;
-            public float ratingSum;
         }
     }
 }

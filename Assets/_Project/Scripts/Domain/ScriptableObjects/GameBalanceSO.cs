@@ -615,6 +615,10 @@ namespace FMLite.Domain
         public int monthlyPlayerMoraleBonus = 10;
         public int monthlyManagerConfidenceBonus = 5;
 
+        [Header("Leaderboard (V1.0 R.11)")]
+        public int leaderboardRatingMinApps = 5; // 평점 순위 최소 출전수 (1경기 폭평점 배제)
+        public int leaderboardDefaultTopN = 10;
+
         [Header("Manager Reputation (V0.5 M.8)")]
         public int managerRepLeagueWin = 20;
         public int managerRepMonthlyAward = 5;
