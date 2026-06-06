@@ -314,9 +314,24 @@ namespace FMLite.Editor
                 // ── Fixture ────────────────────────────────────────────────
                 E("fixture_title_fmt", "{0} {1} 일정", "{0} {1} Fixtures"),
                 E("fixture_title_fallback_fmt", "일정 {0}", "Fixtures {0}"),
+                // Schedule 탭 (M.2 #528)
+                E("schedule_tab_league", "리그", "League"),
+                E("schedule_tab_cup", "컵", "Cup"),
+                E("schedule_tab_combined", "통합", "All"),
                 // ── Standings ──────────────────────────────────────────────
                 E("standings_title_fmt", "{0} {1} 순위표", "{0} {1} Standings"),
                 E("standings_title_fallback_fmt", "순위표 {0}", "Standings {0}"),
+                // Standings 탭 (M.1 #528)
+                E("standings_tab_table", "순위표", "Table"),
+                E("standings_tab_leaderboard", "리더보드", "Leaderboard"),
+                // 리더보드 카테고리 (R.11 #528)
+                E("leaderboard_cat_goals", "득점", "Goals"),
+                E("leaderboard_cat_assists", "도움", "Assists"),
+                E("leaderboard_cat_rating", "평점", "Rating"),
+                E("leaderboard_cat_cleansheets", "클린시트", "Clean Sheets"),
+                E("leaderboard_cat_appearances", "출전", "Apps"),
+                E("leaderboard_empty", "기록 없음", "No records"),
+                E("leaderboard_more", "더보기", "Show more"),
                 // ── Save slot ──────────────────────────────────────────────
                 E("club_not_selected", "미선택", "Not Selected"),
                 // ── Player profile — header ────────────────────────────────
