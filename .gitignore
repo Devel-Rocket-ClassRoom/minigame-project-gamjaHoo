@@ -137,3 +137,7 @@ Assets/AI Toolkit/Temp.meta
 # Unity MCP 스크린샷 캡처 (디버그 산출물)
 Assets/Screenshots/
 Assets/Screenshots.meta
+
+# Machine-specific MCP config (absolute uvx path) — keep local
+.mcp.json
+.claude/settings.local.json
