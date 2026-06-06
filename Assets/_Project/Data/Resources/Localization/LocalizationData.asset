@@ -197,12 +197,48 @@ MonoBehaviour:
   - key: fixture_title_fallback_fmt
     korean: "\uC77C\uC815 {0}"
     english: Fixtures {0}
+  - key: schedule_tab_league
+    korean: "\uB9AC\uADF8"
+    english: League
+  - key: schedule_tab_cup
+    korean: "\uCEF5"
+    english: Cup
+  - key: schedule_tab_combined
+    korean: "\uD1B5\uD569"
+    english: All
   - key: standings_title_fmt
     korean: "{0} {1} \uC21C\uC704\uD45C"
     english: '{0} {1} Standings'
   - key: standings_title_fallback_fmt
     korean: "\uC21C\uC704\uD45C {0}"
     english: Standings {0}
+  - key: standings_tab_table
+    korean: "\uC21C\uC704\uD45C"
+    english: Table
+  - key: standings_tab_leaderboard
+    korean: "\uB9AC\uB354\uBCF4\uB4DC"
+    english: Leaderboard
+  - key: leaderboard_cat_goals
+    korean: "\uB4DD\uC810"
+    english: Goals
+  - key: leaderboard_cat_assists
+    korean: "\uB3C4\uC6C0"
+    english: Assists
+  - key: leaderboard_cat_rating
+    korean: "\uD3C9\uC810"
+    english: Rating
+  - key: leaderboard_cat_cleansheets
+    korean: "\uD074\uB9B0\uC2DC\uD2B8"
+    english: Clean Sheets
+  - key: leaderboard_cat_appearances
+    korean: "\uCD9C\uC804"
+    english: Apps
+  - key: leaderboard_empty
+    korean: "\uAE30\uB85D \uC5C6\uC74C"
+    english: No records
+  - key: leaderboard_more
+    korean: "\uB354\uBCF4\uAE30"
+    english: Show more
   - key: club_not_selected
     korean: "\uBBF8\uC120\uD0DD"
     english: Not Selected
