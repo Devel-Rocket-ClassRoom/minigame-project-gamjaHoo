@@ -139,9 +139,15 @@ namespace FMLite.Application
                         .Select(r => (r.player, r.stats, (float)r.stats.assists));
                     break;
                 case LeaderboardCategory.Rating:
-                    projected = rows.Where(r => r.stats.apps >= balance.leaderboardRatingMinApps)
+                {
+                    // 최소 출전 필터를 "리그 최다 출전수" 로 상한 적응 — 시즌 초반(아무도 기준 미달)
+                    // 에도 가장 많이 뛴 선수들의 평점이 보이도록. 충분히 진행되면 설정값으로 고정.
+                    int maxApps = rows.Count > 0 ? rows.Max(r => r.stats.apps) : 0;
+                    int minReq = Math.Min(balance.leaderboardRatingMinApps, maxApps);
+                    projected = rows.Where(r => r.stats.apps >= minReq)
                         .Select(r => (r.player, r.stats, r.stats.AvgRating));
                     break;
+                }
                 case LeaderboardCategory.CleanSheets:
                     projected = rows.Where(r =>
                             r.player.info.primaryPosition == Position.GK && r.stats.cleanSheets > 0
