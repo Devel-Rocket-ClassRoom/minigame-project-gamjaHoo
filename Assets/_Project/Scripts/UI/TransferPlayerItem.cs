@@ -30,6 +30,9 @@ namespace FMLite.UI
         private TMP_Text clubText;
 
         [SerializeField]
+        private Image clubCrest; // Stage AD — 선수 소속 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
         private TMP_Text marketValueText;
 
         [SerializeField]
@@ -63,11 +66,10 @@ namespace FMLite.UI
             if (caText != null)
                 caText.text = FormatCa(player.currentAbility, scouted);
 
+            var currentClub = state.GetClub(player.currentClubId);
             if (clubText != null)
-            {
-                var club = state.GetClub(player.currentClubId);
-                clubText.text = club?.name ?? "-";
-            }
+                clubText.text = currentClub?.name ?? "-";
+            CrestProvider.ApplyClubCrest(clubCrest, currentClub?.name);
 
             if (marketValueText != null)
                 marketValueText.text = FormatMarketValue(player, state, scouted);

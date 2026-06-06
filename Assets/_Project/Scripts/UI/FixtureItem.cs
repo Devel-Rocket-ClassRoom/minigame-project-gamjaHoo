@@ -26,6 +26,12 @@ namespace FMLite.UI
         private Image backgroundImage;
 
         [SerializeField]
+        private Image homeCrest; // Stage AD — 홈 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
+        private Image awayCrest; // Stage AD — 원정 구단 크레스트
+
+        [SerializeField]
         private Button rowButton; // 완료 매치 클릭 진입 (AA.6)
 
         [SerializeField]
@@ -47,6 +53,8 @@ namespace FMLite.UI
 
             if (matchText != null)
                 matchText.text = $"{homeClub?.name ?? "?"} vs {awayClub?.name ?? "?"}";
+            CrestProvider.ApplyClubCrest(homeCrest, homeClub?.name);
+            CrestProvider.ApplyClubCrest(awayCrest, awayClub?.name);
 
             bool completed = match.result != null;
 

@@ -43,6 +43,9 @@ namespace FMLite.UI
         private TMP_Text nextMatchText;
 
         [SerializeField]
+        private UnityEngine.UI.Image opponentCrest; // Stage AD — 다음 상대 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
         private TMP_Text tokenText;
 
         [Header("Continue")]
@@ -424,6 +427,14 @@ namespace FMLite.UI
             nextMatchText.text = nextMatch != null
                 ? FormatNextMatchText(state, nextMatch)
                 : Localization.Get("no_next_match");
+            var nextOpponent = nextMatch != null
+                ? state.GetClub(
+                    nextMatch.homeClubId == state.userClubId
+                        ? nextMatch.awayClubId
+                        : nextMatch.homeClubId
+                )
+                : null;
+            CrestProvider.ApplyClubCrest(opponentCrest, nextOpponent?.name);
             RefreshMatchDetail(state, nextMatch);
             RefreshSquadAlerts(state);
         }

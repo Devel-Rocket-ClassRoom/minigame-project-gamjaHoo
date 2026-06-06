@@ -33,6 +33,12 @@ namespace FMLite.UI
         private TMP_Text matchupText;
 
         [SerializeField]
+        private UnityEngine.UI.Image homeCrest; // Stage AD — 홈 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
+        private UnityEngine.UI.Image awayCrest; // Stage AD — 원정 구단 크레스트
+
+        [SerializeField]
         private TMP_Text scoreText;
 
         [SerializeField]
@@ -207,6 +213,8 @@ namespace FMLite.UI
             string away = _awayClub?.name ?? "?";
             if (matchupText != null)
                 matchupText.text = $"{home}  vs  {away}";
+            CrestProvider.ApplyClubCrest(homeCrest, _homeClub?.name);
+            CrestProvider.ApplyClubCrest(awayCrest, _awayClub?.name);
             if (scoreText != null)
             {
                 string score = $"{_result.homeScore} : {_result.awayScore}";
