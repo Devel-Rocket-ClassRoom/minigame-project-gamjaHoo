@@ -18,6 +18,9 @@ namespace FMLite.UI
         private Image iconBadge;
 
         [SerializeField]
+        private Image iconSprite; // Stage AD — 흰 글리프 아이콘 (배지 위 오버레이, 미배선/미생성 시 약어 폴백)
+
+        [SerializeField]
         private TMP_Text iconLabel;
 
         [Header("이름 / 등급")]
@@ -172,6 +175,12 @@ namespace FMLite.UI
                 iconBadge.color = badgeColor;
             if (iconLabel != null)
                 iconLabel.text = abbreviation;
+
+            // Stage AD — 흰 글리프 아이콘 오버레이. 아이콘 생성 시 약어 라벨 숨김, 미생성 시 약어 폴백 유지.
+            var icon = CrestProvider.GetFacilityIcon(type);
+            CrestProvider.Apply(iconSprite, icon);
+            if (iconLabel != null)
+                iconLabel.gameObject.SetActive(icon == null);
 
             if (upgradeButton != null)
             {

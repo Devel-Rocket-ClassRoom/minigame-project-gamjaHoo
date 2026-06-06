@@ -43,6 +43,9 @@ namespace FMLite.UI
         private Image backgroundImage;
 
         [SerializeField]
+        private Image clubCrest; // Stage AD — 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
         private Color userClubColor = new Color(0.2f, 0.4f, 0.8f, 0.3f);
 
         [SerializeField]
@@ -68,6 +71,7 @@ namespace FMLite.UI
                 rankText.text = rank.ToString();
             if (clubText != null)
                 clubText.text = club?.name ?? $"id={entry.clubId}";
+            CrestProvider.ApplyClubCrest(clubCrest, club?.name);
             if (playedText != null)
                 playedText.text = entry.played.ToString();
             if (wonText != null)

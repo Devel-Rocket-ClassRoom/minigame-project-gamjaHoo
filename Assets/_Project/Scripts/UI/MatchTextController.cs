@@ -32,6 +32,12 @@ namespace FMLite.UI
         private TMP_Text awayName;
 
         [SerializeField]
+        private UnityEngine.UI.Image homeCrest; // Stage AD — 홈 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
+        private UnityEngine.UI.Image awayCrest; // Stage AD — 원정 구단 크레스트
+
+        [SerializeField]
         private TMP_Text scoreText;
 
         [SerializeField]
@@ -77,12 +83,37 @@ namespace FMLite.UI
         [SerializeField]
         private Button lineupCloseButton;
 
+        [Header("라인업 피치 (Stage AD)")]
+        [SerializeField]
+        private RectTransform homePitch;
+
+        [SerializeField]
+        private RectTransform awayPitch;
+
+        [SerializeField]
+        private Image homeLineupCrest;
+
+        [SerializeField]
+        private TMP_Text homeLineupName;
+
+        [SerializeField]
+        private Image awayLineupCrest;
+
+        [SerializeField]
+        private TMP_Text awayLineupName;
+
         [Header("결과 패널")]
         [SerializeField]
         private GameObject resultPanel;
 
         [SerializeField]
         private TMP_Text resultScoreText;
+
+        [SerializeField]
+        private UnityEngine.UI.Image resultHomeCrest; // Stage AD — 결과 패널 홈 크레스트
+
+        [SerializeField]
+        private UnityEngine.UI.Image resultAwayCrest; // Stage AD — 결과 패널 원정 크레스트
 
         [SerializeField]
         private TMP_Text resultScorersText;
@@ -176,7 +207,7 @@ namespace FMLite.UI
 
             SetupHeader();
             _totalMinutes = ComputeTotalMinutes();
-            BuildLineupText();
+            BuildLineupPitch();
             UpdateProgress(0);
             _playCoroutine = StartCoroutine(PlayEvents());
         }
@@ -260,6 +291,17 @@ namespace FMLite.UI
             var text = go.GetComponentInChildren<TMP_Text>();
             if (text != null)
                 text.text = FormatEvent(ev);
+
+            // Stage AD — 이벤트 주체 팀 크레스트 (side 0=홈 / 1=원정). 자식 "EventCrest" Image 가 있으면 표시.
+            var crestTr = go.transform.Find("EventCrest");
+            if (crestTr != null && _match != null)
+            {
+                int clubId = ev.side == 0 ? _match.homeClubId : _match.awayClubId;
+                CrestProvider.ApplyClubCrest(
+                    crestTr.GetComponent<UnityEngine.UI.Image>(),
+                    _state?.GetClub(clubId)?.name
+                );
+            }
         }
 
         private void UpdatePhase(MatchEventType type)
@@ -376,6 +418,8 @@ namespace FMLite.UI
                 var home = _state.GetClub(_match.homeClubId)?.name ?? "?";
                 var away = _state.GetClub(_match.awayClubId)?.name ?? "?";
                 resultScoreText.text = $"{home}  {result.homeScore} : {result.awayScore}  {away}";
+                CrestProvider.ApplyClubCrest(resultHomeCrest, _state.GetClub(_match.homeClubId)?.name);
+                CrestProvider.ApplyClubCrest(resultAwayCrest, _state.GetClub(_match.awayClubId)?.name);
             }
 
             if (resultScorersText != null)
@@ -435,24 +479,113 @@ namespace FMLite.UI
                 lineupPanel.SetActive(show);
         }
 
-        private void BuildLineupText()
+        // Stage AD — 라인업 패널을 포메이션 피치 도식으로 (홈 좌 / 원정 우). 실제 출전 XI(result) 를
+        // FormationPitchLayout 좌표로 배치. 토큰은 런타임 코드 생성(프리팹 불필요).
+        private void BuildLineupPitch()
         {
-            if (lineupText == null || _match?.result == null)
+            if (_match?.result == null)
+                return;
+            if (lineupText != null)
+                lineupText.gameObject.SetActive(false); // 구 텍스트 폐기
+
+            var font = homeName != null ? homeName.font : null;
+            BuildTeamPitch(
+                _match.homeClubId,
+                _match.result.homeStarting11,
+                homePitch,
+                homeLineupCrest,
+                homeLineupName,
+                font
+            );
+            BuildTeamPitch(
+                _match.awayClubId,
+                _match.result.awayStarting11,
+                awayPitch,
+                awayLineupCrest,
+                awayLineupName,
+                font
+            );
+        }
+
+        private void BuildTeamPitch(
+            int clubId,
+            List<int> xi,
+            RectTransform pitch,
+            Image crest,
+            TMP_Text nameLabel,
+            TMP_FontAsset font
+        )
+        {
+            var club = _state.GetClub(clubId);
+            if (nameLabel != null)
+                nameLabel.text = club?.name ?? "?";
+            CrestProvider.ApplyClubCrest(crest, club?.name);
+            if (pitch == null)
                 return;
 
-            var home = _state.GetClub(_match.homeClubId)?.name ?? "?";
-            var away = _state.GetClub(_match.awayClubId)?.name ?? "?";
+            for (int i = pitch.childCount - 1; i >= 0; i--)
+                Destroy(pitch.GetChild(i).gameObject);
+            if (xi == null)
+                return;
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"<b>{home}</b>");
-            foreach (var id in _match.result.homeStarting11)
-                sb.AppendLine(GetPlayerName(id));
-            sb.AppendLine();
-            sb.AppendLine($"<b>{away}</b>");
-            foreach (var id in _match.result.awayStarting11)
-                sb.AppendLine(GetPlayerName(id));
+            var formation = GameDatabase.GetFormation(club?.tactic?.formationId ?? 1);
+            var coords = FormationPitchLayout.Compute(formation);
+            var slotPos = formation?.slotPositions;
 
-            lineupText.text = sb.ToString();
+            for (int i = 0; i < xi.Count; i++)
+            {
+                Vector2 norm =
+                    (coords != null && i < coords.Length)
+                        ? coords[i]
+                        : new Vector2(0.5f, (i + 0.5f) / Mathf.Max(1, xi.Count));
+                string posLabel =
+                    (slotPos != null && i < slotPos.Length) ? slotPos[i].ToString() : string.Empty;
+                CreateLineupToken(pitch, norm, GetPlayerName(xi[i]), posLabel, font);
+            }
+        }
+
+        // 피치 위 선수 토큰 — 정규화 좌표(0~1, y 0=자기골문) 를 피치 RectTransform 앵커로 매핑.
+        private static void CreateLineupToken(
+            RectTransform pitch,
+            Vector2 norm,
+            string playerName,
+            string posLabel,
+            TMP_FontAsset font
+        )
+        {
+            var go = new GameObject("Token", typeof(RectTransform));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(pitch, false);
+            // 가장자리 토큰이 잘리지 않도록 0.06~0.94 로 살짝 안쪽 매핑.
+            float ax = Mathf.Lerp(0.08f, 0.92f, norm.x);
+            float ay = Mathf.Lerp(0.07f, 0.93f, norm.y);
+            rt.anchorMin = rt.anchorMax = new Vector2(ax, ay);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(118f, 46f);
+            rt.anchoredPosition = Vector2.zero;
+
+            var bg = go.AddComponent<Image>();
+            bg.color = new Color(0.165f, 0.165f, 0.243f, 0.96f); // #2A2A3E
+            bg.raycastTarget = false;
+
+            // 단일 TMP — 1행 포지션(연파랑·소) + 2행 선수명(흰). 2자식보다 견고.
+            var lblGo = new GameObject("Label", typeof(RectTransform));
+            var lrt = (RectTransform)lblGo.transform;
+            lrt.SetParent(rt, false);
+            lrt.anchorMin = Vector2.zero;
+            lrt.anchorMax = Vector2.one;
+            lrt.offsetMin = new Vector2(4f, 3f);
+            lrt.offsetMax = new Vector2(-4f, -3f);
+            var t = lblGo.AddComponent<TextMeshProUGUI>();
+            if (font != null)
+                t.font = font;
+            t.text = $"<size=72%><color=#7FB3E6>{posLabel}</color></size>\n{playerName}";
+            t.fontSize = 14f;
+            t.alignment = TextAlignmentOptions.Center;
+            t.color = Color.white;
+            t.enableWordWrapping = false;
+            t.overflowMode = TextOverflowModes.Ellipsis;
+            t.raycastTarget = false;
         }
 
         // ── 헬퍼 ─────────────────────────────────────────────────────
@@ -469,6 +602,8 @@ namespace FMLite.UI
                 homeName.text = home;
             if (awayName != null)
                 awayName.text = away;
+            CrestProvider.ApplyClubCrest(homeCrest, home);
+            CrestProvider.ApplyClubCrest(awayCrest, away);
             if (scoreText != null)
                 scoreText.text = "0 : 0";
             if (minuteText != null)

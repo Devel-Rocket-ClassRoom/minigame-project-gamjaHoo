@@ -31,6 +31,9 @@ namespace FMLite.UI
         private TMP_Text selectedClubNameText;
 
         [SerializeField]
+        private Image selectedClubCrest; // Stage AD — 선택 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
         private TMP_Text selectedClubReputationText;
 
         [SerializeField]
@@ -70,6 +73,7 @@ namespace FMLite.UI
                 return;
 
             selectedClubNameText.text = club.name;
+            CrestProvider.ApplyClubCrest(selectedClubCrest, club.name);
             selectedClubReputationText.text = Localization.Get("reputation_fmt", club.reputation);
             confirmPanel.SetActive(true);
         }

@@ -83,6 +83,9 @@ namespace FMLite.UI
         private TMP_Text moneyText;
 
         [SerializeField]
+        private Image clubCrest; // Stage AD — 유저 구단 크레스트 (TopBar 상시 노출, 미배선/미생성 시 자동 숨김)
+
+        [SerializeField]
         private TMP_Text tokenText;
 
         [Header("TopBar — 인박스 배지")]
@@ -253,17 +256,21 @@ namespace FMLite.UI
         /// <summary>통화 변경 시 자금 표시 재계산 (Stage X.4 에서 호출).</summary>
         public void RefreshMoney()
         {
-            if (moneyText == null)
-                return;
             var state = GameManager.Instance?.State;
             var club = state?.GetClub(state.userClubId);
             if (club == null)
             {
-                moneyText.text = string.Empty;
+                if (moneyText != null)
+                    moneyText.text = string.Empty;
+                CrestProvider.ApplyClubCrest(clubCrest, null);
                 return;
             }
-            string money = CurrencyFormatter.Format(club.finance.money, OptionsManager.Currency);
-            moneyText.text = $"{club.name}  {money}";
+            if (moneyText != null)
+            {
+                string money = CurrencyFormatter.Format(club.finance.money, OptionsManager.Currency);
+                moneyText.text = $"{club.name}  {money}";
+            }
+            CrestProvider.ApplyClubCrest(clubCrest, club.name);
         }
 
         private void RefreshInboxBadge()

@@ -42,6 +42,9 @@ namespace FMLite.UI
         [SerializeField]
         private TMP_Text titleText;
 
+        [SerializeField]
+        private Image titleCrest; // Stage AD — 유저 구단 크레스트 (미배선/미생성 시 자동 숨김)
+
         [Header("탭 비주얼 (Stage D item2)")]
         [SerializeField]
         private Image seniorTabImage;
@@ -64,6 +67,7 @@ namespace FMLite.UI
 
             if (titleText != null)
                 titleText.text = _club.name;
+            CrestProvider.ApplyClubCrest(titleCrest, _club.name);
 
             RefreshLists();
             ShowSenior();
