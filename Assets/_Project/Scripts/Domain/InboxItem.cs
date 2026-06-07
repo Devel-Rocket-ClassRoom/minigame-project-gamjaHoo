@@ -33,6 +33,9 @@ namespace FMLite.Domain
         Youth,
         Cup,
         Award,
+
+        // V1.0 R.5 (#76) — enum 끝에 append (직렬화 int 시프트 회피). 리그 순위 변동/역전.
+        League,
     }
 
     public enum InboxPriority

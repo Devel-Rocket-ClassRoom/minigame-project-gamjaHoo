@@ -11,6 +11,8 @@
 //   - 분 단위 이벤트 시뮬 도입 시 비활성 구단 경량 경로 (SimulateLite) 분리 검토.
 
 using System;
+using System.Linq;
+using FMLite.Core;
 using FMLite.Domain;
 using UnityEngine;
 
@@ -27,6 +29,9 @@ namespace FMLite.Application
                 throw new ArgumentNullException(nameof(balance));
 
             var today = state.currentDate.Date;
+
+            // R.5 (#76) — 매치데이 비유저 매치 배치 처리 전 유저 구단 순위 캡처 (역전 감지).
+            int userPosBefore = LeaguePosition(state, state.userClubId);
 
             for (int li = 0; li < state.leagues.Count; li++)
             {
@@ -65,11 +70,19 @@ namespace FMLite.Application
                     if (isUserMatch)
                         continue;
 
-                    var result = MatchSimulator.Simulate(match, state, balance, collectEvents: false);
+                    var result = MatchSimulator.Simulate(
+                        match,
+                        state,
+                        balance,
+                        collectEvents: false
+                    );
                     MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
                     BoardSystem.ProcessMatchResult(state, balance, match, league);
                 }
             }
+
+            // R.5 (#76) — 배치 처리 후 유저 구단 순위 변동 시 1회 발행.
+            PublishStandingsChange(state, userPosBefore);
         }
 
         // H.4: 유저 매치 온디맨드 시뮬 (MatchPreviewScene "매치 시작"). SimulateDay 와 동일 후처리.
@@ -84,15 +97,59 @@ namespace FMLite.Application
                 return; // 이미 시뮬됨 / 없음
             if (state.GetClub(match.homeClubId) == null || state.GetClub(match.awayClubId) == null)
             {
-                Debug.LogWarning($"[BackgroundSimulator] user match.id={match.id} 클럽 누락 — 시뮬 스킵");
+                Debug.LogWarning(
+                    $"[BackgroundSimulator] user match.id={match.id} 클럽 누락 — 시뮬 스킵"
+                );
                 return;
             }
+
+            // R.5 (#76) — 유저 매치 처리 전 순위 캡처 → 후 변동 시 발행.
+            int userPosBefore = LeaguePosition(state, state.userClubId);
 
             var result = MatchSimulator.Simulate(match, state, balance, collectEvents: true);
             MatchPostProcessor.Process(match, result, state, balance, publishEvent: false);
             var league = FindLeagueOf(state, match);
             if (league != null)
                 BoardSystem.ProcessMatchResult(state, balance, match, league);
+
+            PublishStandingsChange(state, userPosBefore);
+        }
+
+        // R.5 (#76) — 유저 구단 리그 1-based 순위 (승점 → 득실차 → 다득점). 미존재 시 -1.
+        public static int LeaguePosition(GameState state, int clubId)
+        {
+            if (clubId < 0)
+                return -1;
+            var club = state?.GetClub(clubId);
+            if (club == null)
+                return -1;
+            var league = state.leagues?.Find(l => l != null && l.id == club.leagueId);
+            if (league?.standings?.entries == null)
+                return -1;
+
+            var sorted = league
+                .standings.entries.OrderByDescending(e => e.points)
+                .ThenByDescending(e => e.goalsFor - e.goalsAgainst)
+                .ThenByDescending(e => e.goalsFor)
+                .ToList();
+            int idx = sorted.FindIndex(e => e.clubId == clubId);
+            return idx < 0 ? -1 : idx + 1;
+        }
+
+        private static void PublishStandingsChange(GameState state, int before)
+        {
+            if (state.userClubId < 0)
+                return;
+            int after = LeaguePosition(state, state.userClubId);
+            if (before > 0 && after > 0 && before != after)
+                EventBus.Publish(
+                    new StandingsChangedEvent
+                    {
+                        clubId = state.userClubId,
+                        oldPosition = before,
+                        newPosition = after,
+                    }
+                );
         }
 
         private static League FindLeagueOf(GameState state, Match match)

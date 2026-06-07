@@ -54,4 +54,12 @@ namespace FMLite.Core
         public int fromClubId; // 임차 구단 (떠나는 곳)
         public int parentClubId; // 원 소속 구단 (복귀하는 곳)
     }
+
+    // V1.0 R.5 (#76) — DailyProcessor Day==1 가 자기 구단 계약 잔여 ≤ contractExpiryAlertMonths 도달 시
+    // 선수당 1회 발행 (monthsRemaining == 임계 정확 일치 시점). event-bus-catalog.md #76.
+    public class ContractExpiringEvent
+    {
+        public int playerId;
+        public int monthsRemaining;
+    }
 }

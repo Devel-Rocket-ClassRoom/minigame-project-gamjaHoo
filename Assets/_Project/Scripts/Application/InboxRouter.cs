@@ -197,6 +197,177 @@ namespace FMLite.Application
                     target: "SquadScene"
                 )
             );
+
+            // ── V1.0 R.5 (#76) Tier1 — 기존 이벤트 라우팅 (유저 구단 한정 게이팅) ──
+            // 부상 발생 → Match/Medium
+            Subscribe<PlayerInjuredEvent>(e =>
+            {
+                if (!IsUserClubPlayer(state, e.playerId))
+                    return;
+                AddInbox(
+                    state,
+                    InboxCategory.Match,
+                    InboxPriority.Medium,
+                    "inbox_player_injured_fmt",
+                    new Dictionary<string, string> { { "playerId", e.playerId.ToString() } }
+                );
+            });
+
+            // 부상 복귀 → Match/Low
+            Subscribe<PlayerInjuryRecoveredEvent>(e =>
+            {
+                if (!IsUserClubPlayer(state, e.playerId))
+                    return;
+                AddInbox(
+                    state,
+                    InboxCategory.Match,
+                    InboxPriority.Low,
+                    "inbox_player_recovered_fmt",
+                    new Dictionary<string, string> { { "playerId", e.playerId.ToString() } }
+                );
+            });
+
+            // 유스 성장 (큰 점프) → Youth/Low — 유저 구단 유스 선수 한정
+            Subscribe<PlayerStatChangedEvent>(e =>
+            {
+                if (!IsUserClubYouth(state, e.playerId))
+                    return;
+                AddInbox(
+                    state,
+                    InboxCategory.Youth,
+                    InboxPriority.Low,
+                    "inbox_youth_growth_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "playerId", e.playerId.ToString() },
+                        { "stat", e.statName },
+                        { "old", e.oldValue.ToString() },
+                        { "new", e.newValue.ToString() },
+                    }
+                );
+            });
+
+            // 시상 (시즌/월간) → Award/Medium — 유저 구단 선수 한정
+            Subscribe<AwardWonEvent>(e =>
+            {
+                if (!IsUserClubPlayer(state, e.playerId))
+                    return;
+                AddInbox(
+                    state,
+                    InboxCategory.Award,
+                    InboxPriority.Medium,
+                    "inbox_award_won_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "playerId", e.playerId.ToString() },
+                        { "award", ((int)e.awardType).ToString() },
+                    }
+                );
+            });
+
+            // ── V1.0 R.5 (#76) Tier2 — 신규 이벤트 (발화 지점에서 이미 유저 구단 게이팅) ──
+            Subscribe<PlayerUnhappyEvent>(e =>
+                AddInbox(
+                    state,
+                    InboxCategory.Morale,
+                    InboxPriority.Medium,
+                    "inbox_player_unhappy_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "playerId", e.playerId.ToString() },
+                        { "happiness", e.happiness.ToString() },
+                    }
+                )
+            );
+
+            Subscribe<PlayerFatiguedEvent>(e =>
+                AddInbox(
+                    state,
+                    InboxCategory.Morale,
+                    InboxPriority.Low,
+                    "inbox_player_fatigued_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "playerId", e.playerId.ToString() },
+                        { "fatigue", e.fatigue.ToString() },
+                    }
+                )
+            );
+
+            Subscribe<StandingsChangedEvent>(e =>
+                AddInbox(
+                    state,
+                    InboxCategory.League,
+                    InboxPriority.Low,
+                    "inbox_standings_changed_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "old", e.oldPosition.ToString() },
+                        { "new", e.newPosition.ToString() },
+                    }
+                )
+            );
+
+            Subscribe<ContractExpiringEvent>(e =>
+                AddInbox(
+                    state,
+                    InboxCategory.Transfer,
+                    InboxPriority.Medium,
+                    "inbox_contract_expiring_fmt",
+                    new Dictionary<string, string>
+                    {
+                        { "playerId", e.playerId.ToString() },
+                        { "months", e.monthsRemaining.ToString() },
+                    }
+                )
+            );
+
+            // ── V1.0 R.5 추가 연결 — 이적 체결 / 임대 복귀 (기존 미라우팅 갭) ──
+            Subscribe<TransferCompletedEvent>(e =>
+            {
+                if (e.toClubId == state.userClubId)
+                    AddInbox(
+                        state,
+                        InboxCategory.Transfer,
+                        InboxPriority.Medium,
+                        "inbox_transfer_in_fmt",
+                        new Dictionary<string, string> { { "playerId", e.playerId.ToString() } }
+                    );
+                else if (e.fromClubId == state.userClubId)
+                    AddInbox(
+                        state,
+                        InboxCategory.Transfer,
+                        InboxPriority.Medium,
+                        "inbox_transfer_out_fmt",
+                        new Dictionary<string, string> { { "playerId", e.playerId.ToString() } }
+                    );
+            });
+
+            Subscribe<LoanReturnedEvent>(e =>
+            {
+                if (e.parentClubId != state.userClubId)
+                    return;
+                AddInbox(
+                    state,
+                    InboxCategory.Transfer,
+                    InboxPriority.Low,
+                    "inbox_loan_returned_fmt",
+                    new Dictionary<string, string> { { "playerId", e.playerId.ToString() } }
+                );
+            });
+        }
+
+        // ── V1.0 R.5 유저 구단 게이팅 헬퍼 ──────────────────────────────
+        private static bool IsUserClubPlayer(GameState state, int playerId)
+        {
+            var p = state.GetPlayer(playerId);
+            return p != null && p.currentClubId == state.userClubId;
+        }
+
+        private static bool IsUserClubYouth(GameState state, int playerId)
+        {
+            var club = state.GetClub(state.userClubId);
+            return club?.youthSquadIds != null && club.youthSquadIds.Contains(playerId);
         }
 
         /// <summary>모든 InboxRouter 구독 해제. Wire 재호출 + 테스트 격리에 사용.</summary>

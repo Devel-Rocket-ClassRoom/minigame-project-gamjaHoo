@@ -30,7 +30,7 @@ namespace FMLite.UI
         private TMP_Text titleText;
 
         [SerializeField]
-        private TMP_Text deadlineText;
+        private TMP_Text deadlineText; // 우하단 메타 — 발생 날짜(+기한 있으면 · D-N)
 
         [SerializeField]
         private Button rowButton;
@@ -67,7 +67,7 @@ namespace FMLite.UI
                 categoryStripe.color = c;
             }
 
-            RefreshDeadline(item, state, expired);
+            RefreshMeta(item, state, expired);
 
             if (rowButton != null)
             {
@@ -86,27 +86,33 @@ namespace FMLite.UI
             && item.deadline.HasValue
             && item.deadline.Value.Date < state.currentDate.Date;
 
-        private void RefreshDeadline(D.InboxItem item, D.GameState state, bool expired)
+        // 우하단 메타: 발생 날짜 (항상) + 기한 있으면 " · D-N" / " · 만료" 덧붙임.
+        // 사용자 요청 (2026-06-07): 모든 알림에 발생 날짜 표기. 시즌이 연도 경계를 넘으므로 yyyy-MM-dd.
+        private void RefreshMeta(D.InboxItem item, D.GameState state, bool expired)
         {
             if (deadlineText == null)
                 return;
 
+            deadlineText.gameObject.SetActive(true);
+            string date = item.createdAt.ToString("yyyy-MM-dd");
+
+            // 기한 없음 → 날짜만
             if (item.deadline == null || state == null)
             {
-                deadlineText.gameObject.SetActive(false);
+                deadlineText.text = date;
+                deadlineText.color = expired ? InactiveText : DeadlineNormal;
                 return;
             }
 
-            deadlineText.gameObject.SetActive(true);
             if (expired)
             {
-                deadlineText.text = Localization.Get("inbox_deadline_expired");
+                deadlineText.text = $"{date} · {Localization.Get("inbox_deadline_expired")}";
                 deadlineText.color = InactiveText;
                 return;
             }
 
             int days = (item.deadline.Value.Date - state.currentDate.Date).Days;
-            deadlineText.text = Localization.Get("inbox_deadline_days_fmt", days);
+            deadlineText.text = $"{date} · {Localization.Get("inbox_deadline_days_fmt", days)}";
             deadlineText.color = days <= 2 ? DeadlineUrgent : DeadlineNormal;
         }
 
@@ -120,6 +126,7 @@ namespace FMLite.UI
                 D.InboxCategory.Youth => Hex(0x2ECC71),
                 D.InboxCategory.Cup => Hex(0xFFD93D),
                 D.InboxCategory.Award => Hex(0xF39C12),
+                D.InboxCategory.League => Hex(0x1ABC9C), // V1.0 R.5 — 리그(순위 변동)
                 _ => Hex(0xCCCCCC),
             };
 

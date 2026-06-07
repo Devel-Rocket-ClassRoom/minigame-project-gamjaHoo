@@ -54,11 +54,7 @@ namespace FMLite.Application
         // ── DressingRoomMood (V0.5 G.3) ──────────────────────────────
 
         // 1군 선수 happiness 평균 + 캡틴 leadership 가산. NewSeasonProcessor / 월 1회 호출.
-        public static void UpdateDressingRoomMood(
-            Club club,
-            GameState state,
-            GameBalanceSO balance
-        )
+        public static void UpdateDressingRoomMood(Club club, GameState state, GameBalanceSO balance)
         {
             if (club?.season == null || club.seniorSquadIds == null)
                 return;
@@ -267,9 +263,27 @@ namespace FMLite.Application
 
             int penalty = (int)
                 Math.Round(ApplyHiddenLoyaltyFactor(balance.promiseBreakHappinessPenalty, player));
+            int before = player.state.happiness;
             player.state.happiness = Clamp(player.state.happiness - penalty, 0, 100);
+            int after = player.state.happiness;
 
-            if (player.state.happiness < balance.transferRequestThreshold)
+            // V1.0 R.5 (#76) — 불만 임계 하향 교차 시 1회 발행 (유저 구단 한정, 인박스 알림).
+            // edge-trigger: before >= 임계 && after < 임계. 재진입은 회복 후 재하락 시 자연 재무장.
+            if (
+                player.currentClubId == state.userClubId
+                && before >= balance.unhappyThreshold
+                && after < balance.unhappyThreshold
+            )
+                EventBus.Publish(
+                    new PlayerUnhappyEvent
+                    {
+                        playerId = player.id,
+                        happiness = after,
+                        reasonKey = "unhappy_reason_promise_broken",
+                    }
+                );
+
+            if (after < balance.transferRequestThreshold)
                 EventBus.Publish(new TransferRequestEvent { playerId = player.id });
         }
 

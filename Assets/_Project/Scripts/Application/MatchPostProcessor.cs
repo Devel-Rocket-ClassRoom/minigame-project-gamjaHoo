@@ -44,8 +44,8 @@ namespace FMLite.Application
                 match.events = result.events;
 
             // b. 피로 갱신 + seasonAppearances (starting11 22명)
-            ApplyFatigueAndAppearance(result.homeStarting11, state, balance.fatigueGainPerMatch);
-            ApplyFatigueAndAppearance(result.awayStarting11, state, balance.fatigueGainPerMatch);
+            ApplyFatigueAndAppearance(result.homeStarting11, state, balance);
+            ApplyFatigueAndAppearance(result.awayStarting11, state, balance);
 
             // c. 사기 갱신 (V0.5 G.1 — algorithms.md V0.5-6 OnMatchFinished).
             //    승/무/패 ±8 + 평점 ≥ 7.5 +5 / 평점 < 6 -3 + Hidden professionalism 보정.
@@ -134,21 +134,35 @@ namespace FMLite.Application
         private static void ApplyFatigueAndAppearance(
             System.Collections.Generic.List<int> playerIds,
             GameState state,
-            int gain
+            GameBalanceSO balance
         )
         {
+            int gain = balance.fatigueGainPerMatch;
+            int alert = balance.fatigueAlertThreshold;
             for (int i = 0; i < playerIds.Count; i++)
             {
                 var p = state.GetPlayer(playerIds[i]);
                 if (p?.state == null)
                     continue;
-                int newFatigue = p.state.fatigue + gain;
+                int oldFatigue = p.state.fatigue;
+                int newFatigue = oldFatigue + gain;
                 if (newFatigue > 100)
                     newFatigue = 100;
                 if (newFatigue < 0)
                     newFatigue = 0;
                 p.state.fatigue = newFatigue;
                 p.state.seasonAppearances += 1; // V0.5 G.2 — PlaytimeAgreement 평가
+
+                // V1.0 R.5 (#76) — 피로 임계 상향 교차 시 발행 (유저 구단 한정, 인박스 알림).
+                // edge-trigger: old <= 임계 && new > 임계. 회복(DailyProcessor)으로 임계 아래 복귀 후 재무장.
+                if (
+                    p.currentClubId == state.userClubId
+                    && oldFatigue <= alert
+                    && newFatigue > alert
+                )
+                    EventBus.Publish(
+                        new PlayerFatiguedEvent { playerId = p.id, fatigue = newFatigue }
+                    );
             }
         }
 

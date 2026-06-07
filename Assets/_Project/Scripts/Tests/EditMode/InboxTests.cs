@@ -396,6 +396,235 @@ namespace FMLite.Tests
             Assert.AreEqual(_date.AddDays(7), item.deadline, "T16: deadline +7일");
         }
 
+        // ════════════════════════════════════════════════════════════
+        // R.5 (#76) 인박스 확장 — Tier1 / Tier2 / 추가 라우팅
+        // ════════════════════════════════════════════════════════════
+
+        // ── T17. PlayerInjuredEvent (유저 구단) → Match/Medium ─────────
+
+        [Test]
+        public void T17_PlayerInjured_UserClub_AddsMatchMedium()
+        {
+            var state = NewState(userClubId: 10);
+            AddPlayer(state, id: 50, clubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new PlayerInjuredEvent { playerId = 50 });
+
+            Assert.AreEqual(1, state.inbox.Count, "T17: 1개 생성");
+            Assert.AreEqual(InboxCategory.Match, state.inbox[0].category, "T17: Match");
+            Assert.AreEqual(InboxPriority.Medium, state.inbox[0].priority, "T17: Medium");
+            Assert.AreEqual("inbox_player_injured_fmt", state.inbox[0].titleKey, "T17: titleKey");
+        }
+
+        // ── T18. PlayerInjuredEvent (타 구단) → 생성 안 됨 ────────────
+
+        [Test]
+        public void T18_PlayerInjured_OtherClub_NoInboxItem()
+        {
+            var state = NewState(userClubId: 10);
+            AddPlayer(state, id: 50, clubId: 20);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new PlayerInjuredEvent { playerId = 50 });
+
+            Assert.AreEqual(0, state.inbox.Count, "T18: 타 구단 — 미생성");
+        }
+
+        // ── T19. PlayerInjuryRecoveredEvent (유저 구단) → Match/Low ────
+
+        [Test]
+        public void T19_PlayerRecovered_UserClub_AddsMatchLow()
+        {
+            var state = NewState(userClubId: 10);
+            AddPlayer(state, id: 50, clubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new PlayerInjuryRecoveredEvent { playerId = 50 });
+
+            Assert.AreEqual(1, state.inbox.Count, "T19: 1개 생성");
+            Assert.AreEqual(InboxCategory.Match, state.inbox[0].category, "T19: Match");
+            Assert.AreEqual(InboxPriority.Low, state.inbox[0].priority, "T19: Low");
+        }
+
+        // ── T20. PlayerStatChangedEvent (유저 유스) → Youth/Low ───────
+
+        [Test]
+        public void T20_YouthGrowth_UserYouth_AddsYouthLow()
+        {
+            var state = NewState(userClubId: 10);
+            var club = AddClub(state, id: 10);
+            AddPlayer(state, id: 50, clubId: 10);
+            club.youthSquadIds.Add(50);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new PlayerStatChangedEvent
+                {
+                    playerId = 50,
+                    statName = "passing",
+                    oldValue = 40,
+                    newValue = 43,
+                }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T20: 1개 생성");
+            Assert.AreEqual(InboxCategory.Youth, state.inbox[0].category, "T20: Youth");
+            Assert.AreEqual(InboxPriority.Low, state.inbox[0].priority, "T20: Low");
+            Assert.AreEqual("passing", state.inbox[0].titleArgs["stat"], "T20: stat arg");
+        }
+
+        // ── T21. PlayerStatChangedEvent (1군 선수) → 생성 안 됨 ───────
+
+        [Test]
+        public void T21_YouthGrowth_SeniorPlayer_NoInboxItem()
+        {
+            var state = NewState(userClubId: 10);
+            AddClub(state, id: 10); // youthSquadIds 비어있음
+            AddPlayer(state, id: 50, clubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new PlayerStatChangedEvent { playerId = 50, statName = "passing" }
+            );
+
+            Assert.AreEqual(0, state.inbox.Count, "T21: 유스 아님 — 미생성");
+        }
+
+        // ── T22. AwardWonEvent (유저 구단 선수) → Award/Medium ────────
+
+        [Test]
+        public void T22_AwardWon_UserClubPlayer_AddsAwardMedium()
+        {
+            var state = NewState(userClubId: 10);
+            AddPlayer(state, id: 50, clubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new AwardWonEvent { awardType = AwardType.TopScorer, playerId = 50 }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T22: 1개 생성");
+            Assert.AreEqual(InboxCategory.Award, state.inbox[0].category, "T22: Award");
+            Assert.AreEqual(InboxPriority.Medium, state.inbox[0].priority, "T22: Medium");
+            Assert.AreEqual(
+                ((int)AwardType.TopScorer).ToString(),
+                state.inbox[0].titleArgs["award"],
+                "T22: award arg"
+            );
+        }
+
+        // ── T23. PlayerUnhappyEvent → Morale/Medium ──────────────────
+
+        [Test]
+        public void T23_PlayerUnhappy_AddsMoraleMedium()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new PlayerUnhappyEvent { playerId = 7, happiness = 35, reasonKey = "x" }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T23: 1개 생성");
+            Assert.AreEqual(InboxCategory.Morale, state.inbox[0].category, "T23: Morale");
+            Assert.AreEqual(InboxPriority.Medium, state.inbox[0].priority, "T23: Medium");
+            Assert.AreEqual("35", state.inbox[0].titleArgs["happiness"], "T23: happiness arg");
+        }
+
+        // ── T24. PlayerFatiguedEvent → Morale/Low ────────────────────
+
+        [Test]
+        public void T24_PlayerFatigued_AddsMoraleLow()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new PlayerFatiguedEvent { playerId = 7, fatigue = 80 });
+
+            Assert.AreEqual(1, state.inbox.Count, "T24: 1개 생성");
+            Assert.AreEqual(InboxCategory.Morale, state.inbox[0].category, "T24: Morale");
+            Assert.AreEqual(InboxPriority.Low, state.inbox[0].priority, "T24: Low");
+        }
+
+        // ── T25. StandingsChangedEvent → League/Low ──────────────────
+
+        [Test]
+        public void T25_StandingsChanged_AddsLeagueLow()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new StandingsChangedEvent { clubId = 10, oldPosition = 5, newPosition = 3 }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T25: 1개 생성");
+            Assert.AreEqual(InboxCategory.League, state.inbox[0].category, "T25: League");
+            Assert.AreEqual(InboxPriority.Low, state.inbox[0].priority, "T25: Low");
+            Assert.AreEqual("5", state.inbox[0].titleArgs["old"], "T25: old arg");
+            Assert.AreEqual("3", state.inbox[0].titleArgs["new"], "T25: new arg");
+        }
+
+        // ── T26. ContractExpiringEvent → Transfer/Medium ─────────────
+
+        [Test]
+        public void T26_ContractExpiring_AddsTransferMedium()
+        {
+            var state = NewState();
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(new ContractExpiringEvent { playerId = 7, monthsRemaining = 6 });
+
+            Assert.AreEqual(1, state.inbox.Count, "T26: 1개 생성");
+            Assert.AreEqual(InboxCategory.Transfer, state.inbox[0].category, "T26: Transfer");
+            Assert.AreEqual(InboxPriority.Medium, state.inbox[0].priority, "T26: Medium");
+            Assert.AreEqual("6", state.inbox[0].titleArgs["months"], "T26: months arg");
+        }
+
+        // ── T27. TransferCompletedEvent — 영입(toClub=user) / 방출(fromClub=user) ─
+
+        [Test]
+        public void T27_TransferCompleted_InAndOut()
+        {
+            var state = NewState(userClubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new TransferCompletedEvent { playerId = 1, fromClubId = 20, toClubId = 10 }
+            );
+            EventBus.Publish(
+                new TransferCompletedEvent { playerId = 2, fromClubId = 10, toClubId = 30 }
+            );
+            EventBus.Publish(
+                new TransferCompletedEvent { playerId = 3, fromClubId = 20, toClubId = 30 }
+            );
+
+            Assert.AreEqual(2, state.inbox.Count, "T27: 유저 관여 2건만");
+            Assert.AreEqual("inbox_transfer_in_fmt", state.inbox[0].titleKey, "T27: 영입");
+            Assert.AreEqual("inbox_transfer_out_fmt", state.inbox[1].titleKey, "T27: 방출");
+        }
+
+        // ── T28. LoanReturnedEvent (parentClub=user) → Transfer/Low ──
+
+        [Test]
+        public void T28_LoanReturned_ToUserClub_AddsTransferLow()
+        {
+            var state = NewState(userClubId: 10);
+            InboxRouter.Wire(state);
+
+            EventBus.Publish(
+                new LoanReturnedEvent { playerId = 1, fromClubId = 20, parentClubId = 10 }
+            );
+            EventBus.Publish(
+                new LoanReturnedEvent { playerId = 2, fromClubId = 20, parentClubId = 30 }
+            );
+
+            Assert.AreEqual(1, state.inbox.Count, "T28: 유저 복귀 1건만");
+            Assert.AreEqual(InboxCategory.Transfer, state.inbox[0].category, "T28: Transfer");
+            Assert.AreEqual(InboxPriority.Low, state.inbox[0].priority, "T28: Low");
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────────────────
 
         private GameState NewState(int userClubId = -1) =>
@@ -406,5 +635,24 @@ namespace FMLite.Tests
                 userClubId = userClubId,
                 nextPlayerId = 1,
             };
+
+        private static Player AddPlayer(GameState state, int id, int clubId)
+        {
+            var p = new Player
+            {
+                id = id,
+                currentClubId = clubId,
+                info = new PersonalInfo { firstName = "Test", lastName = $"P{id}" },
+            };
+            state.allPlayers.Add(p);
+            return p;
+        }
+
+        private static Club AddClub(GameState state, int id)
+        {
+            var c = new Club { id = id, name = $"Club{id}" };
+            state.allClubs.Add(c);
+            return c;
+        }
     }
 }
