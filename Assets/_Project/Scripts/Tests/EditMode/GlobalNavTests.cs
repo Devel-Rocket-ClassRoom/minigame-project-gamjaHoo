@@ -22,11 +22,17 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void GetMenuIndex_Mentoring_ReturnsLast()
+        public void GetMenuIndex_Finance_ReturnsLast()
         {
+            // R.3 (#74): FinanceScene 을 사이드바 끝에 추가 → 새 마지막.
             int last = GlobalNavController.SideBarScenes.Length - 1;
             Assert.AreEqual(
                 last,
+                GlobalNavController.GetMenuIndex(GlobalNavController.FinanceScene)
+            );
+            // Mentoring 은 끝에서 두 번째.
+            Assert.AreEqual(
+                last - 1,
                 GlobalNavController.GetMenuIndex(GlobalNavController.MentoringScene)
             );
         }
@@ -49,9 +55,10 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void SideBarScenes_Has9_InExpectedOrder()
+        public void SideBarScenes_Has10_InExpectedOrder()
         {
             // H.4: 구 TacticScene + LineupScene 버튼 폐기 → TacticLineupScene 통합 (10→9).
+            // R.3 (#74): FinanceScene 추가 (시설 다음, Mentoring 은 그대로 마지막) → 10.
             var expected = new[]
             {
                 "DashboardScene",
@@ -63,6 +70,7 @@ namespace FMLite.Tests
                 "FacilityScene",
                 "YouthScene",
                 "MentoringScene",
+                "FinanceScene",
             };
             CollectionAssert.AreEqual(expected, GlobalNavController.SideBarScenes);
         }

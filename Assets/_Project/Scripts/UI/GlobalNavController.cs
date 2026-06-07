@@ -28,6 +28,7 @@ namespace FMLite.UI
         public const string ScheduleScene = "ScheduleScene";
         public const string StandingsScene = "StandingsScene";
         public const string FacilityScene = "FacilityScene";
+        public const string FinanceScene = "FinanceScene"; // R.3 (#74) — 재정 대시보드
         public const string YouthScene = "YouthScene";
         public const string YouthManagementScene = "YouthManagementScene"; // Stage E (#461)
         public const string MentoringScene = "MentoringScene";
@@ -49,6 +50,7 @@ namespace FMLite.UI
             FacilityScene,
             YouthScene,
             MentoringScene,
+            FinanceScene, // R.3 (#74) — 사이드바 끝에 추가 (prefab 버튼 append)
         };
 
         // SideBar 라벨 로컬라이즈 키 (#463) — SideBarScenes 와 1:1 순서.
@@ -63,6 +65,7 @@ namespace FMLite.UI
             "nav_facility",
             "nav_youth",
             "nav_mentoring",
+            "nav_finance",
         };
 
         /// <summary>현재 씬의 nav 인스턴스. 씬 로드마다 교체 (DDOL 아님).</summary>

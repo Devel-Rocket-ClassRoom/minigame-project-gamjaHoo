@@ -337,6 +337,96 @@ namespace FMLite.Tests
         }
 
         // ════════════════════════════════════════════════════════════════
+        // R.3 재정 측정 하네스 (#74 / G.5 패턴) — 한 시즌 완주 후 구단별 순현금흐름.
+        // Test Runner 콘솔의 [재정측정] 로그로 tier별 본전±/폭주 여부 확인 → GameBalance 튜닝.
+        // ════════════════════════════════════════════════════════════════
+
+        [Test]
+        public void T_FinanceMeasurement_FullSeasonNetCashFlow()
+        {
+            // 20구단 — tier 스펙트럼 확보 (Setup 의 4구단 대신 별도 config).
+            var cfg = NewLeagueConfig(clubCount: 20);
+            GameDatabase.Register(cfg);
+
+            var state = GameInitializer.NewGame(7, _seasonStart, cfg, _balance);
+            state.userClubId = -1; // 유저 매치 on-demand 스킵 회피 → 전 구단 백그라운드 시뮬
+            GameTime.Reset(state.currentDate);
+
+            // 시작 잔고 + 연 임금 스냅샷
+            var startMoney = new Dictionary<int, long>();
+            var annualWage = new Dictionary<int, long>();
+            foreach (var c in state.allClubs)
+            {
+                startMoney[c.id] = c.finance?.money ?? 0;
+                long weekly = 0;
+                foreach (int pid in c.seniorSquadIds)
+                {
+                    var p = state.GetPlayer(pid);
+                    if (p?.contract != null)
+                        weekly += p.contract.weeklyWage;
+                }
+                annualWage[c.id] = weekly * 52;
+            }
+
+            // 7/1 → ~5/27 (시즌말 5/15 상금 포함, 6/1 회계연도 리셋 전)
+            for (int day = 0; day < 330; day++)
+                GameLoop.AdvanceDay(state, _balance);
+
+            // tier 분류 (rep) + 집계
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(
+                "[재정측정] 한 시즌 순현금흐름 (rep / 시작잔고 / 연임금 / 순흐름 / 종료잔고)"
+            );
+            var byTier = new Dictionary<string, List<long>>
+            {
+                ["Top4(85+)"] = new(),
+                ["Euro(65-84)"] = new(),
+                ["Mid(45-64)"] = new(),
+                ["Rel(<45)"] = new(),
+            };
+            foreach (var c in state.allClubs)
+            {
+                long end = c.finance?.money ?? 0;
+                long net = end - startMoney[c.id];
+                long wage = annualWage[c.id];
+                string tier =
+                    c.reputation >= 85 ? "Top4(85+)"
+                    : c.reputation >= 65 ? "Euro(65-84)"
+                    : c.reputation >= 45 ? "Mid(45-64)"
+                    : "Rel(<45)";
+                byTier[tier].Add(net);
+                sb.AppendLine(
+                    $"  rep{c.reputation,3} | start {startMoney[c.id] / 1_000_000.0,6:F1}M "
+                        + $"| wage {wage / 1_000_000.0,5:F1}M/y | net {net / 1_000_000.0,7:F1}M "
+                        + $"| end {end / 1_000_000.0,7:F1}M  ({c.name})"
+                );
+            }
+            sb.AppendLine("  ── tier 평균 순흐름 ──");
+            foreach (var kv in byTier)
+            {
+                if (kv.Value.Count == 0)
+                    continue;
+                double avg = 0;
+                foreach (var v in kv.Value)
+                    avg += v;
+                avg /= kv.Value.Count;
+                sb.AppendLine($"  {kv.Key,-12}: {avg / 1_000_000.0,7:F1}M  (n={kv.Value.Count})");
+            }
+            sb.AppendLine("  목표: 중위 본전±, 빅클럽 비폭주, 강등권 적자 과도하지 않게");
+            Debug.Log(sb.ToString());
+
+            // 느슨한 sanity — 시즌 진행 + 재정 동작 확인 (수치 합격은 로그로 사람이 판단).
+            Assert.AreEqual(20, state.allClubs.Count, "측정: 20구단");
+            bool anyWageOutflow = false;
+            foreach (var c in state.allClubs)
+            {
+                if (annualWage[c.id] > 0)
+                    anyWageOutflow = true;
+            }
+            Assert.IsTrue(anyWageOutflow, "측정: 주급 데이터 존재(유출 발생 전제)");
+        }
+
+        // ════════════════════════════════════════════════════════════════
         // Helpers — GameDatabase fixture (GameInitializerTests 패턴 재사용)
         // ════════════════════════════════════════════════════════════════
 
