@@ -177,6 +177,7 @@ namespace FMLite.Editor
                 E("nav_schedule", "일정", "Schedule"),
                 E("nav_standings", "순위", "Standings"),
                 E("nav_facility", "시설", "Facilities"),
+                E("nav_finance", "재정", "Finances"),
                 E("nav_youth", "유스", "Youth"),
                 E("nav_mentoring", "멘토링", "Mentoring"),
                 E("nav_back", "뒤로", "Back"),

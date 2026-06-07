@@ -55,15 +55,15 @@ MonoBehaviour:
   - 0.15
   tierRepMin: 55000000410000002d00000019000000
   tierRepMax: 5f000000500000003c00000028000000
-  financeBaseMoney: 5000000
-  financeRepCoeff: 4000000
+  financeBaseMoney: 11000000
+  financeRepCoeff: 290000
   financeNoiseSigma: 0.15
   financeFloor: 1000000
   transferBudgetRatio: 0.2
   wageBudgetRatio: 0.5
   facilityNoiseSigma: 1
   minFacilityLevel: 1
-  maxFacilityLevel: 5
+  maxFacilityLevel: 10
   captainAgeCap: 35
   captainAgeMultiplier: 0.5
   captainContractYearsMultiplier: 2
@@ -132,6 +132,32 @@ MonoBehaviour:
   goalConversionBase: 0.3
   goalConversionDivisor: 150
   shotBlockedRatio: 0.4
+  xgClearChance: 0.29
+  xgOpenPlay: 0.083
+  xgHeader: 0.08
+  xgLongShot: 0.033
+  xgDirectFreeKick: 0.045
+  xgFloor: 0.02
+  xgCeil: 0.85
+  finishingXgDivisor: 220
+  finishModMin: 0.6
+  finishModMax: 1.5
+  gkXgDivisor: 260
+  gkModFloor: 0.55
+  gkModCeil: 1.25
+  conversionFloor: 0.01
+  conversionCeil: 0.95
+  clearChanceBase: 0.1
+  clearChanceDivisor: 400
+  clearChanceProbMin: 0.03
+  clearChanceProbMax: 0.35
+  longShotProb: 0.12
+  headerModNormalizer: 1
+  footMismatchPenalty: 0.85
+  bigChanceThreshold: 0.3
+  offsideProb: 0.18
+  throwInChance: 0.25
+  lineupNoiseSigma: 5
   zoneCornerChance: 0.25
   zoneCornerToBoxChance: 0.3
   midfieldTackleRatio: 0.6
@@ -178,6 +204,15 @@ MonoBehaviour:
   ratingLossPenalty: -0.2
   ratingMin: 1
   ratingMax: 10
+  ratingClearanceBonus: 0.04
+  ratingPassMinAttempts: 10
+  ratingPassHighBonus: 0.4
+  ratingPassMidBonus: 0.2
+  ratingPassLowPenalty: -0.25
+  ratingCleanSheetBonusDef: 0.35
+  ratingConcededPenaltyDef: -0.12
+  ratingXgPerformanceCoeff: 0.6
+  ratingBigChanceMissPenalty: -0.5
   youthBaseAvgPA: 100
   youthStarPickProbability: 0.05
   youthStarPaBonus: 50
@@ -198,6 +233,11 @@ MonoBehaviour:
   youthIntakeSecondMonth: 1
   youthIntakeSecondDay: 15
   mentoringRateModifier: 5
+  mentoringConvergenceFraction: 0.15
+  mentorAgeCap: 35
+  mentorAgeWeight: 0.5
+  mentorContractWeight: 1
+  mentorHiddenWeight: 0.5
   youthPromotionAge: 18
   youthPromotionCaRatio: 0.7
   youthRejectedToOtherClubRatio: 0.3
@@ -239,6 +279,7 @@ MonoBehaviour:
   aiMockingThreshold: 0.85
   aiCounterOfferFactor: 1.3
   maxNegotiationRounds: 3
+  maxPersonalNegotiationRounds: 4
   aiMockingMoralePenalty: 3
   playtimeAgreementBonus: 0.2
   transferWindowSummerStartMonth: 6
@@ -351,13 +392,16 @@ MonoBehaviour:
   youngPlayerMaxAge: 21
   monthlyPlayerMoraleBonus: 10
   monthlyManagerConfidenceBonus: 5
+  leaderboardRatingMinApps: 5
+  leaderboardDefaultTopN: 10
   managerRepLeagueWin: 20
   managerRepMonthlyAward: 5
   managerRepSacked: -30
   managerRepBoardBonusDivisor: 20
-  baseMatchDayIncome: 50000
-  baseTvIncome: 1500000
-  basePrize: 5000000
+  baseMatchDayIncome: 150000
+  baseTvIncome: 24000000
+  tvRepCoeff: 210000
+  basePrize: 14000000
   boardPromiseRejectPenalty: 10
   boardConfidenceLossPerDefeat: 2
   boardConfidenceBigMatchLossExtra: 3

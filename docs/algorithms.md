@@ -5229,15 +5229,21 @@ def WageSystem.ProcessMonthly(state, balance):   # DailyProcessor Day==1 훅
         club.finance.money -= monthly
 ```
 
-### V1.0-16.2 수입 재스케일 + 분산 (#74)
+### V1.0-16.2 수입 재스케일 + 분산 (#74) — 구현 (2026-06-07, R.3)
 
 - **목표 불변식**: 전형적(중위) 구단 *연 매출 ≈ 연 임금 ÷ 0.63* (≈임금×1.6 — EPL 임금/매출 63% 앵커).
-- TV 수입 대폭 상향(매출 주축), matchday 는 홈경기마다 즉시/월 분산, 상금 시즌말.
-- 현재값(참고): `financeBaseMoney=5M`, `financeRepCoeff=4M`, `baseTvIncome=1.5M`, `baseMatchDayIncome=50k`, `basePrize=5M`. → 재산정 (특히 TV ↑).
+- **분산 모델** (`FinanceSystem.ProcessMonthly`, DailyProcessor Day==1):
+  - **TV** (월별): `annualTv = baseTvIncome + tvRepCoeff × rep`, 매월 `round(annualTv/12)` 가산. 완만한 rep 스케일 → 작은 구단 floor.
+  - **Matchday** (월별 집계): 직전 캘린더 월 `[전월1일,당월1일)` 완료 홈경기 수 × `baseMatchDayIncome × stadiumLevel`. 비시즌엔 0(여름 압박). *rep 이중곱 제거 — stadium이 rep상관.*
+  - **Prize** (시즌말, `ProcessSeasonFinance`): `basePrize × (totalClubs−position)/(totalClubs−1)`.
+- **★시작 자금이 1차 레버** (사용자 결정): `financeBaseMoney 5M→11M`, `financeRepCoeff 4,000,000→290,000` (≈0.5×연매출). 구 205M/385M → ~27M/~37M.
+- **구현값** (측정 튜닝1 반영): `baseTvIncome=24M`, `tvRepCoeff=210,000`, `baseMatchDayIncome=150k`(×stadium), `basePrize=14M`. 측정(seed=7): Top4 +20→~+14M / Mid +5.3M(본전±) / Rel -1.1M.
+- **이적 하드 차단** (#74, 사용자): 영입구단 `money < amount` → `SubmitOffer` `자금 부족` throw + `CompleteTransfer` 체결시점 재확인.
 
-### V1.0-16.3 시설비 상향 (#74)
+### V1.0-16.3 시설 경제 (#74) — 구현 (2026-06-07, R.3)
 
-- **목표**: 전 시설 풀업그레이드 비용 ≈ 한 시즌 이적예산급 부담 (현재 자금의 0.2~1% → 의미 있는 %). `FacilityLevelSO.cost` 곡선 재산정 (에셋 chore).
+- **비용 곡선 reseed 불요**: 타이트 자금(시작 ~27M) 하에서 현 FacV10 곡선(50k→7M, 한 시설 1→10 합 ≈21.5M)은 이미 유의미한 부담. 에셋 churn 회피.
+- **shadow 버그 해소** (L.3 보류분): 구 `Resources/Facilities/`(Lv1-5, 효과 1.0)가 `FacilitiesV10/`(실 곡선) 가림 → `GameDatabase` 로드 `"FacilitiesV10"` 스코프. `maxFacilityLevel 5→10` (FacV10 Lv6-10 해금).
 
 ### V1.0-16.4 측정 하네스 (#74, G.5 패턴)
 
@@ -5259,13 +5265,14 @@ if gap > Epsilon:
 # 기존 wageRatio 항이 높으면(고임금) penalty 상쇄 → 약체도 "엄청난 요구"면 영입 가능
 ```
 
-### V1.0-16.6 GameBalanceSO 신규/재산정 필드
-- 신규: `repGapWeight`, `repGapMaxPenalty`, CA→rep 매핑 계수, (재정) 주급차감은 계수 불필요(직접 합산).
-- 재산정: `baseTvIncome` / `baseMatchDayIncome` / `basePrize` / `financeBaseMoney` / 시설 비용 곡선.
+### V1.0-16.6 GameBalanceSO 신규/재산정 필드 — 구현 (R.3, #74 한정)
+- 신규: `tvRepCoeff`(연 TV rep 항). (주급차감은 계수 불필요 — 직접 합산.)
+- 재산정값: `financeBaseMoney 5M→11M`, `financeRepCoeff 4,000,000→290,000`, `baseTvIncome 1.5M→24M`(공식 변경: ×rep/100 → flat base), `baseMatchDayIncome 50k→150k`(공식 변경: ×rep/100 제거, ×stadium만), `basePrize 5M→14M`(튜닝1: 측정 후 20M→14M, 빅클럽 억제), `maxFacilityLevel 5→10`.
+- *(`repGapWeight`/`repGapMaxPenalty`/CA→rep 매핑은 #75 = R.4 — 본 작업 미포함.)*
 - float 비교 epsilon(#11) 적용. 도메인은 GBP base 유지(#61) — 통화 표시 영향 0.
 
-### V1.0-16.7 영향 범위
-- `WageSystem`(신규) 또는 `FinanceSystem` 월처리 + DailyProcessor Day==1 / `FinanceSystem` 수입 재스케일·분산 / `MatchPostProcessor`(matchday 분산 시) / `TransferSystem.ComputePlayerAcceptChance`·`EstimatePlayerAcceptChance` / `FacilityLevelSO`·`GameBalance.asset` reseed(chore) / `MatchSimulatorTests` 또는 신규 재정 측정 테스트.
+### V1.0-16.7 영향 범위 — 구현
+- `FinanceSystem.ProcessMonthly`(신규, 주급+TV+matchday+budget) + `DailyProcessor` Day==1 훅 / `FinanceSystem.ProcessSeasonFinance`(상금 전용 축소) / `TransferSystem`(SubmitOffer+CompleteTransfer 하드 차단) / `GameDatabase`(FacilitiesV10 스코프) / `GameBalanceSO`+`GameBalance.asset` / `FinanceSystemTests`(마이그레이션+신규) + `IntegrationTests`(측정 하네스). MatchPostProcessor 미변경(matchday는 월별 집계로).
 
 ---
 

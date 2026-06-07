@@ -553,7 +553,8 @@ namespace FMLite.Tests
             Assert.IsFalse(offer.releaseClauseActivated, "T12: releaseClauseActivated=false");
         }
 
-        // T13. releaseClause=0 (없음) → 어떤 금액이어도 Pending
+        // T13. releaseClause=0 (없음) → (자금 내) 어떤 금액이어도 Pending
+        // (R.3 #74: 자금 부족 시 SubmitOffer 차단 → amount 는 buyer 자금 내로. clause=0 단언과 무관.)
         [Test]
         public void T13_ReleaseClause_Zero_NeverActivated()
         {
@@ -570,7 +571,7 @@ namespace FMLite.Tests
                 startDate = state.currentDate,
                 endDate = state.currentDate.AddYears(4),
             };
-            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 999_999_999, contract, state, _balance);
+            var offer = TransferSystem.SubmitOffer(p.id, c1.id, c2.id, 40_000_000, contract, state, _balance);
 
             Assert.AreEqual(OfferStatus.Pending, offer.status, "T13: clause=0 → Pending");
             Assert.IsFalse(offer.releaseClauseActivated, "T13: releaseClauseActivated=false");

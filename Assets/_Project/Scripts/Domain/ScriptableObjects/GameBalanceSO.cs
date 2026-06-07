@@ -110,8 +110,9 @@ namespace FMLite.Domain
         public int[] tierRepMax = { 95, 80, 60, 40 };
 
         [Header("Club Generation — Finance")]
-        public int financeBaseMoney = 5_000_000; // £5M base at rep=0
-        public float financeRepCoeff = 4_000_000f; // rep=50 → 205M, rep=95 → 385M
+        // R.3 (#74): 시작 자금 타이트 ≈ 0.5×연매출 (rep 차등 유지). rep52→~27M, rep90→~37M.
+        public int financeBaseMoney = 11_000_000; // base at rep=0
+        public float financeRepCoeff = 290_000f; // ≈ 0.5×(임금×1.6) 기울기
         public float financeNoiseSigma = 0.15f; // 15% σ
         public int financeFloor = 1_000_000;
         public float transferBudgetRatio = 0.20f;
@@ -120,7 +121,7 @@ namespace FMLite.Domain
         [Header("Club Generation — Facilities")]
         public float facilityNoiseSigma = 1.0f; // ±1 등급 정도 노이즈
         public int minFacilityLevel = 1;
-        public int maxFacilityLevel = 5;
+        public int maxFacilityLevel = 10; // R.3 (#74): 5→10, FacV10 Lv6-10 해금 (시설 경제)
 
         [Header("Captain Score")]
         public float captainAgeCap = 35f;
@@ -625,10 +626,13 @@ namespace FMLite.Domain
         public int managerRepSacked = -30;
         public int managerRepBoardBonusDivisor = 20; // 월간 boardConfidence += rep / divisor
 
-        [Header("Finance System (V0.5 M.6)")]
-        public int baseMatchDayIncome = 50_000; // 홈 경기당 × stadiumLevel × (rep/100)
-        public int baseTvIncome = 1_500_000; // 시즌당 × (rep/100)
-        public int basePrize = 5_000_000; // 1위 상금 (하위로 선형 감소, 최하위 0)
+        [Header("Finance System (V0.5 M.6 / V1.0 R.3 #74)")]
+        // R.3: 수입 재스케일 + 분산. TV=월별(연 base+repCoeff×rep), Matchday=홈경기당×stadium, Prize=시즌말.
+        // 매출 ≈ 임금 × 1.6 (EPL 63% 앵커). 초기 추정 — 측정 하네스로 튜닝.
+        public int baseMatchDayIncome = 150_000; // 홈 경기당 × stadiumLevel (rep항 제거 — stadium이 rep상관)
+        public int baseTvIncome = 24_000_000; // 연 TV flat base (월할 /12). 작은 구단 floor
+        public float tvRepCoeff = 210_000f; // 연 TV rep 항 (annualTv = base + coeff×rep)
+        public int basePrize = 14_000_000; // 1위 상금 (하위로 선형 감소, 최하위 0). R.3 튜닝1: 20M→14M (빅클럽 억제)
 
         [Header("Board System (V0.5 M.4~M.5)")]
         public int boardPromiseRejectPenalty = 10; // 보드 약속 거절 시 boardConfidence 감소

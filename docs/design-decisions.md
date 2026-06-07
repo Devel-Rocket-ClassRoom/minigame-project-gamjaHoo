@@ -2429,8 +2429,21 @@ public class StatSnapshot {
 
 **확인 (사용자, 2026-06-05):** 유출 신설+비율 정상화 방향 / 주급 월차감·전 구단 / AI=ratio·명성은 선수수락에만(#75) / 측정 기준 동의.
 
+### 구현 (2026-06-07, R.3) — 명세 대비 보강 (사용자 결정 + EPL 리서치)
+
+초안(시설비 상향 중심)에서 **본질 진단 후 재설계**. 코드 실측 + EPL 2024/25(매출£6.78B/임금£4.3B → 임금/매출 63%, 방송중계권 주축·구단 간 균등) 종합. **stock 문제(시작자금)가 최대 레버**임을 확인 → 사용자 3개 결정:
+
+1. **시작 자금 타이트** ≈ 0.5×연매출 (rep 차등 유지). `financeBaseMoney 5M→11M`, `financeRepCoeff 4,000,000→290,000`. rep52 중위 ~27M / rep90 빅클럽 ~37M (구 205M/385M 의 약 1/8). **"전원 영입 불가"의 1차 동인** — 단순 시설비 상향만으론 시작자금이 커서 무의미하던 문제 해소.
+2. **매출 ≈ 임금 × 1.6** (EPL 63% 앵커). 잉여 ~37% = 이적/시설 예산 → "본전±" = 잉여를 이적에 쓰면 본전, 성적(상금)으로 흑/적자. 운영비(스태프 등)는 V1.x.
+3. **수입 분산 (현금흐름)**: TV=월별(연 `baseTvIncome + tvRepCoeff×rep` 의 1/12, 작은 구단 floor), Matchday=직전 캘린더 월 홈경기×`baseMatchDayIncome×stadiumLevel`(비시즌 0 → 여름 압박), Prize=시즌말 순위 선형.
+4. **이적 자금 하드 차단** (사용자 결정 — V0.1 "적자 허용" 폐기): `SubmitOffer`(영입구단 `money < amount` → `자금 부족` throw) + `CompleteTransfer`(체결 시점 재확인, 부족 시 미체결). 기준 = 실제 `money`. CpuTransferAi 는 budget 게이트+catch 로 안전.
+5. **시설 경제 해금** (L.3 보류분 일부): 구 `Resources/Facilities/`(Lv1-5, 효과 1.0 placeholder)가 `FacilitiesV10/`(Lv1-10, 실 곡선)를 가리던 shadow 버그 → `GameDatabase` 로드 경로 `"FacilitiesV10"` 스코프 + `maxFacilityLevel 5→10`. 시설비 곡선은 타이트 자금 하에서 이미 유의미 → reseed 불요.
+
+**초기 수치는 추정** — 측정 하네스(`IntegrationTests.T_FinanceMeasurement_FullSeasonNetCashFlow`, G.5 패턴)로 tier별 시즌 순현금흐름 측정 → 사용자 Test Runner 1~2회 튜닝. 빅클럽 runaway 시 `basePrize`/`baseMatchDayIncome` 하향이 1순위 노브. 영향 파일: `FinanceSystem`(ProcessMonthly 신규/ProcessSeasonFinance 상금전용)/`DailyProcessor`(Day==1 훅)/`TransferSystem`/`GameDatabase`/`GameBalanceSO`+`GameBalance.asset`.
+
 ### V1.x 보완 포인트
 - 부채/이자, 스폰서·중계권 협상, 인플레이션(시즌별 시장가↑), 운영비(스태프·시설 유지비) 세분.
+- 빅클럽 잉여(부익부) 평탄화 — 현재 rep 고차 구단이 TV+matchday+prize 3중 rep상관으로 중위보다 잉여 큼.
 
 ---
 

@@ -111,6 +111,11 @@ namespace FMLite.Application
                     $"player id={playerId} not in fromClub id={fromClubId} (actual currentClubId={player.currentClubId})"
                 );
 
+            // R.3 — 이적 자금 하드 차단: 영입 구단이 이적료를 감당 못 하면 오퍼 불가 (#74).
+            // (CpuTransferAi 는 budget 게이트 + 예외 catch 로 안전 스킵.)
+            if (toClub.finance != null && toClub.finance.money < amount)
+                throw new InvalidOperationException("자금 부족");
+
             var offer = new TransferOffer
             {
                 id = state.nextOfferId++,
@@ -544,6 +549,20 @@ namespace FMLite.Application
                 return;
             }
 
+            // R.3 — 체결 시점 자금 재확인 (월 주급 차감 등으로 잔액 감소 가능). 부족 시 미체결 (#74).
+            int cost = offer.isLoan ? offer.loanFee : offer.amount;
+            if ((toClub.finance?.money ?? 0) < cost)
+            {
+                Debug.LogWarning(
+                    $"[TransferSystem] CompleteTransfer 자금 부족 (offer.id={offer.id}, cost={cost}) — Rejected"
+                );
+                offer.status = OfferStatus.Rejected;
+                EventBus.Publish(
+                    new OfferRespondedEvent { offerId = offer.id, newStatus = OfferStatus.Rejected }
+                );
+                return;
+            }
+
             fromClub.seniorSquadIds.Remove(offer.playerId);
             if (!toClub.seniorSquadIds.Contains(offer.playerId))
                 toClub.seniorSquadIds.Add(offer.playerId);
@@ -566,7 +585,7 @@ namespace FMLite.Application
                 // 영구 이적: parentClubId 초기화 (임대 해지 후 영구 이적 케이스 포함)
                 player.parentClubId = -1;
                 player.loanEndDate = null;
-                // 자금 이동 (V0.1: 자금 부족도 허용 — 적자 가능. V0.5+ 사전 검증)
+                // 자금 이동 (R.3: 위에서 자금 충분 확인 완료 — #74 하드 차단)
                 fromClub.finance.money += offer.amount;
                 toClub.finance.money -= offer.amount;
                 transferredAmount = offer.amount;

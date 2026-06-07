@@ -47,7 +47,9 @@ namespace FMLite.Domain
                 _namePools[n.countryId] = n;
             foreach (var l in Resources.LoadAll<LeagueConfigSO>(string.Empty))
                 _leagueConfigs[l.id] = l;
-            foreach (var f in Resources.LoadAll<FacilityLevelSO>(string.Empty))
+            // R.3 — FacilitiesV10/ 로 스코프. 구 Facilities/(Lv1-5, 효과 1.0 placeholder)가
+            // FacV10/(Lv1-10, 실 효과 곡선)을 가리던 shadow 버그 해소 (#74 동반).
+            foreach (var f in Resources.LoadAll<FacilityLevelSO>("FacilitiesV10"))
                 _facilityLevels.Add(f);
             foreach (var f in Resources.LoadAll<FormationSO>(string.Empty))
                 _formations[f.id] = f;
