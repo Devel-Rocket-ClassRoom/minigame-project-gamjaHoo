@@ -18,4 +18,20 @@ namespace FMLite.Core
     {
         public int playerId;
     }
+
+    // V1.0 R.5 (#76) — MoraleSystem 이 happiness 가 unhappyThreshold 미만으로 떨어진 시점 발행 (유저 구단 한정).
+    // event-bus-catalog.md "V1.0 플레이테스트 인박스 확장 이벤트".
+    public class PlayerUnhappyEvent
+    {
+        public int playerId;
+        public string reasonKey;
+        public int happiness;
+    }
+
+    // V1.0 R.5 (#76) — MatchPostProcessor 가 fatigue 가 fatigueAlertThreshold 초과로 올라간 시점 발행 (유저 구단 한정).
+    public class PlayerFatiguedEvent
+    {
+        public int playerId;
+        public int fatigue;
+    }
 }

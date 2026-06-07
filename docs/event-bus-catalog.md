@@ -467,10 +467,10 @@ public class PlayerFatiguedEvent {
 ```
 
 #### StandingsChangedEvent (V1.0 #76, League)
-- **Publisher:** `MatchPostProcessor` (매치데이 순위 재계산 후, 유저 구단 순위 변동 시)
+- **Publisher:** `BackgroundSimulator` (매치데이 처리 전후 유저 구단 순위 비교 — `SimulateDay` 비유저 배치 1회 + `SimulateUserMatch` 유저 매치 1회. **구현 정정 2026-06-07**: per-match `MatchPostProcessor` 는 매치데이당 다중 발행 위험 → 배치 단위로 이전, 역전 감지 유지하며 발행 횟수 매치데이당 ≤2 로 제한.)
 - **Subscribers:** InboxRouter → InboxItem(League/Low)
 - **Payload:** clubId, oldPosition, newPosition
-- **Trigger:** 유저 구단 리그 순위 변동 (역전 등). 빈번 발행 회피 위해 유저 구단 한정 + 실제 변동 시만.
+- **Trigger:** 유저 구단 리그 순위 변동 (역전 등). 유저 구단 한정 + 실제 변동 시만. 순위 = 승점 → 득실차 → 다득점 (`BackgroundSimulator.LeaguePosition`).
 
 ```csharp
 public class StandingsChangedEvent {
@@ -492,6 +492,11 @@ public class ContractExpiringEvent {
     public int monthsRemaining;
 }
 ```
+
+> **추가 라우팅 (R.5 구현, 2026-06-07 — 기존 미라우팅 갭 보완):**
+> - `TransferCompletedEvent` (기존) → InboxRouter: 유저가 매수(toClub=user)면 InboxItem(Transfer/Medium, `inbox_transfer_in_fmt`) / 매도(fromClub=user)면 `inbox_transfer_out_fmt`. (오퍼 Accepted 알림과 별개 — 이적창 열려 실제 체결된 시점.)
+> - `LoanReturnedEvent` (기존) → InboxRouter: 원소속(parentClub=user) 복귀 시 InboxItem(Transfer/Low, `inbox_loan_returned_fmt`).
+> - `AwardWonEvent` (기존) Tier1 라우팅 대상에 **월간 선수상**(`MonthlyPlayerOfMonth`) 포함 — `SeasonAwardSystem.ComputeMonthlyAwards` 가 해당 award 에 대해 `AwardWonEvent` 발행 추가 (기존엔 시즌 시상만 발행). InboxRouter 는 유저 구단 선수 한정 → InboxItem(Award/Medium).
 
 ---
 

@@ -182,7 +182,7 @@ namespace FMLite.UI
 
         // ── 순수 표시 로직 (테스트 대상) ─────────────────────────────
 
-        /// <summary>우선순위 표시 순서 (낮을수록 위). RequiresAction 최상단.</summary>
+        /// <summary>우선순위 표시 순서 (낮을수록 위). RequiresAction 최상단. (SortForDisplay 는 미사용 — 행 강조 등 보조용 유지.)</summary>
         public static int PriorityRank(Inbox.InboxPriority p) =>
             p switch
             {
@@ -193,15 +193,18 @@ namespace FMLite.UI
                 _ => 4,
             };
 
-        /// <summary>표시 정렬: 우선순위 → 최신순 (createdAt 내림차순).</summary>
+        /// <summary>
+        /// 표시 정렬: 최신순 (createdAt 내림차순 → id 내림차순). 최신 항목이 맨 위에 쌓임.
+        /// (사용자 요청 2026-06-07 — 카테고리/우선순위 그룹핑 폐기, 타임라인식. 최신이 위로 와 스크롤 불필요. id = 단조증가 = 발생 순서 타이브레이크.)
+        /// </summary>
         public static List<Inbox.InboxItem> SortForDisplay(IEnumerable<Inbox.InboxItem> items)
         {
             if (items == null)
                 return new List<Inbox.InboxItem>();
             return items
                 .Where(i => i != null)
-                .OrderBy(i => PriorityRank(i.priority))
-                .ThenByDescending(i => i.createdAt)
+                .OrderByDescending(i => i.createdAt)
+                .ThenByDescending(i => i.id)
                 .ToList();
         }
 

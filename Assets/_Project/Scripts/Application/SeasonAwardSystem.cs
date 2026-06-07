@@ -228,6 +228,15 @@ namespace FMLite.Application
                             100,
                             topPlayer.state.morale + balance.monthlyPlayerMoraleBonus
                         );
+
+                    // R.5 (#76) — 월간 시상도 인박스 라우팅 (InboxRouter 가 유저 구단 한정 필터).
+                    EventBus.Publish(
+                        new AwardWonEvent
+                        {
+                            awardType = AwardType.MonthlyPlayerOfMonth,
+                            playerId = topPlayer.id,
+                        }
+                    );
                 }
             }
 

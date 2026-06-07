@@ -980,7 +980,7 @@ namespace FMLite.Editor
                 E("options_off", "끄기", "Off"),
                 E("options_save_apply", "저장", "Save"),
 
-                // ── Inbox 카테고리 (7) ───────────────────────────────
+                // ── Inbox 카테고리 (8 — V1.0 R.5 League 추가) ─────────
                 E("inbox_category_match", "경기", "Match"),
                 E("inbox_category_transfer", "이적", "Transfer"),
                 E("inbox_category_morale", "사기", "Morale"),
@@ -988,6 +988,7 @@ namespace FMLite.Editor
                 E("inbox_category_youth", "유스", "Youth"),
                 E("inbox_category_cup", "컵", "Cup"),
                 E("inbox_category_award", "시상", "Award"),
+                E("inbox_category_league", "리그", "League"),
 
                 // ── Inbox 우선순위 (4) ───────────────────────────────
                 E("inbox_priority_low", "낮음", "Low"),
@@ -1098,6 +1099,58 @@ namespace FMLite.Editor
                 // 행 기한 표시 (InboxEntryView, Stage B.1) — 전체 탭은 filter_all 재사용
                 E("inbox_deadline_days_fmt", "기한 D-{0}", "Due D-{0}"),
                 E("inbox_deadline_expired", "기한 만료", "Expired"),
+
+                // ── V1.0 R.5 (#76) 인박스 확장 알림 fmt ───────────────
+                E("inbox_player_injured_fmt", "[부상] {0} 부상", "[Injury] {0} injured"),
+                E(
+                    "inbox_player_recovered_fmt",
+                    "[복귀] {0} 부상 복귀",
+                    "[Recovered] {0} back from injury"
+                ),
+                E(
+                    "inbox_youth_growth_fmt",
+                    "[유스] {0} 성장 — {1} {2}→{3}",
+                    "[Youth] {0} improved — {1} {2}→{3}"
+                ),
+                E("inbox_award_won_fmt", "[시상] {0} 수상 — {1}", "[Award] {0} won {1}"),
+                E(
+                    "inbox_player_unhappy_fmt",
+                    "[사기] {0} 불만 (행복도 {1})",
+                    "[Morale] {0} unhappy (happiness {1})"
+                ),
+                E(
+                    "inbox_player_fatigued_fmt",
+                    "[피로] {0} 피로 누적 (피로도 {1})",
+                    "[Fatigue] {0} fatigued (fatigue {1})"
+                ),
+                E(
+                    "inbox_standings_changed_fmt",
+                    "[순위] 리그 순위 {0}위 → {1}위",
+                    "[Table] League position {0} → {1}"
+                ),
+                E(
+                    "inbox_contract_expiring_fmt",
+                    "[계약] {0} 계약 만료 {1}개월 전",
+                    "[Contract] {0}'s contract expires in {1} months"
+                ),
+                E("inbox_transfer_in_fmt", "[영입] {0} 영입 완료", "[Transfer In] {0} signed"),
+                E("inbox_transfer_out_fmt", "[방출] {0} 방출 완료", "[Transfer Out] {0} departed"),
+                E(
+                    "inbox_loan_returned_fmt",
+                    "[임대] {0} 임대 복귀",
+                    "[Loan] {0} returned from loan"
+                ),
+
+                // ── V1.0 R.5 (#76) 시상 종류 (인박스 award_won + SeasonSummary 공용 — 기존 미시드 보완) ─
+                E("award_type_mvp", "리그 MVP", "League MVP"),
+                E("award_type_top_scorer", "득점왕", "Top Scorer"),
+                E("award_type_top_assist", "도움왕", "Top Assists"),
+                E("award_type_young_player", "올해의 영플레이어", "Young Player of the Season"),
+                E("award_type_best_eleven", "베스트 일레븐", "Team of the Season"),
+                E("award_type_golden_glove", "골든글러브", "Golden Glove"),
+                E("award_type_manager_of_season", "올해의 감독", "Manager of the Season"),
+                E("award_type_monthly_player_of_month", "이달의 선수", "Player of the Month"),
+                E("award_type_monthly_manager_of_month", "이달의 감독", "Manager of the Month"),
             };
 
         // ─────────────────────────────────────────────────────────────

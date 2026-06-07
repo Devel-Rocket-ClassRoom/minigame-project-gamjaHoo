@@ -590,6 +590,12 @@ namespace FMLite.Domain
         public int promisePlaytimeDefaultRatio = 50; // OnInterview PromisePlaytime 의 기본 출전 비율 (%)
         public int promiseDeadlineApproachingDays = 30; // (deadline - currentDate).Days ≤ N → 임박 알림 1회
 
+        // ── V1.0 R.5 Inbox Alerts (#76 / event-bus-catalog.md) ──
+        [Header("Inbox Alerts (V1.0 R.5 #76)")]
+        public int fatigueAlertThreshold = 50; // fatigue > N (상향 교차) → PlayerFatiguedEvent (유저 구단)
+        public int contractExpiryAlertMonths = 6; // 계약 잔여 == N개월 → ContractExpiringEvent (유저 구단, 1회)
+        // (불만 임계는 기존 unhappyThreshold 재사용)
+
         [Header("Dressing Room Mood (V0.5 G.3)")]
         public int dressingRoomMoodLowThreshold = 30; // < N → 매치 strength 패널티
         public float dressingRoomLowMoodStrengthFactor = 0.95f; // < 30 시 strength 배율 (≈ 폼 -5)

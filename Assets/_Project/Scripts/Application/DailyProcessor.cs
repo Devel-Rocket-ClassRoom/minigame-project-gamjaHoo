@@ -12,6 +12,7 @@
 // V0.5 추가 예정: 계약 만료 ContractExpiringEvent.
 
 using System;
+using FMLite.Core;
 using FMLite.Domain;
 
 namespace FMLite.Application
@@ -28,8 +29,6 @@ namespace FMLite.Application
             foreach (var player in state.allPlayers)
             {
                 RecoverFatigue(player, balance);
-                // TODO V0.5: ContractExpiring 알림 — currentDate vs contract.endDate
-                //              (임계점: 6개월 전 / 1개월 전 / 만료일)
             }
 
             // 부상 회복 (V0.5 D.4 — V0.1 CheckInjuryRecovery 교체 + 이벤트 발행)
@@ -57,6 +56,7 @@ namespace FMLite.Application
                 SeasonAwardSystem.ComputeMonthlyAwards(state, balance);
                 BoardSystem.EvaluateMonthly(state, balance);
                 FinanceSystem.ProcessMonthly(state, balance); // R.3 — 주급 유출 + TV/Matchday 수입
+                ScanContractExpiry(state, balance); // R.5 (#76) — 유저 구단 계약 만료 임박 알림
                 AutoSaveSystem.MonthlyAutoSave(state); // X.7 — AutoSave ON 시 월간 자동 저장 (재정 반영 후)
             }
 
@@ -76,6 +76,34 @@ namespace FMLite.Application
             if (p.state == null)
                 return; // 방어 (PlayerGen 산출은 항상 non-null)
             p.state.fatigue = Math.Max(0, p.state.fatigue - b.fatigueRecoveryPerDay);
+        }
+
+        // R.5 (#76) — 매월 1일 유저 구단 1군 계약 잔여가 임계(개월)에 정확히 도달한 선수 1회 알림.
+        // monthsRemaining = (연차×12 + 월차) 는 매월 1 감소 → 임계 정확 일치는 선수당 1회 (중복 발행 가드 불필요).
+        private static void ScanContractExpiry(GameState state, GameBalanceSO balance)
+        {
+            var club = state.GetClub(state.userClubId);
+            if (club?.seniorSquadIds == null)
+                return;
+
+            var now = state.currentDate;
+            foreach (var pid in club.seniorSquadIds)
+            {
+                var p = state.GetPlayer(pid);
+                if (p?.contract == null)
+                    continue;
+
+                var end = p.contract.endDate;
+                int monthsRemaining = (end.Year - now.Year) * 12 + (end.Month - now.Month);
+                if (monthsRemaining == balance.contractExpiryAlertMonths)
+                    EventBus.Publish(
+                        new ContractExpiringEvent
+                        {
+                            playerId = p.id,
+                            monthsRemaining = monthsRemaining,
+                        }
+                    );
+            }
         }
     }
 }

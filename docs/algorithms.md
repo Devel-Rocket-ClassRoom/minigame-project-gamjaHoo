@@ -4662,6 +4662,8 @@ public static class InboxRouter {
 - DashboardController 의 in-memory message 리스트 → state.inbox 활용
 - 신규: InboxPanel UI (TopBar 슬라이드)
 
+> **V1.0 R.5 (#76) 확장 (2026-06-07):** 위 10 이벤트에 더해 `InboxCategory.League` 신규 + Tier1 라우팅(PlayerInjured / PlayerInjuryRecovered / PlayerStatChanged-유스 / AwardWon-시즌·월간) + Tier2 신규 이벤트 4종(PlayerUnhappy / PlayerFatigued / StandingsChanged / ContractExpiring) + 추가 연결(TransferCompleted / LoanReturned). 발화·게이팅·발행 지점은 `design-decisions.md #76` 구현 노트 / `event-bus-catalog.md #76` 참조.
+
 ---
 
 ## V1.0-8. Player.physical + 매치 영향 (`#67 / Q4`)

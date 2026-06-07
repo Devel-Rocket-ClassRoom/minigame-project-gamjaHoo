@@ -48,8 +48,9 @@ namespace FMLite.Tests
         }
 
         [Test]
-        public void SortForDisplay_ByPriorityThenRecency()
+        public void SortForDisplay_ByRecency_NewestTopOldestBottom()
         {
+            // 우선순위 무관 — 최신순(createdAt 내림차순)으로만 정렬 (사용자 요청 2026-06-07, 최신이 위).
             var items = new List<Inbox.InboxItem>
             {
                 Item(1, Inbox.InboxPriority.Low, Inbox.InboxCategory.Match, T.AddHours(1)),
@@ -58,8 +59,22 @@ namespace FMLite.Tests
                 Item(4, Inbox.InboxPriority.Low, Inbox.InboxCategory.Match, T.AddHours(3)),
             };
             var sorted = InboxPanelController.SortForDisplay(items);
-            // 우선순위: RequiresAction(2) → High(3) → Low(최신순: 4 then 1)
-            CollectionAssert.AreEqual(new[] { 2, 3, 4, 1 }, sorted.Select(i => i.id).ToList());
+            // createdAt 내림차순: 4(+3h) → 3(+2h) → 1(+1h) → 2(T)
+            CollectionAssert.AreEqual(new[] { 4, 3, 1, 2 }, sorted.Select(i => i.id).ToList());
+        }
+
+        [Test]
+        public void SortForDisplay_SameDate_TiebreakByIdDescending()
+        {
+            // 같은 날 발생 (createdAt 동일) → id 내림차순 = 최근 발생이 위
+            var items = new List<Inbox.InboxItem>
+            {
+                Item(5, Inbox.InboxPriority.Low, Inbox.InboxCategory.League, T),
+                Item(2, Inbox.InboxPriority.High, Inbox.InboxCategory.Match, T),
+                Item(9, Inbox.InboxPriority.RequiresAction, Inbox.InboxCategory.Transfer, T),
+            };
+            var sorted = InboxPanelController.SortForDisplay(items);
+            CollectionAssert.AreEqual(new[] { 9, 5, 2 }, sorted.Select(i => i.id).ToList());
         }
 
         [Test]

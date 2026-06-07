@@ -207,6 +207,33 @@ namespace FMLite.Tests
             Assert.AreEqual(0, dups.Count, $"T9: 중복 키 — {string.Join(", ", dups)}");
         }
 
+        // ── T10. R.5 (#76) 인박스 확장 키 + League 카테고리 ──────────
+
+        [Test]
+        public void T10_R5_InboxExpansion_Keys_Registered()
+        {
+            var required = new[]
+            {
+                "inbox_category_league",
+                "inbox_player_injured_fmt",
+                "inbox_player_recovered_fmt",
+                "inbox_youth_growth_fmt",
+                "inbox_award_won_fmt",
+                "inbox_player_unhappy_fmt",
+                "inbox_player_fatigued_fmt",
+                "inbox_standings_changed_fmt",
+                "inbox_contract_expiring_fmt",
+                "inbox_transfer_in_fmt",
+                "inbox_transfer_out_fmt",
+                "inbox_loan_returned_fmt",
+                "award_type_mvp",
+                "award_type_top_scorer",
+                "award_type_monthly_player_of_month",
+            };
+            foreach (var k in required)
+                Assert.IsTrue(_keys.Contains(k), $"T10: '{k}' 누락");
+        }
+
         // ── 헬퍼 ─────────────────────────────────────────────────
 
         private static void AssertVariants(string prefix, int count)

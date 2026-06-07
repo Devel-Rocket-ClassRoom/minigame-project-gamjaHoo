@@ -38,9 +38,51 @@ namespace FMLite.UI
                 case "inbox_transfer_request_fmt":
                 case "inbox_contract_renewed_fmt":
                 case "inbox_contract_rejected_fmt":
+                // V1.0 R.5 (#76) — 선수명만 필요한 키들
+                case "inbox_player_injured_fmt":
+                case "inbox_player_recovered_fmt":
+                case "inbox_loan_returned_fmt":
+                case "inbox_transfer_in_fmt":
+                case "inbox_transfer_out_fmt":
                     return Localization.Get(
                         item.titleKey,
                         PlayerName(state, ArgInt(a, "playerId"))
+                    );
+
+                // V1.0 R.5 (#76) — 선수명 + 수치
+                case "inbox_player_unhappy_fmt":
+                    return Localization.Get(
+                        item.titleKey,
+                        PlayerName(state, ArgInt(a, "playerId")),
+                        ArgStr(a, "happiness")
+                    );
+                case "inbox_player_fatigued_fmt":
+                    return Localization.Get(
+                        item.titleKey,
+                        PlayerName(state, ArgInt(a, "playerId")),
+                        ArgStr(a, "fatigue")
+                    );
+                case "inbox_contract_expiring_fmt":
+                    return Localization.Get(
+                        item.titleKey,
+                        PlayerName(state, ArgInt(a, "playerId")),
+                        ArgStr(a, "months")
+                    );
+                case "inbox_youth_growth_fmt":
+                    return Localization.Get(
+                        item.titleKey,
+                        PlayerName(state, ArgInt(a, "playerId")),
+                        ArgStr(a, "stat"),
+                        ArgStr(a, "old"),
+                        ArgStr(a, "new")
+                    );
+                case "inbox_standings_changed_fmt":
+                    return Localization.Get(item.titleKey, ArgStr(a, "old"), ArgStr(a, "new"));
+                case "inbox_award_won_fmt":
+                    return Localization.Get(
+                        item.titleKey,
+                        PlayerName(state, ArgInt(a, "playerId")),
+                        Localization.Get(AwardTypeKey(ArgInt(a, "award")))
                     );
                 case "inbox_counter_offer_fmt":
                 case "inbox_personal_negotiation_fmt":
@@ -108,6 +150,22 @@ namespace FMLite.UI
                 age--;
             return age;
         }
+
+        // V1.0 R.5 (#76) — AwardWonEvent.awardType(int) → localization 키.
+        public static string AwardTypeKey(int awardType) =>
+            (D.AwardType)awardType switch
+            {
+                D.AwardType.LeagueMVP => "award_type_mvp",
+                D.AwardType.TopScorer => "award_type_top_scorer",
+                D.AwardType.TopAssist => "award_type_top_assist",
+                D.AwardType.YoungPlayer => "award_type_young_player",
+                D.AwardType.BestEleven => "award_type_best_eleven",
+                D.AwardType.GoldenGlove => "award_type_golden_glove",
+                D.AwardType.ManagerOfSeason => "award_type_manager_of_season",
+                D.AwardType.MonthlyPlayerOfMonth => "award_type_monthly_player_of_month",
+                D.AwardType.MonthlyManagerOfMonth => "award_type_monthly_manager_of_month",
+                _ => "award_type_mvp",
+            };
 
         public static string PromiseTypeKey(D.PromiseType type) =>
             type switch
