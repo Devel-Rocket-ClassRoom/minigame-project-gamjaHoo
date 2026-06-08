@@ -120,6 +120,7 @@ namespace FMLite.Application
 
             DontDestroyOnLoad(gameObject);
             SetupSources();
+            OptionsManager.EnsureInitialized();
             ApplyOptionsVolume();
             SceneManager.sceneLoaded += OnSceneLoaded;
             // 부트스트랩이 BeforeSceneLoad 라 보통 첫 씬 sceneLoaded 를 잡지만,
