@@ -3,17 +3,22 @@
 // V1.0 R.3 (#74). 표시 수치는 FinanceSystem public 헬퍼로 계산 → ProcessMonthly 와 단일 진실 소스.
 // 도메인은 GBP base, 표시만 OptionsManager.Currency 변환 (#61).
 
+using System.Collections;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
 using FMLite.Utils;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace FMLite.UI
 {
     public class FinanceController : MonoBehaviour
     {
+        [SerializeField]
+        private RectTransform financeCard;
+
         [Header("헤더")]
         [SerializeField]
         private TMP_Text titleText;
@@ -53,7 +58,20 @@ namespace FMLite.UI
         private static readonly Color Negative = new Color(0.91f, 0.30f, 0.24f); // #E74C3C
         private static readonly Color Neutral = new Color(0.80f, 0.80f, 0.80f); // #CCCCCC
 
-        private void OnEnable() => Refresh();
+        private void OnEnable() => StartCoroutine(RefreshCoroutine());
+
+        private IEnumerator RefreshCoroutine()
+        {
+            Refresh();
+            yield return new WaitForEndOfFrame();
+            Canvas.ForceUpdateCanvases();
+            if (financeCard != null)
+            {
+                LayoutRebuilder.ForceRebuildLayoutImmediate(financeCard);
+                if (financeCard.parent is RectTransform parent)
+                    LayoutRebuilder.ForceRebuildLayoutImmediate(parent);
+            }
+        }
 
         private void Refresh()
         {
@@ -116,6 +134,7 @@ namespace FMLite.UI
 
             if (squadText != null)
                 squadText.text = $"스쿼드 {club.seniorSquadIds?.Count ?? 0}명";
+
         }
     }
 }
