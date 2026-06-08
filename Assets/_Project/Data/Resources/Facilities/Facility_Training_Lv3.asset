@@ -16,5 +16,17 @@ MonoBehaviour:
   level: 3
   upgradeCost: 200000
   upgradeDurationDays: 90
+  scoutingListSize: 0
+  caAccuracyMargin: 0
+  trainingEfficiency: 1
+  youthAvgPABonus: 0
+  traitGrantChance: 0
   youthPoolSize: 0
+  signRatio: 1
+  youthGrowthRate: 1
+  injuryRateMultiplier: 1
+  recoverySpeedMultiplier: 1
+  ticketRevenueBase: 0
+  reputationBonus: 0
+  physicalGrowthBonus: 1
   youthAvgPA: 0

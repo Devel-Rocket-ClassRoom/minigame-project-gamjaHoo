@@ -1093,6 +1093,9 @@ MonoBehaviour:
   - key: inbox_category_award
     korean: "\uC2DC\uC0C1"
     english: Award
+  - key: inbox_category_league
+    korean: "\uB9AC\uADF8"
+    english: League
   - key: inbox_priority_low
     korean: "\uB0AE\uC74C"
     english: Low
@@ -1227,6 +1230,66 @@ MonoBehaviour:
   - key: inbox_deadline_expired
     korean: "\uAE30\uD55C \uB9CC\uB8CC"
     english: Expired
+  - key: inbox_player_injured_fmt
+    korean: "[\uBD80\uC0C1] {0} \uBD80\uC0C1"
+    english: '[Injury] {0} injured'
+  - key: inbox_player_recovered_fmt
+    korean: "[\uBCF5\uADC0] {0} \uBD80\uC0C1 \uBCF5\uADC0"
+    english: '[Recovered] {0} back from injury'
+  - key: inbox_youth_growth_fmt
+    korean: "[\uC720\uC2A4] {0} \uC131\uC7A5 \u2014 {1} {2}\u2192{3}"
+    english: "[Youth] {0} improved \u2014 {1} {2}\u2192{3}"
+  - key: inbox_award_won_fmt
+    korean: "[\uC2DC\uC0C1] {0} \uC218\uC0C1 \u2014 {1}"
+    english: '[Award] {0} won {1}'
+  - key: inbox_player_unhappy_fmt
+    korean: "[\uC0AC\uAE30] {0} \uBD88\uB9CC (\uD589\uBCF5\uB3C4 {1})"
+    english: '[Morale] {0} unhappy (happiness {1})'
+  - key: inbox_player_fatigued_fmt
+    korean: "[\uD53C\uB85C] {0} \uD53C\uB85C \uB204\uC801 (\uD53C\uB85C\uB3C4 {1})"
+    english: '[Fatigue] {0} fatigued (fatigue {1})'
+  - key: inbox_standings_changed_fmt
+    korean: "[\uC21C\uC704] \uB9AC\uADF8 \uC21C\uC704 {0}\uC704 \u2192 {1}\uC704"
+    english: "[Table] League position {0} \u2192 {1}"
+  - key: inbox_contract_expiring_fmt
+    korean: "[\uACC4\uC57D] {0} \uACC4\uC57D \uB9CC\uB8CC {1}\uAC1C\uC6D4 \uC804"
+    english: '[Contract] {0}''s contract expires in {1} months'
+  - key: inbox_transfer_in_fmt
+    korean: "[\uC601\uC785] {0} \uC601\uC785 \uC644\uB8CC"
+    english: '[Transfer In] {0} signed'
+  - key: inbox_transfer_out_fmt
+    korean: "[\uBC29\uCD9C] {0} \uBC29\uCD9C \uC644\uB8CC"
+    english: '[Transfer Out] {0} departed'
+  - key: inbox_loan_returned_fmt
+    korean: "[\uC784\uB300] {0} \uC784\uB300 \uBCF5\uADC0"
+    english: '[Loan] {0} returned from loan'
+  - key: award_type_mvp
+    korean: "\uB9AC\uADF8 MVP"
+    english: League MVP
+  - key: award_type_top_scorer
+    korean: "\uB4DD\uC810\uC655"
+    english: Top Scorer
+  - key: award_type_top_assist
+    korean: "\uB3C4\uC6C0\uC655"
+    english: Top Assists
+  - key: award_type_young_player
+    korean: "\uC62C\uD574\uC758 \uC601\uD50C\uB808\uC774\uC5B4"
+    english: Young Player of the Season
+  - key: award_type_best_eleven
+    korean: "\uBCA0\uC2A4\uD2B8 \uC77C\uB808\uBE10"
+    english: Team of the Season
+  - key: award_type_golden_glove
+    korean: "\uACE8\uB4E0\uAE00\uB7EC\uBE0C"
+    english: Golden Glove
+  - key: award_type_manager_of_season
+    korean: "\uC62C\uD574\uC758 \uAC10\uB3C5"
+    english: Manager of the Season
+  - key: award_type_monthly_player_of_month
+    korean: "\uC774\uB2EC\uC758 \uC120\uC218"
+    english: Player of the Month
+  - key: award_type_monthly_manager_of_month
+    korean: "\uC774\uB2EC\uC758 \uAC10\uB3C5"
+    english: Manager of the Month
   - key: currency_gbp_symbol
     korean: "\xA3"
     english: "\xA3"
@@ -1586,6 +1649,9 @@ MonoBehaviour:
   - key: nav_facility
     korean: "\uC2DC\uC124"
     english: Facilities
+  - key: nav_finance
+    korean: "\uC7AC\uC815"
+    english: Finances
   - key: nav_youth
     korean: "\uC720\uC2A4"
     english: Youth
@@ -1703,6 +1769,27 @@ MonoBehaviour:
   - key: dashboard_injury_fmt
     korean: "\uBD80\uC0C1\xB7\uACB0\uC7A5 {0}"
     english: 'Out: {0}'
+  - key: mentality_very_defensive
+    korean: "\uB9E4\uC6B0 \uC218\uBE44\uC801"
+    english: Very Defensive
+  - key: mentality_defensive
+    korean: "\uC218\uBE44\uC801"
+    english: Defensive
+  - key: mentality_cautious
+    korean: "\uC2E0\uC911\uD55C"
+    english: Cautious
+  - key: mentality_balanced
+    korean: "\uADE0\uD615"
+    english: Balanced
+  - key: mentality_positive
+    korean: "\uC801\uADF9\uC801"
+    english: Positive
+  - key: mentality_attacking
+    korean: "\uACF5\uACA9\uC801"
+    english: Attacking
+  - key: mentality_very_attacking
+    korean: "\uB9E4\uC6B0 \uACF5\uACA9\uC801"
+    english: Very Attacking
   - key: mrd_tab_overview
     korean: "\uAC1C\uC694"
     english: Overview

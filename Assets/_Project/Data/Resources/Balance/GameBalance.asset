@@ -372,6 +372,8 @@ MonoBehaviour:
   ratingLowThreshold: 6
   promisePlaytimeDefaultRatio: 50
   promiseDeadlineApproachingDays: 30
+  fatigueAlertThreshold: 50
+  contractExpiryAlertMonths: 6
   dressingRoomMoodLowThreshold: 30
   dressingRoomLowMoodStrengthFactor: 0.95
   dressingRoomCaptainLeadershipBonus: 0.2
