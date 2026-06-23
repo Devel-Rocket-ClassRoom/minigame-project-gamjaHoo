@@ -1913,3 +1913,69 @@ MonoBehaviour:
   - key: mrd_shot_off
     korean: "\uBE57\uB098\uAC10"
     english: Off Target
+  - key: hof_title
+    korean: "\uBA85\uC608\uC758 \uC804\uB2F9"
+    english: Hall of Fame
+  - key: menu_hall_of_fame
+    korean: "\uBA85\uC608\uC758 \uC804\uB2F9"
+    english: Hall of Fame
+  - key: hof_leaderboard_title
+    korean: "\uAE00\uB85C\uBC8C \uB7AD\uD0B9"
+    english: Global Ranking
+  - key: hof_my_seasons_title
+    korean: "\uB0B4 \uC5ED\uB300 \uC2DC\uC98C"
+    english: My Seasons
+  - key: hof_loading
+    korean: "\uBD88\uB7EC\uC624\uB294 \uC911..."
+    english: Loading...
+  - key: hof_firebase_unavailable
+    korean: "Firebase \uBBF8\uCD08\uAE30\uD654"
+    english: Firebase not initialized
+  - key: hof_load_failed
+    korean: "\uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328"
+    english: Failed to load
+  - key: hof_leaderboard_empty
+    korean: "\uC544\uC9C1 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+    english: No records yet
+  - key: hof_my_seasons_empty
+    korean: "\uC644\uB8CC\uD55C \uC2DC\uC98C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"
+    english: No completed seasons
+  - key: hof_anonymous
+    korean: "\uC775\uBA85"
+    english: Anonymous
+  - key: hof_season_position_fmt
+    korean: "{0}\uC704"
+    english: '#{0}'
+  - key: hof_season_points_fmt
+    korean: "{0}\uC810"
+    english: '{0} pts'
+  - key: hof_back
+    korean: "\uB4A4\uB85C"
+    english: Back
+  - key: menu_new_game
+    korean: "\uC0C8 \uAC8C\uC784"
+    english: New Game
+  - key: menu_load_game
+    korean: "\uBD88\uB7EC\uC624\uAE30"
+    english: Load Game
+  - key: menu_options
+    korean: "\uC635\uC158"
+    english: Options
+  - key: menu_quit
+    korean: "\uC885\uB8CC"
+    english: Quit
+  - key: menu_seed_label
+    korean: "\uC2DC\uB4DC \uC785\uB825 (\uBE48\uCE78=\uB79C\uB364)"
+    english: Seed (blank = random)
+  - key: menu_seed_placeholder
+    korean: "\uC2DC\uB4DC \uC785\uB825..."
+    english: Enter seed...
+  - key: menu_confirm
+    korean: "\uD655\uC815"
+    english: Confirm
+  - key: menu_cancel
+    korean: "\uCDE8\uC18C"
+    english: Cancel
+  - key: menu_no_slots
+    korean: "\uC800\uC7A5 \uD30C\uC77C \uC5C6\uC74C"
+    english: No saved games

@@ -55,6 +55,7 @@ namespace FMLite.Editor
             entries.AddRange(BuildV10Nav());
             entries.AddRange(BuildV10CompletedSceneLabels());
             entries.AddRange(BuildV10MatchResultDashboard());
+            entries.AddRange(BuildHallOfFame());
             return entries;
         }
 
@@ -1571,6 +1572,35 @@ namespace FMLite.Editor
                 ),
                 E("mentoring_mentor_select", "멘토 선택", "Select Mentor"),
                 E("mentoring_mentee_select", "멘티 선택 (최대 3명)", "Select Mentees (max 3)"),
+            };
+
+        // 명예의 전당 (Firebase 학습 기능) — 메인 메뉴 버튼 + HallOfFameScene.
+        private static List<LocalizationEntry> BuildHallOfFame() =>
+            new List<LocalizationEntry>
+            {
+                E("hof_title", "명예의 전당", "Hall of Fame"),
+                E("menu_hall_of_fame", "명예의 전당", "Hall of Fame"),
+                E("hof_leaderboard_title", "글로벌 랭킹", "Global Ranking"),
+                E("hof_my_seasons_title", "내 역대 시즌", "My Seasons"),
+                E("hof_loading", "불러오는 중...", "Loading..."),
+                E("hof_firebase_unavailable", "Firebase 미초기화", "Firebase not initialized"),
+                E("hof_load_failed", "불러오기 실패", "Failed to load"),
+                E("hof_leaderboard_empty", "아직 기록이 없습니다", "No records yet"),
+                E("hof_my_seasons_empty", "완료한 시즌이 없습니다", "No completed seasons"),
+                E("hof_anonymous", "익명", "Anonymous"),
+                E("hof_season_position_fmt", "{0}위", "#{0}"),
+                E("hof_season_points_fmt", "{0}점", "{0} pts"),
+                E("hof_back", "뒤로", "Back"),
+                // 메인 메뉴 (MainMenuController.LocalizeLabels) — 기존 정적 라벨 일괄 로컬라이즈.
+                E("menu_new_game", "새 게임", "New Game"),
+                E("menu_load_game", "불러오기", "Load Game"),
+                E("menu_options", "옵션", "Options"),
+                E("menu_quit", "종료", "Quit"),
+                E("menu_seed_label", "시드 입력 (빈칸=랜덤)", "Seed (blank = random)"),
+                E("menu_seed_placeholder", "시드 입력...", "Enter seed..."),
+                E("menu_confirm", "확정", "Confirm"),
+                E("menu_cancel", "취소", "Cancel"),
+                E("menu_no_slots", "저장 파일 없음", "No saved games"),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

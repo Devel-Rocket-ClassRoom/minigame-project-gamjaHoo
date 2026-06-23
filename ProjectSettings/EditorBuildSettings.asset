@@ -74,6 +74,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/FinanceScene.unity
     guid: b1779a2cee3c7184fa746a57499e0789
+  - enabled: 1
+    path: Assets/Scenes/HallOfFameScene.unity
+    guid: c604489eb33bc544db10872339f46b5e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
