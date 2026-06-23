@@ -4,7 +4,7 @@
 //   · 우(또는 하): 내 역대 시즌 — CareerRepository.LoadRecentSeasonsAsync 1회 로드.
 //   · [뒤로] → MainMenuScene.
 //
-// Firebase 게이트: FirebaseBootstrap 은 MainMenuScene 에서 DontDestroyOnLoad 로 넘어온다.
+// Firebase 게이트: FirebaseService(FirebaseKit) 는 MainMenuScene 에서 DontDestroyOnLoad 로 넘어온다.
 //   아직 IsReady 가 아닐 수 있어 OnReady (이미 ready 면 즉시 호출) 로 진입을 미룬다.
 //
 // ⚠️ 메인스레드: StartListener 의 ValueChanged 콜백은 메인스레드 보장이 없다(Persistence 주석).
@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using FirebaseKit;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Persistence.Cloud;
@@ -95,7 +96,7 @@ namespace FMLite.UI
             SetEmpty(leaderboardEmptyText, false);
             SetEmpty(seasonEmptyText, false);
 
-            var fb = FirebaseBootstrap.Instance;
+            var fb = FirebaseService.Instance;
             if (fb == null)
             {
                 SetStatus(Localization.Get("hof_firebase_unavailable"));
@@ -106,8 +107,8 @@ namespace FMLite.UI
 
         private void OnDestroy()
         {
-            if (FirebaseBootstrap.Instance != null)
-                FirebaseBootstrap.Instance.OnReady -= OnFirebaseReady;
+            if (FirebaseService.Instance != null)
+                FirebaseService.Instance.OnReady -= OnFirebaseReady;
             if (_listening)
             {
                 LeaderboardRepository.StopListener();
@@ -158,7 +159,7 @@ namespace FMLite.UI
             if (empty)
                 return;
 
-            string myUid = FirebaseBootstrap.Instance?.UserId;
+            string myUid = AuthManager.Uid;
             for (int i = 0; i < entries.Count; i++)
             {
                 var go = Instantiate(rankItemPrefab, leaderboardListParent);

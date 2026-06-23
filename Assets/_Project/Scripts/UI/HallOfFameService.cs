@@ -7,6 +7,7 @@
 
 using System;
 using System.Threading.Tasks;
+using FirebaseKit;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Persistence.Cloud;
@@ -55,8 +56,7 @@ namespace FMLite.UI
         // 현재 GameState 기준 커리어를 클라우드에 업로드. 디버그/수동 호출도 이 메서드 사용.
         public async Task UploadCurrentCareerAsync()
         {
-            var fb = FirebaseBootstrap.Instance;
-            if (fb == null || !fb.IsReady)
+            if (!RealtimeDatabaseService.IsReady)
             {
                 Debug.LogWarning("[HoF] Firebase 미준비 — 업로드 건너뜀.");
                 return;

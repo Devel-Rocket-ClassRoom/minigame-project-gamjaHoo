@@ -7,7 +7,8 @@
         "FMLite.Utils",
         "FMLite.Persistence",
         "FMLite.Application",
-        "FMLite.UI"
+        "FMLite.UI",
+        "FirebaseKit"
     ],
     "includePlatforms": [
         "Editor"
