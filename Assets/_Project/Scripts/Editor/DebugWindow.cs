@@ -19,6 +19,7 @@
 // 능력치 노출 / 시드 표시 / 매치 강제 결과 등 추가.
 
 using System;
+using FirebaseKit;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
@@ -182,8 +183,7 @@ namespace FMLite.Editor
         private void DrawCloudSection()
         {
             EditorGUILayout.LabelField("── 클라우드 (명예의 전당) ──", EditorStyles.miniBoldLabel);
-            var fb = FirebaseBootstrap.Instance;
-            if (fb == null || !fb.IsReady)
+            if (!RealtimeDatabaseService.IsReady)
             {
                 EditorGUILayout.HelpBox(
                     "Firebase 미준비 (익명 로그인 대기 중). 로그인 완료 후 사용하세요.",
@@ -192,7 +192,7 @@ namespace FMLite.Editor
                 return;
             }
 
-            EditorGUILayout.LabelField($"uid: {fb.UserId}", EditorStyles.miniLabel);
+            EditorGUILayout.LabelField($"uid: {AuthManager.Uid}", EditorStyles.miniLabel);
             _cloudNickname = EditorGUILayout.TextField("닉네임", _cloudNickname);
             using (new EditorGUILayout.HorizontalScope())
             {

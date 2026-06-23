@@ -1,9 +1,7 @@
-// FirebaseBootstrap.cs
-// Firebase 초기화 + 익명 로그인 진입점. Core Layer (인프라 성격 — GameManager 와 같은 레이어).
-// 의존성 체크 → 익명 로그인 → IsReady/OnReady 통지. 씬에 1개 배치, DontDestroyOnLoad.
-//
-// 익명 인증: uid 는 기기/설치당 1개로 로컬 캐싱되어 재실행해도 유지된다.
-// 다른 기기 = 다른 uid, 앱 데이터 삭제 = uid 소실 (명예의 전당 학습 범위에선 허용).
+// FirebaseService.cs
+// 재사용 가능한 Firebase 진입점 (FirebaseKit — 프로젝트 무관, FM-Lite 의존 0).
+// SDK 의존성 체크 → Auth/Database 확보 → (옵션) 익명 로그인 보장 → OnReady 발행.
+// 씬에 1개 배치, DontDestroyOnLoad. 다른 프로젝트엔 이 폴더(asmdef)만 복사해 재사용.
 
 using System;
 using System.Threading.Tasks;
@@ -12,15 +10,19 @@ using Firebase.Auth;
 using Firebase.Database;
 using UnityEngine;
 
-namespace FMLite.Core
+namespace FirebaseKit
 {
-    public class FirebaseBootstrap : MonoBehaviour
+    public class FirebaseService : MonoBehaviour
     {
-        public static FirebaseBootstrap Instance { get; private set; }
+        public static FirebaseService Instance { get; private set; }
 
         public bool IsReady { get; private set; }
-        public string UserId { get; private set; }
         public FirebaseDatabase Database { get; private set; }
+        public FirebaseAuth Auth { get; private set; }
+
+        [SerializeField]
+        [Tooltip("초기화 직후 익명 로그인을 보장한다 (계정 인증 도입 전 임시/게스트 신원).")]
+        private bool signInAnonymouslyOnReady = true;
 
         // 초기화 완료 시 1회 발행. 이미 Ready 인 뒤 구독하면 즉시 호출된다.
         private event Action _onReady;
@@ -46,6 +48,12 @@ namespace FMLite.Core
             DontDestroyOnLoad(gameObject);
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this)
+                Instance = null;
+        }
+
         private async void Start()
         {
             await InitializeAsync();
@@ -57,25 +65,19 @@ namespace FMLite.Core
             var status = await FirebaseApp.CheckAndFixDependenciesAsync();
             if (status != DependencyStatus.Available)
             {
-                Debug.LogError($"[Firebase] 의존성 해결 실패: {status}");
+                Debug.LogError($"[FirebaseKit] 의존성 해결 실패: {status}");
                 return;
             }
 
             Database = FirebaseDatabase.DefaultInstance;
+            Auth = FirebaseAuth.DefaultInstance;
 
-            var auth = FirebaseAuth.DefaultInstance;
-            AuthResult result = await auth.SignInAnonymouslyAsync();
-            UserId = result.User.UserId;
+            if (signInAnonymouslyOnReady && Auth.CurrentUser == null)
+                await AuthManager.SignInAnonymouslyAsync();
 
             IsReady = true;
-            Debug.Log($"[Firebase] 익명 로그인 성공. uid={UserId}");
+            Debug.Log($"[FirebaseKit] 준비 완료. uid={AuthManager.Uid}");
             _onReady?.Invoke();
-        }
-
-        private void OnDestroy()
-        {
-            if (Instance == this)
-                Instance = null;
         }
     }
 }

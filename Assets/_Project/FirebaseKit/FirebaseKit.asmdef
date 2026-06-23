@@ -1,11 +1,7 @@
 {
-    "name": "FMLite.Persistence",
-    "rootNamespace": "FMLite.Persistence",
-    "references": [
-        "FMLite.Core",
-        "FMLite.Domain",
-        "FirebaseKit"
-    ],
+    "name": "FirebaseKit",
+    "rootNamespace": "FirebaseKit",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
