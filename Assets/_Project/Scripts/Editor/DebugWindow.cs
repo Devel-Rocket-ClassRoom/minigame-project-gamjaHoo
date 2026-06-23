@@ -22,6 +22,8 @@ using System;
 using FMLite.Application;
 using FMLite.Core;
 using FMLite.Domain;
+using FMLite.Persistence.Cloud;
+using FMLite.UI;
 using UnityEditor;
 using UnityEngine;
 using UnityApplication = UnityEngine.Application;
@@ -42,6 +44,11 @@ namespace FMLite.Editor
         private int _offerAmount = 1_000_000;
         private int _offerWeeklyWage = 50_000;
         private int _offerYears = 3;
+
+        private string _cloudNickname = "테스트감독";
+        private string _cloudClubName = "테스트FC";
+        private int _cloudScore = 500;
+        private bool _listenerOn;
 
         private Vector2 _scroll;
 
@@ -68,6 +75,10 @@ namespace FMLite.Editor
                 EventBus.Unsubscribe(_onSeasonEnded);
             if (_onSeasonStarted != null)
                 EventBus.Unsubscribe(_onSeasonStarted);
+
+            // 클라우드 실시간 리스너 정리 (누수 방지).
+            LeaderboardRepository.StopListener();
+            _listenerOn = false;
         }
 
         private void HandleMatchFinished(MatchFinishedEvent e)
@@ -118,6 +129,10 @@ namespace FMLite.Editor
                 return;
             }
 
+            // 클라우드 섹션은 GameState 없이 로그인만 되면 동작 (write-path 검증용).
+            DrawCloudSection();
+            EditorGUILayout.Space();
+
             var gm = GameManager.Instance;
             if (gm == null || gm.State == null)
             {
@@ -162,6 +177,172 @@ namespace FMLite.Editor
             EditorGUILayout.Space();
             DrawSubmitOfferSection(state, balance);
             EditorGUILayout.EndScrollView();
+        }
+
+        private void DrawCloudSection()
+        {
+            EditorGUILayout.LabelField("── 클라우드 (명예의 전당) ──", EditorStyles.miniBoldLabel);
+            var fb = FirebaseBootstrap.Instance;
+            if (fb == null || !fb.IsReady)
+            {
+                EditorGUILayout.HelpBox(
+                    "Firebase 미준비 (익명 로그인 대기 중). 로그인 완료 후 사용하세요.",
+                    MessageType.Info
+                );
+                return;
+            }
+
+            EditorGUILayout.LabelField($"uid: {fb.UserId}", EditorStyles.miniLabel);
+            _cloudNickname = EditorGUILayout.TextField("닉네임", _cloudNickname);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("프로필 쓰기 (SetRawJson)"))
+                    WriteProfile(_cloudNickname);
+                if (GUILayout.Button("프로필 읽기 (GetValue)"))
+                    ReadProfile();
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("리더보드 (가짜 점수 테스트)", EditorStyles.miniLabel);
+            _cloudClubName = EditorGUILayout.TextField("구단명", _cloudClubName);
+            _cloudScore = EditorGUILayout.IntField("점수", _cloudScore);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("리더보드 쓰기"))
+                    SubmitEntry(_cloudNickname, _cloudClubName, _cloudScore);
+                if (GUILayout.Button("상위 10 읽기"))
+                    LoadTop(10);
+            }
+            if (GUILayout.Button(_listenerOn ? "실시간 리스너 중지" : "실시간 리스너 시작"))
+                ToggleListener(10);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("커리어 / 명예의 전당 (실제 데이터)", EditorStyles.miniLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("커리어 업로드 (수동)"))
+                    UploadCareer();
+                if (GUILayout.Button("내 역대 시즌 읽기"))
+                    LoadSeasons(10);
+            }
+        }
+
+        private static async void WriteProfile(string nickname)
+        {
+            try
+            {
+                await CloudProfileRepository.SetProfileAsync(nickname);
+                Debug.Log($"[Debug/Cloud] 프로필 저장 완료: nickname={nickname}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 프로필 저장 실패: {ex.Message}");
+            }
+        }
+
+        private static async void ReadProfile()
+        {
+            try
+            {
+                var p = await CloudProfileRepository.GetProfileAsync();
+                if (p == null)
+                    Debug.Log("[Debug/Cloud] 프로필 없음 (users/{uid} 미존재).");
+                else
+                    Debug.Log(
+                        $"[Debug/Cloud] 프로필 읽기: nickname={p.nickname}, createdAt={p.createdAt}"
+                    );
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 프로필 읽기 실패: {ex.Message}");
+            }
+        }
+
+        private static async void SubmitEntry(string nickname, string clubName, int score)
+        {
+            try
+            {
+                await LeaderboardRepository.SubmitEntryAsync(nickname, clubName, score);
+                Debug.Log($"[Debug/Cloud] 리더보드 쓰기 완료: {nickname} ({clubName}) = {score}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 리더보드 쓰기 실패: {ex.Message}");
+            }
+        }
+
+        private static async void LoadTop(int limit)
+        {
+            try
+            {
+                var top = await LeaderboardRepository.LoadTopAsync(limit);
+                Debug.Log($"[Debug/Cloud] 상위 {limit} ({top.Count}명):");
+                for (int i = 0; i < top.Count; i++)
+                    Debug.Log($"  {i + 1}. {top[i].nickname} ({top[i].clubName}) — {top[i].score}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 리더보드 읽기 실패: {ex.Message}");
+            }
+        }
+
+        private void ToggleListener(int limit)
+        {
+            if (_listenerOn)
+            {
+                LeaderboardRepository.StopListener();
+                _listenerOn = false;
+                Debug.Log("[Debug/Cloud] 실시간 리스너 중지.");
+                return;
+            }
+
+            LeaderboardRepository.StartListener(
+                limit,
+                list =>
+                {
+                    string head = list.Count > 0 ? $"1위 {list[0].nickname}={list[0].score}" : "(비어있음)";
+                    Debug.Log($"[Debug/Cloud] 리스너 갱신: {list.Count}명, {head}");
+                }
+            );
+            _listenerOn = true;
+            Debug.Log("[Debug/Cloud] 실시간 리스너 시작 (상위 변경 시 자동 로그).");
+        }
+
+        private static async void UploadCareer()
+        {
+            var svc = HallOfFameService.Instance;
+            if (svc == null)
+            {
+                Debug.LogWarning(
+                    "[Debug/Cloud] HallOfFameService 인스턴스 없음 (GameManager 오브젝트에 컴포넌트 부착 필요)."
+                );
+                return;
+            }
+            try
+            {
+                await svc.UploadCurrentCareerAsync();
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 커리어 업로드 실패: {ex.Message}");
+            }
+        }
+
+        private static async void LoadSeasons(int limit)
+        {
+            try
+            {
+                var seasons = await CareerRepository.LoadRecentSeasonsAsync(limit);
+                Debug.Log($"[Debug/Cloud] 내 역대 시즌 {seasons.Count}개 (최신순):");
+                foreach (var s in seasons)
+                    Debug.Log(
+                        $"  {s.year} {s.clubName} {s.position}위 {s.points}pts (ts={s.timestamp})"
+                    );
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Debug/Cloud] 시즌 읽기 실패: {ex.Message}");
+            }
         }
 
         private static void DrawStandingsSection(GameState state)

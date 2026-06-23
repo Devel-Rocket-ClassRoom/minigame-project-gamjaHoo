@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1074831538974",
+    "firebase_url": "https://fm-lite-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "fm-lite",
+    "storage_bucket": "fm-lite.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1074831538974:android:636d465455deb56cb0a70f",
+        "android_client_info": {
+          "package_name": "com.DefaultCompany.minigameproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfWe4GPZecJdUcS5taNvcq9nTiHvJpSM4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
