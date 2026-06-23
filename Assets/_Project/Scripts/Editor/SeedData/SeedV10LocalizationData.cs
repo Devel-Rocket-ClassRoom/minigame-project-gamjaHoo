@@ -1601,6 +1601,22 @@ namespace FMLite.Editor
                 E("menu_confirm", "확정", "Confirm"),
                 E("menu_cancel", "취소", "Cancel"),
                 E("menu_no_slots", "저장 파일 없음", "No saved games"),
+                // 계정 인증 (이메일/PW, #544)
+                E("menu_login", "로그인", "Log In"),
+                E("menu_signup", "회원가입", "Sign Up"),
+                E("menu_logout", "로그아웃", "Log Out"),
+                E("menu_login_title", "로그인 / 회원가입", "Log In / Sign Up"),
+                E("menu_email", "이메일", "Email"),
+                E("menu_password", "비밀번호", "Password"),
+                E("menu_nickname", "닉네임", "Nickname"),
+                E("menu_account_guest", "게스트", "Guest"),
+                E("menu_auth_working", "처리 중...", "Working..."),
+                E("menu_auth_failed", "인증 실패: {0}", "Auth failed: {0}"),
+                E(
+                    "menu_auth_need_input",
+                    "이메일과 비밀번호를 입력하세요",
+                    "Enter email and password"
+                ),
             };
 
         private static LocalizationEntry E(string key, string ko, string en) =>

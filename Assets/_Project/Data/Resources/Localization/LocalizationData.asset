@@ -1979,3 +1979,36 @@ MonoBehaviour:
   - key: menu_no_slots
     korean: "\uC800\uC7A5 \uD30C\uC77C \uC5C6\uC74C"
     english: No saved games
+  - key: menu_login
+    korean: "\uB85C\uADF8\uC778"
+    english: Log In
+  - key: menu_signup
+    korean: "\uD68C\uC6D0\uAC00\uC785"
+    english: Sign Up
+  - key: menu_logout
+    korean: "\uB85C\uADF8\uC544\uC6C3"
+    english: Log Out
+  - key: menu_login_title
+    korean: "\uB85C\uADF8\uC778 / \uD68C\uC6D0\uAC00\uC785"
+    english: Log In / Sign Up
+  - key: menu_email
+    korean: "\uC774\uBA54\uC77C"
+    english: Email
+  - key: menu_password
+    korean: "\uBE44\uBC00\uBC88\uD638"
+    english: Password
+  - key: menu_nickname
+    korean: "\uB2C9\uB124\uC784"
+    english: Nickname
+  - key: menu_account_guest
+    korean: "\uAC8C\uC2A4\uD2B8"
+    english: Guest
+  - key: menu_auth_working
+    korean: "\uCC98\uB9AC \uC911..."
+    english: Working...
+  - key: menu_auth_failed
+    korean: "\uC778\uC99D \uC2E4\uD328: {0}"
+    english: 'Auth failed: {0}'
+  - key: menu_auth_need_input
+    korean: "\uC774\uBA54\uC77C\uACFC \uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694"
+    english: Enter email and password
