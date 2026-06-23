@@ -21,6 +21,7 @@ namespace FMLite.UI
         private const string DashboardScene = "DashboardScene";
         private const string OptionsScene = "OptionsScene";
         private const string MainMenuScene = "MainMenuScene";
+        private const string HallOfFameScene = "HallOfFameScene";
 
         [Header("패널")]
         [SerializeField]
@@ -57,11 +58,76 @@ namespace FMLite.UI
         [SerializeField]
         private GameObject sackedPanel;
 
+        [Header("명예의 전당 (Firebase)")]
+        [SerializeField]
+        private Button hallOfFameButton;
+
+        [Header("로컬라이즈 라벨 (런타임)")]
+        [SerializeField]
+        private TMP_Text newGameLabel;
+
+        [SerializeField]
+        private TMP_Text loadGameLabel;
+
+        [SerializeField]
+        private TMP_Text hallOfFameLabel;
+
+        [SerializeField]
+        private TMP_Text optionsLabel;
+
+        [SerializeField]
+        private TMP_Text quitLabel;
+
+        [SerializeField]
+        private TMP_Text seedLabel;
+
+        [SerializeField]
+        private TMP_Text seedPlaceholder;
+
+        [SerializeField]
+        private TMP_Text newGameConfirmLabel;
+
+        [SerializeField]
+        private TMP_Text newGameCancelLabel;
+
+        [SerializeField]
+        private TMP_Text loadGameCancelLabel;
+
         private void Start()
         {
             EnsureCoreInitialized();
+            LocalizeLabels();
             ShowMainPanel();
             CheckSackedFlag();
+
+            if (hallOfFameButton != null)
+            {
+                hallOfFameButton.onClick.RemoveAllListeners();
+                hallOfFameButton.onClick.AddListener(OnHallOfFameClicked);
+            }
+        }
+
+        // 메인 메뉴 라벨을 현재 언어로. 버튼/패널 텍스트가 씬에 정적이라 런타임 덮어씀
+        // (GlobalNavController.LocalizeLabels 패턴). 브랜드명/버전은 제외.
+        private void LocalizeLabels()
+        {
+            SetLabel(newGameLabel, "menu_new_game");
+            SetLabel(loadGameLabel, "menu_load_game");
+            SetLabel(hallOfFameLabel, "menu_hall_of_fame");
+            SetLabel(optionsLabel, "menu_options");
+            SetLabel(quitLabel, "menu_quit");
+            SetLabel(seedLabel, "menu_seed_label");
+            SetLabel(seedPlaceholder, "menu_seed_placeholder");
+            SetLabel(newGameConfirmLabel, "menu_confirm");
+            SetLabel(newGameCancelLabel, "menu_cancel");
+            SetLabel(loadGameCancelLabel, "menu_cancel");
+            SetLabel(noSlotsText, "menu_no_slots");
+        }
+
+        private static void SetLabel(TMP_Text label, string key)
+        {
+            if (label != null)
+                label.text = Localization.Get(key);
         }
 
         // 앱 진입점(MainMenuScene = build 0)에서 Localization/Options 초기화.
@@ -114,6 +180,12 @@ namespace FMLite.UI
         {
             PlayerPrefs.SetString(OptionsController.PreviousSceneKey, MainMenuScene);
             SceneManager.LoadScene(OptionsScene);
+        }
+
+        // 명예의 전당 (Firebase 학습 기능) — 게임 로드 불필요한 전역 화면. 복귀 = MainMenuScene.
+        public void OnHallOfFameClicked()
+        {
+            SceneManager.LoadScene(HallOfFameScene);
         }
 
         public void OnQuitClicked()
